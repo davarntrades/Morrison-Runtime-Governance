@@ -1,0 +1,94 @@
+<div align="center">
+
+# Morrison Runtime Governance — Enterprise Pilot
+
+**Structural Safety Assessment for Autonomous AI Systems**
+
+Resurrection Tech Ltd · UK Patents GB2600765.8 · GB2602013.1 · GB2602072.7 · GB2602332.5
+
+</div>
+
+-----
+
+## What We Deliver
+
+A runtime governance layer that intercepts unsafe executable trajectories before tool execution occurs. Deployed as middleware between your LLM planner and tool execution layer. No model retraining. No fine-tuning. No prompt engineering.
+
+```
+Your LLM Planner → Morrison Governance Middleware → Tool Execution
+```
+
+Unsafe trajectories are blocked. Safe operations proceed. The governance layer is model-agnostic.
+
+-----
+
+## Pilot Scope
+
+|Phase                          |Duration |Deliverable                                                               |
+|:------------------------------|:-------:|:-------------------------------------------------------------------------|
+|**1. Architecture Assessment** |Week 1   |Map your agent stack, tool definitions, and Ω domain requirements         |
+|**2. Ω Configuration**         |Week 2   |Define domain-specific forbidden states for your operational environment  |
+|**3. Middleware Integration**  |Weeks 3–5|Deploy governance layer into your agent pipeline (staging)                |
+|**4. Validation**              |Weeks 5–7|Run evaluation suite: safe/unsafe separation, attack scenarios, edge cases|
+|**5. Report + Production Path**|Week 8   |Full assessment report with production deployment plan                    |
+
+-----
+
+## What You Need to Provide
+
+- Access to your agent architecture documentation (tool definitions, planner outputs)
+- A staging environment for middleware integration
+- Domain-specific requirements: what must never happen in your system
+- An engineering point of contact (1–2 people)
+
+-----
+
+## What You Get Back
+
+- **Governance middleware** configured for your stack (OpenAI / LangChain / AutoGen / MCP / custom)
+- **Domain Ω definitions** formalising your operational forbidden states
+- **Evaluation report** with exact safe/unsafe separation metrics across your operational scenarios
+- **Attack surface analysis** covering chained attacks, delayed intent, privilege escalation, data exfiltration
+- **Production deployment plan** with integration architecture and operational recommendations
+
+-----
+
+## Pricing
+
+|Package                              |Investment |
+|:------------------------------------|:----------|
+|Runtime Safety Assessment (1–2 weeks)|£18K–25K   |
+|Structural Safety Pilot (4–8 weeks)  |£120K–250K+|
+|Advisory Retainer                    |£18K–35K/mo|
+|Full Enterprise Integration          |£250K–£1M+ |
+
+-----
+
+## Validated Across
+
+- **GPT-4o** — 9,095 evaluations
+- **Qwen2.5-0.5B** — 10,000 evaluations
+- **Qwen2.5-7B** — 200 evaluations (real planner)
+- **Llama-3.1-8B** — 240 hard stress scenarios
+- **Total: 129,541 evaluations. 0 false positives. 0 false negatives.**
+
+The governance layer was unchanged across all models.
+
+-----
+
+## Contact
+
+**Davarn Morrison**
+Founder — Resurrection Tech Ltd
+GitHub: [github.com/davarntrades](https://github.com/davarntrades)
+
+-----
+
+<div align="center">
+
+*If your AI systems can execute actions, they can execute catastrophic ones.*
+*This layer determines whether those trajectories are reachable before execution occurs.*
+
+© 2026 Davarn Morrison — Intelligence Invariant™ · All Rights Reserved
+
+</div>
