@@ -251,13 +251,13 @@ This runtime governance middleware is one implementation of that theory — appl
 
 The full framework covers:
 
-|Invariant                 |Domain                                 |
-|:-------------------------|:--------------------------------------|
-|Safety Invariant          |ℛ(t) ∩ Ω = ∅ — this middleware         |
-|Intelligence Invariant    |I(t) = ∂/∂t [Topology(Reach(X₀, U, t))]|
-|Identity Invariant        |Identity = Topology(Reach(X₀, U, t))   |
-|Consciousness Invariant   |C = Topology(⋃ᵢ 𝒩(X, Iᵢ), t)           |
-|Irreversibility Hypothesis|Λ · ΔG > T_critical                    |
+|Invariant                 |Equation                      |
+|:-------------------------|:-----------------------------|
+|Safety Invariant          |ℛ(t) ∩ Ω = ∅ — this middleware|
+|Intelligence Invariant    |I(t) = d/dt μ(ℛ(t))           |
+|Identity Invariant        |𝒥(x₀) := [ℛ(t)]_∼             |
+|Consciousness Invariant   |C(t) = τ(⋃ᵢ 𝒩_t(X, Iᵢ))       |
+|Irreversibility Hypothesis|‖ΛΔG‖ > T_critical            |
 
 **This repo implements Invariant 4 — the Safety Invariant.** The rest of the framework is published at [github.com/davarntrades](https://github.com/davarntrades).
 
