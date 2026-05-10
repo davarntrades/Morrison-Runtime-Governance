@@ -3,7 +3,7 @@
 # Morrison Runtime Governance
 
 ![Safety](https://img.shields.io/badge/Safety-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
-![Evaluations](https://img.shields.io/badge/Evaluations-129%2C541-0075ca?style=flat-square)
+![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
 ![False_Positives](https://img.shields.io/badge/False_Positives-0-2ea44f?style=flat-square)
 ![False_Negatives](https://img.shields.io/badge/False_Negatives-0-2ea44f?style=flat-square)
 ![Models](https://img.shields.io/badge/Models-GPT--4o_·_Qwen_·_Llama-555555?style=flat-square)
@@ -199,7 +199,7 @@ graph TD
 A_safe ⊂ V2 ⊂ V3 ⊂ V4 ⊂ V4+ ⊂ V5
 ```
 
-Each layer catches failures invisible to every layer below it. Zero counterexamples across 129,541 evaluations and 4 model architectures.
+Each layer catches failures invisible to every layer below it. Zero counterexamples across 129,857 evaluations and 5 model architectures.
 
 -----
 
@@ -266,17 +266,52 @@ See [`examples/`](examples/) for full integration patterns.
 
 ## Cross-Model Validation
 
-|Model             |Evaluations|False Positives|False Negatives|
-|:-----------------|:---------:|:-------------:|:-------------:|
-|GPT-4o            |9,095      |0              |0              |
-|Qwen2.5-0.5B      |10,000     |0              |0              |
-|Qwen2.5-7B        |200        |0              |0              |
-|Llama-3.1-8B      |240        |0              |0              |
-|Banking benchmark |10,000     |0              |0              |
-|Stress test (100K)|100,000    |0              |0              |
-|**Total**         |**129,541**|**0**          |**0**          |
+|Model             |Evaluations|Domains                 |False Positives|False Negatives|
+|:-----------------|:---------:|:----------------------:|:-------------:|:-------------:|
+|GPT-4o            |9,095      |Finance, Cybersecurity  |0              |0              |
+|Qwen2.5-0.5B      |10,000     |Multi-domain            |0              |0              |
+|Qwen2.5-7B        |438        |6 domains (real planner)|0              |0              |
+|Llama-3.1-8B      |318        |6 domains + hard stress |0              |0              |
+|Banking benchmark |10,000     |Banking                 |0              |0              |
+|Stress test (100K)|100,000    |Multi-domain            |0              |0              |
+|**Total**         |**129,857**|                        |**0**          |**0**          |
 
 The governance layer was unchanged across all models. Safety is a property of the control layer, not the model.
+
+### V5 Healthcare — Qwen2.5-7B (Real Planner)
+
+160 scenarios. 11 case types. Full geometric validation.
+
+|Case Type       |Scenarios|Correct|Avg Ω Metric|
+|:---------------|:-------:|:-----:|:----------:|
+|Single safe     |40       |40     |0.197       |
+|Benign near-miss|20       |20     |0.221       |
+|Jailbreak-style |20       |20     |0.600       |
+|Delayed intent  |20       |20     |0.431       |
+|Multi-step plan |20       |20     |0.391       |
+|PHI exfiltration|10       |10     |0.615       |
+|Medication risk |10       |10     |0.704       |
+|Unsafe discharge|5        |5      |0.768       |
+|Fabrication     |5        |5      |0.642       |
+|Deletion        |5        |5      |0.547       |
+|Policy bypass   |5        |5      |0.524       |
+
+160/160. Zero false positives. Zero false negatives.
+
+### V5+ Cross-Domain — Qwen2.5-7B + Llama-3.1-8B
+
+156 scenarios. 6 domains. 2 models. Full V5+ environment perturbation.
+
+|Domain            |Scenarios|Correct|Avg Ω Metric|
+|:-----------------|:-------:|:-----:|:----------:|
+|Finance           |24       |24     |0.488       |
+|FinTech           |18       |18     |0.498       |
+|Cybersecurity     |24       |24     |0.520       |
+|Healthcare        |42       |42     |0.521       |
+|Data Privacy      |24       |24     |0.495       |
+|Enterprise Systems|24       |24     |0.387       |
+
+156/156. Zero false positives. Zero false negatives. Including 38 planner fallbacks and 18 planner normalizations handled correctly.
 
 ### V5+ Hard Stress — Llama-3.1-8B
 
