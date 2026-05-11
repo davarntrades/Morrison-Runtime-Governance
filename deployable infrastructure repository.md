@@ -169,6 +169,38 @@ The system enforces safety across admissible perturbation environments while add
 
 -----
 
+## Planner vs Governance
+
+A planner may still generate unsafe, hallucinated, adversarial, or malformed trajectories, while the governance layer prevents those trajectories from becoming executable outcomes.
+
+Hallucinations may persist at the planner layer, but catastrophic executable trajectories can still be structurally constrained at runtime.
+
+```mermaid
+graph TD
+    subgraph "Planner Layer — Untrusted"
+        LLM[LLM Planner]
+        LLM --> safe_t["Safe trajectory"]
+        LLM --> unsafe_t["Unsafe trajectory"]
+        LLM --> halluc_t["Hallucinated trajectory"]
+        LLM --> adv_t["Adversarial trajectory"]
+        LLM --> malform_t["Malformed trajectory"]
+    end
+
+    subgraph "Governance Layer — Structural"
+        safe_t --> GOV{{"ℛ(t) ∩ Ω = ∅ ?"}}
+        unsafe_t --> GOV
+        halluc_t --> GOV
+        adv_t --> GOV
+        malform_t --> GOV
+        GOV -->|"Yes — PERMIT"| EXEC[Tool Execution]
+        GOV -->|"No — BLOCK"| LOG[Blocked + Audit Log]
+    end
+```
+
+The governance layer does not fix the planner. It does not retrain it. It does not align it. It prevents its outputs from reaching Ω. The planner is untrusted. The invariant holds regardless.
+
+-----
+
 ## Architecture
 
 ```mermaid
