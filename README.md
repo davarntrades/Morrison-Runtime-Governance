@@ -19,6 +19,47 @@
 
 -----
 
+## Quickstart (2 minutes, one command)
+
+```bash
+python3 quickstart.py            # instant
+python3 quickstart.py --cinematic  # paced, for screen-recording
+```
+
+No arguments, no dependencies beyond the package. It walks through, with
+obvious `✓ PERMIT` / `✗ BLOCK` output:
+
+1. an agent **attempts data exfiltration** → governance **intercepts** it
+2. **per-layer attribution** (which of A_safe/V2/V3/V4 fired)
+3. a **safe internal workflow is permitted**
+4. **every layer triggered once** (A_safe → V2 → V3 → V4 → V4+ → V5 → V5+)
+5. the **hardest adversarial surface** (multi-turn chains) shown fixed
+6. **deterministic replay verified** (identical verdict + hash across runs)
+
+### Architecture
+
+```
+        proposed tool call            ┌──────────────────────────────┐
+  AGENT ───────────────────────────▶  │        GOVERNANCE LAYER       │
+ (LLM / planner)                       │  A_safe  single-step Ω        │
+                                       │  V2      drift + source→sink  │
+                                       │  V3      forward reachability │
+        ◀───── PERMIT ─────────────────│  V4      admissibility        │
+           │                           │  V4+     feasibility          │
+           ▼                           │  V5      env-wide stability   │
+  ┌──────────────┐    BLOCK ◀──────────│  V5+     adversarial harness  │
+  │ TOOL RUNTIME │      (never runs)   └──────────────────────────────┘
+  │ shell/API/fs │
+  │  /browser    │       Invariant:  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅
+  └──────────────┘
+```
+
+A rendered version is at
+[`artifacts/visualizations/architecture.png`](artifacts/visualizations/architecture.png)
+(regenerate with `python3 artifacts/visualizations/architecture.py`).
+
+-----
+
 ## Thesis
 
 Current AI safety operates on outputs. It filters what the model says after generation. This is structurally insufficient for systems that execute actions — tool-calling agents, autonomous planners, multi-step workflows.
