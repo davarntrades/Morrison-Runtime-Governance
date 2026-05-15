@@ -60,6 +60,21 @@ from morrison_governance.adversarial import (
     AttackVariant,
     run_attack_suite,
 )
+from morrison_governance.forecasting import (
+    ReachabilityForecaster,
+    ForecastReport,
+    EnvironmentState,
+    infer_capabilities,
+)
+from morrison_governance.manifold import (
+    PerturbationManifold,
+    StabilityEnvelopeEstimator,
+    RobustnessReport,
+    TransferReport,
+    structural_distance,
+    cross_domain_transfer,
+    DEFAULT_MANIFOLDS,
+)
 from morrison_governance.integrations import (
     GovernanceGuard,
     GovernanceError,
@@ -118,6 +133,19 @@ __all__ = [
     "AdversarialReport",
     "AttackVariant",
     "run_attack_suite",
+    # V3 — generalized reachability forecasting
+    "ReachabilityForecaster",
+    "ForecastReport",
+    "EnvironmentState",
+    "infer_capabilities",
+    # V5 — perturbation-manifold robustness
+    "PerturbationManifold",
+    "StabilityEnvelopeEstimator",
+    "RobustnessReport",
+    "TransferReport",
+    "structural_distance",
+    "cross_domain_transfer",
+    "DEFAULT_MANIFOLDS",
     # Deployment adapters
     "GovernanceGuard",
     "GovernanceError",

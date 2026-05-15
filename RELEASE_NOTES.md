@@ -1,4 +1,45 @@
-# Release Notes — Morrison Runtime Governance v0.2.0
+# Release Notes — Morrison Runtime Governance
+
+## v0.3.0 — Generalized reachability forecasting + perturbation manifolds
+
+Additive on top of v0.2.0; all prior tests preserved (74/74 total).
+
+**V3 → generalized reachability forecasting** (`forecasting.py`)
+- Recursive, branching, admissibility-pruned rollout estimating R̂_E(τ, k)
+  over an evolving environment, on top of (not replacing) legacy projection.
+- Structural capability inference — no literal tool-name/keyword lists.
+- Environment evolution model (permission drift, schema mutation, hidden-
+  tool injection, retry pressure); taint lineage seeded from history.
+- Manifold geometry metrics: node count, mean branching, branch entropy,
+  P(Ω) over leaves, minimum Ω depth.
+- **V3-only blocks** demonstrated: deferred exfiltration, recursive retry
+  escalation, privilege accumulation — A_safe & V2 do not fire.
+  `Safe(local_step) ⇏ Safe(global_trajectory)` now enforced.
+- Toggle `enable_forecast`; default horizon 4.
+
+**V5 → bounded-ball robustness** (`manifold.py`)
+- `∀ E ∈ B(ℰ, r)` via 9 parameterised perturbation-manifold families.
+- Geometric (non-semantic) `structural_distance` metric; r=0 identity anchor.
+- Stability envelope: agreement vs radius, robustness margin, collapse
+  threshold, per-family flip probabilities.
+- `cross_domain_transfer`: middleware geometry invariant while Ω mutates
+  across finance/healthcare/cyber/compliance/fraud/data-privacy.
+- `GovernanceLayer.estimate_robustness(...)`.
+
+**Tests**: +18 (`test_forecasting.py` 10, `test_manifold.py` 8). Total
+**74/74**, 0 FP/0 FN preserved. Determinism verified cross-process
+(`PYTHONHASHSEED` invariant) for forecast and robustness.
+
+**Visualizations**: `robustness_envelope`, `perturbation_heatmap`,
+`v3_forecast_manifold` (PNG+SVG+JSON).
+
+**Invariants preserved**: fail-closed, deterministic replay, pre-execution
+interception, model-agnostic, structural (no semantic filtering). Geometry
+fixed; only Ω changes across domains.
+
+---
+
+## v0.2.0
 
 Branch `claude/list-repo-files-AdvDm` → `main`. Five commits on top of the
 already-merged v0.1.0 (PR #1). All work is additive plus one source-quality
