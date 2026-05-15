@@ -1,5 +1,36 @@
 # Release Notes — Morrison Runtime Governance
 
+## v0.3.1 — Domain / cross-model / cross-domain test suites
+
+Additive on v0.3.0; all prior tests preserved. **120 test functions**
+total (74 → 120), zero regressions.
+
+Six new suites validating *geometry fixed, only Ω changes*:
+
+- `test_domain_healthcare.py` (9) — PHI exposure/diagnosis Ω; A_safe,
+  V2 taint, V3 deferred-exfil forecast, V5 stability under healthcare Ω.
+- `test_domain_finance_fraud.py` (10) — unauthorized/excessive/guaranteed
+  -profit, structuring band exact edges, velocity, synthetic identity.
+- `test_cyber_obfuscation.py` (9) — plain payloads caught; obfuscation
+  (~60%) and hidden-tool (~86%) surfaces asserted as documented; taint /
+  V3 forecast defeat obfuscated + deferred exfiltration.
+- `test_cross_model_planner.py` (6) — GPT/Claude/Qwen/Llama/stochastic
+  planner profiles (`planners.py`); verdict AND blocking-layer invariant
+  across planner identity.
+- `test_cross_domain_substitution.py` (6) — fixed trajectories × 7
+  domain Ω; middleware pipeline signature provably identical (geometry
+  invariant), verdict tracks Ω only.
+- `test_perturbation_radius.py` (6) — wide/dense radius grid (0→2.0),
+  identity anchor, monotone distance, governed floor, cross-domain
+  envelope-shape consistency.
+
+`planners.py` — deterministic planner-style transforms (model-agnostic,
+no model calls). Visualizations: `cross_domain_substitution`,
+`perturbation_radius_sweep` (PNG+SVG+JSON). Geometry signature = 1 across
+all seven domains. All new suites deterministic.
+
+---
+
 ## v0.3.0 — Generalized reachability forecasting + perturbation manifolds
 
 Additive on top of v0.2.0; all prior tests preserved (74/74 total).
