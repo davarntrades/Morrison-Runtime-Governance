@@ -1,0 +1,105 @@
+{
+  "stability_envelope": {
+    "safe": {
+      "margin": 1.0,
+      "curve": [
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.15,
+          1.0
+        ],
+        [
+          0.3,
+          1.0
+        ],
+        [
+          0.45,
+          1.0
+        ],
+        [
+          0.6,
+          1.0
+        ],
+        [
+          0.75,
+          1.0
+        ],
+        [
+          0.9,
+          1.0
+        ],
+        [
+          1.0,
+          1.0
+        ]
+      ]
+    },
+    "blocked": {
+      "margin": 0.0,
+      "collapse": null,
+      "curve": [
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.15,
+          0.7917
+        ],
+        [
+          0.3,
+          0.8194
+        ],
+        [
+          0.45,
+          0.9444
+        ],
+        [
+          0.6,
+          0.9861
+        ],
+        [
+          0.75,
+          0.875
+        ],
+        [
+          0.9,
+          0.875
+        ],
+        [
+          1.0,
+          0.8889
+        ]
+      ]
+    }
+  },
+  "v3_forecast_manifold": {
+    "deferred exfil": {
+      "nodes": 2,
+      "P_omega": 1.0,
+      "entropy": -0.0,
+      "min_omega_depth": 1
+    },
+    "retry escalation": {
+      "nodes": 2,
+      "P_omega": 1.0,
+      "entropy": -0.0,
+      "min_omega_depth": 1
+    },
+    "privilege accumulation": {
+      "nodes": 2,
+      "P_omega": 1.0,
+      "entropy": -0.0,
+      "min_omega_depth": 1
+    },
+    "safe read\u2192analyze": {
+      "nodes": 1,
+      "P_omega": 0.0,
+      "entropy": -0.0,
+      "min_omega_depth": 0
+    }
+  }
+}

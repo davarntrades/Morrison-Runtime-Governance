@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "morrison-governance"
+version = "0.1.0"
+description = "Pre-execution runtime governance for tool-using AI systems"
+readme = "README.md"
+license = {text = "Commercial — contact for licensing"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Davarn Morrison", email = "davarn@resurrectiontech.com"},
+]
+keywords = [
+    "ai-safety",
+    "runtime-governance",
+    "tool-use",
+    "reachability",
+    "middleware",
+    "llm",
+    "agent-safety",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Security",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+server = ["fastapi>=0.100", "uvicorn>=0.20", "pydantic>=2.0"]
+langchain = ["langchain>=0.1"]
+openai = ["openai>=1.0"]
+all = ["fastapi>=0.100", "uvicorn>=0.20", "pydantic>=2.0", "langchain>=0.1", "openai>=1.0"]
+
+[project.urls]
+Homepage = "https://github.com/davarntrades"
+Repository = "https://github.com/davarntrades/morrison-runtime-governance"
+
+[tool.setuptools.packages.find]
+include = ["morrison_governance*"]
+

@@ -19,6 +19,47 @@
 
 -----
 
+## Quickstart (2 minutes, one command)
+
+```bash
+python3 quickstart.py            # instant
+python3 quickstart.py --cinematic  # paced, for screen-recording
+```
+
+No arguments, no dependencies beyond the package. It walks through, with
+obvious `✓ PERMIT` / `✗ BLOCK` output:
+
+1. an agent **attempts data exfiltration** → governance **intercepts** it
+2. **per-layer attribution** (which of A_safe/V2/V3/V4 fired)
+3. a **safe internal workflow is permitted**
+4. **every layer triggered once** (A_safe → V2 → V3 → V4 → V4+ → V5 → V5+)
+5. the **hardest adversarial surface** (multi-turn chains) shown fixed
+6. **deterministic replay verified** (identical verdict + hash across runs)
+
+### Architecture
+
+```
+        proposed tool call            ┌──────────────────────────────┐
+  AGENT ───────────────────────────▶  │        GOVERNANCE LAYER       │
+ (LLM / planner)                       │  A_safe  single-step Ω        │
+                                       │  V2      drift + source→sink  │
+                                       │  V3      forward reachability │
+        ◀───── PERMIT ─────────────────│  V4      admissibility        │
+           │                           │  V4+     feasibility          │
+           ▼                           │  V5      env-wide stability   │
+  ┌──────────────┐    BLOCK ◀──────────│  V5+     adversarial harness  │
+  │ TOOL RUNTIME │      (never runs)   └──────────────────────────────┘
+  │ shell/API/fs │
+  │  /browser    │       Invariant:  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅
+  └──────────────┘
+```
+
+A rendered version is at
+[`artifacts/visualizations/architecture.png`](artifacts/visualizations/architecture.png)
+(regenerate with `python3 artifacts/visualizations/architecture.py`).
+
+-----
+
 ## Thesis
 
 Current AI safety operates on outputs. It filters what the model says after generation. This is structurally insufficient for systems that execute actions — tool-calling agents, autonomous planners, multi-step workflows.
@@ -260,16 +301,35 @@ This governance layer prevents:
 
 ```mermaid
 graph TD
-    A["A_safe — Single-step Ω check"] --> V2["V2 — Trajectory drift detection"]
-    V2 --> V3["V3 — Forward reachability (k ≥ 2)"]
+    A["A_safe — Single-step Ω check"] --> V2["V2 — Trajectory drift + source→sink taint"]
+    V2 --> V3["V3 — Generalized reachability forecasting R̂_E(τ,k)"]
     V3 --> V4["V4 — State-space admissibility"]
     V4 --> V4P["V4+ — Feasibility-constrained selection"]
-    V4P --> V5["V5 — Invariant stability across ℰ"]
+    V4P --> V5["V5 — Bounded-ball robustness ∀E∈B(ℰ,r)"]
+    V5 --> V5P["V5+ — Hard adversarial harness"]
 ```
 
-**Strict-strengthening: A_safe ⊂ V2 ⊂ V3 ⊂ V4 ⊂ V4+ ⊂ V5**
+**Strict-strengthening: A_safe ⊂ V2 ⊂ V3 ⊂ V4 ⊂ V4+ ⊂ V5 ⊂ V5+**
 
-Each layer catches failures invisible to every layer below it. Zero counterexamples across 129,541 evaluations and 4 model architectures.
+Each layer catches failures invisible to every layer below it.
+
+### v0.3.0 — generalized forecasting + perturbation manifolds
+
+- **V3** is now a recursive, branching, admissibility-pruned rollout
+  estimating the reachable manifold `R̂_E(τ, k)` over an evolving
+  environment — structural capability inference, taint lineage, manifold
+  density/entropy metrics. Produces **V3-only** blocks (deferred
+  exfiltration, recursive retry escalation, privilege accumulation) where
+  A_safe and V2 do not fire. `Safe(local) ⇏ Safe(global)` is enforced.
+- **V5** is extended to bounded-ball robustness `∀ E ∈ B(ℰ, r)` over nine
+  parameterised perturbation-manifold families with a geometric
+  (non-semantic) distance metric, stability-envelope/robustness-margin
+  estimation, and cross-domain transfer (geometry invariant; only Ω
+  changes). `GovernanceLayer.estimate_robustness(...)`.
+- **74/74 tests** pass, deterministic cross-process. Visualizations:
+  `artifacts/visualizations/{robustness_envelope,perturbation_heatmap,v3_forecast_manifold}.png`.
+  Details in [`RELEASE_NOTES.md`](RELEASE_NOTES.md) and
+  [`morrison_governance/LIMITATIONS.md`](morrison_governance/LIMITATIONS.md).
 
 -----
 
