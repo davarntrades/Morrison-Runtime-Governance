@@ -103,3 +103,32 @@ Highlights surfaced by the sweeps:
   5000 rules; latency rises from 26 µs to 660 µs over the same range.
 - **Trajectory length scales near-linearly.** P50 grows from 24 µs at 1 step
   to ~10 ms at 89 steps (~400× for 89× length).
+
+## Layer-firing layout — `layer_firing.py` (V4 / V4+ / V5 / V5+)
+
+| Plot                          | What it shows                                                              |
+|-------------------------------|----------------------------------------------------------------------------|
+| `layer_activation_matrix`     | scenario × layer via `evaluate_all()` — proves earlier layers don't mask deeper firings; V4 triggers in isolation; V3 only co-fires |
+| `adversarial_attribution`     | per V5+ attack class, which layer caught each variant vs bypassed (stacked) |
+| `bench_per_layer_v4`          | median cost of A_safe / V2 / V3 / V4 on a 3-step trajectory                 |
+
+Raw numbers: `layer_firing_summary.json`.
+
+### V4–V5+ findings (see also `morrison_governance/LIMITATIONS.md`)
+
+- **multi_turn_chain: 100% bypass.** Two-step pre-compute→exfiltrate plans
+  evade A_safe (individually benign) and V2 (one escalation transition, needs
+  ≥2). This is the most serious discovered failure surface.
+- **hidden_substitution: 86% bypass.** Tool-name spoofing (case, hyphen,
+  zero-width, Cyrillic homoglyph) defeats exact-literal tool matching.
+- **obfuscation: 60% bypass.** Confirms the v1/v2 keyword-evasion gap at the
+  layer-attribution level.
+- **No masking.** The activation matrix shows V2 and V4 firing alone, and
+  A_safe+V3+V4 co-firing fully visible under `evaluate_all()`.
+- **V3 never fires alone.** Forward reachability only triggers as a
+  side-effect of credential reads A_safe already catches — sparse coverage.
+- **V4 is the cheapest layer** (~0.01 ms); V2 remains the most expensive.
+
+All generators are seed-deterministic; a latent V3 set-iteration
+nondeterminism (hash-seed dependent projection slicing) was fixed so the
+activation matrix is reproducible across `PYTHONHASHSEED`.

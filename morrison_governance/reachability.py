@@ -11,6 +11,7 @@ from typing import Optional
 from morrison_governance.trajectory import Trajectory, TrajectoryState
 from morrison_governance.domains import OmegaRule
 from morrison_governance.result import GovernanceResult, GovernanceVerdict
+from morrison_governance.admissibility import AdmissibilityEvaluator
 
 
 class ReachabilityEvaluator:
@@ -21,18 +22,22 @@ class ReachabilityEvaluator:
         A_safe: single-step Ω check
         V2:     trajectory drift detection across sliding window
         V3:     forward reachability for horizon k ≥ 2
-        V4+:    feasibility-constrained selection
-        V5:     stability across environment set ℰ
+        V4:     state-space admissibility (permissions, scope, schema)
+        V4+:    feasibility-constrained selection (in feasibility.py)
+        V5:     stability across environment set ℰ (in stability.py)
     """
 
-    def __init__(self, rules: list[OmegaRule], horizon: int = 3):
+    def __init__(self, rules: list[OmegaRule], horizon: int = 3,
+                 admissibility: Optional[AdmissibilityEvaluator] = None):
         """
         Args:
             rules: list of Ω rules to enforce
             horizon: forward reachability horizon (V3+)
+            admissibility: optional V4 admissibility evaluator
         """
         self.rules = rules
         self.horizon = horizon
+        self.admissibility = admissibility
 
     # ═══════════════════════════════════════════════════════════
     # A_safe — SINGLE-STEP Ω CHECK
@@ -180,7 +185,9 @@ class ReachabilityEvaluator:
             "get_credentials", "read_secrets",
         }
         perm_tools = {"chmod", "chown", "set_permissions", "update_role"}
-        exfil_tools = {"http_request", "send_email", "api_call", "upload"}
+        # Ordered tuple (not a set): this is *iterated* and the result is
+        # sliced by horizon, so a stable order is required for determinism.
+        exfil_tools = ("http_request", "send_email", "api_call", "upload")
 
         tool = base.get("tool", "")
         args_str = str(base.get("args", "")).lower()
@@ -214,6 +221,31 @@ class ReachabilityEvaluator:
         return projections[:horizon]
 
     # ═══════════════════════════════════════════════════════════
+    # V4 — STATE-SPACE ADMISSIBILITY
+    # ═══════════════════════════════════════════════════════════
+
+    def check_v4(self, state: TrajectoryState) -> Optional[GovernanceResult]:
+        """
+        V4: structural admissibility — permissions, resource scope, schema,
+        required context. Independent of Ω rules (which are pattern-based).
+        Returns BLOCK on first failing admissibility check.
+        """
+        if self.admissibility is None or not self.admissibility.checks:
+            return None
+        eval_dict = state.to_eval_dict()
+        result = self.admissibility.evaluate(eval_dict)
+        if result is None:
+            return None
+        check_name, reason = result
+        return GovernanceResult(
+            verdict=GovernanceVerdict.BLOCK,
+            layer="V4",
+            reason=f"Admissibility violation [{check_name}]: {reason}",
+            trajectory_hash=state.hash,
+            metadata={"v4_check": check_name, "v4_reason": reason},
+        )
+
+    # ═══════════════════════════════════════════════════════════
     # FULL EVALUATION — HIERARCHICAL
     # ═══════════════════════════════════════════════════════════
 
@@ -221,7 +253,7 @@ class ReachabilityEvaluator:
         """
         Run the full enforcement hierarchy against a trajectory.
 
-        Evaluation order: A_safe → V2 → V3
+        Evaluation order: A_safe → V2 → V3 → V4
         First violation terminates evaluation (strict-strengthening).
         """
         # A_safe: check every state individually
@@ -240,10 +272,62 @@ class ReachabilityEvaluator:
         if result is not None:
             return result
 
+        # V4: structural admissibility per state
+        for state in trajectory:
+            result = self.check_v4(state)
+            if result is not None:
+                return result
+
         # All layers passed — trajectory is permitted
         return GovernanceResult(
             verdict=GovernanceVerdict.PERMIT,
-            layer="V3",
+            layer="V4",
             reason="Trajectory does not reach Ω under evaluated hierarchy",
             trajectory_hash=trajectory.hash,
         )
+
+    def evaluate_all(self, trajectory: Trajectory) -> dict:
+        """
+        Diagnostic mode — run every layer without short-circuiting and
+        return a per-layer report. Used for tests and the layer-firing
+        benchmark; the production path uses `evaluate()`.
+
+        Earlier layers do not mask deeper-layer activation here: each
+        layer is invoked even when a prior layer would have blocked.
+        """
+        report = {"trajectory_hash": trajectory.hash, "layers": {}}
+
+        a_results = []
+        for state in trajectory:
+            r = self.check_a_safe(state)
+            if r is not None:
+                a_results.append({"step": state.step, "reason": r.reason})
+        report["layers"]["A_safe"] = {
+            "fired": bool(a_results),
+            "violations": a_results,
+        }
+
+        v2 = self.check_v2(trajectory)
+        report["layers"]["V2"] = {
+            "fired": v2 is not None,
+            "reason": v2.reason if v2 else None,
+        }
+
+        v3 = self.check_v3(trajectory)
+        report["layers"]["V3"] = {
+            "fired": v3 is not None,
+            "reason": v3.reason if v3 else None,
+        }
+
+        v4_results = []
+        for state in trajectory:
+            r = self.check_v4(state)
+            if r is not None:
+                v4_results.append({"step": state.step, "reason": r.reason})
+        report["layers"]["V4"] = {
+            "fired": bool(v4_results),
+            "violations": v4_results,
+        }
+
+        report["fired_layers"] = [k for k, v in report["layers"].items() if v["fired"]]
+        return report
