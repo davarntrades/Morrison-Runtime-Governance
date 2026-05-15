@@ -14,6 +14,37 @@ from morrison_governance.result import GovernanceResult, GovernanceVerdict
 from morrison_governance.admissibility import AdmissibilityEvaluator
 
 
+# ─────────────────────────────────────────────────────────────
+# V2 data-flow taint vocabulary (ordered tuples → deterministic)
+# ─────────────────────────────────────────────────────────────
+
+# Tools that acquire data into the agent's reach.
+SOURCE_TOOLS = (
+    "read_file", "query_db", "list_files", "get_data", "get_credentials",
+    "read_secrets", "download", "export", "fetch_data", "scan", "dump",
+    "search_index", "vector_query",
+)
+
+# Tools that move data out of the trust boundary or execute code.
+EGRESS_SINKS = (
+    "http_request", "send_email", "api_call", "upload", "post", "webhook",
+    "shell", "exec", "subprocess", "sftp_put", "ftp_put", "browser_navigate",
+)
+
+# Subset of EGRESS_SINKS that execute code — always a boundary crossing.
+CODE_EXEC_SINKS = ("shell", "exec", "subprocess")
+
+# Tools that mutate permissions/ACLs/roles.
+PRIV_MUTATION = (
+    "modify_acl", "chmod", "chown", "update_role", "grant_permission",
+    "set_permissions", "setfacl", "add_admin", "assume_role",
+)
+
+_BROAD_GRANT_TOKENS = ("0777", "777", "a+rwx", "rwxrwxrwx", "everyone",
+                       "public", "anonymous", "*")
+_BROAD_GRANT_ROLES = ("admin", "root", "superuser", "owner", "sudo")
+
+
 class ReachabilityEvaluator:
     """
     Evaluates whether a trajectory's reachable set intersects Ω.
@@ -28,16 +59,27 @@ class ReachabilityEvaluator:
     """
 
     def __init__(self, rules: list[OmegaRule], horizon: int = 3,
-                 admissibility: Optional[AdmissibilityEvaluator] = None):
+                 admissibility: Optional[AdmissibilityEvaluator] = None,
+                 enable_taint: bool = True,
+                 internal_email_domains: tuple[str, ...] = (),
+                 internal_url_hosts: tuple[str, ...] = ()):
         """
         Args:
             rules: list of Ω rules to enforce
             horizon: forward reachability horizon (V3+)
             admissibility: optional V4 admissibility evaluator
+            enable_taint: enable V2 source→sink data-flow taint tracking
+            internal_email_domains: email domains treated as internal sinks
+                                    (e.g. ("company.com",)). Empty → all
+                                    external (deny-by-default cross-boundary).
+            internal_url_hosts: URL hosts treated as internal sinks
         """
         self.rules = rules
         self.horizon = horizon
         self.admissibility = admissibility
+        self.enable_taint = enable_taint
+        self.internal_email_domains = tuple(internal_email_domains)
+        self.internal_url_hosts = tuple(internal_url_hosts)
 
     # ═══════════════════════════════════════════════════════════
     # A_safe — SINGLE-STEP Ω CHECK
@@ -73,6 +115,14 @@ class ReachabilityEvaluator:
         """
         if not trajectory.is_multi_step:
             return None
+
+        # Data-flow taint: acquire → external/exec sink, or broad priv
+        # mutation. Catches multi-turn chains that are benign per-step and
+        # produce too few escalation signals for the counter below.
+        if self.enable_taint:
+            taint = self._data_flow_violation(trajectory)
+            if taint is not None:
+                return taint
 
         # Track tool escalation patterns
         tools_seen = []
@@ -120,10 +170,117 @@ class ReachabilityEvaluator:
                 layer="V2",
                 reason=f"Multi-step escalation detected ({escalation_signals} transitions to sensitive tools)",
                 trajectory_hash=trajectory.hash,
-                metadata={"tools": tools_seen, "escalation_signals": escalation_signals},
+                metadata={"v2_mechanism": "escalation_count",
+                          "tools": tools_seen,
+                          "escalation_signals": escalation_signals},
             )
 
         return None
+
+    # ─────────────────────────────────────────────────────────
+    # V2 sub-check: source → sink data-flow taint
+    # ─────────────────────────────────────────────────────────
+
+    def _data_flow_violation(
+        self, trajectory: Trajectory
+    ) -> Optional[GovernanceResult]:
+        """A data-acquisition step followed by an external/exec egress (or a
+        broad privilege mutation at any step) is an exfiltration / escalation
+        chain even when every step is individually benign."""
+        tainted_by: Optional[tuple[int, str]] = None
+        for state in trajectory:
+            tool = state.tool
+            ed = state.to_eval_dict()
+            argstr = str(ed.get("args", "")).lower()
+
+            # Broad privilege mutation is dangerous regardless of history.
+            if tool in PRIV_MUTATION and self._is_broad_grant(ed, argstr):
+                return GovernanceResult(
+                    verdict=GovernanceVerdict.BLOCK,
+                    layer="V2",
+                    reason=(
+                        f"Privileged broad-grant mutation: {tool} "
+                        f"(step {state.step}) widens access "
+                        f"({self._grant_detail(ed, argstr)})"
+                    ),
+                    trajectory_hash=trajectory.hash,
+                    metadata={"v2_mechanism": "priv_mutation",
+                              "step": state.step, "tool": tool},
+                )
+
+            if tool in SOURCE_TOOLS:
+                tainted_by = (state.step, tool)
+                continue
+
+            if tainted_by is not None and tool in EGRESS_SINKS:
+                if tool in CODE_EXEC_SINKS or self._is_external_sink(
+                        tool, ed, argstr):
+                    src_step, src_tool = tainted_by
+                    return GovernanceResult(
+                        verdict=GovernanceVerdict.BLOCK,
+                        layer="V2",
+                        reason=(
+                            f"Data-flow taint: {src_tool} (step {src_step}) "
+                            f"→ {tool} (step {state.step}) crosses an "
+                            f"external/execution boundary after a data read"
+                        ),
+                        trajectory_hash=trajectory.hash,
+                        metadata={
+                            "v2_mechanism": "taint_flow",
+                            "source_step": src_step,
+                            "source_tool": src_tool,
+                            "sink_step": state.step,
+                            "sink_tool": tool,
+                        },
+                    )
+        return None
+
+    def _is_external_sink(self, tool: str, ed: dict, argstr: str) -> bool:
+        """Deny-by-default: a sink is internal only when explicitly marked or
+        its destination matches a configured internal allowlist."""
+        if ed.get("destination_internal") is True:
+            return False
+        if ed.get("destination_external") is True:
+            return True
+        if tool == "send_email":
+            recipient = str(ed.get("to", "") or ed.get("recipient", "")).lower()
+            if not recipient and "@" in argstr:
+                recipient = argstr
+            return not any(
+                ("@" + d) in recipient or recipient.endswith(d)
+                for d in self.internal_email_domains
+            ) if self.internal_email_domains else True
+        # url / host based sinks
+        target = str(ed.get("url", "") or ed.get("host", "")
+                     or ed.get("endpoint", "")).lower() or argstr
+        if self.internal_url_hosts and any(
+                h in target for h in self.internal_url_hosts):
+            return False
+        return True
+
+    @staticmethod
+    def _is_broad_grant(ed: dict, argstr: str) -> bool:
+        mode = str(ed.get("mode", "")).lower()
+        role = str(ed.get("role", "") or ed.get("grant", "")).lower()
+        if any(tok in mode for tok in _BROAD_GRANT_TOKENS):
+            return True
+        if any(tok in argstr for tok in _BROAD_GRANT_TOKENS):
+            return True
+        if role in _BROAD_GRANT_ROLES or any(
+                r in argstr for r in _BROAD_GRANT_ROLES):
+            return True
+        return False
+
+    @staticmethod
+    def _grant_detail(ed: dict, argstr: str) -> str:
+        bits = []
+        if ed.get("mode"):
+            bits.append(f"mode={ed.get('mode')}")
+        if ed.get("role") or ed.get("grant"):
+            bits.append(f"role={ed.get('role') or ed.get('grant')}")
+        if not bits:
+            bits.append(argstr[:48])
+        return ", ".join(bits)
 
     # ═══════════════════════════════════════════════════════════
     # V3 — FORWARD REACHABILITY

@@ -65,6 +65,9 @@ class GovernanceLayer:
         horizon: int = 3,
         log_all: bool = True,
         admissibility_checks: Optional[list[AdmissibilityCheck]] = None,
+        enable_taint: bool = True,
+        internal_email_domains: tuple[str, ...] = (),
+        internal_url_hosts: tuple[str, ...] = (),
     ):
         """
         Args:
@@ -76,6 +79,9 @@ class GovernanceLayer:
             admissibility_checks: optional V4 structural checks (permissions,
                                   resource scope, schema, etc.). Pass an empty
                                   list to disable V4 explicitly.
+            enable_taint: V2 source→sink data-flow tracking (default on)
+            internal_email_domains: email domains treated as internal sinks
+            internal_url_hosts: URL hosts treated as internal sinks
         """
         # Assemble rules
         self.rules: list[OmegaRule] = []
@@ -90,8 +96,14 @@ class GovernanceLayer:
             AdmissibilityEvaluator(checks=list(admissibility_checks))
             if admissibility_checks is not None else None
         )
+        self._taint_cfg = dict(
+            enable_taint=enable_taint,
+            internal_email_domains=tuple(internal_email_domains),
+            internal_url_hosts=tuple(internal_url_hosts),
+        )
         self.evaluator = ReachabilityEvaluator(
             rules=self.rules, horizon=horizon, admissibility=admissibility,
+            **self._taint_cfg,
         )
         self.log_all = log_all
 
@@ -219,6 +231,7 @@ class GovernanceLayer:
         self.evaluator = ReachabilityEvaluator(
             rules=self.rules, horizon=self.evaluator.horizon,
             admissibility=self.evaluator.admissibility,
+            **self._taint_cfg,
         )
 
     def add_domain(self, domain: OmegaDomain) -> None:
@@ -228,6 +241,7 @@ class GovernanceLayer:
         self.evaluator = ReachabilityEvaluator(
             rules=self.rules, horizon=self.evaluator.horizon,
             admissibility=self.evaluator.admissibility,
+            **self._taint_cfg,
         )
 
     def add_admissibility_check(self, check: AdmissibilityCheck) -> None:

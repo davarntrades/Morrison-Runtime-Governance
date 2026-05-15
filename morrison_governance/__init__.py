@@ -60,6 +60,22 @@ from morrison_governance.adversarial import (
     AttackVariant,
     run_attack_suite,
 )
+from morrison_governance.integrations import (
+    GovernanceGuard,
+    GovernanceError,
+    openai_partition_tool_calls,
+    openai_guarded_dispatch,
+    claude_filter_tool_use,
+    govern_langchain_tool,
+    GovernanceCallbackHandler,
+    autogen_guard_function_call,
+    register_autogen_guard,
+    browser_action_guard,
+    mcp_guard_call_tool,
+    wrap_mcp_call_tool,
+    governed_run,
+    WorkflowGovernor,
+)
 
 __version__ = "0.2.0"
 __author__ = "Davarn Morrison"
@@ -102,4 +118,19 @@ __all__ = [
     "AdversarialReport",
     "AttackVariant",
     "run_attack_suite",
+    # Deployment adapters
+    "GovernanceGuard",
+    "GovernanceError",
+    "openai_partition_tool_calls",
+    "openai_guarded_dispatch",
+    "claude_filter_tool_use",
+    "govern_langchain_tool",
+    "GovernanceCallbackHandler",
+    "autogen_guard_function_call",
+    "register_autogen_guard",
+    "browser_action_guard",
+    "mcp_guard_call_tool",
+    "wrap_mcp_call_tool",
+    "governed_run",
+    "WorkflowGovernor",
 ]
