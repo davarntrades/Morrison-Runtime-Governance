@@ -82,13 +82,31 @@ literal substring) are caught.
 note that full coverage here is undecidable (arbitrary runtime string
 construction, e.g. the `split` variant, cannot be resolved statically).
 
-### 4. V3 forward reachability is sparse (medium)
+### 4. V3 forward reachability — **UPGRADED** (was sparse)
 
-`layer_activation_matrix.png`: V3 only fires as a side-effect of credential
-reads that A_safe already catches. There is no scenario in the matrix where
-V3 fires *alone*. `_project_forward` enumerates projections only for a small
-hard-coded set of data-access and permission tools, so V3 currently adds
-little independent coverage.
+> **Status: addressed.** V3 now runs generalized reachability forecasting
+> (`forecasting.py`): a recursive, branching, admissibility-pruned rollout
+> over an evolving environment, on top of the legacy projection (which is
+> retained so prior V3 firings are unchanged — zero regression).
+> Covered by `test_forecasting.py` (10 tests).
+
+V3 now independently produces **V3-only** blocks where A_safe and V2 do
+not fire — verified for: deferred exfiltration (egress wrapped in a
+benign scheduler call), recursive retry-loop privilege escalation, and
+privilege accumulation over time. Successors are derived from capability
+inference + intent the trajectory itself encodes (deferred actions,
+loop/retry constructs, privilege steps) and modelled environment
+evolution — **not** literal tool-name lists or keyword heuristics.
+Reported metadata includes manifold node count, branch entropy, P(Ω),
+and minimum Ω depth. `Safe(local_step) ⇏ Safe(global_trajectory)` is now
+enforced, not just asserted.
+
+**Residual limit:** the successor model is intentionally precise — it
+follows *encoded* future intent rather than speculative fan-out, so
+manifolds are small (low entropy) and a purely-implicit future attack
+with no structural footprint in the trajectory or environment is still
+out of scope for V3 (V2 taint and V5 cover adjacent cases). Toggle:
+`GovernanceLayer(enable_forecast=False)`.
 
 ### 5. V4+ feasibility is only as good as the candidate set (medium)
 
@@ -99,12 +117,27 @@ one was theoretically reachable. This is deliberate (refuse-to-guess) but
 means V4+ cannot prove global infeasibility — only infeasibility *within the
 presented options*.
 
-### 6. V5 stability is bounded by the perturbation set ℰ (medium)
+### 6. V5 stability — **EXTENDED** to bounded-ball robustness
 
-`evaluate_stable` tests a finite, enumerable ℰ (prompt/permission/memory/
-context/schema drift). A verdict reported *stable* is only stable with
-respect to the perturbations that were generated. ℰ is not the universal
-environment set; an unmodelled perturbation can still flip the verdict.
+> **Status: extended.** `evaluate_stable` (finite ℰ) is retained;
+> `estimate_robustness` (`manifold.py`) adds bounded-ball estimation
+> `∀ E ∈ B(ℰ, r)` over **perturbation manifolds** ℰ = ⋃ᵢ ℰᵢ — nine
+> parameterised geometric deformation families, a structural (non-semantic)
+> perturbation-distance metric, a stability envelope (agreement vs radius),
+> robustness margin, and collapse threshold. Covered by `test_manifold.py`
+> (8 tests) and `robustness_envelope.png`.
+
+Perturbations are modelled **geometrically**, not semantically: variants
+are scored by `structural_distance` over capability vector, arg-key set,
+taint-relevant fields, and tool-token edit. r=0 is the identity anchor.
+Cross-domain transfer (`cross_domain_transfer`) confirms the middleware
+geometry is invariant while only Ω changes (finance/healthcare/cyber/
+compliance/fraud/data-privacy).
+
+**Residual limit:** B(ℰ, r) is still defined *relative to the nine
+modelled families*. The metric is structural, so it cannot certify
+robustness against a perturbation axis outside the family union. The
+envelope is an estimate with a stated margin, not a proof.
 
 ### 7. Layer ordering masks deeper layers in the production path (by design)
 

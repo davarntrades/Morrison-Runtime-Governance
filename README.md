@@ -301,16 +301,35 @@ This governance layer prevents:
 
 ```mermaid
 graph TD
-    A["A_safe — Single-step Ω check"] --> V2["V2 — Trajectory drift detection"]
-    V2 --> V3["V3 — Forward reachability (k ≥ 2)"]
+    A["A_safe — Single-step Ω check"] --> V2["V2 — Trajectory drift + source→sink taint"]
+    V2 --> V3["V3 — Generalized reachability forecasting R̂_E(τ,k)"]
     V3 --> V4["V4 — State-space admissibility"]
     V4 --> V4P["V4+ — Feasibility-constrained selection"]
-    V4P --> V5["V5 — Invariant stability across ℰ"]
+    V4P --> V5["V5 — Bounded-ball robustness ∀E∈B(ℰ,r)"]
+    V5 --> V5P["V5+ — Hard adversarial harness"]
 ```
 
-**Strict-strengthening: A_safe ⊂ V2 ⊂ V3 ⊂ V4 ⊂ V4+ ⊂ V5**
+**Strict-strengthening: A_safe ⊂ V2 ⊂ V3 ⊂ V4 ⊂ V4+ ⊂ V5 ⊂ V5+**
 
-Each layer catches failures invisible to every layer below it. Zero counterexamples across 129,541 evaluations and 4 model architectures.
+Each layer catches failures invisible to every layer below it.
+
+### v0.3.0 — generalized forecasting + perturbation manifolds
+
+- **V3** is now a recursive, branching, admissibility-pruned rollout
+  estimating the reachable manifold `R̂_E(τ, k)` over an evolving
+  environment — structural capability inference, taint lineage, manifold
+  density/entropy metrics. Produces **V3-only** blocks (deferred
+  exfiltration, recursive retry escalation, privilege accumulation) where
+  A_safe and V2 do not fire. `Safe(local) ⇏ Safe(global)` is enforced.
+- **V5** is extended to bounded-ball robustness `∀ E ∈ B(ℰ, r)` over nine
+  parameterised perturbation-manifold families with a geometric
+  (non-semantic) distance metric, stability-envelope/robustness-margin
+  estimation, and cross-domain transfer (geometry invariant; only Ω
+  changes). `GovernanceLayer.estimate_robustness(...)`.
+- **74/74 tests** pass, deterministic cross-process. Visualizations:
+  `artifacts/visualizations/{robustness_envelope,perturbation_heatmap,v3_forecast_manifold}.png`.
+  Details in [`RELEASE_NOTES.md`](RELEASE_NOTES.md) and
+  [`morrison_governance/LIMITATIONS.md`](morrison_governance/LIMITATIONS.md).
 
 -----
 

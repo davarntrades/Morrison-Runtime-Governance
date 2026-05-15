@@ -12,6 +12,9 @@ from morrison_governance.trajectory import Trajectory, TrajectoryState
 from morrison_governance.domains import OmegaRule
 from morrison_governance.result import GovernanceResult, GovernanceVerdict
 from morrison_governance.admissibility import AdmissibilityEvaluator
+from morrison_governance.forecasting import (
+    ReachabilityForecaster, EnvironmentState,
+)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -62,7 +65,9 @@ class ReachabilityEvaluator:
                  admissibility: Optional[AdmissibilityEvaluator] = None,
                  enable_taint: bool = True,
                  internal_email_domains: tuple[str, ...] = (),
-                 internal_url_hosts: tuple[str, ...] = ()):
+                 internal_url_hosts: tuple[str, ...] = (),
+                 enable_forecast: bool = True,
+                 forecast_horizon: int = 4):
         """
         Args:
             rules: list of Ω rules to enforce
@@ -80,6 +85,9 @@ class ReachabilityEvaluator:
         self.enable_taint = enable_taint
         self.internal_email_domains = tuple(internal_email_domains)
         self.internal_url_hosts = tuple(internal_url_hosts)
+        self.enable_forecast = enable_forecast
+        self.forecast_horizon = forecast_horizon
+        self._forecaster = ReachabilityForecaster(horizon=forecast_horizon)
 
     # ═══════════════════════════════════════════════════════════
     # A_safe — SINGLE-STEP Ω CHECK
@@ -318,7 +326,60 @@ class ReachabilityEvaluator:
                             },
                         )
 
+        # Generalized reachability forecasting — recursive branching
+        # rollout over an evolving environment. Catches deferred /
+        # recursive / privilege-accumulating Ω intersections that the
+        # sparse legacy projection (and A_safe / V2) miss.
+        if self.enable_forecast and trajectory.is_multi_step:
+            fr = self._run_forecast(trajectory)
+            if fr is not None:
+                return fr
+
         return None
+
+    def _run_forecast(self, trajectory: Trajectory):
+        a_safe_fn = (lambda c: any(
+            r.evaluate({**(c.get("args", {}) if isinstance(c.get("args"), dict)
+                           else {}), "tool": c.get("tool"),
+                        "args": c.get("args", "")})
+            for r in self.rules))
+        v4_fn = None
+        if self.admissibility is not None and self.admissibility.checks:
+            v4_fn = (lambda c: self.admissibility.evaluate(
+                {**(c.get("args", {}) if isinstance(c.get("args"), dict)
+                    else {}), "tool": c.get("tool")}) is not None)
+        report = self._forecaster.forecast(
+            trajectory, self.rules, env=EnvironmentState(),
+            a_safe_fn=a_safe_fn, v4_fn=v4_fn)
+        if not report.omega_nodes:
+            return None
+        onode = next(n for n in report.nodes
+                     if n.node_id == report.omega_nodes[0])
+        return GovernanceResult(
+            verdict=GovernanceVerdict.BLOCK,
+            layer="V3",
+            reason=(
+                f"Forecasted Ω intersection: rule '{onode.omega_rule}' "
+                f"reachable at horizon k={onode.depth} via "
+                f"{'/'.join(onode.env.mutations) or 'direct projection'} "
+                f"(manifold {report.node_count} nodes, "
+                f"P(Ω)={report.omega_reach_probability:.2f})"
+            ),
+            trajectory_hash=trajectory.hash,
+            reachability_distance=float(report.min_omega_depth or 0),
+            metadata={
+                "v3_mechanism": "forecast",
+                "forecast_horizon": report.horizon,
+                "manifold_nodes": report.node_count,
+                "mean_branching": round(report.mean_branching, 3),
+                "branch_entropy": round(report.branch_entropy, 3),
+                "omega_reach_probability": round(
+                    report.omega_reach_probability, 3),
+                "min_omega_depth": report.min_omega_depth,
+                "omega_rule": onode.omega_rule,
+                "env_mutations": list(onode.env.mutations),
+            },
+        )
 
     def _project_forward(self, state: TrajectoryState, horizon: int) -> list[dict]:
         """

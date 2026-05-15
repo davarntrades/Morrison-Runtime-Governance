@@ -68,6 +68,8 @@ class GovernanceLayer:
         enable_taint: bool = True,
         internal_email_domains: tuple[str, ...] = (),
         internal_url_hosts: tuple[str, ...] = (),
+        enable_forecast: bool = True,
+        forecast_horizon: int = 4,
     ):
         """
         Args:
@@ -100,6 +102,8 @@ class GovernanceLayer:
             enable_taint=enable_taint,
             internal_email_domains=tuple(internal_email_domains),
             internal_url_hosts=tuple(internal_url_hosts),
+            enable_forecast=enable_forecast,
+            forecast_horizon=forecast_horizon,
         )
         self.evaluator = ReachabilityEvaluator(
             rules=self.rules, horizon=horizon, admissibility=admissibility,
@@ -319,6 +323,25 @@ class GovernanceLayer:
             n_per_class=n_per_class,
             seed=seed,
         )
+
+    # ═══════════════════════════════════════════════════════════
+    # V5 (manifold) — BOUNDED-BALL ROBUSTNESS  ∀ E ∈ B(ℰ, r)
+    # ═══════════════════════════════════════════════════════════
+
+    def estimate_robustness(
+        self,
+        tool_call: dict,
+        radii=(0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
+        n_per_family: int = 6,
+        seed: int = 0,
+    ):
+        """Estimate the stability envelope over perturbation manifolds:
+        verdict agreement vs structural perturbation radius, robustness
+        margin, and collapse threshold. Deterministic for a fixed seed."""
+        from morrison_governance.manifold import StabilityEnvelopeEstimator
+        est = StabilityEnvelopeEstimator(runner=self.evaluate)
+        return est.estimate(tool_call, radii=radii,
+                            n_per_family=n_per_family, seed=seed)
 
     # ═══════════════════════════════════════════════════════════
     # V5+ — HARD ADVERSARIAL TEST HARNESS
