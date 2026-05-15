@@ -47,13 +47,14 @@ def test_held_assumptions_are_confirmed():
         assert must_hold in held, (must_hold, held)
 
 
-def test_known_gaps_are_reproducibly_flagged():
-    """The harness must SURFACE real gaps, not paper over them. These two
-    assumptions do not hold against the current hierarchy; if either
-    starts holding (a genuine fix), update this pin and LIMITATIONS.md."""
-    violated = set(_report().assumptions_violated)
-    assert "acquire_egress_caught_for_open_world_names" in violated, violated
-    assert "privilege_requires_admin_keyword" in violated, violated
+def test_v041_hardened_assumptions_now_hold():
+    """v0.4.1: the two gaps the harness previously surfaced are CLOSED
+    by the additive V2 structural extension. This pin now asserts they
+    hold; a regression that reopens either is caught here."""
+    held = set(_report().assumptions_held)
+    assert "acquire_egress_caught_for_open_world_names" in held, held
+    assert "privilege_requires_admin_keyword" in held, held
+    assert not _report().assumptions_violated, _report().summary()
 
 
 def test_planner_identity_probe_blocks_every_rendering():
@@ -78,13 +79,13 @@ def test_summary_counts_consistent():
     s = rep.summary()
     assert s["probes"] == len(rep.probes) == 6
     assert s["held"] + s["violated"] == s["probes"]
-    assert s["held"] == 4 and s["violated"] == 2
+    assert s["held"] == 6 and s["violated"] == 0  # v0.4.1: all closed
 
 
 if __name__ == "__main__":
     T = [test_report_is_deterministic,
          test_held_assumptions_are_confirmed,
-         test_known_gaps_are_reproducibly_flagged,
+         test_v041_hardened_assumptions_now_hold,
          test_planner_identity_probe_blocks_every_rendering,
          test_multi_agent_probe_uses_joint_trajectory,
          test_summary_counts_consistent]

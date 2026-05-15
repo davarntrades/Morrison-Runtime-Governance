@@ -1,5 +1,61 @@
 # Release Notes — Morrison Runtime Governance
 
+## v0.4.1 — Structural hardening: two surfaced gaps closed (additive)
+
+Additive on v0.4.0; **all prior tests preserved byte-for-byte**.
+**18 suites / 171 test cases**, zero regression. Deterministic.
+
+The two gaps the v0.4.0 red-team harness honestly surfaced are now
+**closed geometrically**, not by keyword:
+
+- **Gap 1 — single-step broad privilege expansion.** `check_v2`
+  early-returns for single-step trajectories, so a lone unrestricted
+  grant was ungoverned until a second step appeared. New additive
+  `check_single_step_privilege` blocks at **V2**
+  (`priv_expansion_single_step`) when a call both touches a
+  privilege/authority surface AND expands it without structural bound
+  (wildcard/global scope, recursive execution authority, unrestricted
+  delegation). Scoped privilege still PERMITs.
+- **Gap 2 — open-world acquire→egress taint continuity.** Legacy V2
+  taint is a tool-name vocabulary, so unknown / runtime-emerged tools
+  broke lineage. New additive `_structural_taint_violation` re-derives
+  taint from capability + argument geometry, gated to genuinely
+  open-world chains under the **same** deny-by-default external-sink
+  rule. Blocks at **V2** (`taint_flow_structural`); deferred open-world
+  still blocks at **V3**; acquire-without-egress / internal-only stay
+  PERMIT.
+
+**Additive proof.** No legacy logic changed; `infer_capabilities` is
+untouched (new predicates added in `forecasting.py`:
+`is_broad_privilege_expansion`, `acquires_data`, `egresses_data`). The
+extension runs only after `check_v2`/`check_v3` returned None and only
+on trajectories outside the known V2 vocabulary or horizon-1 privilege
+expansions — every all-vocabulary case keeps its exact verdict, layer,
+reason and metadata. Fail-closed, cross-domain Ω substitution and
+perturbation-manifold behaviour all preserved.
+
+New suite `test_hardening_v041.py` (13). Change-detector pins in
+`test_open_world.py` / `test_redteam.py` updated to assert the closed
+state (they were designed to flip on a genuine fix). Visualization:
+`artifacts/visualizations/v041_gap_closure.{png,svg}`. Invariant
+changed: **none** — only admissibility handling for the two surfaced
+structural gaps improved.
+
+---
+
+## v0.4.0 — Next-gen threat-surface suites + interception/red-team
+
+Additive on v0.3.1; all prior tests preserved. Three additive modules
+(`multiagent.py`, `interception.py`, `redteam.py`) and six suites
+covering: multi-agent coordination (joint-trajectory taint), long-horizon
+memory poisoning, runtime tool mutation, open-world hidden-tool
+emergence, prefix-aware fail-closed interception with a cross-model
+planner seam, and an assumption-driven red-team harness. The red-team
+harness honestly surfaced two residual structural gaps (closed in
+v0.4.1). 158 cases at release, zero regression.
+
+---
+
 ## v0.3.1 — Domain / cross-model / cross-domain test suites
 
 Additive on v0.3.0; all prior tests preserved. **120 test functions**

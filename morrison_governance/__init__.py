@@ -108,7 +108,7 @@ from morrison_governance.redteam import (
     ProbeResult,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __author__ = "Davarn Morrison"
 __license__ = "Commercial — see LICENSE"
 
