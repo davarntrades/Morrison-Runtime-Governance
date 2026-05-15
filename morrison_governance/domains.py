@@ -180,6 +180,115 @@ def _default_data_privacy_rules() -> list[OmegaRule]:
     ]
 
 
+def _default_enterprise_rules() -> list[OmegaRule]:
+    """Enterprise domain: customer data leakage, classified artifact exposure, role escalation."""
+    return [
+        OmegaRule(
+            domain=OmegaDomain.ENTERPRISE,
+            name="customer_pii_external",
+            description="Customer PII transmitted externally without sanitization",
+            check=lambda s: (
+                s.get("contains_customer_data", False)
+                and s.get("destination_external", False)
+                and not s.get("sanitized", False)
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.ENTERPRISE,
+            name="internal_artifact_leak",
+            description="Internal/restricted/confidential artifact sent externally",
+            check=lambda s: (
+                str(s.get("data_classification", "")).lower()
+                in ("internal", "restricted", "confidential")
+                and s.get("destination_external", False)
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.ENTERPRISE,
+            name="unauthorized_role_change",
+            description="Role/permission change without admin authorization",
+            check=lambda s: (
+                s.get("tool") in ("update_role", "grant_permission", "modify_acl")
+                and not s.get("admin_approved", False)
+            ),
+        ),
+    ]
+
+
+def _default_compliance_rules() -> list[OmegaRule]:
+    """Compliance domain: PCI card data exposure, GDPR purpose limitation, encryption gaps."""
+    return [
+        OmegaRule(
+            domain=OmegaDomain.COMPLIANCE,
+            name="pci_card_exposure",
+            description="Card data (PAN/CVV) sent to non-PCI endpoint",
+            check=lambda s: (
+                any(
+                    kw in str(s.get("args", "")).lower()
+                    for kw in ("card_number", "pan", "cvv", "cvc", "track_data")
+                )
+                and not s.get("pci_compliant_endpoint", False)
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.COMPLIANCE,
+            name="gdpr_purpose_mismatch",
+            description="EU personal data accessed for non-consented purpose",
+            check=lambda s: (
+                s.get("contains_pii", False)
+                and s.get("data_subject_eu", False)
+                and str(s.get("purpose", "")) != ""
+                and s.get("purpose") not in [
+                    p.strip() for p in str(s.get("consented_purposes", "")).split(",")
+                ]
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.COMPLIANCE,
+            name="encryption_missing",
+            description="Sensitive data transmitted with TLS disabled",
+            check=lambda s: (
+                s.get("contains_sensitive", False)
+                and s.get("tool") in ("http_request", "api_call", "send_email")
+                and s.get("tls", True) is False
+            ),
+        ),
+    ]
+
+
+def _default_fraud_rules() -> list[OmegaRule]:
+    """Fraud domain: structuring, velocity anomalies, synthetic identity."""
+    return [
+        OmegaRule(
+            domain=OmegaDomain.FRAUD,
+            name="structuring_pattern",
+            description="Amount just below reporting threshold (structuring)",
+            check=lambda s: (
+                s.get("tool") in ("transfer", "send_payment", "withdraw")
+                and 9000 <= s.get("amount", 0) <= 9999
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.FRAUD,
+            name="velocity_anomaly",
+            description="Transaction velocity exceeds short-window threshold",
+            check=lambda s: (
+                s.get("tool") in ("transfer", "send_payment", "withdraw")
+                and s.get("transactions_last_hour", 0) > 10
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.FRAUD,
+            name="synthetic_identity",
+            description="Identity score below confidence floor on account creation",
+            check=lambda s: (
+                s.get("tool") in ("create_account", "open_account", "kyc")
+                and s.get("identity_score", 1.0) < 0.5
+            ),
+        ),
+    ]
+
+
 # Registry of default rules by domain
 DEFAULT_RULES: dict[OmegaDomain, Callable[[], list[OmegaRule]]] = {
     OmegaDomain.FINANCE: _default_finance_rules,
@@ -188,6 +297,9 @@ DEFAULT_RULES: dict[OmegaDomain, Callable[[], list[OmegaRule]]] = {
     OmegaDomain.CYBERSECURITY: _default_cybersecurity_rules,
     OmegaDomain.HEALTHCARE: _default_healthcare_rules,
     OmegaDomain.DATA_PRIVACY: _default_data_privacy_rules,
+    OmegaDomain.ENTERPRISE: _default_enterprise_rules,
+    OmegaDomain.COMPLIANCE: _default_compliance_rules,
+    OmegaDomain.FRAUD: _default_fraud_rules,
 }
 
 
