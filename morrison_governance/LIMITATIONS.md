@@ -147,6 +147,43 @@ intentional for latency, but means the production result understates how many
 layers would have objected. Use `evaluate_all()` for full attribution — the
 layer-activation matrix confirms no masking occurs in that diagnostic path.
 
+## Next-generation threat-surface coverage (v0.4.0)
+
+Six deterministic suites exercise threat surfaces beyond the original
+hierarchy benchmarks. Two of them **pin honest residual gaps** so a
+silent regression (or a genuine fix) is caught either way.
+
+| # | Surface | Module / suite | Result |
+|---|---------|----------------|--------|
+| 2 | Multi-agent coordination | `multiagent.py` / `test_multiagent.py` | **closed** — flattened joint trajectory; cross-agent read→handoff→egress blocks at V2 |
+| 3 | Long-horizon memory poisoning | `test_long_horizon.py` | **closed** — taint persists across 5–52 steps; long benign traj not a false positive |
+| 4 | Runtime tool mutation | `test_runtime_mutation.py` | **closed** — classified by current structural capability, not first-seen identity |
+| 5 | Open-world hidden-tool emergence | `test_open_world.py` | **partial** — structural V3 is name-independent; flat name-based gap pinned |
+| 1 | Fail-closed interception | `interception.py` / `test_interception.py` | **closed** — prefix-aware chain guard; governance error ⇒ deny |
+| 6 | Cross-model live seam | `interception.py` | **closed** — forbidden egress never executes under any planner profile |
+| 7 | Assumption-driven red-team | `redteam.py` / `test_redteam.py` | **detector** — surfaces gaps deterministically; 4 assumptions hold, 2 flagged |
+
+### Honest residual gaps (pinned, reproducible)
+
+1. **Single-step broad privilege grant is not blocked.** `check_v2`
+   returns early for single-step trajectories (`reachability.py`), so a
+   lone `modify_acl mode=0777` / `set_permissions grant=*` is PERMITted
+   (the broad-grant check only runs inside a multi-step trajectory; no
+   A_safe rule covers it standalone). Pinned by
+   `test_redteam.py::test_known_gaps_are_reproducibly_flagged`
+   (`privilege_requires_admin_keyword`).
+
+2. **Flat open-world acquire→egress is not name-taintable.** V2 taint is
+   a tool-name vocabulary; an unknown source name does not taint, and a
+   *flat* two-step chain has no structure for V3 to project. The
+   structured (deferred/looped) open-world case **is** caught by V3
+   because inference there is structural. Pinned by
+   `test_open_world.py::test_honest_gap_flat_open_world_chain_not_name_taintable`
+   and `test_redteam.py` (`acquire_egress_caught_for_open_world_names`).
+
+Both are deny-by-default-consistent (they under-block, never over-permit
+a structurally-detectable chain) and are future work, not silent.
+
 ## Determinism guarantees
 
 - All perturbation/attack generators take an explicit `seed` and use
