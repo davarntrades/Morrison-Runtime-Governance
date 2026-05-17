@@ -330,6 +330,11 @@ Each layer catches failures invisible to every layer below it.
   `artifacts/visualizations/{robustness_envelope,perturbation_heatmap,v3_forecast_manifold}.png`.
   Details in [`RELEASE_NOTES.md`](RELEASE_NOTES.md) and
   [`morrison_governance/LIMITATIONS.md`](morrison_governance/LIMITATIONS.md).
+- **Skeptical self-assessment** — generalization, hidden assumptions,
+  failure boundaries, test selection bias, methodology soundness, and a
+  comparison to adjacent safety/control literature, answered honestly
+  and carefully bounded:
+  [`CRITICAL_EVALUATION.md`](CRITICAL_EVALUATION.md).
 
 -----
 
