@@ -131,6 +131,123 @@ def _extract_deferred_action(call: dict) -> Optional[dict]:
 
 
 # ─────────────────────────────────────────────────────────────
+# v0.4.1 hardening — structural geometry for two surfaced gaps.
+# ADDITIVE: pure functions, no RNG/clock/IO, no change to anything
+# above. Used by the V2 structural extension in reachability.py to
+# close (a) single-step broad privilege expansion and (b) open-world
+# acquire→egress taint continuity — geometrically, not by name list.
+# ─────────────────────────────────────────────────────────────
+
+import re as _re
+
+# Argument-key geometry that denotes a privilege/authority surface.
+_PRIV_SURFACE_KEYS = (
+    "policy", "acl", "iam", "rbac", "sudo", "setuid", "capability",
+    "capabilities", "mode", "role", "roles", "grant", "grants",
+    "permission", "permissions", "privilege", "privileges",
+)
+# Unambiguous authority-delegation keys — these ARE a privilege surface
+# on their own (handing authority to another principal).
+_AUTHORITY_DELEGATION_KEYS = (
+    "delegate", "delegation", "impersonate", "assume", "actas",
+    "all_permissions", "principals", "trust",
+)
+# Scope-widening modifiers — NOT a privilege surface by themselves
+# ('scope' is overloaded: OAuth scope vs. search scope), only relevant
+# as an unrestricted-delegation amplifier alongside the keys above.
+_DELEGATION_KEYS = _AUTHORITY_DELEGATION_KEYS + (
+    "scope", "scopes", "audience",
+)
+# Strong unbounded-scope value substrings (unambiguous).
+_UNBOUNDED_STRONG = ("0777", "777", "a+rwx", "rwxrwxrwx")
+# Unbounded-scope value tokens (matched on token boundaries to avoid
+# substring false positives like 'install' → 'all').
+_UNBOUNDED_TOKENS = frozenset((
+    "all", "any", "everyone", "public", "anonymous", "admin", "root",
+    "superuser", "owner", "sudo", "wildcard", "global", "unrestricted",
+    "full", "everything", "world",
+))
+# Retrieval-shaped argument keys → data pulled into the agent's reach,
+# independent of the (possibly unknown) tool name.
+_RETRIEVAL_KEYS = (
+    "path", "file", "filepath", "sql", "query", "key", "object", "handle",
+    "resource", "bucket", "blob", "document", "record", "dataset", "uri",
+    "src", "source", "artifact",
+)
+_PURE_EGRESS_KEYS = frozenset(("url", "uri", "endpoint", "to",
+                               "recipient", "host"))
+
+
+def _arg_view(call: dict):
+    args = call.get("args", {})
+    if isinstance(args, dict):
+        akeys = {str(k).lower() for k in args}
+        avals = " ".join(str(v).lower() for v in args.values())
+    else:
+        akeys, avals = set(), str(args).lower()
+    return akeys, avals
+
+
+def _unbounded_scope(avals: str) -> bool:
+    if any(s in avals for s in _UNBOUNDED_STRONG):
+        return True
+    if "*" in avals:
+        return True
+    toks = set(_re.findall(r"[a-z0-9+]+", avals))
+    return bool(toks & _UNBOUNDED_TOKENS)
+
+
+def is_broad_privilege_expansion(call: dict) -> bool:
+    """Structural test: does a SINGLE call both touch a privilege /
+    authority surface AND expand it without structural bound?
+
+    Bound is broken by any of: unbounded/wildcard/global scope value,
+    recursive (arbitrary) execution authority on the same surface, or
+    unrestricted delegation / scope widening. Scoped privilege use
+    (a bounded role on a named resource) is NOT flagged. Geometry —
+    capability class + argument shape + value scope — never a keyword
+    allow-list."""
+    caps = infer_capabilities(call)
+    akeys, avals = _arg_view(call)
+    priv_surface = (
+        (CAP_PRIV in caps)
+        or bool(akeys & set(_PRIV_SURFACE_KEYS))
+        or bool(akeys & set(_AUTHORITY_DELEGATION_KEYS))
+    )
+    if not priv_surface:
+        return False
+    unbounded = _unbounded_scope(avals)
+    recursive_exec = CAP_EXEC in caps
+    unrestricted_deleg = bool(akeys & set(_DELEGATION_KEYS)) and (
+        unbounded or avals.strip() in ("", "*", "[]", "none")
+        or "list" in avals)
+    return bool(unbounded or recursive_exec or unrestricted_deleg)
+
+
+def acquires_data(call: dict) -> bool:
+    """Structural data-acquisition surface: capability-inferred acquire OR
+    a retrieval-shaped argument geometry (path / query / handle / object /
+    bucket / dataset …) that pulls data into reach — name-independent, so
+    it generalises to unknown / runtime-emerged tools. A call whose ONLY
+    shape is egress (url-only) is not an acquire."""
+    caps = infer_capabilities(call)
+    if CAP_ACQUIRE in caps:
+        return True
+    akeys, _ = _arg_view(call)
+    if not (akeys & set(_RETRIEVAL_KEYS)):
+        return False
+    if (CAP_EGRESS in caps) and not (akeys - _PURE_EGRESS_KEYS):
+        return False
+    return True
+
+
+def egresses_data(call: dict) -> bool:
+    """Structural egress / code-exec surface (capability-inferred),
+    name-free."""
+    return bool(infer_capabilities(call) & {CAP_EGRESS, CAP_EXEC})
+
+
+# ─────────────────────────────────────────────────────────────
 # Evolving environment model
 # ─────────────────────────────────────────────────────────────
 

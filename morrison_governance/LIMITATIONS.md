@@ -147,6 +147,61 @@ intentional for latency, but means the production result understates how many
 layers would have objected. Use `evaluate_all()` for full attribution — the
 layer-activation matrix confirms no masking occurs in that diagnostic path.
 
+## Next-generation threat-surface coverage (v0.4.0)
+
+Six deterministic suites exercise threat surfaces beyond the original
+hierarchy benchmarks. Two of them **pin honest residual gaps** so a
+silent regression (or a genuine fix) is caught either way.
+
+| # | Surface | Module / suite | Result |
+|---|---------|----------------|--------|
+| 2 | Multi-agent coordination | `multiagent.py` / `test_multiagent.py` | **closed** — flattened joint trajectory; cross-agent read→handoff→egress blocks at V2 |
+| 3 | Long-horizon memory poisoning | `test_long_horizon.py` | **closed** — taint persists across 5–52 steps; long benign traj not a false positive |
+| 4 | Runtime tool mutation | `test_runtime_mutation.py` | **closed** — classified by current structural capability, not first-seen identity |
+| 5 | Open-world hidden-tool emergence | `test_open_world.py` | **closed (v0.4.1)** — structural V3 + structural V2 taint continuity; flat gap resolved |
+| 1 | Fail-closed interception | `interception.py` / `test_interception.py` | **closed** — prefix-aware chain guard; governance error ⇒ deny |
+| 6 | Cross-model live seam | `interception.py` | **closed** — forbidden egress never executes under any planner profile |
+| 7 | Assumption-driven red-team | `redteam.py` / `test_redteam.py` | **detector** — v0.4.1: all 6 assumptions now hold, 0 flagged |
+
+### Surfaced gaps — **RESOLVED in v0.4.1** (additive structural extension)
+
+Both gaps the v0.4.0 red-team harness surfaced are now closed by an
+**additive V2 structural extension** (`reachability.py`
+`check_v2_structural`, geometry helpers in `forecasting.py`). No legacy
+logic changed: the extension runs only after `check_v2`/`check_v3`
+returned None and only on trajectories that leave the known V2
+vocabulary or are horizon-1 privilege expansions, so every
+all-vocabulary case keeps its exact layer / reason / metadata
+byte-for-byte. Verified: 18 suites / 171 cases, zero regression.
+
+1. **Single-step broad privilege grant — RESOLVED.** A lone call that
+   both touches a privilege/authority surface AND expands it without
+   structural bound (wildcard/global scope value, recursive execution
+   authority, or unrestricted delegation) now blocks at **V2**
+   (`v2_mechanism = priv_expansion_single_step`). Scoped privilege (a
+   bounded role on a named resource, `mode=0700`, `scope=read:proj-x`)
+   still PERMITs — geometry, not a keyword list. Pinned by
+   `test_hardening_v041.py` and `test_redteam.py`
+   (`privilege_requires_admin_keyword` now **held**).
+
+2. **Open-world acquire→egress taint continuity — RESOLVED.** Taint
+   lineage is re-established structurally (capability + retrieval/egress
+   argument geometry) when the chain involves a tool outside the known
+   vocabulary, under the same deny-by-default external-sink gate
+   (internal allowlists still honoured). Flat and `acquire→analyze→
+   egress` open-world chains now block at **V2** (`v2_mechanism =
+   taint_flow_structural`); the deferred open-world case still blocks at
+   **V3**; acquire-without-egress and internal-only stay PERMIT. Pinned
+   by `test_hardening_v041.py`, `test_open_world.py`
+   (`test_v041_flat_open_world_chain_now_blocked`) and `test_redteam.py`
+   (`acquire_egress_caught_for_open_world_names` now **held**).
+
+`infer_capabilities` itself is **unchanged** (the fix adds new
+predicates) — pinned by
+`test_open_world.py::test_pure_shape_acquire_without_name_hint_is_gap`
+and `test_hardening_v041.py::test_infer_capabilities_unchanged_additive`.
+Visualization: `artifacts/visualizations/v041_gap_closure.{png,svg}`.
+
 ## Determinism guarantees
 
 - All perturbation/attack generators take an explicit `seed` and use

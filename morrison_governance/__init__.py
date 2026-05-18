@@ -91,8 +91,24 @@ from morrison_governance.integrations import (
     governed_run,
     WorkflowGovernor,
 )
+from morrison_governance.multiagent import MultiAgentSession
+from morrison_governance.interception import (
+    GovernanceInterceptor,
+    InterceptionTranscript,
+    PlannerAdapter,
+    ToolRuntime,
+    ScriptedPlanner,
+    ModelPlanner,
+    CallableModelPlanner,
+    RecordingRuntime,
+)
+from morrison_governance.redteam import (
+    RedTeamSession,
+    RedTeamReport,
+    ProbeResult,
+)
 
-__version__ = "0.2.0"
+__version__ = "0.4.1"
 __author__ = "Davarn Morrison"
 __license__ = "Commercial — see LICENSE"
 
@@ -161,4 +177,19 @@ __all__ = [
     "wrap_mcp_call_tool",
     "governed_run",
     "WorkflowGovernor",
+    # Multi-agent coordination governance
+    "MultiAgentSession",
+    # Fail-closed interception + cross-model planner seam
+    "GovernanceInterceptor",
+    "InterceptionTranscript",
+    "PlannerAdapter",
+    "ToolRuntime",
+    "ScriptedPlanner",
+    "ModelPlanner",
+    "CallableModelPlanner",
+    "RecordingRuntime",
+    # Assumption-driven red-team harness
+    "RedTeamSession",
+    "RedTeamReport",
+    "ProbeResult",
 ]

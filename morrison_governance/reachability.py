@@ -14,6 +14,8 @@ from morrison_governance.result import GovernanceResult, GovernanceVerdict
 from morrison_governance.admissibility import AdmissibilityEvaluator
 from morrison_governance.forecasting import (
     ReachabilityForecaster, EnvironmentState,
+    infer_capabilities, CAP_EXEC,
+    is_broad_privilege_expansion, acquires_data, egresses_data,
 )
 
 
@@ -46,6 +48,14 @@ PRIV_MUTATION = (
 _BROAD_GRANT_TOKENS = ("0777", "777", "a+rwx", "rwxrwxrwx", "everyone",
                        "public", "anonymous", "*")
 _BROAD_GRANT_ROLES = ("admin", "root", "superuser", "owner", "sudo")
+
+# Known V2 tool vocabulary. The v0.4.1 structural extension only acts on
+# trajectories that step OUTSIDE this vocabulary (genuinely open-world),
+# so every all-vocabulary trajectory keeps its exact legacy verdict,
+# layer, reason and metadata — byte-for-byte.
+_KNOWN_V2_VOCAB = frozenset(
+    SOURCE_TOOLS + EGRESS_SINKS + PRIV_MUTATION
+)
 
 
 class ReachabilityEvaluator:
@@ -291,6 +301,118 @@ class ReachabilityEvaluator:
         return ", ".join(bits)
 
     # ═══════════════════════════════════════════════════════════
+    # V2 STRUCTURAL EXTENSION (v0.4.1 hardening) — ADDITIVE
+    #
+    # Two surfaced structural gaps, closed geometrically. These run
+    # ONLY after check_v2/check_v3 returned None (so every previously
+    # blocked case keeps its exact layer/reason/metadata) and ONLY on
+    # trajectories that leave the known V2 vocabulary or are horizon-1
+    # privilege expansions (so every all-vocabulary multi-step case is
+    # byte-for-byte unchanged). Deterministic; fail-closed preserved.
+    # ═══════════════════════════════════════════════════════════
+
+    def check_single_step_privilege(
+        self, trajectory: Trajectory
+    ) -> Optional[GovernanceResult]:
+        """Gap 1: a single-step broad privilege/authority expansion.
+
+        check_v2 early-returns for single-step trajectories, so a lone
+        unrestricted grant (wildcard/global scope, unrestricted
+        delegation, or recursive execution authority on a privilege
+        surface) was not governed until a second step appeared. This
+        closes that at horizon-1, structurally — not by keyword."""
+        if not self.enable_taint:
+            return None
+        if trajectory.is_multi_step:
+            return None  # multi-step path is owned, unchanged, by check_v2
+        for state in trajectory:
+            call = {"tool": state.tool, "args": state.args}
+            if is_broad_privilege_expansion(call):
+                return GovernanceResult(
+                    verdict=GovernanceVerdict.BLOCK,
+                    layer="V2",
+                    reason=(
+                        f"Broad privilege expansion: {state.tool} "
+                        f"(step {state.step}) widens authority without "
+                        f"structural bound (single-step)"
+                    ),
+                    trajectory_hash=trajectory.hash,
+                    metadata={
+                        "v2_mechanism": "priv_expansion_single_step",
+                        "step": state.step, "tool": state.tool,
+                    },
+                )
+        return None
+
+    def _structural_taint_violation(
+        self, trajectory: Trajectory
+    ) -> Optional[GovernanceResult]:
+        """Gap 2: open-world acquire → egress taint continuity.
+
+        Legacy V2 taint is a tool-name vocabulary, so an unknown /
+        runtime-emerged acquisition or egress tool broke taint lineage.
+        This re-establishes continuity using capability/argument
+        geometry. It fires ONLY when the legacy pass missed AND the
+        chain involves a tool outside the known vocabulary (genuinely
+        open-world) AND the sink is an external/exec boundary under the
+        SAME deny-by-default gate (internal allowlists still honoured)."""
+        tainted_by: Optional[tuple[int, str]] = None
+        open_world = False
+        for state in trajectory:
+            tool = str(state.tool)
+            tl = tool.lower()
+            is_ow = tl not in _KNOWN_V2_VOCAB
+            ed = state.to_eval_dict()
+            argstr = str(ed.get("args", "")).lower()
+            call = {"tool": tool, "args": state.args}
+
+            if tainted_by is None:
+                if acquires_data(call):
+                    tainted_by = (state.step, tool)
+                    open_world = open_world or is_ow
+                continue
+
+            if egresses_data(call):
+                is_exec = bool(infer_capabilities(call) & {CAP_EXEC})
+                external = is_exec or self._is_external_sink(
+                    tl, ed, argstr)
+                if external and (open_world or is_ow):
+                    src_step, src_tool = tainted_by
+                    return GovernanceResult(
+                        verdict=GovernanceVerdict.BLOCK,
+                        layer="V2",
+                        reason=(
+                            f"Structural data-flow taint (open-world): "
+                            f"{src_tool} (step {src_step}) → {tool} "
+                            f"(step {state.step}) crosses an external/"
+                            f"execution boundary after a data acquisition"
+                        ),
+                        trajectory_hash=trajectory.hash,
+                        metadata={
+                            "v2_mechanism": "taint_flow_structural",
+                            "source_step": src_step,
+                            "source_tool": src_tool,
+                            "sink_step": state.step,
+                            "sink_tool": tool,
+                            "open_world": True,
+                        },
+                    )
+        return None
+
+    def check_v2_structural(
+        self, trajectory: Trajectory
+    ) -> Optional[GovernanceResult]:
+        """Additive V2 structural extension entry point (both gaps)."""
+        if not self.enable_taint:
+            return None
+        r = self.check_single_step_privilege(trajectory)
+        if r is not None:
+            return r
+        if trajectory.is_multi_step:
+            return self._structural_taint_violation(trajectory)
+        return None
+
+    # ═══════════════════════════════════════════════════════════
     # V3 — FORWARD REACHABILITY
     # ═══════════════════════════════════════════════════════════
 
@@ -490,6 +612,13 @@ class ReachabilityEvaluator:
         if result is not None:
             return result
 
+        # V2 structural extension (v0.4.1) — additive, runs only when the
+        # layers above did not block; closes single-step broad privilege
+        # expansion and open-world acquire→egress taint continuity.
+        result = self.check_v2_structural(trajectory)
+        if result is not None:
+            return result
+
         # V4: structural admissibility per state
         for state in trajectory:
             result = self.check_v4(state)
@@ -525,7 +654,8 @@ class ReachabilityEvaluator:
             "violations": a_results,
         }
 
-        v2 = self.check_v2(trajectory)
+        v2 = self.check_v2(trajectory) or self.check_v2_structural(
+            trajectory)
         report["layers"]["V2"] = {
             "fired": v2 is not None,
             "reason": v2.reason if v2 else None,
