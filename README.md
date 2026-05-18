@@ -3,7 +3,7 @@
 # Morrison Runtime Governance
 
 ![Safety](https://img.shields.io/badge/Safety-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
-![Evaluations](https://img.shields.io/badge/Evaluations-129%2C541-0075ca?style=flat-square)
+![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
 ![False_Positives](https://img.shields.io/badge/False_Positives-0-2ea44f?style=flat-square)
 ![False_Negatives](https://img.shields.io/badge/False_Negatives-0-2ea44f?style=flat-square)
 ![Models](https://img.shields.io/badge/Models-GPT--4o_·_Qwen_·_Llama-555555?style=flat-square)
@@ -178,11 +178,11 @@ graph TD
 |:----------------|:---------:|:----:|:-------------:|:-------------:|:---:|
 |GPT-4o           |9,095      |3.14M |0              |0              |$0.24|
 |Qwen2.5-0.5B     |10,000     |—     |0              |0              |local|
-|Qwen2.5-7B       |200        |—     |0              |0              |local|
-|Llama-3.1-8B     |240        |—     |0              |0              |local|
+|Qwen2.5-7B       |438        |—     |0              |0              |local|
+|Llama-3.1-8B     |318        |—     |0              |0              |local|
 |Banking benchmark|10,000     |—     |0              |0              |local|
 |Stress test      |100,000    |—     |0              |0              |4.52s|
-|**Total**        |**129,541**|      |**0**          |**0**          |     |
+|**Total**        |**129,857**|      |**0**          |**0**          |     |
 
 The governance layer was unchanged across all models and all scenarios. Safety is a property of the control layer.
 
@@ -358,23 +358,40 @@ See [`examples/`](examples/) for integration patterns.
 ```
 morrison-runtime-governance/
 ├── morrison_governance/
-│   ├── __init__.py          # Public API surface
-│   ├── core.py              # GovernanceLayer — main interface
-│   ├── domains.py           # Ω domain definitions and rules
-│   ├── trajectory.py        # Trajectory extraction (OpenAI/LangChain/raw)
-│   ├── reachability.py      # Enforcement hierarchy (A_safe → V3)
-│   └── result.py            # GovernanceResult, GovernanceVerdict
-├── examples/
-│   ├── demo.py              # Terminal demo (10 scenarios)
-│   ├── server.py            # FastAPI deployment server
-│   ├── openai_integration.py
-│   └── langchain_integration.py
-├── tests/
-│   └── test_governance.py   # 14 tests, 0 FP, 0 FN
-├── docs/
-│   ├── ENTERPRISE_PILOT.md  # 8-week pilot structure
-│   └── 48HR_AUDIT.md        # Door-opener audit offer
-└── pyproject.toml
+│   ├── __init__.py            # Public API surface
+│   ├── core.py                # GovernanceLayer — main interface
+│   ├── domains.py             # Ω domain definitions and rules
+│   ├── trajectory.py          # Trajectory extraction (OpenAI/LangChain/raw)
+│   ├── reachability.py        # Enforcement hierarchy A_safe → V2 → V3 → V4
+│   ├── admissibility.py       # V4 structural admissibility
+│   ├── feasibility.py         # V4+ feasibility (NO_VALID_SOLUTION)
+│   ├── stability.py           # V5 environment-perturbation stability
+│   ├── adversarial.py         # V5+ hard adversarial harness
+│   ├── forecasting.py         # V3 generalized reachability forecasting
+│   ├── manifold.py            # V5 bounded-ball perturbation manifolds
+│   ├── planners.py            # Deterministic cross-model planner profiles
+│   ├── multiagent.py          # Multi-agent joint-trajectory governance
+│   ├── interception.py        # Fail-closed interception + model seam
+│   ├── redteam.py             # Assumption-driven red-team harness
+│   ├── integrations.py        # OpenAI/Claude/LangChain/AutoGen/MCP adapters
+│   ├── result.py              # GovernanceResult, GovernanceVerdict
+│   ├── demo*.py               # Terminal demos (core / extended / integrations)
+│   ├── LIMITATIONS.md         # Quantified failure surfaces
+│   └── test_*.py              # 18 deterministic suites — 171 cases, 0 FP/FN
+│                              #   governance, extended_layers, integrations,
+│                              #   forecasting, manifold, domain_healthcare,
+│                              #   domain_finance_fraud, cyber_obfuscation,
+│                              #   cross_model_planner, cross_domain_substitution,
+│                              #   perturbation_radius, multiagent, long_horizon,
+│                              #   runtime_mutation, open_world, interception,
+│                              #   redteam, hardening_v041
+├── artifacts/visualizations/  # Regenerable PNG+SVG (architecture, layer_firing,
+│                              #   robustness_envelope, v041_gap_closure, …)
+├── quickstart.py              # One-command guided walkthrough
+├── README.md
+├── RELEASE_NOTES.md           # v0.4.1 → … version history
+├── CRITICAL_EVALUATION.md     # Skeptical reviewer-facing self-assessment
+└── morrison_governance/pyproject.toml
 ```
 
 -----
