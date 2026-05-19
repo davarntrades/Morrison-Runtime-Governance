@@ -1,8 +1,15 @@
 <div align="center">
 
-# 48-Hour Runtime Safety Audit
+# 48-Hour Runtime Governance Audit
 
-**Find out what your AI agents can execute — before they execute it.**
+### Catastrophic trajectory exposure assessment
+
+**Prove which catastrophic trajectories are reachable in your autonomous
+systems — before they execute.**
+
+For organisations with near-misses, unsafe autonomous behaviour, regulatory
+exposure, compliance instability, or active autonomous workflows touching
+money, secrets, infrastructure, or PHI.
 
 Resurrection Tech Ltd · Morrison Framework™
 
@@ -46,9 +53,14 @@ No model access required. No code deployment. We evaluate the trajectory geometr
 
 |Component                         |Cost       |
 |:---------------------------------|:----------|
-|Free preview (scope confirmation) |£0         |
-|48-Hour Runtime Safety Audit      |£18K–25K   |
-|Follow-on: Structural Safety Pilot|£120K–250K+|
+|Free preview (scope confirmation)        |£0          |
+|48-Hour Runtime Governance Audit         |£40K–75K    |
+|Follow-on: Structural Safety Pilot       |£250K–750K+ |
+
+This is operational assurance infrastructure for autonomous systems. The audit
+is priced against the cost of Ω becoming reachable — not the complexity of the
+software. Findings are bounded: validated across tested scenarios, within the
+evaluated suites, and reproducible by cloning and running the repository.
 
 -----
 

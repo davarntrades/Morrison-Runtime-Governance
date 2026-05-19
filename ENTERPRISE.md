@@ -50,7 +50,8 @@ trajectory geometry, not the model.
 | 5 | **Risk summary**                  | Prioritised attack surface ranked by reachability and consequence          |
 | 6 | **Integration recommendations**   | Concrete middleware placement and Ω configuration for your stack           |
 
-Timeline: **48 hours** · Investment band: **£18K–25K**.
+Positioned as a **catastrophic trajectory exposure assessment**.
+Timeline: **48 hours** · Investment band: **£40K–75K**.
 
 -----
 
@@ -247,7 +248,9 @@ Including:
 
 ## 7. Domain-by-Domain Operational Impact
 
-### Finance
+### Finance / Banking Infrastructure
+
+*Treasury automation, payment systems, autonomous trading, settlement systems.*
 
 |Pain                        |Consequence                    |Governance Outcome                                |
 |:---------------------------|:------------------------------|:-------------------------------------------------|
@@ -257,11 +260,13 @@ Including:
 |Autonomous payment execution|Uncontrolled fund movement     |Blocked unless explicit authorization flag present|
 
 **Cost of failure:** Millions in direct loss. Regulatory penalties. Trust collapse.
-**Investment:** £250K–£1M+
+**Investment:** £1M–5M+
 
 -----
 
-### Healthcare
+### Healthcare / Clinical Systems
+
+*PHI governance, discharge workflows, medication authorization, clinical agent systems.*
 
 |Pain                                         |Consequence                             |Governance Outcome                               |
 |:--------------------------------------------|:---------------------------------------|:------------------------------------------------|
@@ -271,13 +276,15 @@ Including:
 |Fabricated clinical evidence                 |Regulatory fraud, criminal liability    |Blocked — fabrication trajectory into Ω          |
 
 **Cost of failure:** Lawsuits. Patient harm. Compliance exposure. Institutional liability.
-**Investment:** £120K–£500K+
+**Investment:** £750K–3M+
 
 **Validated:** 160 healthcare scenarios, 11 case types, 160/160 correct, 0 FP, 0 FN.
 
 -----
 
-### Cybersecurity
+### Cybersecurity / Infrastructure
+
+*Credential governance, shell-execution governance, infrastructure orchestration.*
 
 |Pain                   |Consequence                    |Governance Outcome                                          |
 |:----------------------|:------------------------------|:-----------------------------------------------------------|
@@ -287,11 +294,13 @@ Including:
 |Chained tool attacks   |Invisible multi-step data theft|Blocked at V2/V3 — trajectory drift and forward reachability|
 
 **Cost of failure:** Catastrophic infrastructure compromise. Operational shutdown.
-**Investment:** £180K–£750K+
+**Investment:** £750K–3M+
 
 -----
 
-### Data Privacy
+### Data Privacy / Compliance
+
+*GDPR / FCA / SOX executable runtime enforcement.*
 
 |Pain                                |Consequence                       |Governance Outcome                                        |
 |:-----------------------------------|:---------------------------------|:---------------------------------------------------------|
@@ -299,11 +308,13 @@ Including:
 |Unauthorized data sharing           |Compliance breach                 |Blocked — authorization gap detected                      |
 
 **Cost of failure:** Regulatory fines (up to 4% global revenue under GDPR). Reputational damage.
-**Investment:** £150K–£800K+
+**Investment:** £1M–4M+
 
 -----
 
-### Enterprise Systems
+### Enterprise Autonomous Systems
+
+*Internal workflow governance, auditability, autonomous operations.*
 
 |Pain                    |Consequence                      |Governance Outcome                        |
 |:-----------------------|:--------------------------------|:-----------------------------------------|
@@ -311,11 +322,13 @@ Including:
 |Autonomous policy bypass|Governance failure               |Blocked at feasibility guard              |
 
 **Cost of failure:** Internal trust collapse. Audit failure. Board-level exposure.
-**Investment:** £95K–£350K+
+**Investment:** £500K–2M+
 
 -----
 
-### Defence
+### Defence / Sovereign Infrastructure
+
+*Autonomous coordination, classified handling, sovereign runtime governance.*
 
 |Pain                                  |Consequence                      |Governance Outcome                                         |
 |:-------------------------------------|:--------------------------------|:----------------------------------------------------------|
@@ -324,7 +337,22 @@ Including:
 |Drone coordination failure            |Kinetic harm, operational failure|Blocked — multi-agent trajectory governance                |
 
 **Cost of failure:** Existential.
-**Investment:** £1M+
+**Investment:** £5M–25M+ · Sovereign / defence retainers £1M–5M+/yr
+
+-----
+
+### Insurance / Actuarial Governance
+
+*Runtime insurability evidence and governance verification.*
+
+|Pain                                    |Consequence                                    |Governance Outcome                              |
+|:---------------------------------------|:----------------------------------------------|:-----------------------------------------------|
+|Autonomous claim approval without review|Direct payout of fraudulent / excessive claims |Blocked — trajectory into Ω detected            |
+|Risk miscalculation from fabricated data|Systemic portfolio mispricing                  |Blocked — fabrication trajectory inadmissible   |
+|Unauthorised policyholder data exposure |Regulatory penalty + litigation                |Blocked — PII flag + external destination = Ω   |
+
+**Cost of failure:** Systemic risk mispricing. Fraudulent payout chains.
+**Investment:** £750K–3M+
 
 -----
 
@@ -443,12 +471,37 @@ The framework is infrastructure-oriented, not morality-oriented. It defines what
 
 ## 10. Next Steps
 
-|Pathway                        |What You Get                                                                                                                                      |Timeline |Investment |
-|:------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------|:-------:|:----------|
-|**48-Hour Audit**              |We evaluate your agent architecture against domain-specific Ω. Full report: which trajectories reach Ω, which don’t, where your attack surface is.|48 hours |£18K–25K   |
-|**Structural Safety Pilot**    |4–8 week integration. Governance middleware deployed in staging. Full evaluation suite. Production deployment plan.                               |4–8 weeks|£120K–250K+|
-|**Advisory Retainer**          |Ongoing governance architecture support. Ω configuration. Threat surface analysis.                                                                |Monthly  |£18K–35K/mo|
-|**Full Enterprise Integration**|Production deployment. Custom Ω domains. Operational support. Cross-model validation.                                                             |Scoped   |£250K–£1M+ |
+### Why the pricing scales
+
+This is operational assurance infrastructure for autonomous systems. Pricing
+is proportional to **operational blast radius**, **regulatory exposure**,
+**infrastructure criticality**, and **catastrophic downside**. **The
+governance layer is priced against the cost of Ω becoming reachable — not the
+complexity of the software.** Full rationale and documented downside references
+are in **[Pricing Strategy.md](Pricing%20Strategy.md)**.
+
+### Entry pathways
+
+|Pathway                        |Positioned as                                              |Timeline |Investment   |
+|:------------------------------|:----------------------------------------------------------|:-------:|:------------|
+|**48-Hour Runtime Governance Audit**|Catastrophic trajectory exposure assessment           |48 hours |£40K–75K     |
+|**Structural Safety Pilot**    |Staging deployment and operational governance integration  |4–8 weeks|£250K–750K+  |
+|**Advisory Retainer**          |Ongoing Ω evolution, threat-surface monitoring, runtime governance maintenance, incident review, model/planner revalidation|Monthly|£35K–100K/mo|
+
+### Enterprise / domain integration
+
+|Domain                              |Investment |
+|:-----------------------------------|:----------|
+|Finance / Banking Infrastructure    |£1M–5M+    |
+|Healthcare / Clinical Systems       |£750K–3M+  |
+|Cybersecurity / Infrastructure      |£750K–3M+  |
+|Data Privacy / Compliance           |£1M–4M+    |
+|Enterprise Autonomous Systems       |£500K–2M+  |
+|Insurance / Actuarial Governance    |£750K–3M+  |
+|Defence / Sovereign Infrastructure  |£5M–25M+   |
+
+**ARR target:** £500K–2M+ per client annually · **Sovereign / defence
+retainers:** £1M–5M+/yr.
 
 ### Start Here
 

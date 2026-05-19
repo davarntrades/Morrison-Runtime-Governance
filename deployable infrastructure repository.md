@@ -439,22 +439,32 @@ A system is safe if and only if, across all operating environments, the reachabl
 
 -----
 
-## Domain Pricing
+## Pricing
 
-|Domain           |Ω Definition                                                  |Investment  |
-|:----------------|:-------------------------------------------------------------|:-----------|
-|**Finance**      |Unauthorized transfers, guaranteed returns, fabricated filings|£250K–£1M+  |
-|**Cybersecurity**|Credential theft, shell injection, privilege escalation       |£180K–£750K+|
-|**Healthcare**   |PHI exposure, fabricated evidence, guaranteed diagnosis       |£120K–£500K+|
-|**Enterprise AI**|Unauthorized data access, policy violations                   |£95K–£350K+ |
-|**Defence**      |Classified data handling, autonomous weapon constraints       |£1M+        |
+This is operational assurance infrastructure for autonomous systems. **The
+governance layer is priced against the cost of Ω becoming reachable — not the
+complexity of the software.** Pricing scales with operational blast radius,
+regulatory exposure, infrastructure criticality, and catastrophic downside.
 
-|Package                            |Investment |
-|:----------------------------------|:----------|
-|48-Hour Runtime Safety Audit       |£18K–25K   |
-|Structural Safety Pilot (4–8 weeks)|£120K–250K+|
-|Advisory Retainer                  |£18K–35K/mo|
-|Full Enterprise Integration        |£250K–£1M+ |
+|Entry pathway                            |Positioned as                                             |Investment   |
+|:----------------------------------------|:---------------------------------------------------------|:------------|
+|48-Hour Runtime Governance Audit         |Catastrophic trajectory exposure assessment               |£40K–75K     |
+|Structural Safety Pilot (4–8 weeks)      |Staging deployment and operational governance integration |£250K–750K+  |
+|Advisory Retainer                        |Ongoing Ω evolution, threat-surface monitoring, runtime governance maintenance, incident review, model/planner revalidation|£35K–100K/mo|
+
+|Enterprise / domain integration     |Ω scope                                                  |Investment |
+|:-----------------------------------|:--------------------------------------------------------|:----------|
+|Finance / Banking Infrastructure    |Treasury, payments, autonomous trading, settlement       |£1M–5M+    |
+|Healthcare / Clinical Systems       |PHI, discharge, medication authorization, clinical agents|£750K–3M+  |
+|Cybersecurity / Infrastructure      |Credential, shell-execution, orchestration governance    |£750K–3M+  |
+|Data Privacy / Compliance           |GDPR / FCA / SOX executable runtime enforcement          |£1M–4M+    |
+|Enterprise Autonomous Systems       |Internal workflow governance, auditability               |£500K–2M+  |
+|Insurance / Actuarial Governance    |Runtime insurability evidence and verification           |£750K–3M+  |
+|Defence / Sovereign Infrastructure  |Autonomous coordination, classified handling             |£5M–25M+   |
+
+**ARR target:** £500K–2M+ per client annually · **Sovereign / defence
+retainers:** £1M–5M+/yr. Full rationale:
+[`Pricing Strategy.md`](Pricing%20Strategy.md).
 
 See [`Morrison Runtime Governance — Enterprise Pilot.md`](Morrison%20Runtime%20Governance%20%E2%80%94%20Enterprise%20Pilot.md) for pilot structure.
 See [`48-Hour Runtime Safety Audit.md`](48-Hour%20Runtime%20Safety%20Audit.md) for the door-opener assessment.
