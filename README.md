@@ -38,21 +38,27 @@ obvious `✓ PERMIT` / `✗ BLOCK` output:
 
 ### Architecture
 
+```mermaid
+flowchart LR
+    AGENT["AGENT<br/>LLM / planner"]
+    AGENT -->|"proposed tool call"| GOV
+    subgraph GOV["GOVERNANCE LAYER · pre-execution"]
+        direction TB
+        A["A_safe — single-step Ω"]
+        V2["V2 — drift + source→sink taint"]
+        V3["V3 — forward reachability forecast"]
+        V4["V4 — structural admissibility"]
+        V4P["V4+ — feasibility · refuse to guess"]
+        V5["V5 — environment-wide stability"]
+        V5P["V5+ — adversarial harness"]
+        A --> V2 --> V3 --> V4 --> V4P --> V5 --> V5P
+    end
+    GOV -->|"PERMIT"| RT["TOOL RUNTIME<br/>shell · API · fs · browser"]
+    GOV -->|"BLOCK — never executes"| LOG["Blocked + audit log"]
 ```
-        proposed tool call            ┌──────────────────────────────┐
-  AGENT ───────────────────────────▶  │        GOVERNANCE LAYER       │
- (LLM / planner)                       │  A_safe  single-step Ω        │
-                                       │  V2      drift + source→sink  │
-                                       │  V3      forward reachability │
-        ◀───── PERMIT ─────────────────│  V4      admissibility        │
-           │                           │  V4+     feasibility          │
-           ▼                           │  V5      env-wide stability   │
-  ┌──────────────┐    BLOCK ◀──────────│  V5+     adversarial harness  │
-  │ TOOL RUNTIME │      (never runs)   └──────────────────────────────┘
-  │ shell/API/fs │
-  │  /browser    │       Invariant:  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅
-  └──────────────┘
-```
+
+**Invariant:** for all `E ∈ ℰ`, `ℛ_E(t) ∩ Ω = ∅` — a single trajectory
+into Ω refutes safety absolutely, not probabilistically.
 
 A rendered version is at
 [`artifacts/visualizations/architecture.png`](artifacts/visualizations/architecture.png)
@@ -273,15 +279,19 @@ curl -X POST http://localhost:8000/evaluate \
 
 This governance layer prevents:
 
-|Risk                                |Mechanism                                                 |
-|:-----------------------------------|:---------------------------------------------------------|
-|**Unauthorized financial execution**|Ω includes unauthed transfers, trades, payments           |
-|**Credential exfiltration**         |Read-sensitive-file → exfiltrate chains blocked at V3     |
-|**Shell injection / RCE**           |Command injection patterns blocked at A_safe              |
-|**Privilege escalation**            |sudo/chmod/chown patterns blocked at A_safe               |
-|**Data exfiltration**               |PII/PHI to external endpoints blocked with context flags  |
-|**Chained multi-step attacks**      |V2 drift detection + V3 forward reachability              |
-|**Delayed intent escalation**       |Multi-step trajectory analysis catches escalation patterns|
+|Risk                                |Layer    |How it is prevented                                                                                  |
+|:-----------------------------------|:--------|:----------------------------------------------------------------------------------------------------|
+|**Unauthorized financial execution**|A_safe   |Single-step Ω match — unauthed transfers, trades, payments never execute                              |
+|**Shell injection / RCE**           |A_safe   |Command-injection / exec patterns rejected before reaching the runtime                                |
+|**Privilege escalation**            |A_safe · V2|sudo/chmod/chown at A_safe; single-step broad/unbounded privilege or scope widening at V2 (structural, v0.4.1)|
+|**Credential / data exfiltration**  |V2       |Source→sink taint: read-sensitive → external egress blocked even across benign steps, deferred actions, and unknown (open-world) tools|
+|**Chained multi-step attacks**      |V2 · V3  |V2 trajectory-drift detection + V3 forward-reachability forecast over an evolving environment         |
+|**Delayed / deferred intent escalation**|V3   |Projects deferred, looped and privilege-accumulating Ω *before* it executes                           |
+|**Structurally inadmissible actions**|V4      |Missing role, out-of-scope resource, schema or quota violation — blocked even when the act is Ω-free  |
+|**No safe way to achieve the task** |V4+      |Returns `NO_VALID_SOLUTION` — refuses to guess rather than pick an unsafe default                     |
+|**Environment-sensitive safety**    |V5       |Blocks trajectories whose safety holds only under base conditions and flips under perturbation (`ENVIRONMENT_SENSITIVE`) across 9 manifold families|
+|**Multi-agent collusion**           |V2 (joint)|Per-agent-safe but jointly-exfiltrating agent teams are flattened to one causal trajectory and blocked|
+|**Assumption regressions**          |V5+      |Assumption-driven adversarial harness surfaces gaps deterministically (continuous assurance)          |
 
 -----
 
