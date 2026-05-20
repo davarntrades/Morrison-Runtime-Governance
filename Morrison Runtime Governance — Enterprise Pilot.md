@@ -102,6 +102,19 @@ GitHub: [github.com/davarntrades](https://github.com/davarntrades)
 
 -----
 
+## Licensing
+
+Commercial deployment is subject to licence. Evaluation does not grant
+production deployment rights. Evaluation, benchmarking, and academic reference
+are permitted for non-commercial purposes; commercial deployment, production
+use, resale, sublicensing, or integration into revenue-generating systems
+requires a written commercial licence from Resurrection Tech Ltd. Certain
+implementations may be covered by granted and/or pending intellectual property
+owned by Resurrection Tech Ltd, including **UK Patent GB2600765.8**. Full
+terms: [`License.md`](License.md).
+
+-----
+
 <div align="center">
 
 *If your AI systems can execute actions, they can execute catastrophic ones.*

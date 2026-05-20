@@ -558,9 +558,12 @@ the end" are in **[ENTERPRISE.md](ENTERPRISE.md)** and
 
 ## Licensing · patent · contact
 
-This software implements patented technology under UK Patents **GB2600765.8,
-GB2602013.1, GB2602072.7, GB2602332.5**. Commercial licensing through
-Resurrection Tech Ltd.
+Evaluation and benchmarking are permitted for non-commercial purposes.
+Commercial deployment, production use, resale, sublicensing, or integration
+into revenue-generating systems requires a **written commercial licence** from
+Resurrection Tech Ltd. Certain implementations may be covered by granted
+and/or pending intellectual property owned by Resurrection Tech Ltd, including
+**UK Patent GB2600765.8**. Full terms: [`License.md`](License.md).
 
 **Davarn Morrison** — Founder & Sole Director, Resurrection Tech Ltd
 GitHub: [github.com/davarntrades](https://github.com/davarntrades)
