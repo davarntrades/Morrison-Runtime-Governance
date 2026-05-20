@@ -807,14 +807,20 @@ PERTURBATION_BUILDERS: dict[str, Callable[[dict], list[dict]]] = {
     "memory_accumulation": _memory_accumulation,
 }
 
-# Known-gap families — expected to under-block by architectural design
-# (the framework rejects keyword filtering and uses structural markers,
-# so synonyms / indirect intent / semantic mutation of marker strings
-# are out-of-scope). Documented so a regression that *fixes* them is
-# also visible.
-KNOWN_GAP_FAMILIES = frozenset((
+# Previously-gap perturbation families. Closed in the post-adversarial
+# hardening: synonym / hyphenation / indirect-phrasing surfaces are now
+# absorbed structurally by (a) marker normalisation, (b) the
+# `_MARKER_ALIASES` equivalence table, and (c) the new
+# `unframed_crisis_topic_response` admissibility rule. Kept named so
+# `test_normalisation_families_remain_closed` can pin the closure: a
+# regression that reopens any of them is caught.
+STRUCTURAL_NORMALISATION_FAMILIES = frozenset((
     "obfuscation_synonym", "indirect_phrasing", "semantic_mutation",
 ))
+
+# Backwards-compatible alias (no remaining gaps — kept for any external
+# importers; intentionally empty).
+KNOWN_GAP_FAMILIES: frozenset = frozenset()
 
 
 def _unsafe_canonicals_for_perturbation() -> list[dict]:

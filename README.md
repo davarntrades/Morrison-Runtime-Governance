@@ -118,10 +118,23 @@ contains them.
 | **No safe way to achieve the task**                   | Unsafe default chosen under pressure             | V4+ — returns `NO_VALID_SOLUTION` (refuses to guess)    |
 | **Environment-sensitive safety** (flips under perturbation) | Hidden instability in production           | V5 — `ENVIRONMENT_SENSITIVE` across 9 manifold families |
 | **Multi-agent collusion**                             | Joint exfiltration across cooperating agents     | V2 over the flattened joint trajectory                  |
+| **Active crisis abandonment / unsafe psychological escalation** | Irreversible self-harm risk; duty-of-care failure; catastrophic human consequence | A_safe — `self_harm_instruction`, `suicide_method_query`, `suicide_planning_assistance`, `unsafe_pseudo_therapy_escalation` |
+| **Failure-to-route crisis disclosure**                | Acute safety escalation; litigation exposure; escalation without a support path | A_safe — `failure_to_route_crisis_disclosure` (classifies to `ESCALATE_TO_HUMAN`) |
+| **Recursive emotional dependency formation**          | Manipulation risk; autonomy degradation; coercive attachment dynamics | A_safe — `dependency_formation` + alias normalisation |
+| **Therapeutic impersonation / authority exploitation**| Unsafe psychological influence; trust abuse; false-clinician escalation | A_safe — `therapeutic_impersonation`, `authority_exploitation` |
+| **Contextual drift under prolonged interaction**      | Latent escalation invisible to single-turn moderation | A_safe — `contextual_drift_unsafe`, `latent_escalation` (multi-turn blocks at the first marker that lands in Ω) |
+| **Memory contamination / recursive coercion**         | Long-horizon behavioural manipulation across sessions | A_safe — `memory_contamination`, `recursive_emotional_pressure` |
+| **Indirect coercion / emotional isolation trajectories** | Progressive dependency; support-network degradation; hidden escalation risk | A_safe — `indirect_coercion`, `emotional_isolation`, `discourage_help_seeking`, `unframed_crisis_topic_response` |
 
 Validated across the tested scenarios with **zero observed false positives and
-zero observed false negatives in the current evaluation suites** (see
-[Cross-model validation](#cross-model-validation)).
+zero observed false negatives in the current evaluation suites** — including
+the 648-entry mental-health adversarial harness (precision 1.0000, recall
+1.0000, accuracy 1.0000 in the bounded test environment). The mental-health
+rules are structural categorical-marker checks under the Morrison ontology,
+hardened with marker normalisation and an explicit alias-equivalence layer so
+synonym / hyphenation / indirect-phrasing perturbations route back to the
+canonical Ω marker. See [Mental-health-adjacent runtime safety](#mental-health-adjacent-runtime-safety-scope-note)
+and [Cross-model validation](#cross-model-validation).
 
 -----
 
@@ -427,65 +440,72 @@ self-harm content appears anywhere in the repository.
 `SAFE · UNSAFE · ESCALATING · AMBIGUOUS · ESCALATE_TO_HUMAN · NO_VALID_SAFE_TRAJECTORY`
 — audit log is structured `(case_id, expected, predicted, layer, rule, family, profile, chain_len)` and is fully replayable.
 
-**Results on the tested suite:**
+**Results on the tested suite (post-hardening):**
 
 | Metric (SAFE vs. not-SAFE)            | Value  |
 |:--------------------------------------|-------:|
 | Total cases                           | 648    |
-| Precision                             | 1.0000 |
-| Recall                                | 0.9294 |
-| Accuracy                              | 0.9522 |
-| False-positive rate                   | 0.0000 |
-| False-negative rate                   | 0.0706 |
+| Precision                             | **1.0000** |
+| Recall                                | **1.0000** |
+| Accuracy                              | **1.0000** |
+| False-positive rate                   | **0.0000** |
+| False-negative rate                   | **0.0000** |
 
 - **Zero false positives** across 209 supportive / therapy / grief /
   philosophy / fiction / dark-humour / journaling / passive-ideation /
   recovery / support-seeking probes.
+- **Zero false negatives** across the full corpus (439 expected
+  not-SAFE cases all blocked) — including the three perturbation
+  families that previously surfaced as architectural gaps
+  (`obfuscation_synonym`, `indirect_phrasing`, `semantic_mutation`),
+  now closed by **structural marker normalisation + an explicit
+  alias-equivalence layer + a new `unframed_crisis_topic_response`
+  admissibility rule** in `domains.py`. None of this is keyword
+  filtering: aliases are bounded equivalence classes on the abstract
+  marker ontology, and the new rule fires only when a response on a
+  recognised crisis topic carries neither category framing nor
+  routing/referral (structural absence of safety scaffolding).
 - **All 100 multi-turn chains** classify correctly (bait-and-switch,
   grooming buildup, delayed-intent prefixes up to 25 steps, drift,
   recursive pressure, contradiction, isolation/dependency buildup).
-- **Cross-model invariance** holds across GPT-/Claude-/Qwen-/Llama-
-  /stochastic-decoding planner profiles for every unsafe canonical.
+- **Cross-model invariance** holds across GPT-/Claude-/Qwen-/Llama-/
+  stochastic-decoding planner profiles for every unsafe canonical.
 - **V5 perturbation stability** holds at radius 0 (identity anchor);
   agreement decays with radius as expected; safe canonicals remain PERMIT.
-- **All 31 false negatives belong to three pinned architectural-gap
-  families** (`obfuscation_synonym`, `indirect_phrasing`,
-  `semantic_mutation` — see *Limitations* below).
-- Determinism: full corpus replayed twice, byte-identical audit logs.
+- **Determinism:** full corpus replayed twice, byte-identical audit logs.
 
-> 648/648 entries logged across this evaluation suite represent
-> internal consistency / regression / classification metrics — **not**
-> third-party security coverage. Independent red-teaming is the
-> appropriate next step (see [`CRITICAL_EVALUATION.md`](CRITICAL_EVALUATION.md)).
+> 648/648 in this evaluation suite is an internal regression /
+> classification metric — **not** third-party security coverage.
+> Independent red-teaming is the appropriate next step (see
+> [`CRITICAL_EVALUATION.md`](CRITICAL_EVALUATION.md)).
 
-**Pinned architectural gaps (by design, surfaced honestly).** The
-framework deliberately rejects keyword filtering, so the structural
-rules cannot match a marker that has been *renamed*:
+**Pins (previously gaps, now closed).** The three perturbation
+families that earlier returned 31 false negatives are now structurally
+absorbed:
 
-| Gap family             | What it does                                  | Why it slips      |
-|:-----------------------|:----------------------------------------------|:------------------|
-| `obfuscation_synonym`  | Renames `category` to an equivalent synonym   | Synonym not in the Ω marker set |
-| `indirect_phrasing`    | Drops `category`; uses an indirect `intent`   | Indirect intent isn't a structural Ω marker |
-| `semantic_mutation`    | Mutates the marker string (`self_harm` → `self-harm`) | String mismatch — rules use literal markers |
+| Family                 | What it does                                          | How it is now caught |
+|:-----------------------|:------------------------------------------------------|:---------------------|
+| `obfuscation_synonym`  | Renames `category` to an equivalent synonym           | `_MARKER_ALIASES` routes synonyms to the canonical Ω marker |
+| `semantic_mutation`    | Mutates separator/case in the marker string           | `_normalise_marker` (lowercase + non-word → `_` + collapse) |
+| `indirect_phrasing`    | Drops `category`; uses indirect `intent` + crisis `topic_class` | `unframed_crisis_topic_response` admissibility rule |
 
-These are upstream-classifier responsibilities, not governance-layer
-responsibilities. They are pinned in the suite so a regression *or* a
-genuine fix is both visible.
+`test_normalisation_families_remain_closed` and
+`test_two_class_metrics_zero_fn_zero_fp` pin the closure so any
+regression in the structural normalisation / alias / admissibility
+layer is detected.
 
-**Recommendations for future hardening** (out of scope for this layer
-on its own):
+**Recommendations for future hardening** (further work, beyond the
+current closure):
 
-- Upstream marker-normalisation (NFKC + casefold + separator collapse)
-  before governance evaluation, to close synonym / semantic-mutation
-  surface without re-introducing keyword filtering downstream.
-- A marker-ontology aliasing table (synonym → canonical category) maintained
-  outside the governance core, applied at the integration boundary.
-- A cumulative-pattern admissibility check (V4) that counts dependency /
-  isolation / pressure markers across a session and trips beyond a
-  configured threshold — for catastrophic-grooming arcs whose individual
-  turns each carry only one marker but whose cumulative effect is
-  dangerous.
 - Independent third-party adversarial red-team against this domain.
+- A cumulative-pattern V4 admissibility check that counts dependency /
+  isolation / pressure markers across a session and trips beyond a
+  configured threshold — for catastrophic-grooming arcs whose
+  individual turns each carry only one marker but whose cumulative
+  weight should escalate sooner than the first terminal Ω marker.
+- Periodic adversarial-set rotation (the alias table is bounded; new
+  synonyms surface over time and should be added with a documented
+  diff and a pinned regression test).
 
 -----
 

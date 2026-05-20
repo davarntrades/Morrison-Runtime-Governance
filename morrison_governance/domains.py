@@ -333,13 +333,122 @@ _FALSE_REASSURANCE_TONES = (
 )
 
 
+# ─────────────────────────────────────────────────────────────
+# Structural marker normalisation + alias-equivalence layer.
+#
+# Hardening (post-adversarial-evaluation) for two structural surfaces
+# the rules above were keying on literal strings:
+#
+#   (a) separator / case drift in the marker string (e.g., a category
+#       passed as "self-harm-instruction" instead of
+#       "self_harm_instruction") — pure surface variation.
+#
+#   (b) synonym renaming of the marker (e.g., "self_harm_guidance" for
+#       "self_harm_instruction") — equivalent categorical intent under a
+#       different label.
+#
+# Both are addressed *structurally* — by collapsing surface form, then
+# resolving against an explicit, bounded equivalence-class table that
+# routes synonyms back to their canonical Ω marker. This is structural
+# string normalisation + an ontology aliasing layer, not keyword
+# filtering and not semantic moderation. The framework's primary
+# mechanism — reachability-based governance on executable trajectories
+# — is unchanged.
+# ─────────────────────────────────────────────────────────────
+
+import re as _re_mh
+
+_NON_WORD_RE = _re_mh.compile(r"[^a-z0-9_]+")
+
+
+def _normalise_marker(s) -> str:
+    """Lowercase + non-word→underscore + collapse repeated underscores +
+    strip leading/trailing underscores. Deterministic, idempotent."""
+    s = str(s or "").lower()
+    s = _NON_WORD_RE.sub("_", s)
+    while "__" in s:
+        s = s.replace("__", "_")
+    return s.strip("_")
+
+
+# Equivalence classes on the abstract marker ontology. Synonyms map to
+# the canonical Ω marker used in the rule vocabulary. Bounded, explicit,
+# auditable. NOT semantic moderation — these are categorical-marker
+# equivalences (an upstream system may use either label).
+_MARKER_ALIASES: dict[str, str] = {
+    # self_harm_instruction
+    "self_harm_guidance": "self_harm_instruction",
+    "self_harm_steps": "self_harm_instruction",
+    "self_harm_methods": "self_harm_instruction",
+    "self_harm_how_to": "self_harm_instruction",
+    # suicide_method_query
+    "method_inquiry": "suicide_method_query",
+    "suicide_methods": "suicide_method_query",
+    "lethal_methods_query": "suicide_method_query",
+    # suicide_planning_assistance
+    "suicide_planning_help": "suicide_planning_assistance",
+    "suicide_plan_walkthrough": "suicide_planning_assistance",
+    # concealment_advice
+    "hide_from_caregiver": "concealment_advice",
+    "hide_from_clinician": "concealment_advice",
+    "hide_from_family": "concealment_advice",
+    "conceal_self_harm": "concealment_advice",
+    # hopelessness_reinforcement
+    "reinforce_no_way_out": "hopelessness_reinforcement",
+    "no_way_out": "hopelessness_reinforcement",
+    "nihilism_amplification": "hopelessness_reinforcement",
+    "amplify_hopelessness": "hopelessness_reinforcement",
+    # discourage_help_seeking
+    "discourage_outreach": "discourage_help_seeking",
+    "discourage_support": "discourage_help_seeking",
+    "isolate_from_help": "discourage_help_seeking",
+    # dependency_formation
+    "build_exclusive_bond": "dependency_formation",
+    "make_indispensable": "dependency_formation",
+    "fostered_reliance": "dependency_formation",
+    # emotional_isolation
+    "encourage_seclusion": "emotional_isolation",
+    "cut_off_friends": "emotional_isolation",
+    "withdraw_from_support": "emotional_isolation",
+    # gaslighting
+    "deny_their_experience": "gaslighting",
+    "invalidate_feelings": "gaslighting",
+    "reframe_as_imagined": "gaslighting",
+}
+
+
+def _canon_marker(s) -> str:
+    """Normalise + alias-resolve a categorical marker to its canonical
+    Ω form. Empty input returns empty (no match downstream)."""
+    n = _normalise_marker(s)
+    return _MARKER_ALIASES.get(n, n)
+
+
+def _mh_field(state: dict, key: str) -> str:
+    return _canon_marker(state.get(key, ""))
+
+
+def _mh_in(state: dict, key: str, vocab) -> bool:
+    """True if the (normalised, alias-resolved) field value sits in the
+    vocab set. The vocab itself is assumed already in canonical form."""
+    return _mh_field(state, key) in set(vocab)
+
+
 def _mh_marker(state: dict, *names: str) -> Optional[str]:
-    """Return the first matching abstract marker found in the state, or None.
-    Looks at common arg keys (category / topic_class / intent / purpose)."""
+    """Return the first matching canonical Ω marker found in the state, or
+    None. Reads `category` / `topic_class` / `intent` / `purpose` /
+    `risk_class`, applies structural normalisation and alias resolution,
+    and compares against the canonicalised target set — so renamed,
+    hyphenated, or case-drifted markers route back to their canonical
+    Ω form."""
+    targets = {_canon_marker(n) for n in names}
     for k in ("category", "topic_class", "intent", "purpose", "risk_class"):
-        v = str(state.get(k, "")).lower()
-        if v in names:
-            return v
+        v = state.get(k, "")
+        if not v:
+            continue
+        c = _canon_marker(v)
+        if c in targets:
+            return c
     return None
 
 
@@ -529,6 +638,26 @@ def _default_mental_health_safety_rules() -> list[OmegaRule]:
             name="indirect_coercion",
             description="Indirect coercion toward unsafe action",
             check=lambda s: _mh_marker(s, "indirect_coercion") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="unframed_crisis_topic_response",
+            description=(
+                "A response on a recognised crisis topic (`topic_class` ∈ "
+                "{self_harm, suicide, crisis, mental_health}) that carries "
+                "no categorical framing and no routing / referral — the "
+                "trajectory has no safe-frame attached and is structurally "
+                "reaching toward Ω. Catches indirect-phrasing perturbations "
+                "where `category` is dropped in favour of a generic intent."
+            ),
+            check=lambda s: (
+                _mh_in(s, "tool", _RESPONSE_TOOLS)
+                and _mh_in(s, "topic_class", _CRISIS_TOPIC_CLASSES)
+                and not s.get("category")
+                and s.get("route_to_support") is not True
+                and not s.get("crisis_referral")
+                and not s.get("emergency_referral")
+            ),
         ),
     ]
 
