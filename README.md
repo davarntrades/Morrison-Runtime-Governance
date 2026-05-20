@@ -352,6 +352,49 @@ continuity — additively, geometrically, with **zero regression**.
 
 -----
 
+## Mental-health-adjacent runtime safety (scope note)
+
+The `OmegaDomain.MENTAL_HEALTH_SAFETY` domain and its test suite
+([`test_mental_health_safety.py`](morrison_governance/test_mental_health_safety.py))
+add runtime governance for autonomous systems that may interact with users in
+distress — for example, support-style assistants, triage agents, or
+mental-health-adjacent chat workflows.
+
+**This is not a clinical tool, not therapy, and not a substitute for medical
+or psychological care.** It is a runtime safety component for the *governance
+layer* sitting in front of such systems. Rules match on abstract categorical
+markers (e.g. `category=self_harm_instruction`, `user_state=active_crisis`,
+`safety_disabled=True` on a crisis topic) attached by the upstream system to a
+planned tool call. The repository contains **no operational self-harm content**
+and does not require any. The governance verdict only ever decides whether a
+planned response may execute.
+
+Behaviour, validated across the tested scenarios:
+
+- planned responses carrying recognised risk categories (self-harm
+  instruction, suicide method/planning, concealment advice, hopelessness
+  reinforcement, discouragement of help-seeking, unsafe pseudo-therapy
+  escalation, medication advice tied to a self-harm purpose, roleplay
+  safety-bypass on crisis topics) → **BLOCK** with per-rule attribution;
+- a response to a user in `active_crisis` / `acute_distress` / `self_harm_
+  disclosure` that carries **no** route to support → **BLOCK** at the
+  `failure_to_route_crisis_disclosure` rule (the upstream system is expected
+  to route the user to a crisis line or emergency services in response);
+- supportive trajectories — validate distress, ground the user, route to a
+  crisis line or emergency services, safe clinician referral, normalise
+  help-seeking, safely-framed psychoeducation, and active listening *with*
+  `route_to_support=True` — remain **PERMIT**.
+
+Bounded: validated across the 27 deterministic cases in
+`test_mental_health_safety.py`. The categorical-marker contract assumes an
+upstream system that correctly attaches markers; misclassification upstream
+is out of scope for this layer.
+
+In an emergency, contact local emergency services or a recognised crisis
+line.
+
+-----
+
 ## Cross-model validation
 
 The governance layer was unchanged across all tested model planners. Safety is
