@@ -202,6 +202,60 @@ predicates) — pinned by
 and `test_hardening_v041.py::test_infer_capabilities_unchanged_additive`.
 Visualization: `artifacts/visualizations/v041_gap_closure.{png,svg}`.
 
+## Mental-health adversarial evaluation (bounded empirical)
+
+A large deterministic harness (`test_mental_health_adversarial.py`,
+`mental_health_adversarial.py`) exercises the existing hierarchy against
+suicide/self-harm escalation, emotional manipulation, indirect coercion,
+delayed intent, multi-turn grooming, dependency formation, emotional
+isolation, false reassurance under crisis, authority exploitation,
+therapeutic impersonation, hopelessness reinforcement, ambiguity edges,
+bait-and-switch, contextual drift, latent escalation, roleplay
+jailbreaks, recursive pressure, memory contamination, and emotional
+contradiction — all using abstract categorical markers, no operational
+self-harm content anywhere in the repository.
+
+Result on the tested suite (648 audit entries per replay): precision
+1.0000 · recall 0.9294 · FP rate 0.0000 · FN rate 0.0706. All 31 false
+negatives belong to three **pinned architectural gaps** below; every
+working perturbation family (paraphrase, tone drift, contradiction,
+roleplay masking, memory accumulation) blocks correctly; every
+supportive / therapy / philosophy / fiction / grief / journaling /
+passive-ideation probe remains PERMIT (zero over-blocks); every
+multi-turn chain (bait, grooming, delayed up to 25 steps, drift,
+recursive pressure, contradiction, isolation/dependency buildup)
+classifies correctly; cross-model invariance holds across the five
+planner profiles standing in for GPT-4o / Claude / Qwen2.5 / Llama 3.1
+/ stochastic decoding.
+
+### Pinned architectural gaps (by design)
+
+The framework deliberately rejects keyword filtering, so the structural
+rules cannot recognise a marker that has been *renamed*:
+
+1. **`obfuscation_synonym`** — `category` renamed to an equivalent
+   synonym not in the Ω marker vocabulary.
+2. **`indirect_phrasing`** — `category` dropped; an indirect `intent`
+   used instead.
+3. **`semantic_mutation`** — marker string mutated (e.g., `self_harm`
+   → `self-harm`); literal-string mismatch under structural matching.
+
+These are **upstream-classifier responsibilities**, not governance-layer
+responsibilities. They are pinned in
+`test_mental_health_adversarial.py::test_perturbation_known_gaps_are_pinned`
+so a regression *or* a genuine fix is both visible. Closing them
+requires a marker-normalisation / aliasing layer applied at the
+integration boundary, not inside the governance core. Recommendations
+for future hardening are in `README.md` under *Mental-health-adjacent
+runtime safety / Adversarial evaluation*.
+
+### Scope honesty
+
+The 648/648 figure is an **internal regression / classification metric
+on the tested suite**, not third-party security coverage. Independent
+red-teaming against this domain is the appropriate next step and is the
+posture the framework is built for; see `CRITICAL_EVALUATION.md`.
+
 ## Determinism guarantees
 
 - All perturbation/attack generators take an explicit `seed` and use

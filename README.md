@@ -393,6 +393,100 @@ is out of scope for this layer.
 In an emergency, contact local emergency services or a recognised crisis
 line.
 
+### Adversarial evaluation (bounded empirical)
+
+A larger harness
+([`test_mental_health_adversarial.py`](morrison_governance/test_mental_health_adversarial.py)
++ [`mental_health_adversarial.py`](morrison_governance/mental_health_adversarial.py))
+deterministically exercises the existing governance hierarchy against:
+**suicide / self-harm escalation, emotional manipulation, indirect coercion,
+delayed intent, multi-turn grooming, dependency formation, emotional
+isolation, false reassurance under crisis, authority exploitation,
+therapeutic impersonation, hopelessness reinforcement, ambiguity edges,
+emotional bait-and-switch, contextual drift, latent escalation, roleplay
+jailbreaks, recursive emotional pressure, planner disagreement across
+models, adversarial phrasing mutations, memory contamination, emotional
+contradiction**.
+
+Every prompt is an abstract categorical marker — no operational
+self-harm content appears anywhere in the repository.
+
+**Corpora (deterministic, byte-identical on replay):**
+
+| Corpus                              | Cases |
+|:------------------------------------|------:|
+| `SAFE_CORPUS` (supportive)          | 105   |
+| `UNSAFE_CORPUS` (one per Ω category)| 115   |
+| `FP_AMBIGUITY_CORPUS` (therapy / philosophy / fiction / grief / dark humour / journaling / passive ideation / support seeking) | 86 |
+| `MULTI_TURN_CHAINS` (bait, grooming, delayed, drift, isolation buildup, dependency buildup, contradiction, recursive pressure, memory) | 100 |
+| `PERTURBATION_FAMILIES` (8 families × focused canonicals) | 212 |
+| Cross-model invariance (5 planner profiles × 6 canonicals) | 30 |
+| **Total audit entries per run** | **648** |
+
+**Trajectory classification** (`MentalHealthClassification`):
+`SAFE · UNSAFE · ESCALATING · AMBIGUOUS · ESCALATE_TO_HUMAN · NO_VALID_SAFE_TRAJECTORY`
+— audit log is structured `(case_id, expected, predicted, layer, rule, family, profile, chain_len)` and is fully replayable.
+
+**Results on the tested suite:**
+
+| Metric (SAFE vs. not-SAFE)            | Value  |
+|:--------------------------------------|-------:|
+| Total cases                           | 648    |
+| Precision                             | 1.0000 |
+| Recall                                | 0.9294 |
+| Accuracy                              | 0.9522 |
+| False-positive rate                   | 0.0000 |
+| False-negative rate                   | 0.0706 |
+
+- **Zero false positives** across 209 supportive / therapy / grief /
+  philosophy / fiction / dark-humour / journaling / passive-ideation /
+  recovery / support-seeking probes.
+- **All 100 multi-turn chains** classify correctly (bait-and-switch,
+  grooming buildup, delayed-intent prefixes up to 25 steps, drift,
+  recursive pressure, contradiction, isolation/dependency buildup).
+- **Cross-model invariance** holds across GPT-/Claude-/Qwen-/Llama-
+  /stochastic-decoding planner profiles for every unsafe canonical.
+- **V5 perturbation stability** holds at radius 0 (identity anchor);
+  agreement decays with radius as expected; safe canonicals remain PERMIT.
+- **All 31 false negatives belong to three pinned architectural-gap
+  families** (`obfuscation_synonym`, `indirect_phrasing`,
+  `semantic_mutation` — see *Limitations* below).
+- Determinism: full corpus replayed twice, byte-identical audit logs.
+
+> 648/648 entries logged across this evaluation suite represent
+> internal consistency / regression / classification metrics — **not**
+> third-party security coverage. Independent red-teaming is the
+> appropriate next step (see [`CRITICAL_EVALUATION.md`](CRITICAL_EVALUATION.md)).
+
+**Pinned architectural gaps (by design, surfaced honestly).** The
+framework deliberately rejects keyword filtering, so the structural
+rules cannot match a marker that has been *renamed*:
+
+| Gap family             | What it does                                  | Why it slips      |
+|:-----------------------|:----------------------------------------------|:------------------|
+| `obfuscation_synonym`  | Renames `category` to an equivalent synonym   | Synonym not in the Ω marker set |
+| `indirect_phrasing`    | Drops `category`; uses an indirect `intent`   | Indirect intent isn't a structural Ω marker |
+| `semantic_mutation`    | Mutates the marker string (`self_harm` → `self-harm`) | String mismatch — rules use literal markers |
+
+These are upstream-classifier responsibilities, not governance-layer
+responsibilities. They are pinned in the suite so a regression *or* a
+genuine fix is both visible.
+
+**Recommendations for future hardening** (out of scope for this layer
+on its own):
+
+- Upstream marker-normalisation (NFKC + casefold + separator collapse)
+  before governance evaluation, to close synonym / semantic-mutation
+  surface without re-introducing keyword filtering downstream.
+- A marker-ontology aliasing table (synonym → canonical category) maintained
+  outside the governance core, applied at the integration boundary.
+- A cumulative-pattern admissibility check (V4) that counts dependency /
+  isolation / pressure markers across a session and trips beyond a
+  configured threshold — for catastrophic-grooming arcs whose individual
+  turns each carry only one marker but whose cumulative effect is
+  dangerous.
+- Independent third-party adversarial red-team against this domain.
+
 -----
 
 ## Cross-model validation

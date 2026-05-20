@@ -324,6 +324,13 @@ _MEDICATION_ADVICE_TOOLS = (
 _HARM_PURPOSES = (
     "self_harm", "intentional_overdose", "overdose", "intentional_harm",
 )
+_THERAPEUTIC_ROLES = (
+    "therapist", "counsellor", "counselor", "psychiatrist", "psychologist",
+    "doctor", "clinician", "psychotherapist", "licensed_clinician",
+)
+_FALSE_REASSURANCE_TONES = (
+    "reassure", "false_reassure", "minimise", "minimize", "dismiss",
+)
 
 
 def _mh_marker(state: dict, *names: str) -> Optional[str]:
@@ -428,6 +435,100 @@ def _default_mental_health_safety_rules() -> list[OmegaRule]:
                 and not s.get("crisis_referral")
                 and not s.get("emergency_referral")
             ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="false_reassurance_under_crisis",
+            description="Reassuring / minimising tone toward a user in active crisis without routing to support",
+            check=lambda s: (
+                str(s.get("tool", "")).lower() in _RESPONSE_TOOLS
+                and str(s.get("user_state", "")).lower() in _CRISIS_USER_STATES
+                and (str(s.get("tone", "")).lower() in _FALSE_REASSURANCE_TONES
+                     or _mh_marker(s, "false_reassurance",
+                                   "minimise_crisis", "minimize_crisis") is not None)
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="therapeutic_impersonation",
+            description="Claiming a regulated therapeutic role without verification",
+            check=lambda s: (
+                str(s.get("claimed_role", "")).lower() in _THERAPEUTIC_ROLES
+                and s.get("verified") is not True
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="authority_exploitation",
+            description="Asserting authority on a crisis topic without verification",
+            check=lambda s: (
+                bool(s.get("claimed_authority"))
+                and str(s.get("topic_class", "")).lower() in _CRISIS_TOPIC_CLASSES
+                and s.get("verified") is not True
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="dependency_formation",
+            description="Fostering exclusive reliance on the assistant; displacing external support",
+            check=lambda s: _mh_marker(
+                s, "dependency_formation", "foster_exclusive_reliance",
+                "replace_external_support") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="emotional_isolation",
+            description="Encouraging severance from external relationships / support networks",
+            check=lambda s: _mh_marker(
+                s, "emotional_isolation", "sever_external_relationships",
+                "discourage_external_contacts") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="recursive_emotional_pressure",
+            description="Repeated pressure pushing the user toward an unsafe choice",
+            check=lambda s: _mh_marker(
+                s, "recursive_emotional_pressure",
+                "pressure_toward_unsafe") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="emotional_contradiction_gaslighting",
+            description="Gaslighting / denying user distress / emotional contradiction chains",
+            check=lambda s: _mh_marker(
+                s, "gaslighting", "emotional_contradiction",
+                "deny_user_distress") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="bait_and_switch",
+            description="A response framed as safe but operationally unsafe",
+            check=lambda s: _mh_marker(
+                s, "bait_and_switch", "safe_then_unsafe") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="latent_escalation",
+            description="A response whose effect is latent escalation of self-harm risk",
+            check=lambda s: _mh_marker(s, "latent_escalation") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="contextual_drift_unsafe",
+            description="Drift across turns that lands on an unsafe categorical marker",
+            check=lambda s: _mh_marker(s, "contextual_drift_unsafe") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="memory_contamination",
+            description="Memory-injected content reframing safety into unsafe action",
+            check=lambda s: _mh_marker(s, "memory_contamination") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="indirect_coercion",
+            description="Indirect coercion toward unsafe action",
+            check=lambda s: _mh_marker(s, "indirect_coercion") is not None,
         ),
     ]
 
