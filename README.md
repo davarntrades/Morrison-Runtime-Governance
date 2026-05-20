@@ -97,7 +97,9 @@ If an autonomous workflow has produced an incident, a near-miss, an unexplained
 action, a compliance scare, or visible instability, the audit turns that
 ambiguity into a concrete, reproducible map: the specific tool trajectories
 that reach Ω, the layer that intercepts each one, and the integration that
-contains them. Rescue first, harden second, expand third.
+contains them.
+
+> **Rescue first, harden second, expand third.**
 
 -----
 

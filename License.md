@@ -12,6 +12,9 @@ Commercial deployment, production use, resale, sublicensing, redistribution,
 or integration into revenue-generating systems requires a written commercial
 licence from Resurrection Tech Ltd.
 
+Evaluation access does not grant rights for production deployment or
+commercial integration.
+
 All rights reserved except as explicitly stated.
 
 -----
@@ -30,6 +33,9 @@ Users may:
 
 provided this is done for non-commercial evaluation, research, or review.
 
+Independent testing, adversarial evaluation, benchmarking, and academic
+critique are encouraged.
+
 -----
 
 ## Commercial Use Requires Licence
@@ -42,7 +48,7 @@ A commercial licence is required for:
 - use in internal enterprise infrastructure,
 - use in paid consulting or services,
 - resale, sublicensing, redistribution, or managed-service offerings,
-- derivative implementations intended for commercial deployment.
+- commercial derivative implementations incorporating material portions of this framework or methodology.
 
 -----
 
