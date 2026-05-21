@@ -14,16 +14,28 @@ from runtime_eval.planners import (
 from runtime_eval.governance import (
     RuntimeGovernanceMiddleware, RunResult, StepResult,
     DecisionRecord, DecisionTrace, OmegaRegistry,
+    HardeningPipeline, HardeningResult,
+    decode_call, DecodeReport, DecodeStep,
+    detect_recursive_coercion, CoercionReport, expand_to_trajectory,
+    validate, Schema, FieldSpec, ValidationReport, SCHEMAS,
+    lift, LiftReport,
+    ACTION_ONTOLOGY, OntologyEntry,
 )
 from runtime_eval.sandbox import ToolSimulator, SandboxExecutor
 from runtime_eval.perturbations import PERTURBATION_FAMILIES, perturb
 from runtime_eval.evaluators import (
     ConfusionMatrix, confusion_matrix, two_class_metrics,
     cross_planner_agreement, run_planners,
+    TrajectoryGraph, build_graph,
+    propagate_risk, RiskReport,
+    prune, PruneReport,
 )
 from runtime_eval.replay import TraceWriter, TraceReader
-from runtime_eval.metrics import LatencyStats, latency_stats
-from runtime_eval.domains import DOMAIN_PRESETS, get_preset
+from runtime_eval.metrics import (
+    LatencyStats, latency_stats,
+    StabilityReport, verdict_stability, planner_divergence,
+)
+from runtime_eval.domains import DOMAIN_PRESETS, get_preset, CompositeOmega
 
 __all__ = [
     # planner layer

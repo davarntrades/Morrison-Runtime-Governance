@@ -214,6 +214,21 @@ governance core (`morrison_governance/LIMITATIONS.md`) and adds:
 6. **Independent third-party adversarial red-team** on this domain;
    the harness is built for it (see `CRITICAL_EVALUATION.md`).
 
+## Hardening
+
+A second layer ships in `runtime_eval` as an **opt-in pre-governance
+pipeline** that closes specific adversarial surfaces (synonym /
+hyphenation / indirect-phrasing on markers, encoded payloads,
+recursive coercion, schema malformations, composite Ω across
+domains) without weakening the ontology. See
+[`HARDENING.md`](HARDENING.md) for the full report — modules,
+adversarial corpus, baseline-vs-hardened numbers, performance bounds,
+and bounded language.
+
+Bounded result on the in-tree adversarial corpus (15 cases, 6
+categories): **baseline 6 / 14 bypasses (42.9 %) → hardened 0 / 14
+(0 %)**, with 0 / 10 over-blocks on the safe baseline.
+
 ## Bounded language
 
 Every metric this harness produces — confusion matrices, FP/FN,

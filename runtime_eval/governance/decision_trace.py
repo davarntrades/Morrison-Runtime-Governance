@@ -31,6 +31,20 @@ class DecisionRecord:
     runtime_error: Optional[str] = None  # set if executor raised
     latency_ms: float = 0.0
 
+    # ── hardening lineage (set by the HardeningPipeline) ─────
+    decode_steps: list = field(default_factory=list)
+    decoded_extracted: dict = field(default_factory=dict)
+    lifted_capabilities: list = field(default_factory=list)
+    lifted_canonical_tool: Optional[str] = None
+    recursion_depth: int = 0
+    sub_calls_expanded: list = field(default_factory=list)
+    schema_violations: list = field(default_factory=list)
+    cumulative_risk: float = 0.0
+    step_risk: float = 0.0
+    omega_proximity: Optional[float] = None
+    pruning_rationale: Optional[str] = None
+    admissibility_confidence: Optional[float] = None
+
     def to_json(self) -> str:
         return json.dumps(asdict(self), sort_keys=True, ensure_ascii=False)
 

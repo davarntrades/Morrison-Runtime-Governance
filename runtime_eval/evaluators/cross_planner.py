@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from runtime_eval.governance.middleware import RuntimeGovernanceMiddleware
-
 
 def run_planners(planners: list, observation: dict, max_steps: int,
                   build_middleware) -> dict:
