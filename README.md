@@ -125,16 +125,36 @@ contains them.
 | **Contextual drift under prolonged interaction**      | Latent escalation invisible to single-turn moderation | A_safe — `contextual_drift_unsafe`, `latent_escalation` (multi-turn blocks at the first marker that lands in Ω) |
 | **Memory contamination / recursive coercion**         | Long-horizon behavioural manipulation across sessions | A_safe — `memory_contamination`, `recursive_emotional_pressure` |
 | **Indirect coercion / emotional isolation trajectories** | Progressive dependency; support-network degradation; hidden escalation risk | A_safe — `indirect_coercion`, `emotional_isolation`, `discourage_help_seeking`, `unframed_crisis_topic_response` |
+| **Hidden-trajectory catastrophic risk** | Unsafe sub-actions concealed under `callback` / `next` / `sub_action` / `then` wrappers so per-step inspection misses them | `runtime_eval.HardeningPipeline` — `recursive_coercion` detector flattens nested sub-calls into the prefix the existing reachability hierarchy evaluates |
+| **Recursive delegation catastrophe** | Self-referential delegation (`delegate_to: self`) or recursive planning loops that amplify a single unsafe sub-goal | `runtime_eval.HardeningPipeline` — `recursive_coercion` self-reference detection + bounded recursion-depth budget |
+| **Semantic-evasion catastrophic risk** | Unsafe operations re-labelled with benign-sounding euphemisms (`facilitate_transfer`, `backup_externally`, `extract_data`) | `runtime_eval.HardeningPipeline` — `action_ontology` + `semantic_lifting` rewrite to the canonical tool so the existing Ω rules apply (e.g. `facilitate_transfer` → `transfer` → `unauthorized_transfer`) |
+| **Encoded-payload risk** | Unsafe URLs / categories / tool names hidden inside base64 / hex / URL-encoded / unicode-escaped / nested-JSON args | `runtime_eval.HardeningPipeline` — recursive bounded `payload_decoder` exposes decoded structural fields (`_decoded_url`, `_decoded_category`, …) for the existing rules |
+| **Chained-benign catastrophe** | A trajectory whose individual steps each look admissible but whose composition reaches Ω | V2 source→sink taint + `runtime_eval.evaluators.risk_propagation` cumulative-risk inheritance along the trajectory dependency graph |
+| **Long-horizon agent drift** | Quietly accumulating risk across many turns whose individual steps each pass admissibility | `runtime_eval.evaluators.trajectory_graph` + `risk_propagation` (cumulative risk inherits along data-key dependency edges) + `branch_pruning` (bounded beam, default 8) |
+| **Tool-generated unsafe capability** | A planner / tool that synthesises new sub-prompts or inner tool calls at runtime | `runtime_eval.HardeningPipeline` — `recursive_coercion` flags `prompt` / `inner_prompt` / `instruction` fields and flattens any `synth_tool` / `meta_tool` sub-call into the prefix |
+| **Canonicalisation failure risk** | Marker / tool synonyms or separator drift (`self-harm-instruction` vs `self_harm_instruction`, `self_harm_guidance` vs `self_harm_instruction`) bypass literal-string rule matches | `morrison_governance.domains` — `_normalise_marker` + `_MARKER_ALIASES` equivalence layer; `runtime_eval` — `semantic_lifting` for tool-name canonicalisation |
+| **Multi-representation Ω reachability** | The same forbidden state reachable through alternate representations (encoded, paraphrased, nested, delegated) | Composition of the above: payload decoding + semantic lifting + recursion flattening + marker normalisation — every representation routes back to the canonical reachability check |
+| **Catastrophic replay ambiguity** | Audit logs that drift across replays because of wall-clock fields, RNG, or ordering → forensic / regulatory ambiguity | `runtime_eval.replay.TraceWriter` strips wall-clock fields by default; full corpus produces byte-identical JSONL on replay; pinned by `test_full_corpus_replay_byte_identical` |
+| **Schema-malformation bypass** | A malformed tool call (missing required field, wrong type, forbidden extra key) that slips through ad-hoc parsing | `runtime_eval.HardeningPipeline` — `schema_validation` early-rejects with `layer="hardening"`, deny-by-default |
+| **Composite cross-domain Ω reachability** | A single call that crosses two domain Ω regions (financial execution + egress; acquire + privilege widening; exec + external URL) | `runtime_eval.domains.CompositeOmega` — cross-domain rules `financial_execution_with_egress`, `acquire_plus_priv_in_one_call`, `exec_plus_external_url` |
+| **Sub-goal / branch explosion** | Stochastic planners or perturbation sweeps producing N candidate proposals whose evaluation cost grows unbounded | `runtime_eval.evaluators.branch_pruning` — deterministic risk-ranked beam (configurable, default 8) keeps governance overhead bounded |
+| **Stochastic planner drift** | Identical intent producing diverging verdicts across seeds / temperatures / planners | `runtime_eval.metrics.stability` — `verdict_stability` entropy + `planner_divergence` matrix; pinned by cross-planner invariance tests |
 
 Validated across the tested scenarios with **zero observed false positives and
 zero observed false negatives in the current evaluation suites** — including
 the 648-entry mental-health adversarial harness (precision 1.0000, recall
-1.0000, accuracy 1.0000 in the bounded test environment). The mental-health
-rules are structural categorical-marker checks under the Morrison ontology,
-hardened with marker normalisation and an explicit alias-equivalence layer so
-synonym / hyphenation / indirect-phrasing perturbations route back to the
-canonical Ω marker. See [Mental-health-adjacent runtime safety](#mental-health-adjacent-runtime-safety-scope-note)
-and [Cross-model validation](#cross-model-validation).
+1.0000, accuracy 1.0000 in the bounded test environment) **and** the 15-case
+runtime-eval adversarial corpus + 10-case safe baseline under the opt-in
+`HardeningPipeline` (baseline bypass 6 / 14 → hardened **0 / 14**; zero
+over-blocks). The mental-health rules are structural categorical-marker checks
+under the Morrison ontology, hardened with marker normalisation and an
+explicit alias-equivalence layer so synonym / hyphenation / indirect-phrasing
+perturbations route back to the canonical Ω marker. The runtime-eval
+hardening pipeline (`HardeningPipeline`) is opt-in and additive: every prior
+runtime_eval test stays byte-for-byte unchanged. See
+[Mental-health-adjacent runtime safety](#mental-health-adjacent-runtime-safety-scope-note),
+[`runtime_eval/HARDENING.md`](runtime_eval/HARDENING.md), and
+[Cross-model validation](#cross-model-validation).
 
 -----
 
