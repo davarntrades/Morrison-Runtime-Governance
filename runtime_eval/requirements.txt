@@ -1,0 +1,21 @@
+# Live-planner stack (install on Colab / local GPU box)
+transformers>=4.45
+accelerate>=0.34
+torch>=2.2
+sentencepiece
+safetensors
+
+# High-throughput option
+# vllm>=0.6
+
+# Service layer (optional)
+fastapi
+uvicorn[standard]
+
+# Data / metrics
+pandas
+numpy
+matplotlib
+
+# Quantisation (optional)
+# bitsandbytes
