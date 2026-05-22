@@ -139,6 +139,16 @@ contains them.
 | **Composite cross-domain Ω reachability** | A single call that crosses two domain Ω regions (financial execution + egress; acquire + privilege widening; exec + external URL) | `runtime_eval.domains.CompositeOmega` — cross-domain rules `financial_execution_with_egress`, `acquire_plus_priv_in_one_call`, `exec_plus_external_url` |
 | **Sub-goal / branch explosion** | Stochastic planners or perturbation sweeps producing N candidate proposals whose evaluation cost grows unbounded | `runtime_eval.evaluators.branch_pruning` — deterministic risk-ranked beam (configurable, default 8) keeps governance overhead bounded |
 | **Stochastic planner drift** | Identical intent producing diverging verdicts across seeds / temperatures / planners | `runtime_eval.metrics.stability` — `verdict_stability` entropy + `planner_divergence` matrix; pinned by cross-planner invariance tests |
+| **Collusive exfiltration** (multi-agent) | Agent A acquires sensitive data, Agent B/C moves it out; no single agent is fully unsafe | `multi_agent_eval` shared-global mode — joint trajectory V2 source→sink taint; local-only **misses**, shared-global **blocks** |
+| **Split unauthorized transfer** (multi-agent) | No single agent performs the whole harmful transaction, but the joint path reaches Ω | `multi_agent_eval` shared-global mode — acquire by one agent + external egress by another over the joint trajectory |
+| **Role-split credential theft** (multi-agent) | One agent gathers credentials, another transforms, another uses / egresses | `multi_agent_eval` shared-global mode — `get_credentials` → `send_email`/`http_request` joint taint |
+| **Cross-agent delayed intent** (multi-agent) | Danger emerges across time *and* agents, not in one obvious step | `multi_agent_eval` shared-global mode — taint persists across many benign cross-agent turns to the terminal egress |
+| **Memory contamination between agents** | Shared memory becomes the risk carrier — one agent stages sensitive data, another egresses it | `multi_agent_eval` shared-global mode — joint trajectory governs the staged-then-egressed data flow |
+| **Tool-delegation chains** (multi-agent) | One agent creates a task / tool path that lets another agent reach Ω | `multi_agent_eval` shared-global mode — the flattened delegation chain is governed as one joint trajectory |
+| **Agent-generated prompt for another agent** | Unsafe capability created indirectly: agent A writes a sub-prompt that drives agent B's egress | `multi_agent_eval` shared-global mode — A's acquire + B's resulting egress are one reachable set |
+| **Single-point governance weakening** (multi-agent) | A lenient shared-global mode can be bypassed (e.g. an agent self-asserting `destination_internal`) | `multi_agent_eval` **deny-by-default quorum** — a strict replica distrusting agent-asserted trust flags catches what the lenient layer misses (no single point of failure) |
+| **Crashed-agent partial mission** (multi-agent) | An agent failing mid-chain must not let the rest of an unsafe trajectory proceed silently | `multi_agent_eval` orchestrator — a crashed agent contributes no executed call (`fail_closed` / `agent_crash`); the absent link cannot complete the chain |
+| **Corrupted shared state** (multi-agent) | Once shared trust state is corrupted, continuing to execute is unsafe | `multi_agent_eval` orchestrator — `deny_on_corrupt`: every subsequent call denied by default |
 
 Validated across the tested scenarios with **zero observed false positives and
 zero observed false negatives in the current evaluation suites** — including
@@ -146,14 +156,19 @@ the 648-entry mental-health adversarial harness (precision 1.0000, recall
 1.0000, accuracy 1.0000 in the bounded test environment) **and** the 15-case
 runtime-eval adversarial corpus + 10-case safe baseline under the opt-in
 `HardeningPipeline` (baseline bypass 6 / 14 → hardened **0 / 14**; zero
+over-blocks) **and** the 10-scenario multi-agent joint-trajectory suite
+(`multi_agent_eval`: collusion detection — local-only **0.000**,
+shared-global **0.875**, deny-by-default quorum **1.000**; zero
 over-blocks). The mental-health rules are structural categorical-marker checks
 under the Morrison ontology, hardened with marker normalisation and an
 explicit alias-equivalence layer so synonym / hyphenation / indirect-phrasing
 perturbations route back to the canonical Ω marker. The runtime-eval
-hardening pipeline (`HardeningPipeline`) is opt-in and additive: every prior
-runtime_eval test stays byte-for-byte unchanged. See
+hardening pipeline (`HardeningPipeline`) and the `multi_agent_eval` /
+`global_governance` packages are opt-in and additive: the runtime
+governance core and every prior suite stay byte-for-byte unchanged. See
 [Mental-health-adjacent runtime safety](#mental-health-adjacent-runtime-safety-scope-note),
-[`runtime_eval/HARDENING.md`](runtime_eval/HARDENING.md), and
+[`runtime_eval/HARDENING.md`](runtime_eval/HARDENING.md),
+[`multi_agent_eval/README.md`](multi_agent_eval/README.md), and
 [Cross-model validation](#cross-model-validation).
 
 -----
