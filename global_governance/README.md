@@ -118,3 +118,39 @@ purely additive).
 
 preserved throughout. The meta-layer composes local reachability
 verdicts; it never weakens the underlying check.
+
+-----
+
+## Merge audit (verified)
+
+This package was reviewed against a 10-condition merge gate before
+acceptance. Every condition held; the merge is additive.
+
+| # | Condition | Result |
+|--:|:----------|:------:|
+| 1 | Invariant `ℛ(t) ∩ Ω = ∅` preserved | ✅ delegated, never reimplemented |
+| 2 | Core `A_safe → V2 → V3 → V4 → V4+ → V5 → V5+` untouched | ✅ `git diff` over `morrison_governance/` + `runtime_eval/` for the merge commit is **empty** |
+| 3 | New layers compose around the core, not replace it | ✅ every decision-bearing module imports + calls `GovernanceLayer.evaluate{,_plan}` |
+| 4 | No RLHF / semantic classifiers / moderation / non-determinism / regression | ✅ source scan: zero `random`/`time`/`datetime`/`uuid` in non-test code; zero `embedding`/`classifier`/`torch`/`moderat`/`rlhf`/`softmax` anywhere |
+| 5 | Suites green · deterministic replay · deny-by-default · fail-closed · delegation | ✅ 23 suites · 281 cases · 0 failures; byte-identical replay; targeted deny-by-default + fail-closed checks pass |
+| 6 | Nine new modules structurally validated | ✅ 27 functional tests across all nine + `MetaGovernance` |
+| 7 | Claims honestly bounded | ✅ scorecard marks exactly 2 rows `mechanism-only`; bounded language throughout |
+| 8 | Full regression + suite + replay + adversarial checks run | ✅ see condition 5 |
+| 9 | Clean additive merge + consistent README/scorecard | ✅ this section |
+| 10| Reject if any layer weakens reachability / adds moderation | ✅ no weakening or moderation found — **accepted** |
+
+**What was added:** nine meta-governance mechanisms (cross-system,
+adaptive Ω, hierarchy, interface standard, continuous audit, memory-aware,
+self-verifying, distributed trust, institutional) + `MetaGovernance`
+composition + readiness scorecard.
+
+**What stayed unchanged:** the entire runtime governance core and the
+`runtime_eval` harness — byte-for-byte. The invariant `ℛ(t) ∩ Ω = ∅`
+and deny-by-default / fail-closed semantics are inherited unchanged from
+the delegated `GovernanceLayer`.
+
+**What remains explicitly out of scope:** real Byzantine-fault-tolerant
+distributed consensus (distributed trust is an in-process deny-by-default
+quorum model) and real political / ethical legitimacy (institutional
+governance ships the auditable mechanism, not the mandate). Both are
+labelled `mechanism-only` in the scorecard.
