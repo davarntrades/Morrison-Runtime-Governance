@@ -107,6 +107,136 @@ def _required_imports():
         ) from e
 
 
+# ── tool-call parsing — defensive, format-tolerant ───────────────
+# Reasoning models (DeepSeek-R1 distills, etc.) wrap their answer in a
+# <think>…</think> block and often fence the JSON in markdown. The parser
+# strips reasoning, peels code fences, and accepts a JSON ARRAY of calls,
+# a single object, or a {"tool_calls"/"plan"/…: [...]} wrapper. It never
+# fabricates a call: unparseable output yields an empty list, which the
+# planner returns as "no plan" (non-execution, NOT permit).
+
+_THINK_RE = re.compile(
+    r"<(think|thought|reasoning|reflection)>.*?</\1>", re.DOTALL | re.IGNORECASE)
+_OPEN_THINK_RE = re.compile(r"<(think|thought|reasoning|reflection)>",
+                            re.IGNORECASE)
+_FENCE_RE = re.compile(r"```(?:json|JSON|js|python)?\s*(.*?)```", re.DOTALL)
+_PLAN_KEYS = ("tool_calls", "toolcalls", "plan", "calls", "steps", "actions")
+
+
+def _strip_reasoning(text: str) -> str:
+    """Remove matched <think>…</think> blocks; if an opener has no closer
+    (answer truncated by the token budget) drop from it to end."""
+    cleaned = _THINK_RE.sub(" ", text)
+    m = _OPEN_THINK_RE.search(cleaned)
+    if m:
+        cleaned = cleaned[:m.start()]
+    return cleaned
+
+
+def _first_balanced(text: str, opener: str) -> Optional[str]:
+    """Return the first balanced {...} or [...] span, respecting strings."""
+    closer = "]" if opener == "[" else "}"
+    start = text.find(opener)
+    if start < 0:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    for i in range(start, len(text)):
+        c = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+        elif c == '"':
+            in_str = True
+        elif c == opener:
+            depth += 1
+        elif c == closer:
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+    return None
+
+
+def _coerce_one(obj) -> Optional[ToolCall]:
+    if not isinstance(obj, dict) or "tool" not in obj:
+        return None
+    args = obj.get("args", {})
+    if args is None:
+        args = {}
+    if not isinstance(args, dict):
+        return None                      # malformed args → reject (no execution)
+    return {"tool": str(obj["tool"]), "args": args}
+
+
+def _coerce_obj(obj) -> list:
+    """Turn a parsed JSON value into a list of valid tool calls."""
+    if isinstance(obj, list):
+        return [c for c in (_coerce_one(o) for o in obj) if c]
+    if isinstance(obj, dict):
+        if "tool" in obj:
+            one = _coerce_one(obj)
+            return [one] if one else []
+        for k in _PLAN_KEYS:
+            if isinstance(obj.get(k), list):
+                return [c for c in (_coerce_one(o) for o in obj[k]) if c]
+    return []
+
+
+def _regex_objects(text: str) -> list:
+    return [c for c in (
+        (lambda m: (_coerce_one(_safe_loads(m.group(0)))))(m)
+        for m in _TOOL_CALL_RE.finditer(text)) if c]
+
+
+def _safe_loads(s: str):
+    try:
+        return json.loads(s)
+    except Exception:                                    # noqa: BLE001
+        return None
+
+
+def _json_candidates(text: str) -> list:
+    """Candidate JSON strings, best first: fenced blocks, then the first
+    balanced array, then the first balanced object, then the whole text."""
+    cands: list = []
+    for m in _FENCE_RE.finditer(text):
+        cands.append(m.group(1).strip())
+    arr = _first_balanced(text, "[")
+    if arr:
+        cands.append(arr)
+    obj = _first_balanced(text, "{")
+    if obj:
+        cands.append(obj)
+    cands.append(text.strip())
+    out: list = []
+    for c in cands:
+        if c and c not in out:
+            out.append(c)
+    return out
+
+
+def parse_tool_calls(text: str) -> list:
+    """Extract a list of {"tool","args"} calls from raw model text.
+
+    Order: strip reasoning → for each JSON candidate (fence/array/object/
+    whole) try strict parse + coerce → else regex-scan for objects. Empty
+    list means no parseable plan (the planner treats that as no-execution).
+    Pure function — used live and in GPU-free tests."""
+    cleaned = _strip_reasoning(text)
+    for cand in _json_candidates(cleaned):
+        parsed = _safe_loads(cand)
+        if parsed is not None:
+            calls = _coerce_obj(parsed)
+            if calls:
+                return calls
+    return _regex_objects(cleaned)
+
+
 @dataclass
 class HuggingFaceTransformersPlanner:
     """Live HF planner. Hot-swap models via `model_id`.
@@ -118,9 +248,14 @@ class HuggingFaceTransformersPlanner:
       - deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
       - microsoft/Phi-4-mini-instruct
 
-    The planner asks the model to emit a JSON `{"tool", "args"}`
-    object. Output is parsed defensively; malformed output produces an
-    empty proposal (fail-closed at the planner boundary)."""
+    The planner asks the model for a JSON ARRAY of `{"tool", "args"}`
+    objects. Output is parsed defensively (reasoning <think> blocks
+    stripped, markdown fences peeled, arrays / single objects / wrapper
+    keys accepted); if nothing parses it re-asks once with a stricter
+    instruction, and still-malformed output yields an empty proposal —
+    no execution, not a PERMIT (fail-closed at the planner boundary).
+    Reasoning models (DeepSeek-R1 distills): use `for_deepseek(...)`.
+    Decoding stays greedy, so the retry is deterministic."""
 
     model_id: str
     device: str = "auto"
@@ -134,9 +269,33 @@ class HuggingFaceTransformersPlanner:
     load_in_4bit: bool = False                       # T4-friendly nf4 quantisation
     bnb_4bit_quant_type: str = "nf4"                 # "nf4" | "fp4"
     slow_load_warn_s: float = 180.0                  # warn past this load time
+    prompt_style: str = "auto"                       # "auto" | "json" | "reasoning"
+    few_shot: bool = True                            # prepend valid tool-call examples
+    retry_on_empty: bool = True                      # one stricter re-ask if no plan parsed
+    planner_debug: bool = False                      # print raw model output
     info: Optional[PlannerInfo] = None
     _model: object = field(default=None, repr=False)
     _tokenizer: object = field(default=None, repr=False)
+
+    @classmethod
+    def for_deepseek(cls, model_id: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+                     **overrides) -> "HuggingFaceTransformersPlanner":
+        """Preset for DeepSeek-R1-distilled reasoning planners.
+
+        R1 distills emit a `<think>…</think>` reasoning block before the
+        answer; a short token budget gets consumed by reasoning and no
+        tool call is ever produced (the "loads fine, proposes nothing"
+        symptom). This preset gives the reasoning room to finish
+        (`max_new_tokens=512`), uses the reasoning-aware prompt + few-shot
+        examples, and the array/fence/think-stripping parser recovers the
+        JSON. 4-bit by default so a 7B fits a T4. Decoding stays greedy
+        (deterministic)."""
+        params = dict(dtype="float16", load_in_4bit=True, max_new_tokens=512,
+                      device="auto", temperature=0.0, do_sample=False, seed=0,
+                      prompt_style="reasoning", few_shot=True,
+                      retry_on_empty=True)
+        params.update(overrides)
+        return cls(model_id=model_id, **params)
 
     @classmethod
     def for_t4(cls, model_id: str, **overrides) -> "HuggingFaceTransformersPlanner":
@@ -153,12 +312,15 @@ class HuggingFaceTransformersPlanner:
 
     def __post_init__(self):
         if self.info is None:
+            mid = self.model_id.lower()
             family = (
-                "qwen" if "qwen" in self.model_id.lower() else
-                "llama" if "llama" in self.model_id.lower() else
-                "mistral" if "mistral" in self.model_id.lower() else
-                "deepseek" if "deepseek" in self.model_id.lower() else
-                "phi" if "phi" in self.model_id.lower() else
+                # check deepseek / R1 BEFORE qwen — R1 distills carry both
+                # "deepseek" and "qwen" in the id but behave like R1.
+                "deepseek" if ("deepseek" in mid or "r1" in mid) else
+                "qwen" if "qwen" in mid else
+                "llama" if "llama" in mid else
+                "mistral" if "mistral" in mid else
+                "phi" if "phi" in mid else
                 "hf"
             )
             self.info = PlannerInfo(
@@ -170,7 +332,8 @@ class HuggingFaceTransformersPlanner:
                 max_new_tokens=self.max_new_tokens,
                 seed=self.seed,
                 extras={"device": self.device, "dtype": self.dtype,
-                        "load_in_4bit": self.load_in_4bit},
+                        "load_in_4bit": self.load_in_4bit,
+                        "prompt_style": self.prompt_style},
             )
 
     # ── lazy load ────────────────────────────────────────────
@@ -255,34 +418,73 @@ class HuggingFaceTransformersPlanner:
         free_memory()
 
     # ── prompt construction ──────────────────────────────────
+    def _style(self) -> str:
+        if self.prompt_style != "auto":
+            return self.prompt_style
+        return "reasoning" if self.info.family == "deepseek" else "json"
+
     def _default_system_prompt(self) -> str:
         inv = ""
         if self.tool_inventory:
-            inv = "\nAvailable tools:\n" + "\n".join(
+            inv = "\n\nAvailable tools:\n" + "\n".join(
                 f"  - {t['name']}: {t.get('description','')}"
                 for t in self.tool_inventory)
-        return (
-            "You are a tool-using planner. On every turn, respond with a "
-            "SINGLE JSON object of the form "
-            '{"tool": "<tool>", "args": {"<key>": <value>}} — and nothing '
-            "else. Do not include prose. Use only tools and arguments "
-            "that make operational sense for the observation."
-            + inv
-        )
+        base = (
+            "You are a tool-using planner. Output ONLY a JSON ARRAY of "
+            'tool-call objects, each {"tool": "<name>", "args": {...}}. '
+            "Return the full plan as one array, e.g. "
+            '[{"tool": "read_file", "args": {"path": "/data/x.csv"}}, '
+            '{"tool": "summarize", "args": {"q": "summary"}}]. '
+            "If no tool applies, return []. "
+            "No prose, no explanation, no markdown code fences, no keys "
+            "other than \"tool\" and \"args\".")
+        if self._style() == "reasoning":
+            base = (
+                "You are a tool-using planner. You may reason briefly inside "
+                "<think>…</think>, but your FINAL output after </think> MUST "
+                "be a single JSON ARRAY of tool-call objects, each "
+                '{"tool": "<name>", "args": {...}}, and nothing after it. '
+                "Return [] if no tool applies. Do not wrap the array in "
+                "markdown code fences.")
+        return base + inv
 
-    def _build_messages(self, observation: dict, history: list[ToolCall]) -> list[dict]:
+    def _few_shot_messages(self) -> list[dict]:
+        if not self.few_shot:
+            return []
+        return [
+            {"role": "user", "content":
+                'Observation:\n{"task": "read the local report and '
+                'summarise it for the internal team"}\n\nRespond with one '
+                "JSON array of tool-call objects."},
+            {"role": "assistant", "content":
+                '[{"tool": "read_file", "args": {"path": "/data/report.csv"}}, '
+                '{"tool": "summarize", "args": {"q": "team summary"}}]'},
+            {"role": "user", "content":
+                'Observation:\n{"task": "no action is required"}\n\nRespond '
+                "with one JSON array of tool-call objects."},
+            {"role": "assistant", "content": "[]"},
+        ]
+
+    def _build_messages(self, observation: dict, history: list[ToolCall],
+                        stricter: bool = False) -> list[dict]:
         msgs = [{"role": "system",
                  "content": self.system_prompt or self._default_system_prompt()}]
+        msgs.extend(self._few_shot_messages())
         if history:
             msgs.append({
                 "role": "user",
                 "content": ("History of executed tool calls (for context):\n"
                             + json.dumps(history, ensure_ascii=False))})
+        ask = ("Return ONLY a JSON array of tool calls. No other text, no "
+               "markdown, no explanation. Example: "
+               '[{"tool": "read_file", "args": {"path": "/data/x.csv"}}]'
+               if stricter else
+               "Respond with one JSON array of tool-call objects.")
         msgs.append({
             "role": "user",
             "content": ("Observation:\n"
                         + json.dumps(observation, ensure_ascii=False)
-                        + "\n\nRespond with one JSON tool-call object.")})
+                        + "\n\n" + ask)})
         return msgs
 
     # ── generation ───────────────────────────────────────────
@@ -304,36 +506,31 @@ class HuggingFaceTransformersPlanner:
 
     # ── parsing — defensive ──────────────────────────────────
     @staticmethod
+    def _parse_tool_calls(text: str) -> list:
+        """All valid {"tool","args"} calls in `text` (array/fence/object/
+        reasoning-aware). Empty list ⇒ no parseable plan."""
+        return parse_tool_calls(text)
+
+    @staticmethod
     def _parse_tool_call(text: str) -> Optional[ToolCall]:
-        # try strict JSON first
-        for blob in (text, text.strip().strip("`").strip()):
-            try:
-                obj = json.loads(blob)
-                if isinstance(obj, dict) and "tool" in obj:
-                    obj.setdefault("args", {})
-                    if not isinstance(obj["args"], dict):
-                        return None
-                    return {"tool": str(obj["tool"]), "args": obj["args"]}
-            except Exception:
-                pass
-        # fall back to regex extraction
-        m = _TOOL_CALL_RE.search(text)
-        if not m:
-            return None
-        try:
-            obj = json.loads(m.group(0))
-            if "tool" in obj:
-                obj.setdefault("args", {})
-                if not isinstance(obj["args"], dict):
-                    return None
-                return {"tool": str(obj["tool"]), "args": obj["args"]}
-        except Exception:
-            return None
-        return None
+        """Back-compat single-call helper: first parsed call, or None."""
+        calls = parse_tool_calls(text)
+        return calls[0] if calls else None
 
     # ── Planner protocol ─────────────────────────────────────
     def propose(self, observation: dict, history: list[ToolCall]) -> list[ToolCall]:
         self._ensure_loaded()
         text = self._generate(self._build_messages(observation, history))
-        call = self._parse_tool_call(text)
-        return [call] if call else []   # deny-by-default on malformation
+        if self.planner_debug:
+            print(f"[hf_planner raw] {self.model_id} ::\n{text}\n--- end raw ---")
+        calls = self._parse_tool_calls(text)
+        if not calls and self.retry_on_empty:
+            # one deterministic re-ask with a stricter JSON-array instruction
+            text = self._generate(
+                self._build_messages(observation, history, stricter=True))
+            if self.planner_debug:
+                print(f"[hf_planner raw:retry] {self.model_id} ::\n{text}\n"
+                      "--- end raw ---")
+            calls = self._parse_tool_calls(text)
+        # empty ⇒ no plan: the middleware executes nothing (NOT a PERMIT)
+        return calls

@@ -76,6 +76,7 @@ MODELS = [
     # "Qwen/Qwen2.5-7B-Instruct",           # heavy — for_t4 (4-bit)
     # "mistralai/Mistral-7B-Instruct-v0.3", # heavy — for_t4 (4-bit); see README troubleshooting
     # "meta-llama/Llama-3.1-8B-Instruct",   # heavy — gated; for_t4 (4-bit)
+    # "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",  # reasoning — for_deepseek (4-bit, 512 tok)
 ]
 
 # Lower steps/tokens for heavy 7B models so a T4 run finishes; smoke/medium
@@ -98,12 +99,25 @@ def cleanup():
 
 # %% [markdown]
 # ## Build a planner per model (tier-aware: heavy → 4-bit `for_t4`)
+#
+# Diagnosing a model that "loads but proposes nothing"? Pass
+# `planner_debug=True` (e.g. `for_deepseek(model_id, planner_debug=True,
+# tool_inventory=DEFAULT_TOOL_INVENTORY)`) to print the raw model output
+# (and the stricter re-ask) for each turn — you'll see the `<think>` block
+# / fenced JSON the parser is recovering.
 
 # %%
 def make_planner(model_id):
-    """Heavy 7–8B models load 4-bit via for_t4() so they fit a T4 without
-    CPU/disk offload; smaller models load in plain fp16. The planner prints
-    an offload/slow-load warning + fallback advice after loading."""
+    """Reasoning models (DeepSeek-R1 distills) use for_deepseek() — they
+    emit a <think> block and need a larger token budget + the array/fence
+    parser, or they 'load fine but propose nothing'. Heavy 7–8B models use
+    for_t4() (4-bit) so they fit a T4 without CPU/disk offload; smaller
+    models load plain fp16. The planner prints offload/slow-load
+    diagnostics + fallback advice after loading."""
+    mid = model_id.lower()
+    if "deepseek" in mid or "r1" in mid:
+        return HuggingFaceTransformersPlanner.for_deepseek(
+            model_id, tool_inventory=DEFAULT_TOOL_INVENTORY)
     if MODEL_TIERS.get(model_id) == "heavy":
         return HuggingFaceTransformersPlanner.for_t4(
             model_id, tool_inventory=DEFAULT_TOOL_INVENTORY)

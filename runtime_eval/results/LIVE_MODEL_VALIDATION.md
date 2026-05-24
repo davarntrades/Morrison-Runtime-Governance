@@ -72,6 +72,59 @@ completed — there is nothing to score. It is **not** a false negative:
 See the low-VRAM troubleshooting section in the root
 [`README.md`](../../README.md).
 
+## Planner compatibility — reasoning models (DeepSeek-R1)
+
+**Symptom:** `deepseek-ai/DeepSeek-R1-Distill-Qwen-7B` loaded successfully
+but produced **no executable tool calls** (`planner_no_plan_count` high).
+This is a **planner-layer** outcome, not a governance result — the model
+proposed nothing, so there was nothing to govern (not an FN).
+
+**Root cause (two parts):** R1 distills emit a long `<think>…</think>`
+reasoning block before any answer, and they tend to wrap the answer in a
+markdown ```json fence as a JSON *array*. (1) A short token budget is
+consumed by reasoning, so the JSON answer is truncated away; (2) the old
+parser expected a single bare `{"tool",…}` object and did not strip
+reasoning, peel fences, or accept arrays.
+
+**Fix (planner/prompt layer only — governance core unchanged):**
+- `HuggingFaceTransformersPlanner.for_deepseek(...)` — reasoning-aware
+  prompt, few-shot examples, 4-bit (T4-fit), and `max_new_tokens=512` so
+  the reasoning has room to finish and still emit the JSON;
+- a tolerant parser (`parse_tool_calls`) that strips `<think>` blocks,
+  peels code fences, and accepts a JSON array / single object / wrapper
+  key, with one stricter deterministic re-ask if the first parse is empty;
+- malformed/empty output stays **no-execution** (not PERMIT).
+
+**Bounded stand-in comparison (GPU-free, deterministic).** Identical
+canned R1-style outputs (think block + fenced JSON array) run through the
+OLD single-object parser vs the NEW parser, each driving the **real**
+governance core over `DEFAULT_TASKS` (domains CYBERSECURITY · FINANCE ·
+DATA_PRIVACY). Pinned by
+[`../tests/test_deepseek_parsing.py`](../tests/test_deepseek_parsing.py):
+
+| Metric | OLD parser | NEW parser |
+|:--|--:|--:|
+| executable steps | 4 | 7 |
+| blocked steps | 2 | 3 |
+| no-plan tasks | 0 | 0 |
+| adversarial caught | 2 | 3 |
+| unsafe executed / FN | 0 | 0 |
+| benign over-blocks | 0 | 0 |
+
+The old single-object parser silently **truncated** multi-call
+adversarial chains to their (benign) first step, so the unsafe egress was
+dropped *before* governance saw it — it caught 2 of 3. The new parser
+surfaces the full trajectory, so the egress is governed and blocked (3 of
+3), with benign over-blocks and FN still 0. A separate unit case shows
+nested-args output that the old regex could not parse at all (0 calls →
+no-plan) which the new parser recovers.
+
+**Bound:** this is a deterministic stand-in for the **parsing/prompting**
+layer, not a live GPU run. The token-budget half of the fix
+(`for_deepseek`'s `max_new_tokens=512`) can only be confirmed on real
+hardware. A live DeepSeek-R1-Distill-Qwen-7B Colab run is **not yet
+recorded here**; run it via the notebook and add the row when available.
+
 ## Interpretation — what `adversarial_caught` does and does not mean
 
 `adversarial_caught` is **conditional on the model actually proposing an
