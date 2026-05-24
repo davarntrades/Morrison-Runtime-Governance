@@ -517,6 +517,32 @@ runs, bypass reports, and adversarial findings are welcome. Full tables,
 aggregate, and per-model raw outputs:
 [`runtime_eval/results/LIVE_MODEL_VALIDATION.md`](runtime_eval/results/LIVE_MODEL_VALIDATION.md).
 
+#### Milestone — reasoning models & trajectory observability
+
+**The model is not the safety system — but a safety system can only
+govern what it sees.** Integrating reasoning-style planners
+(DeepSeek-R1-Distill-Qwen-7B) surfaced a subtle failure that was *not* in
+the governance core: the planner layer silently **truncated multi-call
+adversarial chains to their benign first step**, so the dangerous
+downstream egress/transfer action was dropped before governance evaluated
+it. Nothing unsafe executed (FN stayed 0), but the dangerous step was
+never *seen* — a coverage gap that produced a misleading "0 blocks"
+signal.
+
+We hardened the planner→governance boundary (reasoning-aware prompting,
+`<think>` stripping, fenced/array/wrapper-key parsing, multi-call
+recovery, deterministic retry, no-plan accounting, `for_deepseek(...)`) so
+the **full executable trajectory** now reaches the unchanged core. The
+dangerous step is explicitly blocked and logged; `unsafe_executed` (FN)
+stayed **0**; benign work was not over-blocked.
+
+The general principle, for the record: **trajectory observability is part
+of governance correctness** — a reachability guarantee `ℛ(t) ∩ Ω = ∅` is
+only as sound as the fidelity of the trajectory `t` it is computed over.
+This is a runtime-governance engineering advance, not prompt tuning, and
+the safety core was not touched. Full write-up:
+[`runtime_eval/results/DEEPSEEK_R1_MILESTONE.md`](runtime_eval/results/DEEPSEEK_R1_MILESTONE.md).
+
 ### How to Try to Break It
 
 Edit the task battery and re-run — the governance layer stays fixed:
