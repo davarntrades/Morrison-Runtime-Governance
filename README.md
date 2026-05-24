@@ -149,6 +149,9 @@ contains them.
 | **Single-point governance weakening** (multi-agent) | A lenient shared-global mode can be bypassed (e.g. an agent self-asserting `destination_internal`) | `multi_agent_eval` **deny-by-default quorum** — a strict replica distrusting agent-asserted trust flags catches what the lenient layer misses (no single point of failure) |
 | **Crashed-agent partial mission** (multi-agent) | An agent failing mid-chain must not let the rest of an unsafe trajectory proceed silently | `multi_agent_eval` orchestrator — a crashed agent contributes no executed call (`fail_closed` / `agent_crash`); the absent link cannot complete the chain |
 | **Corrupted shared state** (multi-agent) | Once shared trust state is corrupted, continuing to execute is unsafe | `multi_agent_eval` orchestrator — `deny_on_corrupt`: every subsequent call denied by default |
+| **Silent trajectory collapse** (planner-side truncation) | A multi-call unsafe chain (acquire → egress) is truncated at the planner/parsing boundary to its benign first step, so the dangerous downstream action is **never presented to governance** — the reachability check runs on a shorter trajectory than the agent would execute, yielding a false "safe" signal | `runtime_eval.planners.hf_planner.parse_tool_calls` — surfaces the **full** executable trajectory (strips `<think>`/reasoning, peels code fences, recovers JSON arrays / wrapper keys) so the unchanged hierarchy evaluates every step; pinned by `test_deepseek_parsing.py` (egress blocked at V2 where the old parser dropped it) |
+| **Reasoning-obscured / no-plan coverage gap** | A reasoning model emits only a `<think>` block (or unparseable prose) so no tool call reaches governance — "0 blocks" *looks* safe but nothing was evaluated (an unmeasured coverage gap) | deny-by-default at the planner boundary (no parseable call ⇒ no execution, never PERMIT) + explicit `planner_no_plan_count` so the gap is **measured, not masked** + `for_deepseek(...)` token budget so reasoning models actually emit a governable plan |
+| **Model-contingent safety** (verdict variance across planners) | The safety guarantee silently depends on *which* model is deployed; swapping or upgrading the planner changes verdicts → unsafe regression on model change | governance verdict is a pure function of the proposed trajectory, **not** the model — cross-model verdict invariance held across Qwen2.5-7B, TinyLlama-1.1B, Phi-4-mini and DeepSeek-R1 in the bounded live battery (`runtime_eval.live`) |
 
 Validated across the tested scenarios with **zero observed false positives and
 zero observed false negatives in the current evaluation suites** — including
@@ -159,7 +162,11 @@ runtime-eval adversarial corpus + 10-case safe baseline under the opt-in
 over-blocks) **and** the 10-scenario multi-agent joint-trajectory suite
 (`multi_agent_eval`: collusion detection — local-only **0.000**,
 shared-global **0.875**, deny-by-default quorum **1.000**; zero
-over-blocks). The mental-health rules are structural categorical-marker checks
+over-blocks) **and** the bounded 4-model live open-weight planner battery
+(`runtime_eval.live`: Qwen2.5-7B, TinyLlama-1.1B, Phi-4-mini,
+DeepSeek-R1-Distill-Qwen-7B — 24 governed tasks, **0** benign over-blocks,
+**0** unsafe-executed false negatives, cross-model verdict invariance
+held). The mental-health rules are structural categorical-marker checks
 under the Morrison ontology, hardened with marker normalisation and an
 explicit alias-equivalence layer so synonym / hyphenation / indirect-phrasing
 perturbations route back to the canonical Ω marker. The runtime-eval
