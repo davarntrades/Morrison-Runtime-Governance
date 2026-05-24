@@ -71,7 +71,7 @@ Robots are dynamical systems executing trajectories inside physical environments
 
 **Why it converts:** These systems already have safety envelopes. The framework formalises them as Ω and enforces them at the trajectory level rather than relying on sensor-reactive emergency stops.
 
-**Pricing range:** £250K–£1M+
+**Pricing range:** £500K–2M+ (Enterprise Autonomous Systems — autonomous robotics)
 
 -----
 
@@ -91,7 +91,7 @@ Not consumer apps. The infrastructure layer:
 
 **Why it converts:** These systems already think in permissions, transaction admissibility, and operational constraints. The framework formalises what they already enforce informally.
 
-**Pricing range:** £250K–£1M+
+**Pricing range:** £1M–5M+ (Finance / Banking Infrastructure)
 
 -----
 
@@ -110,7 +110,7 @@ Current safety research assumes one agent. Future systems involve many agents, t
 
 **Why it matters:** Multi-agent safety cannot be solved by aligning individual agents. It requires trajectory-level governance over the emergent system. The enforcement hierarchy (A_safe → V5) already supports this — V5 evaluates invariant stability across environment sets ℰ, which includes multi-agent perturbation.
 
-**Pricing range:** £500K–£2M+ (research partnership or enterprise integration)
+**Pricing range:** £500K–2M+ (Enterprise Autonomous Systems — multi-agent coordination)
 
 -----
 
@@ -153,7 +153,7 @@ Insurance companies care about measurable risk reduction, auditable controls, an
 
 **Why it converts:** Insurers already price risk by control quality. This gives them something they can measure.
 
-**Pricing range:** £100K–£400K+
+**Pricing range:** £750K–3M+ (Insurance / Actuarial Governance)
 
 -----
 
@@ -173,7 +173,7 @@ The framework encodes regulatory forbidden states as Ω regions:
 
 **Why it converts:** Compliance teams currently enforce these through policy documents and periodic audits. The framework enforces them structurally at runtime — every transaction, every tool call, every trajectory.
 
-**Pricing range:** £150K–£800K+
+**Pricing range:** £1M–4M+ (Data Privacy / Compliance — GDPR/FCA/SOX runtime enforcement)
 
 -----
 
@@ -237,7 +237,7 @@ Once autonomous systems govern logistics, infrastructure, surveillance, cyber op
 
 **Key advantage:** The framework is infrastructure-oriented, not morality-oriented. It defines what is inadmissible, not what is “good.” That is a better fit for defence and national infrastructure environments where operational constraints are precise and moral framing is inappropriate.
 
-**Pricing range:** £1M+
+**Pricing range:** £5M–25M+ · Sovereign / defence retainers £1M–5M+/yr (Defence / Sovereign Infrastructure)
 
 -----
 

@@ -55,12 +55,30 @@ Unsafe trajectories are blocked. Safe operations proceed. The governance layer i
 
 ## Pricing
 
-|Package                              |Investment |
-|:------------------------------------|:----------|
-|Runtime Safety Assessment (1–2 weeks)|£18K–25K   |
-|Structural Safety Pilot (4–8 weeks)  |£120K–250K+|
-|Advisory Retainer                    |£18K–35K/mo|
-|Full Enterprise Integration          |£250K–£1M+ |
+This is operational assurance infrastructure for autonomous systems. **The
+governance layer is priced against the cost of Ω becoming reachable — not the
+complexity of the software.** Pricing scales with operational blast radius,
+regulatory exposure, infrastructure criticality, and catastrophic downside.
+
+|Pathway                                  |Positioned as                                             |Investment   |
+|:----------------------------------------|:---------------------------------------------------------|:------------|
+|48-Hour Runtime Governance Audit         |Catastrophic trajectory exposure assessment               |£40K–75K     |
+|Structural Safety Pilot (4–8 weeks)      |Staging deployment and operational governance integration |£250K–750K+  |
+|Advisory Retainer                        |Ongoing Ω evolution, threat-surface monitoring, runtime governance maintenance, incident review, model/planner revalidation|£35K–100K/mo|
+
+|Enterprise / domain integration          |Investment |
+|:----------------------------------------|:----------|
+|Finance / Banking Infrastructure         |£1M–5M+    |
+|Healthcare / Clinical Systems            |£750K–3M+  |
+|Cybersecurity / Infrastructure           |£750K–3M+  |
+|Data Privacy / Compliance                |£1M–4M+    |
+|Enterprise Autonomous Systems            |£500K–2M+  |
+|Insurance / Actuarial Governance         |£750K–3M+  |
+|Defence / Sovereign Infrastructure       |£5M–25M+   |
+
+**ARR target:** £500K–2M+ per client annually · **Sovereign / defence
+retainers:** £1M–5M+/yr. Full rationale in
+[Pricing Strategy.md](Pricing%20Strategy.md).
 
 -----
 
@@ -81,6 +99,19 @@ The governance layer was unchanged across all models.
 **Davarn Morrison**
 Founder — Resurrection Tech Ltd
 GitHub: [github.com/davarntrades](https://github.com/davarntrades)
+
+-----
+
+## Licensing
+
+Commercial deployment is subject to licence. Evaluation does not grant
+production deployment rights. Evaluation, benchmarking, and academic reference
+are permitted for non-commercial purposes; commercial deployment, production
+use, resale, sublicensing, or integration into revenue-generating systems
+requires a written commercial licence from Resurrection Tech Ltd. Certain
+implementations may be covered by granted and/or pending intellectual property
+owned by Resurrection Tech Ltd, including **UK Patent GB2600765.8**. Full
+terms: [`License.md`](License.md).
 
 -----
 

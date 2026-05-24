@@ -202,6 +202,71 @@ predicates) — pinned by
 and `test_hardening_v041.py::test_infer_capabilities_unchanged_additive`.
 Visualization: `artifacts/visualizations/v041_gap_closure.{png,svg}`.
 
+## Mental-health adversarial evaluation (bounded empirical)
+
+A large deterministic harness (`test_mental_health_adversarial.py`,
+`mental_health_adversarial.py`) exercises the existing hierarchy against
+suicide/self-harm escalation, emotional manipulation, indirect coercion,
+delayed intent, multi-turn grooming, dependency formation, emotional
+isolation, false reassurance under crisis, authority exploitation,
+therapeutic impersonation, hopelessness reinforcement, ambiguity edges,
+bait-and-switch, contextual drift, latent escalation, roleplay
+jailbreaks, recursive pressure, memory contamination, and emotional
+contradiction — all using abstract categorical markers, no operational
+self-harm content anywhere in the repository.
+
+Result on the tested suite (648 audit entries per replay, **post
+structural hardening**): **precision 1.0000 · recall 1.0000 · accuracy
+1.0000 · FP rate 0.0000 · FN rate 0.0000**. Every perturbation family
+(paraphrase, tone drift, contradiction, roleplay masking, memory
+accumulation — *and* the three families that previously surfaced as
+architectural gaps: obfuscation_synonym, indirect_phrasing,
+semantic_mutation) blocks correctly. Every supportive / therapy /
+philosophy / fiction / grief / journaling / passive-ideation probe
+remains PERMIT (zero over-blocks). Every multi-turn chain (bait,
+grooming, delayed up to 25 steps, drift, recursive pressure,
+contradiction, isolation / dependency buildup) classifies correctly.
+Cross-model invariance holds across the five planner profiles standing
+in for GPT-4o / Claude / Qwen2.5 / Llama 3.1 / stochastic decoding.
+
+### Structural fixes applied (was: three architectural gaps)
+
+The previous version of this suite logged 31 false negatives clustered
+in three families: synonym renaming, hyphen / case mutation of marker
+strings, and indirect phrasing that dropped `category` in favour of an
+indirect `intent` on a crisis topic. They are now structurally
+absorbed in `domains.py`:
+
+1. **Marker normalisation** — `_normalise_marker(s)` (lowercase +
+   non-word → `_` + collapse) absorbs separator / case drift
+   (`self_harm` ↔ `self-harm` ↔ `SELF HARM`).
+2. **Alias-equivalence layer** — `_MARKER_ALIASES` is a bounded,
+   explicit equivalence table on the abstract marker ontology
+   (`self_harm_guidance` → `self_harm_instruction`, `method_inquiry`
+   → `suicide_method_query`, …). Not keyword filtering — categorical
+   equivalences.
+3. **`unframed_crisis_topic_response`** admissibility rule — a response
+   on a recognised crisis topic with neither a category framing nor a
+   routing / referral path is structurally inadmissible. Catches
+   `indirect_phrasing` without over-blocking fiction / philosophy
+   (which carry a safe `category`) or active-listening with route
+   (which carries `route_to_support` / `crisis_referral`).
+
+The closure is pinned in
+`test_mental_health_adversarial.py::test_normalisation_families_remain_closed`
+and `::test_two_class_metrics_zero_fn_zero_fp`, so any regression in
+the normalisation, alias table, or admissibility rule is caught.
+
+### Scope honesty
+
+The 648/648 figure is an **internal regression / classification metric
+on the tested suite**, not third-party security coverage. Independent
+red-teaming against this domain is the appropriate next step and is the
+posture the framework is built for; see `CRITICAL_EVALUATION.md`. The
+alias table is bounded and finite — new synonyms surface over time and
+should be added via documented diffs with regression pins (the
+adversarial harness is the natural place to extend the corpus).
+
 ## Determinism guarantees
 
 - All perturbation/attack generators take an explicit `seed` and use

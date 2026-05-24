@@ -84,7 +84,7 @@ Three lines to integrate. No model retraining. No fine-tuning. No prompt enginee
 ## Live Interception Output
 
 ```
-$ python examples/demo.py
+$ python3 morrison_governance/demo.py
 
 ═══════════════════════════════════════════════════════════════
   Morrison Runtime Governance — Demo
@@ -145,7 +145,7 @@ Every decision logged. Every block justified. Every permit traceable. This is wh
 |Threat                             |Without Governance                             |With Governance                                               |
 |:----------------------------------|:----------------------------------------------|:-------------------------------------------------------------|
 |**Unauthorized financial transfer**|Agent executes £25K transfer to external vendor|BLOCK at A_safe. Transfer never executes.                     |
-|**Credential exfiltration**        |Agent reads `.env` then POSTs to attacker      |BLOCK at V3. Chain detected before exfiltration.              |
+|**Credential exfiltration**        |Agent reads `.env` then POSTs to attacker      |BLOCK at V2 (source→sink taint). Chain detected before exfiltration.|
 |**Shell injection**                |Agent runs `rm -rf / && curl evil.com`         |BLOCK at A_safe. Command never reaches shell.                 |
 |**Privilege escalation**           |Agent runs `sudo chmod 777 /etc/passwd`        |BLOCK at A_safe. Permission change prevented.                 |
 |**Path traversal**                 |Agent writes to `../secrets.txt`               |BLOCK. Sandbox escape prevented.                              |
@@ -215,10 +215,16 @@ graph TD
         RE --> AS["A_safe — single-step Ω check"]
         AS -->|pass| V2["V2 — trajectory drift"]
         V2 -->|pass| V3["V3 — forward reachability"]
-        V3 -->|pass| PERMIT[PERMIT]
+        V3 -->|pass| V4["V4 - structural admissibility"]
+        V4 -->|pass| V4P["V4+ - feasibility"]
+        V4P -->|pass| V5["V5 - env-wide stability"]
+        V5 -->|pass| PERMIT[PERMIT]
         AS -->|fail| BLOCK[BLOCK]
         V2 -->|fail| BLOCK
         V3 -->|fail| BLOCK
+        V4 -->|fail| BLOCK
+        V4P -->|no safe option| BLOCK
+        V5 -->|env-sensitive| BLOCK
     end
 
     PERMIT --> EX[Tool Execution]
@@ -235,10 +241,51 @@ Each layer catches failures invisible to every layer below it. Zero counterexamp
 
 -----
 
+## Current Capabilities (v0.4.1)
+
+Beyond the core hierarchy, the deployable surface now includes:
+
+| Capability | Module | What it adds |
+|---|---|---|
+| Multi-agent coordination | `multiagent.py` | Flattens a cooperating agent team into one causal trajectory — per-agent-safe-but-jointly-exfiltrating chains block at V2 |
+| Fail-closed interception | `interception.py` | Prefix-aware chain guard; a governance error ⇒ **deny** (never fail-open) + a cross-model planner seam |
+| Assumption-driven red-team | `redteam.py` | Attacks the *assumptions* the hierarchy relies on, not a fixed example corpus; surfaces gaps deterministically |
+
+**v0.4.1 hardening** closed the two gaps the red-team harness surfaced —
+single-step broad privilege expansion and open-world acquire→egress taint
+continuity — additively, geometrically, with **zero regression**.
+
+**Validation:** 18 deterministic suites / **171 test cases**, 100% pass,
+byte-identical on replay; the original 120 cases unchanged. A deliberately
+skeptical, carefully-bounded self-assessment (generalization, hidden
+assumptions, failure boundaries, test selection bias, methodology,
+comparison to adjacent literature) is in
+[`CRITICAL_EVALUATION.md`](CRITICAL_EVALUATION.md); quantified failure
+surfaces in [`morrison_governance/LIMITATIONS.md`](morrison_governance/LIMITATIONS.md).
+
+-----
+
 ## Deploy as HTTP Middleware
 
+The package *is* the middleware — wrap `GovernanceLayer` behind any HTTP
+framework (no bundled server; ~10 lines with FastAPI):
+
+```python
+# server.py
+from fastapi import FastAPI
+from morrison_governance import GovernanceLayer, OmegaDomain
+
+app = FastAPI()
+gov = GovernanceLayer(domains=[OmegaDomain.FINANCE,
+                               OmegaDomain.CYBERSECURITY])
+
+@app.post("/evaluate")
+def evaluate(call: dict):
+    return gov.evaluate(call).to_dict()
+```
+
 ```bash
-uvicorn examples.server:app --host 0.0.0.0 --port 8000
+uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
 ```bash
@@ -256,8 +303,13 @@ curl -X POST http://localhost:8000/evaluate \
   -H "Content-Type: application/json" \
   -d '{"tool": "read_file", "args": {"path": "/reports/q3.pdf"}}'
 
-# → {"verdict": "PERMIT", "permitted": true, "layer": "V3", ...}
+# → {"verdict": "PERMIT", "permitted": true, "layer": "V4", ...}
 ```
+
+For production adapters (OpenAI / Claude / LangChain / AutoGen / MCP /
+browser / workflow) and the fail-closed interceptor, use
+[`morrison_governance/integrations.py`](morrison_governance/integrations.py)
+and [`morrison_governance/interception.py`](morrison_governance/interception.py).
 
 ```mermaid
 graph TD
@@ -292,7 +344,9 @@ graph TD
 |**FastAPI / HTTP**|Deploy as microservice              |`POST /evaluate`                             |
 |**Custom agents** |Callable interface                  |`result = governance(call)`                  |
 
-See [`examples/`](examples/) for full integration patterns.
+See [`morrison_governance/integrations.py`](morrison_governance/integrations.py)
+and [`morrison_governance/demo_integrations.py`](morrison_governance/demo_integrations.py)
+for full integration patterns.
 
 -----
 
@@ -385,25 +439,35 @@ A system is safe if and only if, across all operating environments, the reachabl
 
 -----
 
-## Domain Pricing
+## Pricing
 
-|Domain           |Ω Definition                                                  |Investment  |
-|:----------------|:-------------------------------------------------------------|:-----------|
-|**Finance**      |Unauthorized transfers, guaranteed returns, fabricated filings|£250K–£1M+  |
-|**Cybersecurity**|Credential theft, shell injection, privilege escalation       |£180K–£750K+|
-|**Healthcare**   |PHI exposure, fabricated evidence, guaranteed diagnosis       |£120K–£500K+|
-|**Enterprise AI**|Unauthorized data access, policy violations                   |£95K–£350K+ |
-|**Defence**      |Classified data handling, autonomous weapon constraints       |£1M+        |
+This is operational assurance infrastructure for autonomous systems. **The
+governance layer is priced against the cost of Ω becoming reachable — not the
+complexity of the software.** Pricing scales with operational blast radius,
+regulatory exposure, infrastructure criticality, and catastrophic downside.
 
-|Package                            |Investment |
-|:----------------------------------|:----------|
-|48-Hour Runtime Safety Audit       |£18K–25K   |
-|Structural Safety Pilot (4–8 weeks)|£120K–250K+|
-|Advisory Retainer                  |£18K–35K/mo|
-|Full Enterprise Integration        |£250K–£1M+ |
+|Entry pathway                            |Positioned as                                             |Investment   |
+|:----------------------------------------|:---------------------------------------------------------|:------------|
+|48-Hour Runtime Governance Audit         |Catastrophic trajectory exposure assessment               |£40K–75K     |
+|Structural Safety Pilot (4–8 weeks)      |Staging deployment and operational governance integration |£250K–750K+  |
+|Advisory Retainer                        |Ongoing Ω evolution, threat-surface monitoring, runtime governance maintenance, incident review, model/planner revalidation|£35K–100K/mo|
 
-See [`docs/ENTERPRISE_PILOT.md`](docs/ENTERPRISE_PILOT.md) for pilot structure.
-See [`docs/48HR_AUDIT.md`](docs/48HR_AUDIT.md) for the door-opener assessment.
+|Enterprise / domain integration     |Ω scope                                                  |Investment |
+|:-----------------------------------|:--------------------------------------------------------|:----------|
+|Finance / Banking Infrastructure    |Treasury, payments, autonomous trading, settlement       |£1M–5M+    |
+|Healthcare / Clinical Systems       |PHI, discharge, medication authorization, clinical agents|£750K–3M+  |
+|Cybersecurity / Infrastructure      |Credential, shell-execution, orchestration governance    |£750K–3M+  |
+|Data Privacy / Compliance           |GDPR / FCA / SOX executable runtime enforcement          |£1M–4M+    |
+|Enterprise Autonomous Systems       |Internal workflow governance, auditability               |£500K–2M+  |
+|Insurance / Actuarial Governance    |Runtime insurability evidence and verification           |£750K–3M+  |
+|Defence / Sovereign Infrastructure  |Autonomous coordination, classified handling             |£5M–25M+   |
+
+**ARR target:** £500K–2M+ per client annually · **Sovereign / defence
+retainers:** £1M–5M+/yr. Full rationale:
+[`Pricing Strategy.md`](Pricing%20Strategy.md).
+
+See [`Morrison Runtime Governance — Enterprise Pilot.md`](Morrison%20Runtime%20Governance%20%E2%80%94%20Enterprise%20Pilot.md) for pilot structure.
+See [`48-Hour Runtime Safety Audit.md`](48-Hour%20Runtime%20Safety%20Audit.md) for the door-opener assessment.
 
 -----
 
@@ -412,31 +476,51 @@ See [`docs/48HR_AUDIT.md`](docs/48HR_AUDIT.md) for the door-opener assessment.
 ```
 morrison-runtime-governance/
 ├── morrison_governance/
-│   ├── __init__.py          # Public API surface
-│   ├── core.py              # GovernanceLayer — main interface
-│   ├── domains.py           # Ω domain definitions and rules
-│   ├── trajectory.py        # Trajectory extraction (OpenAI/LangChain/raw)
-│   ├── reachability.py      # Enforcement hierarchy (A_safe → V3)
-│   └── result.py            # GovernanceResult, GovernanceVerdict
-├── examples/
-│   ├── demo.py              # Terminal demo — 10 scenarios, 0 FP, 0 FN
-│   ├── server.py            # FastAPI deployment server
-│   ├── openai_integration.py
-│   └── langchain_integration.py
-├── tests/
-│   └── test_governance.py   # 14 tests, all passing
-├── docs/
-│   ├── ENTERPRISE_PILOT.md  # 8-week pilot structure
-│   ├── 48HR_AUDIT.md        # Door-opener audit offer
-│   └── LICENSING.md         # Full licence terms and patent scope
-└── pyproject.toml
+│   ├── __init__.py            # Public API surface
+│   ├── core.py                # GovernanceLayer — main interface
+│   ├── domains.py             # Ω domain definitions and rules
+│   ├── trajectory.py          # Trajectory extraction (OpenAI/LangChain/raw)
+│   ├── reachability.py        # Enforcement hierarchy A_safe → V2 → V3 → V4
+│   ├── admissibility.py       # V4 structural admissibility
+│   ├── feasibility.py         # V4+ feasibility (NO_VALID_SOLUTION)
+│   ├── stability.py           # V5 environment-perturbation stability
+│   ├── adversarial.py         # V5+ hard adversarial harness
+│   ├── forecasting.py         # V3 generalized reachability forecasting
+│   ├── manifold.py            # V5 bounded-ball perturbation manifolds
+│   ├── planners.py            # Deterministic cross-model planner profiles
+│   ├── multiagent.py          # Multi-agent joint-trajectory governance
+│   ├── interception.py        # Fail-closed interception + model seam
+│   ├── redteam.py             # Assumption-driven red-team harness
+│   ├── integrations.py        # OpenAI/Claude/LangChain/AutoGen/MCP adapters
+│   ├── result.py              # GovernanceResult, GovernanceVerdict
+│   ├── demo*.py               # Terminal demos (core / extended / integrations)
+│   ├── DEPLOYMENT.md          # Deployment guide
+│   ├── LIMITATIONS.md         # Quantified failure surfaces
+│   ├── test_*.py              # 18 deterministic suites — 171 cases, 0 FP/FN
+│   └── pyproject.toml
+├── artifacts/visualizations/  # Regenerable PNG+SVG (architecture, layer_firing,
+│                              #   robustness_envelope, v041_gap_closure, …)
+├── quickstart.py              # One-command guided walkthrough
+├── README.md
+├── RELEASE_NOTES.md           # v0.4.1 → … version history
+├── CRITICAL_EVALUATION.md     # Skeptical reviewer-facing self-assessment
+├── License.md                 # Licence terms and patent scope
+├── ENTERPRISE.md · 48-Hour Runtime Safety Audit.md
+└── Morrison Runtime Governance — Enterprise Pilot.md
 ```
 
 -----
 
 ## Licensing
 
-This software implements patented technology under UK Patent GB2600765.8. Commercial licensing through Resurrection Tech Ltd. See [`docs/LICENSING.md`](docs/LICENSING.md) for full terms.
+Commercial deployment is subject to licence. Evaluation does not grant
+production deployment rights. Evaluation, benchmarking, and academic reference
+are permitted for non-commercial purposes; commercial deployment, production
+use, resale, sublicensing, or integration into revenue-generating systems
+requires a written commercial licence from Resurrection Tech Ltd. Certain
+implementations may be covered by granted and/or pending intellectual property
+owned by Resurrection Tech Ltd, including **UK Patent GB2600765.8**. Full
+terms: [`License.md`](License.md).
 
 -----
 

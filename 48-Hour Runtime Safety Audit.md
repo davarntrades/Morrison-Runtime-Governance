@@ -1,8 +1,15 @@
 <div align="center">
 
-# 48-Hour Runtime Safety Audit
+# 48-Hour Runtime Governance Audit
 
-**Find out what your AI agents can execute — before they execute it.**
+### Catastrophic trajectory exposure assessment
+
+**Prove which catastrophic trajectories are reachable in your autonomous
+systems — before they execute.**
+
+For organisations with near-misses, unsafe autonomous behaviour, regulatory
+exposure, compliance instability, or active autonomous workflows touching
+money, secrets, infrastructure, or PHI.
 
 Resurrection Tech Ltd · Morrison Framework™
 
@@ -46,15 +53,33 @@ No model access required. No code deployment. We evaluate the trajectory geometr
 
 |Component                         |Cost       |
 |:---------------------------------|:----------|
-|Free preview (scope confirmation) |£0         |
-|48-Hour Runtime Safety Audit      |£18K–25K   |
-|Follow-on: Structural Safety Pilot|£120K–250K+|
+|Free preview (scope confirmation)        |£0          |
+|48-Hour Runtime Governance Audit         |£40K–75K    |
+|Follow-on: Structural Safety Pilot       |£250K–750K+ |
+
+This is operational assurance infrastructure for autonomous systems. The audit
+is priced against the cost of Ω becoming reachable — not the complexity of the
+software. Findings are bounded: validated across tested scenarios, within the
+evaluated suites, and reproducible by cloning and running the repository.
 
 -----
 
 ## Why 48 Hours
 
 The governance layer evaluates trajectories at ~100K per 4.5 seconds. The time is spent on Ω configuration and report production, not computation. Your results reflect your operational reality, not synthetic benchmarks.
+
+-----
+
+## Licensing
+
+Commercial deployment is subject to licence. Evaluation does not grant
+production deployment rights. Evaluation, benchmarking, and academic reference
+are permitted for non-commercial purposes; commercial deployment, production
+use, resale, sublicensing, or integration into revenue-generating systems
+requires a written commercial licence from Resurrection Tech Ltd. Certain
+implementations may be covered by granted and/or pending intellectual property
+owned by Resurrection Tech Ltd, including **UK Patent GB2600765.8**. Full
+terms: [`License.md`](License.md).
 
 -----
 

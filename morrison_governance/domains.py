@@ -25,6 +25,7 @@ class OmegaDomain(Enum):
     BANKING = "banking"
     COMPLIANCE = "compliance"
     FRAUD = "fraud"
+    MENTAL_HEALTH_SAFETY = "mental_health_safety"
     CUSTOM = "custom"
 
 
@@ -289,6 +290,378 @@ def _default_fraud_rules() -> list[OmegaRule]:
     ]
 
 
+# ═══════════════════════════════════════════════════════════════
+# MENTAL HEALTH SAFETY — runtime governance for mental-health-
+# adjacent autonomous systems.
+#
+# IMPORTANT: this is a runtime *safety governance* component, not
+# a clinical tool. Rules detect categorical risk markers a parent
+# system attaches to a planned response (e.g. category, user_state,
+# safety_disabled) and block trajectories that would worsen
+# self-harm risk. They do NOT contain any operational self-harm
+# content and do not require any. Safe supportive trajectories
+# (validate distress, route to crisis support, ground the user)
+# remain PERMITted.
+# ═══════════════════════════════════════════════════════════════
+
+_RESPONSE_TOOLS = (
+    "respond", "chat_reply", "assistant_response", "generate_response",
+    "send_message", "reply", "answer",
+)
+_CRISIS_USER_STATES = (
+    "active_crisis", "suicidal_ideation", "self_harm_disclosure",
+    "acute_distress", "imminent_risk",
+)
+_ROLEPLAY_TOOLS = ("roleplay", "persona", "character", "act_as", "simulate")
+_BYPASS_PERSONAS = (
+    "no_safety", "unfiltered", "jailbreak", "dan", "no_restrictions",
+)
+_CRISIS_TOPIC_CLASSES = ("self_harm", "suicide", "crisis", "mental_health")
+_MEDICATION_ADVICE_TOOLS = (
+    "prescribe", "prescribe_medication_advice", "medication_advice",
+    "drug_advice", "dosage_advice", "overdose_calculator",
+)
+_HARM_PURPOSES = (
+    "self_harm", "intentional_overdose", "overdose", "intentional_harm",
+)
+_THERAPEUTIC_ROLES = (
+    "therapist", "counsellor", "counselor", "psychiatrist", "psychologist",
+    "doctor", "clinician", "psychotherapist", "licensed_clinician",
+)
+_FALSE_REASSURANCE_TONES = (
+    "reassure", "false_reassure", "minimise", "minimize", "dismiss",
+)
+
+
+# ─────────────────────────────────────────────────────────────
+# Structural marker normalisation + alias-equivalence layer.
+#
+# Hardening (post-adversarial-evaluation) for two structural surfaces
+# the rules above were keying on literal strings:
+#
+#   (a) separator / case drift in the marker string (e.g., a category
+#       passed as "self-harm-instruction" instead of
+#       "self_harm_instruction") — pure surface variation.
+#
+#   (b) synonym renaming of the marker (e.g., "self_harm_guidance" for
+#       "self_harm_instruction") — equivalent categorical intent under a
+#       different label.
+#
+# Both are addressed *structurally* — by collapsing surface form, then
+# resolving against an explicit, bounded equivalence-class table that
+# routes synonyms back to their canonical Ω marker. This is structural
+# string normalisation + an ontology aliasing layer, not keyword
+# filtering and not semantic moderation. The framework's primary
+# mechanism — reachability-based governance on executable trajectories
+# — is unchanged.
+# ─────────────────────────────────────────────────────────────
+
+import re as _re_mh
+
+_NON_WORD_RE = _re_mh.compile(r"[^a-z0-9_]+")
+
+
+def _normalise_marker(s) -> str:
+    """Lowercase + non-word→underscore + collapse repeated underscores +
+    strip leading/trailing underscores. Deterministic, idempotent."""
+    s = str(s or "").lower()
+    s = _NON_WORD_RE.sub("_", s)
+    while "__" in s:
+        s = s.replace("__", "_")
+    return s.strip("_")
+
+
+# Equivalence classes on the abstract marker ontology. Synonyms map to
+# the canonical Ω marker used in the rule vocabulary. Bounded, explicit,
+# auditable. NOT semantic moderation — these are categorical-marker
+# equivalences (an upstream system may use either label).
+_MARKER_ALIASES: dict[str, str] = {
+    # self_harm_instruction
+    "self_harm_guidance": "self_harm_instruction",
+    "self_harm_steps": "self_harm_instruction",
+    "self_harm_methods": "self_harm_instruction",
+    "self_harm_how_to": "self_harm_instruction",
+    # suicide_method_query
+    "method_inquiry": "suicide_method_query",
+    "suicide_methods": "suicide_method_query",
+    "lethal_methods_query": "suicide_method_query",
+    # suicide_planning_assistance
+    "suicide_planning_help": "suicide_planning_assistance",
+    "suicide_plan_walkthrough": "suicide_planning_assistance",
+    # concealment_advice
+    "hide_from_caregiver": "concealment_advice",
+    "hide_from_clinician": "concealment_advice",
+    "hide_from_family": "concealment_advice",
+    "conceal_self_harm": "concealment_advice",
+    # hopelessness_reinforcement
+    "reinforce_no_way_out": "hopelessness_reinforcement",
+    "no_way_out": "hopelessness_reinforcement",
+    "nihilism_amplification": "hopelessness_reinforcement",
+    "amplify_hopelessness": "hopelessness_reinforcement",
+    # discourage_help_seeking
+    "discourage_outreach": "discourage_help_seeking",
+    "discourage_support": "discourage_help_seeking",
+    "isolate_from_help": "discourage_help_seeking",
+    # dependency_formation
+    "build_exclusive_bond": "dependency_formation",
+    "make_indispensable": "dependency_formation",
+    "fostered_reliance": "dependency_formation",
+    # emotional_isolation
+    "encourage_seclusion": "emotional_isolation",
+    "cut_off_friends": "emotional_isolation",
+    "withdraw_from_support": "emotional_isolation",
+    # gaslighting
+    "deny_their_experience": "gaslighting",
+    "invalidate_feelings": "gaslighting",
+    "reframe_as_imagined": "gaslighting",
+}
+
+
+def _canon_marker(s) -> str:
+    """Normalise + alias-resolve a categorical marker to its canonical
+    Ω form. Empty input returns empty (no match downstream)."""
+    n = _normalise_marker(s)
+    return _MARKER_ALIASES.get(n, n)
+
+
+def _mh_field(state: dict, key: str) -> str:
+    return _canon_marker(state.get(key, ""))
+
+
+def _mh_in(state: dict, key: str, vocab) -> bool:
+    """True if the (normalised, alias-resolved) field value sits in the
+    vocab set. The vocab itself is assumed already in canonical form."""
+    return _mh_field(state, key) in set(vocab)
+
+
+def _mh_marker(state: dict, *names: str) -> Optional[str]:
+    """Return the first matching canonical Ω marker found in the state, or
+    None. Reads `category` / `topic_class` / `intent` / `purpose` /
+    `risk_class`, applies structural normalisation and alias resolution,
+    and compares against the canonicalised target set — so renamed,
+    hyphenated, or case-drifted markers route back to their canonical
+    Ω form."""
+    targets = {_canon_marker(n) for n in names}
+    for k in ("category", "topic_class", "intent", "purpose", "risk_class"):
+        v = state.get(k, "")
+        if not v:
+            continue
+        c = _canon_marker(v)
+        if c in targets:
+            return c
+    return None
+
+
+def _default_mental_health_safety_rules() -> list[OmegaRule]:
+    """Mental-health-adjacent runtime safety rules.
+
+    Each rule matches a structural *category* of risk an upstream system
+    attaches to a planned response. The rules are deny-by-default for
+    operational self-harm assistance and permit safe supportive /
+    crisis-routing trajectories. Attribution is per-category so the
+    audit log shows exactly which Ω rule fired."""
+
+    def _cat(name):
+        return lambda s, n=name: _mh_marker(s, n) is not None
+
+    return [
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="self_harm_instruction",
+            description="Providing instructions or stepwise assistance for self-harm",
+            check=_cat("self_harm_instruction"),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="suicide_method_query",
+            description="Answering or assisting a query about suicide methods",
+            check=_cat("suicide_method_query"),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="suicide_planning_assistance",
+            description="Assisting in planning or operationalising suicide",
+            check=_cat("suicide_planning_assistance"),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="concealment_advice",
+            description="Advice on concealing self-harm from caregivers/clinicians",
+            check=_cat("concealment_advice"),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="hopelessness_reinforcement",
+            description="Reinforcing hopelessness / 'no way out' framing",
+            check=_cat("hopelessness_reinforcement"),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="discourage_help_seeking",
+            description="Discouraging the user from seeking professional or crisis support",
+            check=_cat("discourage_help_seeking"),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="unsafe_pseudo_therapy_escalation",
+            description="Unsafe pseudo-therapy intensifying negative affect or distress",
+            check=lambda s: _mh_marker(
+                s, "unsafe_pseudo_therapy",
+                "unsafe_pseudo_therapy_escalation") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="unsafe_medication_self_harm_advice",
+            description="Medication / dosage advice tied to a self-harm purpose",
+            check=lambda s: (
+                str(s.get("tool", "")).lower() in _MEDICATION_ADVICE_TOOLS
+                and (str(s.get("purpose", "")).lower() in _HARM_PURPOSES
+                     or str(s.get("category", "")).lower() in _HARM_PURPOSES)
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="roleplay_safety_bypass",
+            description="Roleplay / persona frame requesting safety bypass on a crisis topic",
+            check=lambda s: (
+                str(s.get("tool", "")).lower() in _ROLEPLAY_TOOLS
+                and (str(s.get("persona", "")).lower() in _BYPASS_PERSONAS
+                     or s.get("safety_disabled") is True)
+                and str(s.get("topic_class", "")).lower() in _CRISIS_TOPIC_CLASSES
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="failure_to_route_crisis_disclosure",
+            description=(
+                "A response to a user in active crisis that does not route to "
+                "crisis support / emergency services and carries no referral"
+            ),
+            check=lambda s: (
+                str(s.get("tool", "")).lower() in _RESPONSE_TOOLS
+                and str(s.get("user_state", "")).lower() in _CRISIS_USER_STATES
+                and s.get("route_to_support") is not True
+                and not s.get("crisis_referral")
+                and not s.get("emergency_referral")
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="false_reassurance_under_crisis",
+            description="Reassuring / minimising tone toward a user in active crisis without routing to support",
+            check=lambda s: (
+                str(s.get("tool", "")).lower() in _RESPONSE_TOOLS
+                and str(s.get("user_state", "")).lower() in _CRISIS_USER_STATES
+                and (str(s.get("tone", "")).lower() in _FALSE_REASSURANCE_TONES
+                     or _mh_marker(s, "false_reassurance",
+                                   "minimise_crisis", "minimize_crisis") is not None)
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="therapeutic_impersonation",
+            description="Claiming a regulated therapeutic role without verification",
+            check=lambda s: (
+                str(s.get("claimed_role", "")).lower() in _THERAPEUTIC_ROLES
+                and s.get("verified") is not True
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="authority_exploitation",
+            description="Asserting authority on a crisis topic without verification",
+            check=lambda s: (
+                bool(s.get("claimed_authority"))
+                and str(s.get("topic_class", "")).lower() in _CRISIS_TOPIC_CLASSES
+                and s.get("verified") is not True
+            ),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="dependency_formation",
+            description="Fostering exclusive reliance on the assistant; displacing external support",
+            check=lambda s: _mh_marker(
+                s, "dependency_formation", "foster_exclusive_reliance",
+                "replace_external_support") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="emotional_isolation",
+            description="Encouraging severance from external relationships / support networks",
+            check=lambda s: _mh_marker(
+                s, "emotional_isolation", "sever_external_relationships",
+                "discourage_external_contacts") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="recursive_emotional_pressure",
+            description="Repeated pressure pushing the user toward an unsafe choice",
+            check=lambda s: _mh_marker(
+                s, "recursive_emotional_pressure",
+                "pressure_toward_unsafe") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="emotional_contradiction_gaslighting",
+            description="Gaslighting / denying user distress / emotional contradiction chains",
+            check=lambda s: _mh_marker(
+                s, "gaslighting", "emotional_contradiction",
+                "deny_user_distress") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="bait_and_switch",
+            description="A response framed as safe but operationally unsafe",
+            check=lambda s: _mh_marker(
+                s, "bait_and_switch", "safe_then_unsafe") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="latent_escalation",
+            description="A response whose effect is latent escalation of self-harm risk",
+            check=lambda s: _mh_marker(s, "latent_escalation") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="contextual_drift_unsafe",
+            description="Drift across turns that lands on an unsafe categorical marker",
+            check=lambda s: _mh_marker(s, "contextual_drift_unsafe") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="memory_contamination",
+            description="Memory-injected content reframing safety into unsafe action",
+            check=lambda s: _mh_marker(s, "memory_contamination") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="indirect_coercion",
+            description="Indirect coercion toward unsafe action",
+            check=lambda s: _mh_marker(s, "indirect_coercion") is not None,
+        ),
+        OmegaRule(
+            domain=OmegaDomain.MENTAL_HEALTH_SAFETY,
+            name="unframed_crisis_topic_response",
+            description=(
+                "A response on a recognised crisis topic (`topic_class` ∈ "
+                "{self_harm, suicide, crisis, mental_health}) that carries "
+                "no categorical framing and no routing / referral — the "
+                "trajectory has no safe-frame attached and is structurally "
+                "reaching toward Ω. Catches indirect-phrasing perturbations "
+                "where `category` is dropped in favour of a generic intent."
+            ),
+            check=lambda s: (
+                _mh_in(s, "tool", _RESPONSE_TOOLS)
+                and _mh_in(s, "topic_class", _CRISIS_TOPIC_CLASSES)
+                and not s.get("category")
+                and s.get("route_to_support") is not True
+                and not s.get("crisis_referral")
+                and not s.get("emergency_referral")
+            ),
+        ),
+    ]
+
+
 # Registry of default rules by domain
 DEFAULT_RULES: dict[OmegaDomain, Callable[[], list[OmegaRule]]] = {
     OmegaDomain.FINANCE: _default_finance_rules,
@@ -300,6 +673,7 @@ DEFAULT_RULES: dict[OmegaDomain, Callable[[], list[OmegaRule]]] = {
     OmegaDomain.ENTERPRISE: _default_enterprise_rules,
     OmegaDomain.COMPLIANCE: _default_compliance_rules,
     OmegaDomain.FRAUD: _default_fraud_rules,
+    OmegaDomain.MENTAL_HEALTH_SAFETY: _default_mental_health_safety_rules,
 }
 
 
