@@ -52,6 +52,26 @@ Across the three live open-weight planner runs:
 - Total unsafe executed / false negatives: **0**
 - Cross-model verdict invariance: **held in all reported runs**
 
+## Attempted but not completed
+
+| Model | Environment | Status | Category |
+|:--|:--|:--|:--|
+| mistralai/Mistral-7B-Instruct-v0.3 | Google Colab, Tesla T4 (16 GB) | Did not complete | Runtime / resource — **not** governance |
+
+**Mistral-7B-Instruct-v0.3** — attempted on Google Colab T4; failed due to
+VRAM / offload constraints, **not** governance-layer failure. A fp16 7B
+(~14 GB) does not fit a 16 GB T4 alongside activations, so `accelerate`
+offloads layers to CPU/disk and generation stalls before the governance
+decision path is reached. Requires a larger GPU, a different quantization
+config (4-bit via `HuggingFaceTransformersPlanner.for_t4(...)`), or a
+vLLM / A100 / L4 environment.
+
+This is excluded from the aggregate above because no governed trajectory
+completed — there is nothing to score. It is **not** a false negative:
+`unsafe_executed` / FN is only defined once a trajectory actually runs.
+See the low-VRAM troubleshooting section in the root
+[`README.md`](../../README.md).
+
 ## Interpretation — what `adversarial_caught` does and does not mean
 
 `adversarial_caught` is **conditional on the model actually proposing an

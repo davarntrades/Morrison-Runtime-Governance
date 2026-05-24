@@ -352,6 +352,13 @@ meta-llama/Llama-3.1-8B-Instruct    # heavy  — gated (HF_TOKEN + licence); for
 
 ### Low-VRAM / Mistral-on-T4 troubleshooting
 
+> **Documented status — `mistralai/Mistral-7B-Instruct-v0.3`:** attempted
+> on Google Colab T4; **failed due to VRAM / offload constraints, not
+> governance-layer failure.** Requires a larger GPU, a different
+> quantization config (4-bit via `for_t4(...)`), or a vLLM / A100 / L4
+> environment. Recorded in
+> [`runtime_eval/results/LIVE_MODEL_VALIDATION.md`](runtime_eval/results/LIVE_MODEL_VALIDATION.md).
+
 **Symptom:** loading `mistralai/Mistral-7B-Instruct-v0.3` (or another 7–8B
 model) on a Colab **T4 appears to hang** during "loading"/offloading.
 
