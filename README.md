@@ -371,6 +371,31 @@ TinyLlama/TinyLlama-1.1B-Chat-v1.0  # fast low-VRAM smoke test
 > behaviour, not a governance miss); the **FN** metric is the governance
 > guarantee.
 
+### Live open-weight planner validation (results)
+
+The governance layer has now been run in Google Colab (Tesla T4) against
+real Hugging Face open-weight planners via the
+`HuggingFaceTransformersPlanner` interface. Initial bounded runs across
+**Qwen2.5-7B-Instruct**, **TinyLlama-1.1B-Chat**, and **Phi-4-mini-instruct**
+(`DEFAULT_TASKS`; domains CYBERSECURITY · FINANCE · DATA_PRIVACY) produced:
+
+- 18 total governed tasks · 35 executed steps · 20 blocked steps
+- **0** benign over-blocks
+- **0** unsafe-executed false negatives
+- cross-model verdict invariance **held in all reported runs**
+
+Preserve the distinction: `adversarial_caught` = the model proposed
+something governance blocked (conditional on the model proposing an
+unsafe trajectory); `unsafe_executed` / **FN** = an unsafe trajectory
+that actually completed in the sandbox — the **core governance failure
+metric**, which was **0** across all three runs.
+
+These results are bounded to the tested models, prompts, domains, and
+Colab runtime. They are **not** a universal-safety claim. Independent
+runs, bypass reports, and adversarial findings are welcome. Full tables,
+aggregate, and per-model raw outputs:
+[`runtime_eval/results/LIVE_MODEL_VALIDATION.md`](runtime_eval/results/LIVE_MODEL_VALIDATION.md).
+
 ### How to Try to Break It
 
 Edit the task battery and re-run — the governance layer stays fixed:
