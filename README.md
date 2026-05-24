@@ -285,7 +285,8 @@ Notebook: [`runtime_eval/notebooks/live_model_validation.py`](runtime_eval/noteb
 
 1. **Open Colab** → New notebook (or upload the notebook above).
 2. **Select a GPU runtime:** *Runtime → Change runtime type → GPU* (a
-   T4 runs a 7B model; TinyLlama runs anywhere).
+   T4 runs a 7B model **in 4-bit** via `for_t4(...)`; TinyLlama/Phi-4-mini
+   run anywhere — see the low-VRAM troubleshooting below).
 3. **Install dependencies** (first cell, below).
 4. **Optionally set `HF_TOKEN`** — only needed for *gated* models
    (e.g. Llama). Get a token at huggingface.co/settings/tokens and
@@ -298,8 +299,8 @@ Notebook: [`runtime_eval/notebooks/live_model_validation.py`](runtime_eval/noteb
 
 ```python
 # 1) GPU runtime first:  Runtime → Change runtime type → GPU
-# 2) install + clone
-!pip -q install "transformers>=4.45" accelerate torch sentencepiece safetensors
+# 2) install + clone  (bitsandbytes lets 7B models run 4-bit on a T4)
+!pip -q install "transformers>=4.45" accelerate torch sentencepiece safetensors "bitsandbytes>=0.43"
 !git clone -q https://github.com/davarntrades/Morrison-Runtime-Governance.git
 %cd Morrison-Runtime-Governance
 
@@ -308,12 +309,13 @@ import os
 # os.environ["HF_TOKEN"] = "hf_xxx"   # uncomment + paste for gated models
 
 # 4) choose a planner — CHANGE ONLY THIS LINE to swap models
-MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
+MODEL_ID = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"   # smoke; swap freely
 
 # 5) run real planner output through the UNCHANGED governance layer
 import sys; sys.path.insert(0, ".")
 from morrison_governance import GovernanceLayer, OmegaDomain
-from runtime_eval.planners.hf_planner import HuggingFaceTransformersPlanner
+from runtime_eval.planners.hf_planner import (
+    HuggingFaceTransformersPlanner, MODEL_TIERS, free_memory)
 from runtime_eval.live import (run_battery, format_report,
                                DEFAULT_TASKS, DEFAULT_TOOL_INVENTORY)
 
@@ -321,25 +323,93 @@ DOMAINS = [OmegaDomain.CYBERSECURITY, OmegaDomain.FINANCE,
            OmegaDomain.DATA_PRIVACY]
 governance = lambda: GovernanceLayer(domains=DOMAINS, log_all=False)
 
-planner = HuggingFaceTransformersPlanner(
-    model_id=MODEL_ID, dtype="bfloat16", device="auto",
-    temperature=0.0, do_sample=False, max_new_tokens=160, seed=0,
-    tool_inventory=DEFAULT_TOOL_INVENTORY)
+# Heavy 7–8B models (Qwen, Mistral, Llama) load 4-bit so they fit a T4
+# without CPU/disk offload; smaller models load plain fp16.
+heavy = MODEL_TIERS.get(MODEL_ID) == "heavy"
+planner = (HuggingFaceTransformersPlanner.for_t4(
+               MODEL_ID, tool_inventory=DEFAULT_TOOL_INVENTORY)
+           if heavy else
+           HuggingFaceTransformersPlanner(
+               model_id=MODEL_ID, dtype="float16", device="auto",
+               temperature=0.0, do_sample=False, max_new_tokens=64, seed=0,
+               tool_inventory=DEFAULT_TOOL_INVENTORY))
 
 runs = run_battery(lambda task: planner, governance, DEFAULT_TASKS,
-                   max_steps=4)
+                   max_steps=2 if heavy else 4)
 print(format_report(runs))
+planner.unload(); free_memory()   # free VRAM before loading another model
 ```
 
 ### Example supported model IDs
 
 ```
-Qwen/Qwen2.5-7B-Instruct            # default; ~7B
-mistralai/Mistral-7B-Instruct-v0.3  # ~7B
-meta-llama/Llama-3.1-8B-Instruct    # ~8B, gated (needs HF_TOKEN + licence)
-microsoft/Phi-4-mini-instruct       # small
-TinyLlama/TinyLlama-1.1B-Chat-v1.0  # fast low-VRAM smoke test
+TinyLlama/TinyLlama-1.1B-Chat-v1.0  # smoke  — fp16, loads in seconds
+microsoft/Phi-4-mini-instruct       # medium — fits fp16 on a T4
+Qwen/Qwen2.5-7B-Instruct            # heavy  — use for_t4 (4-bit) on a T4
+mistralai/Mistral-7B-Instruct-v0.3  # heavy  — use for_t4 (4-bit); see troubleshooting
+meta-llama/Llama-3.1-8B-Instruct    # heavy  — gated (HF_TOKEN + licence); for_t4
 ```
+
+### Low-VRAM / Mistral-on-T4 troubleshooting
+
+**Symptom:** loading `mistralai/Mistral-7B-Instruct-v0.3` (or another 7–8B
+model) on a Colab **T4 appears to hang** during "loading"/offloading.
+
+**This is a runtime/resource issue, not a governance failure.** The
+governance layer validated successfully on Qwen2.5-7B, TinyLlama, and
+Phi-4-mini; a stalled *load* never reaches the governance decision path
+at all. Governance failure = an unsafe trajectory executes
+(`unsafe_executed`/FN > 0). A slow load is a different category entirely.
+
+**Why it happens:** a 7B model in fp16 is ~14 GB. A T4 has 16 GB, and
+activations + KV-cache need headroom, so the weights don't fit. With
+`device_map="auto"`, `accelerate` then *offloads* the overflow layers to
+CPU (and possibly disk). The model still "loads" and runs — but every
+generated token shuttles tensors across the PCIe bus, so generation is
+minutes-per-step instead of sub-second. It looks stuck; it's crawling.
+
+**Expected first-run delay:** the very first load also **downloads** the
+weights (~14 GB for a 7B) — several minutes on Colab regardless of VRAM.
+That one-time download is normal. A *repeat* load that is still slow is
+the offload symptom above.
+
+**Fix — run 7B/8B models in 4-bit (fits a T4, no offload):**
+
+```python
+from runtime_eval.planners.hf_planner import HuggingFaceTransformersPlanner
+planner = HuggingFaceTransformersPlanner.for_t4(
+    "mistralai/Mistral-7B-Instruct-v0.3",
+    tool_inventory=DEFAULT_TOOL_INVENTORY)   # fp16 + nf4 4-bit + max_new_tokens=32
+runs = run_battery(lambda t: planner, governance, DEFAULT_TASKS, max_steps=2)
+```
+
+`for_t4()` sets `dtype="float16"`, `load_in_4bit=True`, and
+`max_new_tokens=32`; pair it with `max_steps=2`. It requires
+`bitsandbytes` (in the install cell). After loading, the planner prints
+the devices in use and **warns if any layer offloaded**, with a fallback
+recommendation.
+
+**Free VRAM between models** on a shared runtime, or the next load
+offloads:
+
+```python
+import gc, torch
+def cleanup():
+    gc.collect(); torch.cuda.empty_cache()
+
+planner.unload(); cleanup()       # or: free_memory() from the planner module
+```
+
+**Fallback ladder if a heavy model still won't behave on a T4:**
+
+1. `microsoft/Phi-4-mini-instruct` (medium — fits fp16),
+2. `TinyLlama/TinyLlama-1.1B-Chat-v1.0` (smoke — seconds),
+3. or **restart the runtime** (Runtime → Restart) to reclaim leaked VRAM
+   and load **one model at a time**.
+
+Cross-model invariance only needs ≥2 models that produce a *shared*
+proposed trajectory — TinyLlama + Phi-4-mini is enough to demonstrate it
+without any 7B load.
 
 ### Plug in your own model
 

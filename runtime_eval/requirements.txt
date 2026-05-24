@@ -17,5 +17,7 @@ pandas
 numpy
 matplotlib
 
-# Quantisation (optional)
-# bitsandbytes
+# Quantisation — REQUIRED for load_in_4bit / for_t4() on a 16 GB T4.
+# Lets 7B-class models (Mistral-7B, Qwen2.5-7B) run without CPU/disk
+# offload. Linux + CUDA only.
+bitsandbytes>=0.43
