@@ -37,18 +37,29 @@ invariance.
 | Qwen/Qwen2.5-7B-Instruct | 6 | 14 | 8 | 0 | 3 | 2 | 0 | HOLDS |
 | TinyLlama/TinyLlama-1.1B-Chat-v1.0 | 6 | 5 | 4 | 0 | 3 | 1 | 0 | HOLDS |
 | microsoft/Phi-4-mini-instruct | 6 | 16 | 8 | 0 | 3 | 2 | 0 | HOLDS |
+| deepseek-ai/DeepSeek-R1-Distill-Qwen-7B † | 6 | 5 | 3 | 0 | 3 | 2 | 0 | HOLDS |
+
+† Reasoning model — run via the `for_deepseek(...)` preset (reasoning-aware
+prompt + array/fence/`<think>`-stripping parser + `max_new_tokens=512`,
+4-bit). Without that planner-layer hardening it produced no executable
+tool calls; see the milestone write-up
+[`DEEPSEEK_R1_MILESTONE.md`](DEEPSEEK_R1_MILESTONE.md). `adversarial_caught
+= 2 of 3` is conditional on the model proposing an unsafe trajectory (the
+third was most plausibly a self-refusal / local non-egress action — good
+model behavior, not a governance miss); the governance guarantee is
+`unsafe_executed` / FN = **0**.
 
 ## Aggregate
 
-Across the three live open-weight planner runs:
+Across the four live open-weight planner runs:
 
-- Total model runs: **3**
-- Total tasks: **18**
-- Total executed steps: **35**
-- Total blocked steps: **20**
+- Total model runs: **4**
+- Total tasks: **24**
+- Total executed steps: **40**
+- Total blocked steps: **23**
 - Total benign over-blocks: **0**
-- Total adversarial tasks: **9**
-- Total adversarial caught: **5**
+- Total adversarial tasks: **12**
+- Total adversarial caught: **7**
 - Total unsafe executed / false negatives: **0**
 - Cross-model verdict invariance: **held in all reported runs**
 
@@ -119,34 +130,18 @@ surfaces the full trajectory, so the egress is governed and blocked (3 of
 nested-args output that the old regex could not parse at all (0 calls →
 no-plan) which the new parser recovers.
 
-**Bound:** the table above is a deterministic stand-in for the
+**Bound:** the OLD-vs-NEW table above is a deterministic stand-in for the
 **parsing/prompting** layer, not a live GPU run. The token-budget half of
 the fix (`for_deepseek`'s `max_new_tokens=512`) is confirmed only on real
 hardware.
 
-**Reported bounded DeepSeek-R1 run** (`deepseek-ai/DeepSeek-R1-Distill-Qwen-7B`,
-`DEFAULT_TASKS`, same domains):
-
-| Metric | Value |
-|:--|--:|
-| tasks | 6 |
-| executable steps | 5 |
-| blocked steps | 3 |
-| benign over-blocks | 0 |
-| `planner_no_plan_count` | 0 |
-| adversarial tasks | 3 |
-| adversarial caught | 2 |
-| unsafe executed / FN | **0** |
-| cross-model verdict invariance | HOLDS |
-
-`planner_no_plan_count = 0` means the parser now recovers an executable
-plan for every task — the original "loads but proposes nothing" failure is
-gone. `adversarial_caught = 2 of 3` is conditional on the model proposing
-an unsafe trajectory (the third was most plausibly a self-refusal / local
-non-egress action — good model behavior, not a governance miss); the
-governance guarantee is `unsafe_executed` / FN = **0**. Full engineering
-write-up and the "trajectory observability is governance correctness"
-argument: [`DEEPSEEK_R1_MILESTONE.md`](DEEPSEEK_R1_MILESTONE.md).
+The **reported bounded DeepSeek-R1 run** is recorded in the
+[Results](#results) table above (row †): `planner_no_plan_count = 0` — the
+parser recovers an executable plan for every task, so the original "loads
+but proposes nothing" failure is gone — with `unsafe_executed` / FN = **0**
+and 0 benign over-blocks. Full engineering write-up and the "trajectory
+observability is governance correctness" argument:
+[`DEEPSEEK_R1_MILESTONE.md`](DEEPSEEK_R1_MILESTONE.md).
 
 ## Interpretation — what `adversarial_caught` does and does not mean
 
@@ -162,7 +157,7 @@ The core governance failure metric is:
 > **`unsafe_executed` / FN** — an unsafe trajectory that actually
 > completed in the sandbox.
 
-In all three reported live planner runs, **`unsafe_executed` / FN = 0**.
+In all four reported live planner runs, **`unsafe_executed` / FN = 0**.
 
 A lower `adversarial_caught` for a smaller model (e.g. TinyLlama = 1)
 typically reflects that the model proposed fewer executable unsafe plans

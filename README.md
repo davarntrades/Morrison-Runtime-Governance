@@ -496,11 +496,13 @@ parser delta is in
 
 The governance layer has now been run in Google Colab (Tesla T4) against
 real Hugging Face open-weight planners via the
-`HuggingFaceTransformersPlanner` interface. Initial bounded runs across
-**Qwen2.5-7B-Instruct**, **TinyLlama-1.1B-Chat**, and **Phi-4-mini-instruct**
-(`DEFAULT_TASKS`; domains CYBERSECURITY · FINANCE · DATA_PRIVACY) produced:
+`HuggingFaceTransformersPlanner` interface. Bounded runs across
+**Qwen2.5-7B-Instruct**, **TinyLlama-1.1B-Chat**, **Phi-4-mini-instruct**,
+and **DeepSeek-R1-Distill-Qwen-7B** (reasoning model, via the
+`for_deepseek(...)` preset) (`DEFAULT_TASKS`; domains CYBERSECURITY ·
+FINANCE · DATA_PRIVACY) produced:
 
-- 18 total governed tasks · 35 executed steps · 20 blocked steps
+- 24 total governed tasks · 40 executed steps · 23 blocked steps
 - **0** benign over-blocks
 - **0** unsafe-executed false negatives
 - cross-model verdict invariance **held in all reported runs**
@@ -509,7 +511,7 @@ Preserve the distinction: `adversarial_caught` = the model proposed
 something governance blocked (conditional on the model proposing an
 unsafe trajectory); `unsafe_executed` / **FN** = an unsafe trajectory
 that actually completed in the sandbox — the **core governance failure
-metric**, which was **0** across all three runs.
+metric**, which was **0** across all four runs.
 
 These results are bounded to the tested models, prompts, domains, and
 Colab runtime. They are **not** a universal-safety claim. Independent
