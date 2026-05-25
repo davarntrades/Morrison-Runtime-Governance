@@ -927,3 +927,15 @@ GB2600765.8 · GB2602013.1 · GB2602072.7 · GB2602332.5
 © 2026 Davarn Morrison — Intelligence Invariant™ · All Rights Reserved
 
 </div>
+
+## Technical Presentation Website
+
+A Gamma-style single-page technical presentation site is available in [`presentation-site/`](presentation-site/).
+
+```bash
+cd presentation-site
+npm install
+npm run dev
+```
+
+For export/screenshot instructions, see [`presentation-site/README.md`](presentation-site/README.md).
