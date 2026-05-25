@@ -83,6 +83,9 @@ export default function App() {
 
       <section className="section-card">
         <h2 className="text-2xl font-semibold">Evidence</h2>
+        <div className="mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-amber-100">
+          Bounded validation note: metrics below are reproducible outcomes inside defined test suites and environments; they are not universal guarantees outside tested conditions.
+        </div>
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {metrics.map(([k, v]) => (
             <div key={k} className="rounded-xl border border-edge bg-slate-900/70 p-4">
@@ -92,7 +95,6 @@ export default function App() {
           ))}
         </div>
         <p className="mt-4 text-slate-300">Cross-model validation across GPT-4o, Qwen, Llama, Phi-4-mini, and DeepSeek-R1-Distill.</p>
-        <div className="mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-amber-100">Honesty note: this is bounded empirical validation within defined test environments, not a universal proof of all possible AI safety.</div>
       </section>
 
       <section className="section-card">
@@ -139,7 +141,7 @@ pytest`}</code></pre>
 
       <section className="section-card text-center">
         <h2 className="text-3xl font-bold">Can your autonomous system reach Ω?</h2>
-        <p className="mt-4 text-xl text-slate-300">Clone the repo. Reproduce the tests. Try to break it.</p>
+        <p className="mt-4 text-xl text-slate-300">Clone the repo. Reproduce the tests. Attempt adversarial trajectories against your own tool chain. If Ω is reachable, you should see it before production.</p>
       </section>
     </main>
   );

@@ -19,6 +19,11 @@ npm run build
 npm run preview
 ```
 
+## Validation status in this environment
+
+`npm install` was not executable in the current restricted environment (registry access returned `403 Forbidden`).
+Instructions above remain the correct local reproducibility path on a standard developer machine with npm registry access.
+
 ## Screenshot / Export Guidance
 
 - Use Chromium print-to-PDF for export-friendly handoff:

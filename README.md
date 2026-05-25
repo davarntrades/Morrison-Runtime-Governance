@@ -938,4 +938,4 @@ npm install
 npm run dev
 ```
 
-For export/screenshot instructions, see [`presentation-site/README.md`](presentation-site/README.md).
+For export/screenshot instructions and environment-specific validation notes (including restricted-registry install failure context), see [`presentation-site/README.md`](presentation-site/README.md).
