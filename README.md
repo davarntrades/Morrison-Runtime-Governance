@@ -8,6 +8,8 @@
 ![False_Negatives](https://img.shields.io/badge/False_Negatives-0-2ea44f?style=flat-square)
 ![Models](https://img.shields.io/badge/Models-GPT--4o_·_Qwen_·_Llama-555555?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
+![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)
+![Reproducibility](https://github.com/OWNER/REPO/actions/workflows/reproducibility.yml/badge.svg)
 
 **Enterprise runtime catastrophe-prevention infrastructure for autonomous AI agents.**
 **It blocks unsafe tool trajectories *before* they execute.**

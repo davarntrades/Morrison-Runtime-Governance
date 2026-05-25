@@ -1,0 +1,67 @@
+name: Reproducibility Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  replay-and-determinism:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f runtime_eval/requirements.txt ]; then pip install -r runtime_eval/requirements.txt; fi
+
+      - name: Run replay-sensitive suites
+        run: |
+          mkdir -p repro_logs
+          python3 runtime_eval/tests/test_runtime_eval.py | tee repro_logs/runtime_eval.log
+          python3 runtime_eval/tests/adversarial/test_hardening.py | tee repro_logs/runtime_eval_hardening.log
+          python3 multi_agent_eval/tests/test_multi_agent_eval.py | tee repro_logs/multi_agent_eval.log
+          python3 quickstart.py | tee repro_logs/quickstart_a.log
+          python3 quickstart.py | tee repro_logs/quickstart_b.log
+
+      - name: Verify deterministic quickstart hashes
+        run: |
+          python3 - <<'PY' | tee repro_logs/hash_verification.log
+          from pathlib import Path
+          import re
+
+          def hashes(path: str):
+              text = Path(path).read_text(encoding='utf-8')
+              return re.findall(r"hash=([0-9a-f]+)", text)
+
+          a = hashes('repro_logs/quickstart_a.log')
+          b = hashes('repro_logs/quickstart_b.log')
+          if not a or not b:
+              raise SystemExit('Missing replay hashes in quickstart logs')
+          if a != b:
+              raise SystemExit(f'Replay drift: {a} vs {b}')
+          print('replay_hash_sequence_match=ok')
+          print(f'replay_hashes={a}')
+          PY
+
+      - name: Upload reproducibility artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reproducibility-logs-${{ github.run_id }}
+          path: repro_logs/
+          if-no-files-found: error
