@@ -21,6 +21,12 @@ Safety enforcement occurs at the executable-trajectory layer, not the model-weig
 
 -----
 
+## Strategic Materials
+
+- [Strategic Priorities — Resurrection Tech™ / Morrison Runtime Governance™](STRATEGIC_PRIORITIES.md)
+
+-----
+
 ## Why this matters now
 
 Autonomous agents are no longer just generating text. In production today they
