@@ -66,6 +66,38 @@ commercial deployment.
 
 -----
 
+## Ownership & Maintenance
+
+The ownership and maintenance model is stated explicitly and without
+ambiguity:
+
+- **Resurrection Tech Ltd owns the intellectual property** — the Morrison
+  Framework™, Morrison Runtime Governance, and all associated source code,
+  documentation, and methodology.
+- **Resurrection Tech Ltd owns the patents** covering the framework,
+  including **UK Patent GB2600765.8** and any related granted or pending
+  filings.
+- **Resurrection Tech Ltd owns the governance engine** — the runtime
+  reachability core (A_safe → V2 → V3 → V4 → V4+ → V5 → V5+) and every
+  evaluation harness, hardening pipeline, and extension built on it.
+- **Resurrection Tech Ltd owns the audit methodology** — the 48-Hour
+  Runtime Governance Audit, its deliverables, scoring, and process.
+
+### Partner Engagement
+
+- **Partners provide services *around* the core asset, not the core asset
+  itself.** Providing integration, delivery, consulting, referral, or any
+  service in connection with this framework does **not** transfer or grant
+  any ownership of, or rights in, the intellectual property, patents,
+  governance engine, or audit methodology, all of which remain solely with
+  Resurrection Tech Ltd.
+- **Compensation is explicitly defined in writing before any work begins.**
+  No work is undertaken, and no compensation is owed or implied, absent a
+  prior written agreement signed by Resurrection Tech Ltd that sets out the
+  scope of work and the compensation for it.
+
+-----
+
 ## Attribution
 
 Academic references, evaluations, or public discussion should attribute:
