@@ -1040,6 +1040,164 @@ posture this repository is built for.
 
 -----
 
+## Pricing Philosophy — Cost of Ω Becoming Reachable
+
+> **Resurrection Tech prices governance infrastructure against the cost
+> of Ω becoming reachable — not the complexity of the software.**
+
+Pricing is not a function of software complexity, hours worked,
+dashboard surface area, or per-seat SaaS economics. It is a function of
+the operational, regulatory, financial, safety, privacy, cybersecurity,
+and sovereign risk that materialises when forbidden states **Ω** become
+reachable in autonomous systems. The commercial value of Runtime
+Governance does not come from delivering code; it comes from preventing
+the reachability of states that would otherwise produce catastrophic
+operational outcomes.
+
+The commercial value of Runtime Governance comes from:
+
+- **identifying catastrophic reachable trajectories before deployment**
+  — surfacing the executable paths through an agent architecture that
+  reach Ω, before any tool actually runs;
+- **constraining unsafe executable paths before they become operational
+  incidents** — pre-execution interception so unsafe trajectories are
+  denied at the boundary, not detected after the fact;
+- **reducing exposure** to financial, regulatory, safety, operational,
+  privacy, cybersecurity, and sovereign-risk failures;
+- **turning AI safety from post-output review into pre-execution
+  runtime control** — moving from "filter what the model said" to "deny
+  what the system would do";
+- **supporting audit, pilot, integration, monitoring, and advisory
+  workflows** — a coherent commercial pathway from first engagement to
+  long-term operational assurance.
+
+Pricing tiers, pathway investment ranges, and per-domain investment
+bands are set out in the [Enterprise pilot](#enterprise-pilot) section
+below; this section sets out the principle they are derived from.
+
+### Why Pricing Scales by Domain
+
+Different domains carry materially different risk-exposure profiles
+when Ω becomes reachable. Pricing scales because the consequence of
+reachability scales:
+
+- **Finance / banking infrastructure** carries payment, treasury,
+  settlement, and autonomous-trading risk — unauthorized execution is
+  direct financial loss, regulatory exposure (FCA, SEC, MiFID), and
+  systemic settlement risk.
+- **Healthcare / clinical systems** carry PHI, discharge workflow,
+  medication, and patient-safety risk — Ω reachability is patient-
+  safety failure, clinical-governance exposure, and duty-of-care
+  breach.
+- **Cybersecurity / infrastructure** carries credential, shell-
+  execution, orchestration, and exfiltration risk — unsafe reachability
+  is credential exfiltration, RCE, and infrastructure compromise.
+- **Data privacy / compliance** carries GDPR, FCA, SOX, and other
+  regulated-data exposure — Ω reachability is regulated-data exposure,
+  statutory fines, and reportable-breach exposure.
+- **Enterprise autonomous systems** carry internal workflow,
+  auditability, and autonomous-operations risk — Ω reachability is
+  operational-integrity failure and loss of attestation that runtime
+  control held.
+- **Defence / sovereign infrastructure** carries classified handling,
+  autonomous coordination, and sovereign runtime-governance risk — Ω
+  reachability is national-security exposure and sovereign-risk
+  operational failure.
+
+Per-domain investment bands are tabulated in
+[Enterprise / domain integration](#enterprise--domain-integration).
+
+### Audit → Pilot → Integration → Retainer
+
+Resurrection Tech is **not** positioned as a traditional consulting-
+report business. The commercial pathway is a layered engagement model
+that moves from identification to operational embedment to ongoing
+assurance:
+
+1. **48-Hour Runtime Governance Audit** — identify reachable Ω
+   exposure across the client's agent architecture. Bounded scope,
+   deterministic deliverables, no production access required.
+2. **Structural Safety Pilot** — stage deployment and operational
+   governance integration. Validates that the runtime layer constrains
+   the identified trajectories under realistic operational conditions.
+3. **Enterprise / Domain Integration** — embed runtime governance into
+   the client environment. The governance layer becomes operational
+   infrastructure, with domain-specific Ω, allowlist configuration,
+   middleware placement, and audit-log integration.
+4. **Advisory Retainer** — maintain **Ω evolution, threat-surface
+   monitoring, incident review, runtime-governance updates, and model
+   / planner revalidation**. The environment evolves; the runtime
+   governance boundary evolves with it.
+
+> **The audit identifies the trajectory; the pilot constrains it; the
+> integration embeds governance; the retainer maintains protection as
+> the environment evolves.**
+
+Each step has its own scope, deliverables, and written commercial
+agreement. Each is independently priced. Each is governed by the
+licensing and ownership boundaries in [`License.md`](License.md) and the
+[Partner & Collaborator Framework](README_PARTNERSHIPS.md) — engagement
+at any stage does not grant ownership of, or rights in, the Morrison
+Framework™, the governance engine, the patents, the licensing rights,
+or the recurring governance subscription.
+
+### Evidence That Justifies Higher Pricing
+
+Pricing should rise as **market evidence improves**. The evidence base
+that justifies higher pricing is operational and observable, not
+narrative:
+
+- **completed audits** — a recorded volume of delivered Runtime
+  Governance Audits with deterministic, replayable deliverables;
+- **repeat customers** — clients re-engaging across audit → pilot →
+  integration → retainer;
+- **public or private testimonials** — recorded statements from named
+  clients and named sponsors;
+- **case studies** — documented engagements that demonstrate measurable
+  reductions in Ω reachability or in operational incident exposure;
+- **client deployment changes caused by Runtime Governance findings** —
+  evidence that audit / pilot output produced an architecture,
+  middleware, or tool-inventory change in production;
+- **recurring retainers** — operational assurance on an ongoing basis;
+- **enterprise references** — named references at named tiers;
+- **regulatory or institutional engagement** — engagement with
+  regulators, sector bodies, or institutional sponsors signalling
+  external validation;
+- **measured reduction in reachable forbidden-state exposure** — a
+  before / after comparison of Ω reachability across the client's
+  trajectory space;
+- **documented remediation implemented by Resurrection Tech** — a
+  written record of the control implemented and the operational effect.
+
+The outcome to articulate at every engagement is:
+
+> **"Runtime Governance identified X, Resurrection Tech implemented the
+> control, and the client changed deployment as a result."**
+
+That sentence — applied to a real, recorded engagement — is what
+justifies each increment in pricing as the evidence base grows.
+
+### Commercial Positioning
+
+Resurrection Tech is **closer to operational assurance infrastructure
+than a one-off audit vendor.** The offering is to **find, constrain,
+embed, and monitor runtime governance boundaries for autonomous
+systems** — a continuous operational role rather than a single-report
+delivery.
+
+The audit is the entry point, not the deliverable. The pilot is
+validation, not theatre. The integration is operational embedment, not
+a slide deck. The retainer is ongoing assurance, not a renewal fee.
+Across the four stages, Resurrection Tech operates as the runtime-
+governance assurance provider for the client's autonomous systems —
+under written commercial agreement, under the existing licensing and
+ownership regime set out in [`License.md`](License.md) and the
+[Partner & Collaborator Framework](README_PARTNERSHIPS.md), and on an
+investment basis proportional to the cost of Ω becoming reachable in
+the client's environment.
+
+-----
+
 ## Enterprise pilot
 
 This is operational assurance infrastructure for autonomous systems. **The
