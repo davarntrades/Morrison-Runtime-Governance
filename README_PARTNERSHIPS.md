@@ -84,7 +84,7 @@ in writing per engagement (see
 | **Compliance workshops** | Workshop fee or programme fee | Client | Domain-specific governance & compliance education delivered by the partner |
 | **Advisory / vCAIO services** | Retainer or day-rate | Client | Virtual Chief AI Officer / governance advisory engagements |
 | **Maintenance contracts** | Recurring service fee | Client | Ongoing operational support of the partner's own integration / dashboard work |
-| **Sponsorship / brand collaboration** | Sponsorship fee (paid to RT) or co-marketing agreement | Sponsor → Resurrection Tech | Brand association, events, content — terms agreed in writing |
+| **Sponsorship / brand collaboration** | Sponsorship fee (paid to RT) or co-marketing agreement | Sponsor → Resurrection Tech | Brand association, events, content — terms agreed in writing; full treatment in [Sponsorship & Strategic Support](#sponsorship--strategic-support) |
 | **Integration support** | Project fee or day-rate | Client (or RT, by agreement) | Connecting the governance layer to a client's existing agent stack |
 
 All figures, percentages, milestones, payment terms, and termination
@@ -231,6 +231,158 @@ The client engages both parties for distinct work.
   workshops, integration, or maintenance.
 - Each party owns its own contract, scope, deliverables, and revenue.
   Neither contract grants the other party rights in the other's work.
+
+---
+
+## Sponsorship & Strategic Support
+
+Sponsorship is a distinct engagement model — separate from referrals,
+enterprise sales support, implementation, advisory, and the partner
+services defined above. A sponsor supports Resurrection Tech Ltd's work
+— through funding, in-kind contribution (engineering, infrastructure,
+compute, venue, operational support), or strategic collaboration — and
+receives recognition and agreed visibility benefits in return.
+
+Sponsorship operates under its own **written sponsorship agreement**
+signed by Resurrection Tech Ltd. It is **not** a Payment Model A / B / C
+service-compensation flow (those cover service work for clients), and
+the benefits it carries are explicitly **non-equity, non-licensing, and
+non-recurring** unless separately and expressly agreed in writing under
+a formally executed instrument.
+
+### What Sponsors Receive
+
+A sponsor may receive any combination of the following, as defined in
+the written sponsorship agreement:
+
+- **sponsor recognition** in repository materials, documentation,
+  publications, and announcements as agreed;
+- **participation in events** hosted or co-hosted by Resurrection Tech
+  Ltd;
+- **participation in demonstrations** of the framework and its
+  applications;
+- **pilot-program involvement** where the sponsor's environment,
+  domain, or sector is relevant;
+- **research briefings** covering selected initiatives, findings, and
+  roadmap items;
+- **co-marketing opportunities** under jointly approved messaging;
+- **agreed visibility benefits** — sponsor tier, logos, named
+  acknowledgement;
+- **early visibility into selected initiatives**, on a defined and
+  bounded basis;
+- **strategic collaboration opportunities** on scoped programmes of
+  mutual interest.
+
+Specific benefits, scope, duration, and visibility tier are defined per
+agreement.
+
+### What Sponsors Do **Not** Receive
+
+Sponsorship — at any tier, of any value, in cash or in kind — does
+**not** grant any of the following:
+
+- **ownership** of the Morrison Framework™, the Runtime Governance
+  Audit™, the governance engine, the audit methodology, the evaluation
+  framework, or any derivative;
+- **licensing rights** — commercial, enterprise, sublicensing,
+  redistribution, or managed-service rights;
+- **patent rights** — no express or implied licence to UK Patent
+  GB2600765.8 or any related granted or pending filing;
+- **audit-delivery rights** — no right to deliver, white-label,
+  productise, or hold out as performing the Runtime Governance Audit™;
+- **governance-subscription rights** — no right to act as a licensee or
+  subscriber of governance for third parties;
+- **recurring revenue rights** — no entitlement to any share of audit,
+  licensing, subscription, or governance revenue;
+- **equity** in Resurrection Tech Ltd — equity is granted **only** by
+  way of a separately signed, formally executed equity instrument; no
+  sponsorship arrangement, in cash or in kind, of any amount, creates
+  an equity entitlement by implication.
+
+All ownership, licensing, patent, audit-delivery, governance-
+subscription, and recurring-revenue protections set out in the
+[Core Ownership Principle](#core-ownership-principle) and the
+[What Partners Do Not Automatically Receive](#what-partners-do-not-automatically-receive)
+sections apply in full to sponsorship — sponsorship adds visibility and
+collaboration benefits to the partner framework; it does **not** reduce
+the boundaries that framework establishes.
+
+### Sponsorship Examples
+
+The following illustrate how sponsorships are typically structured.
+They are examples, not commitments — actual terms are always agreed in
+writing.
+
+#### Example 1 — Technology Sponsor
+
+*Illustrative: a technology infrastructure company (e.g. a Cloudflare-
+class provider) sponsors a governance initiative.*
+
+- **Receives:** sponsor recognition in initiative materials and
+  documentation; participation in joint demonstrations; co-marketing
+  visibility under jointly approved messaging; briefings on relevant
+  research findings.
+- **Does not receive:** any ownership, licensing, patent, audit-
+  delivery, governance-subscription, or recurring-revenue right; no
+  right to white-label, productise, or hold out as delivering the
+  Runtime Governance Audit™; no equity.
+- **Ownership confirmation:** the Morrison Framework™, governance
+  engine, audit methodology, patents (incl. UK Patent GB2600765.8), and
+  all licensing and subscription rights **remain solely with
+  Resurrection Tech Ltd**.
+
+#### Example 2 — Institutional Sponsor
+
+*Illustrative: a bank, hospital, regulator, or enterprise organisation
+sponsors research, evaluation, or a pilot programme.*
+
+- **Receives:** participation in a defined pilot programme in a setting
+  relevant to its sector; research briefings on findings; early
+  visibility into selected initiatives on an agreed, bounded basis;
+  sector-appropriate recognition.
+- **Does not receive:** any ownership, licensing, patent, audit-
+  delivery, governance-subscription, or recurring-revenue right; no
+  right to act as a licensee or subscriber on behalf of third parties;
+  no entitlement to renewal, follow-on, or successor programmes; no
+  equity.
+- **Ownership confirmation:** the framework, engine, methodology,
+  patents, and all licensing and subscription rights **remain solely
+  with Resurrection Tech Ltd**.
+
+#### Example 3 — Strategic Sponsor
+
+*Illustrative: a company contributes funding, engineering resources,
+infrastructure, compute resources, venue support, or operational
+support.*
+
+- **Receives:** sponsor recognition; agreed visibility benefits at the
+  agreed tier; strategic collaboration opportunities on scoped
+  programmes of mutual interest; early visibility into selected
+  initiatives on an agreed basis.
+- **Does not receive:** any ownership, licensing, patent, audit-
+  delivery, governance-subscription, or recurring-revenue right by
+  virtue of the contribution — in cash or in kind, of any size; no
+  perpetual participation right; no entitlement to acquire any portion
+  of the IP, engine, or methodology in exchange for resources; **no
+  equity unless separately agreed in writing** under a formally
+  executed equity instrument.
+- **Ownership confirmation:** the framework, engine, methodology,
+  patents, and all licensing and subscription rights **remain solely
+  with Resurrection Tech Ltd**. In-kind contribution does not convert
+  to, or imply, ownership or rights.
+
+### Sponsorship Governing Clause
+
+> **Sponsorship is a form of support and collaboration, not a transfer
+> of ownership, licensing rights, patent rights, governance rights, or
+> recurring revenue participation.**
+
+Every sponsorship arrangement — financial, in-kind, or strategic — is
+governed by a written sponsorship agreement signed by Resurrection Tech
+Ltd, subject in full to the
+[Written Agreement Requirement](#written-agreement-requirement). No
+sponsorship benefit, visibility tier, equity, or right exists in the
+absence of that written agreement.
 
 ---
 
