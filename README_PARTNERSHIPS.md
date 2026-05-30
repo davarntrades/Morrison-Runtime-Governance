@@ -123,6 +123,36 @@ intellectual property those services touch.
 
 ---
 
+## Partner Revenue Independence
+
+Partners are encouraged to **develop and price their own services
+independently**.
+
+Resurrection Tech Ltd does **not** cap, control, or dictate the pricing
+of partner services. Partners may charge **market rates** for the work
+they perform, including:
+
+- implementation,
+- advisory,
+- compliance,
+- maintenance,
+- support,
+- training,
+- operational services.
+
+This freedom applies on one condition: **those services must not
+represent ownership of, or rights in,** the Morrison Framework™, the
+Runtime Governance Audit™, the governance engine, the patents, the
+licensing rights, or any recurring governance subscription. A partner
+sets the price of *its own* work; it does not set the price of, or
+acquire any share in, Resurrection Tech's intellectual property or
+governance revenue.
+
+In short: **price your own services as you see fit; the core asset
+remains Resurrection Tech's.**
+
+---
+
 ## Payment Models
 
 Engagements use one of three models. The model is selected per
