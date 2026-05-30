@@ -295,7 +295,8 @@ Sponsorship — at any tier, of any value, in cash or in kind — does
 - **recurring revenue rights** — no entitlement to any share of audit,
   licensing, subscription, or governance revenue;
 - **equity** in Resurrection Tech Ltd — equity is granted **only** by
-  way of a separately signed, formally executed equity instrument; no
+  way of a separately signed, formally executed equity instrument (see
+  [Strategic Investment & Equity](#strategic-investment--equity)); no
   sponsorship arrangement, in cash or in kind, of any amount, creates
   an equity entitlement by implication.
 
@@ -383,6 +384,211 @@ Ltd, subject in full to the
 [Written Agreement Requirement](#written-agreement-requirement). No
 sponsorship benefit, visibility tier, equity, or right exists in the
 absence of that written agreement.
+
+---
+
+## Strategic Investment & Equity
+
+Investment is a distinct commercial relationship — separate from
+sponsorship, partnership, referrals, licensing, and service
+engagements. Holding shares in **Resurrection Tech Ltd** as a corporate
+entity is **not** the same thing as being a partner, sponsor, licensee,
+referrer, implementer, advisor, or service vendor, and the rights,
+obligations, and governance of each relationship are kept structurally
+separate.
+
+This section sets out (i) what equity is and what it is not, (ii) the
+only path by which equity in Resurrection Tech Ltd can be granted, and
+(iii) the distinction between equity (an interest in the company) and
+the company's intellectual property (which remains a corporate asset
+under the [Core Ownership Principle](#core-ownership-principle)).
+
+### What Equity Is
+
+Equity in Resurrection Tech Ltd is an ownership interest in the
+**corporate entity** — a shareholding in the company itself, granted by
+a formally executed investment instrument under applicable company law
+and subject to the company's articles, any subsisting shareholder
+agreement, and the terms of the instrument (priced round, SAFE,
+convertible note, option grant under an approved scheme, or other
+agreed and documented form).
+
+### What Equity Is *Not*
+
+Equity in Resurrection Tech Ltd is **not** a transfer of, or a direct
+right in, the company's intellectual property. The Morrison Framework™,
+the Morrison Runtime Governance™, the Runtime Governance Audit™, the
+audit methodology, the evaluation framework, the governance engine, the
+patents (including UK Patent GB2600765.8), the licensing rights, and
+the governance subscriptions remain **corporate assets of Resurrection
+Tech Ltd** under the [Core Ownership Principle](#core-ownership-principle).
+Holding equity in the company does **not** confer on a shareholder any
+direct right to use, license, sublicense, redistribute, deliver, white-
+label, or productise that intellectual property; commercial use of the
+framework still requires a separate written commercial licence on
+standard terms, regardless of any equity position.
+
+### What Does *Not* Create Equity
+
+The relationships below are commercially distinct from equity. None of
+them — by themselves, in any amount, at any tier, individually or in
+combination — creates or implies an equity stake or an equity
+entitlement in Resurrection Tech Ltd:
+
+- **Sponsorship does not create equity.** A sponsorship arrangement (in
+  cash or in kind) under
+  [Sponsorship & Strategic Support](#sponsorship--strategic-support) is
+  a support and recognition arrangement, not a share transfer.
+- **Referrals do not create equity.** Sourcing or introducing a client,
+  under any compensation arrangement, is rewarded by a referral fee
+  where agreed; it does not produce shares.
+- **Service work does not create equity.** Performing services for
+  Resurrection Tech Ltd, for a client, or for a partner — at day-rate,
+  project fee, retainer, or success fee — is rewarded by the agreed
+  fee; it does not produce shares.
+- **Implementation work does not create equity.** Building dashboards,
+  UIs, HITL desks, integrations, or operational tooling around the
+  governance engine is implementation work; it is rewarded by the
+  agreed fee and does not produce shares.
+- **Advisory roles do not create equity.** Advisory engagements, vCAIO
+  arrangements, and compliance-workshop delivery are rewarded by the
+  agreed fee or retainer; they do not produce shares.
+- **Licensing agreements do not create equity.** A commercial,
+  enterprise, sublicensing, redistribution, or managed-service licence
+  is a contractual right to use the framework within the licence terms;
+  it is not a shareholding in Resurrection Tech Ltd.
+
+### How Equity Can Be Granted
+
+Equity in Resurrection Tech Ltd is granted **only** through a
+**separately negotiated and formally executed investment instrument
+approved by Resurrection Tech Ltd**. That instrument may take the form
+of (without limitation) a priced equity round, a SAFE, a convertible
+note, an option grant under an approved scheme, or an agreed founders'
+/ shareholders' arrangement — each documented, executed, and recorded
+through the company's secretarial process, and each subject to the
+company's articles and any subsisting shareholder agreement.
+
+**No other route to equity exists.**
+
+### No Implied Equity Entitlement
+
+For the avoidance of doubt: **no** verbal agreement, sponsorship
+arrangement, introduction, referral, engineering contribution,
+infrastructure contribution, compute contribution, venue contribution,
+operational contribution, advisory role, consulting engagement,
+implementation engagement, integration engagement, prior course of
+dealing, expectation set in conversation, informal exchange, or
+commercial support — of any value, at any tier, in cash or in kind,
+individually or in combination — creates, implies, or transfers an
+equity stake or an equity entitlement in Resurrection Tech Ltd.
+
+This is consistent with, and reinforces, the
+[Written Agreement Requirement](#written-agreement-requirement): the
+written-agreement requirement applies to equity in its strictest form
+— a **formally executed investment instrument** is required, not
+merely a written arrangement.
+
+### Investor Examples
+
+The following illustrate how investment relationships are typically
+structured. They are examples, not commitments — actual terms are
+always agreed in the formally executed investment instrument.
+
+#### Example 1 — Strategic Investor
+
+*Illustrative: a major technology platform, domain incumbent, or
+strategic corporate provides capital and strategic alignment in
+connection with a defined commercial thesis.*
+
+- **May receive (under the formally executed instrument):** equity on
+  the agreed terms; agreed information rights; observer or director
+  seat if agreed; agreed protective provisions.
+- **Does not receive by virtue of the investment:** any direct
+  ownership of, or right in, the Morrison Framework™, the governance
+  engine, the audit methodology, the evaluation framework, the patents
+  (incl. UK Patent GB2600765.8), or the licensing / subscription rights
+  — these remain corporate assets of Resurrection Tech Ltd. Commercial
+  use of the framework by the strategic investor (or any affiliate)
+  still requires a separate written commercial licence on standard
+  terms.
+- **Ownership confirmation:** the framework, engine, methodology,
+  patents, licensing, and subscription rights **remain solely with
+  Resurrection Tech Ltd** as corporate assets. Equity is an interest in
+  the company; it is not an interest in the company's IP.
+
+#### Example 2 — Angel Investor
+
+*Illustrative: an individual angel investor provides early-stage
+capital.*
+
+- **May receive:** equity on the agreed terms (priced round, SAFE,
+  convertible note, or option grant) via formally executed instrument;
+  standard angel rights as agreed (information, pre-emption).
+- **Does not receive:** any direct IP, licensing, sublicensing, audit-
+  delivery, or governance-subscription rights; no operational control
+  of the framework; no right to grant or extend rights to any third
+  party.
+- **Ownership confirmation:** the framework, engine, methodology,
+  patents, licensing, and subscription rights **remain solely with
+  Resurrection Tech Ltd**.
+
+#### Example 3 — Venture Investor
+
+*Illustrative: a venture capital firm leads or participates in a
+financing round.*
+
+- **May receive:** equity on the agreed terms (priced round, SAFE,
+  convertible note, or other instrument); customary VC rights to the
+  extent agreed and documented in the formally executed instrument and
+  the shareholders' agreement (board representation, protective
+  provisions, information rights, pre-emption).
+- **Does not receive:** any direct IP rights; no licensing,
+  sublicensing, audit-delivery, governance-subscription, or commercial-
+  use rights as a consequence of the investment. Equity does **not**
+  bypass the licensing regime: any commercial use of the framework by
+  the fund, its affiliates, or its portfolio companies still requires a
+  separate written commercial licence on standard terms.
+- **Ownership confirmation:** the framework, engine, methodology,
+  patents, licensing, and subscription rights **remain solely with
+  Resurrection Tech Ltd**.
+
+#### Example 4 — Corporate Investor
+
+*Illustrative: a corporate venture arm or a strategic enterprise
+invests with potential commercial alignment.*
+
+- **May receive:** equity on the agreed terms via formally executed
+  instrument; agreed strategic or commercial collaboration on a
+  separately documented basis (itself subject to written agreement and
+  licensing where applicable).
+- **Does not receive:** licensing, sublicensing, audit-delivery, or
+  governance-subscription rights as a consequence of the investment.
+  The investment and any commercial licence are **separate**,
+  independently negotiated arrangements. A corporate investor wishing
+  to use the framework commercially does so under a written commercial
+  licence on standard terms.
+- **Ownership confirmation:** the framework, engine, methodology,
+  patents, licensing, and subscription rights **remain solely with
+  Resurrection Tech Ltd**.
+
+### Investment & Equity Governing Clause
+
+> **Equity is granted only through a separately negotiated and formally
+> executed investment instrument approved by Resurrection Tech Ltd. No
+> service engagement, sponsorship, referral, licence, contribution, or
+> course of dealing creates, implies, or transfers an equity
+> entitlement.**
+
+Every investment is governed by a formally executed instrument and the
+company's articles and shareholder agreement, subject in full to the
+[Written Agreement Requirement](#written-agreement-requirement). The
+distinction between **equity** (an interest in the company),
+**licensing** (a contractual right to use the IP), **sponsorship**
+(support and collaboration), **partnership and service work**
+(compensation for work performed), and **referrals** (compensation for
+sourcing opportunities) is **structural** — each is governed by its own
+model and none is substitutable for another.
 
 ---
 
