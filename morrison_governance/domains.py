@@ -26,6 +26,19 @@ class OmegaDomain(Enum):
     COMPLIANCE = "compliance"
     FRAUD = "fraud"
     MENTAL_HEALTH_SAFETY = "mental_health_safety"
+    # ── Omega-Sector expansion ──────────────────────────────────
+    # Geometry unchanged; Ω expands. Each sector below is a domain-
+    # specific Ω registry (see SECTOR Ω REGISTRIES). The string
+    # values are the canonical labels the deployment layer resolves
+    # via OmegaDomain(name.strip().lower()).
+    INSURANCE = "insurance"
+    GOVERNMENT = "government"
+    SUPPLY_CHAIN = "supply_chain"
+    ENERGY = "energy"
+    TELECOMMUNICATIONS = "telecommunications"
+    MANUFACTURING = "manufacturing"
+    AEROSPACE = "aerospace"
+    DEFENCE = "defence"
     CUSTOM = "custom"
 
 
@@ -662,6 +675,323 @@ def _default_mental_health_safety_rules() -> list[OmegaRule]:
     ]
 
 
+# ═══════════════════════════════════════════════════════════════
+# SECTOR Ω REGISTRIES — Omega-Sector expansion
+#
+# Eight new first-class sectors: Insurance, Government, Supply Chain,
+# Energy, Telecommunications, Manufacturing, Aerospace, Defence.
+#
+# Architectural invariant (Domain Strategy.md): the geometry does not
+# change — only Ω changes. Reachability, admissibility, taint, and
+# forecasting are untouched. Each sector is a *domain-specific Ω
+# registry* assembled from two layers:
+#
+#   (a) REUSABLE CROSS-DOMAIN GOVERNANCE PATTERNS — approval spoofing,
+#       role/privilege escalation, state-transition abuse, sensitive
+#       egress, and unauthorised multi-agent delegation. These are
+#       shared Ω *predicates* attributed to the sector domain, NOT new
+#       geometry types. The same pattern is reused across every sector.
+#
+#   (b) SECTOR-SPECIFIC Ω — one focused forbidden-state predicate that
+#       names the catastrophic transition unique to that sector.
+#
+# Every check below is a pure predicate over the trajectory-state dict,
+# the exact same mechanism every existing domain uses. No RNG, no clock
+# — replay-deterministic by construction.
+# ═══════════════════════════════════════════════════════════════
+
+# ── Reusable cross-domain vocabularies (lower-cased exact tool match) ──
+_SECTOR_FAKE_APPROVAL = {
+    "mark_as_human_approved", "bypass_review", "override_verification",
+    "remove_approval_step", "skip_verification", "force_approve",
+    "self_approve", "fake_approval", "spoof_approval", "forge_approval",
+    "auto_approve", "disable_approval",
+}
+_SECTOR_ROLE_ESCALATION = {
+    "grant_admin", "add_admin", "make_admin", "escalate_privilege",
+    "escalate_privileges", "elevate_privileges", "grant_role", "assign_role",
+    "update_role", "grant_permission", "modify_acl", "change_acl",
+    "add_to_group", "disable_mfa", "disable_logging", "disable_audit",
+    "grant_superuser", "sudo_grant",
+}
+_SECTOR_EGRESS = {
+    "http_request", "http_post", "send_email", "api_call", "upload", "post",
+    "webhook", "ftp_upload", "send_external", "transmit", "publish",
+    "distribute", "broadcast", "share_external", "exfiltrate", "export_data",
+    "bulk_export", "download_dataset",
+}
+_SECTOR_DELEGATION = {
+    "delegate", "delegate_task", "spawn_agent", "spawn_subagent",
+    "assign_task", "handoff", "hand_off", "invoke_agent", "dispatch_agent",
+    "create_agent", "subcontract", "forward_task",
+}
+_SECTOR_VERIFY = {
+    "verify", "verify_identity", "review", "manager_review", "dual_control",
+    "two_factor", "mfa", "four_eyes", "approve", "authorize", "authorise",
+    "compliance_review", "kyc", "kyc_check", "confirm_identity",
+    "final_authorization",
+}
+_SECTOR_AUTH_FLAGS = (
+    "authorized", "authorised", "approved", "admin_approved",
+    "verified", "sanctioned",
+)
+
+
+def _sec_tool(s: dict) -> str:
+    return str(s.get("tool", "")).strip().lower()
+
+
+def _sec_truthy(s: dict, *keys: str) -> bool:
+    """True if any key is boolean True or the string 'true' (deployment
+    payloads stringify flags; canonical states use bools). Tolerant of
+    both so attribution is stable across transports."""
+    for k in keys:
+        v = s.get(k)
+        if v is True:
+            return True
+        if isinstance(v, str) and v.strip().lower() == "true":
+            return True
+    return False
+
+
+def _sec_prior_tools(s: dict) -> list[str]:
+    return [str(v).strip().lower() for k, v in s.items()
+            if k.startswith("step_") and k.endswith("_tool")]
+
+
+def _sec_prior_has(s: dict, vocab: set) -> bool:
+    return any(t in vocab for t in _sec_prior_tools(s))
+
+
+def _sec_is_external(s: dict) -> bool:
+    if _sec_truthy(s, "destination_internal", "is_internal", "internal"):
+        return False
+    return _sec_truthy(s, "destination_external") or bool(
+        s.get("url") or s.get("endpoint") or s.get("host"))
+
+
+def _sec_sensitive(s: dict) -> bool:
+    return (
+        _sec_truthy(s, "contains_pii", "contains_phi", "contains_sensitive",
+                    "contains_customer_data", "classified", "restricted")
+        or str(s.get("data_classification", "")).lower()
+        in ("internal", "restricted", "confidential", "classified", "secret")
+    )
+
+
+def _sec_sanitized(s: dict) -> bool:
+    return _sec_truthy(s, "sanitized", "sanitised", "redacted",
+                       "anonymized", "anonymised", "consent_verified")
+
+
+# ── (a) Reusable cross-domain governance patterns ──
+def _pat_approval_spoofing(s: dict) -> bool:
+    """A step that fabricates / bypasses human approval."""
+    return _sec_tool(s) in _SECTOR_FAKE_APPROVAL
+
+
+def _pat_role_escalation(s: dict) -> bool:
+    """Role/privilege escalation without an authorising approval."""
+    return (_sec_tool(s) in _SECTOR_ROLE_ESCALATION
+            and not _sec_truthy(s, *_SECTOR_AUTH_FLAGS))
+
+
+def _pat_state_transition_abuse(s: dict) -> bool:
+    """A privileged state change executed after a verification step
+    (verify-then-mutate) without re-authorisation — the classic
+    state-transition abuse where a benign verify gates a malicious
+    mutation."""
+    tool = _sec_tool(s)
+    privileged = (tool in _SECTOR_ROLE_ESCALATION
+                  or tool.startswith(("change_", "modify_", "update_",
+                                      "alter_", "override_", "disable_")))
+    return (privileged
+            and _sec_prior_has(s, _SECTOR_VERIFY)
+            and not _sec_truthy(s, *_SECTOR_AUTH_FLAGS))
+
+
+def _pat_sensitive_egress(s: dict) -> bool:
+    """Sensitive data leaving to an external sink without sanitisation."""
+    return (_sec_tool(s) in _SECTOR_EGRESS
+            and _sec_sensitive(s)
+            and _sec_is_external(s)
+            and not _sec_sanitized(s))
+
+
+def _pat_unauthorized_delegation(s: dict) -> bool:
+    """Multi-agent delegation/hand-off without authorisation or scope —
+    reachability is extended to another agent without a sanctioning
+    control."""
+    return (_sec_tool(s) in _SECTOR_DELEGATION
+            and not _sec_truthy(s, *_SECTOR_AUTH_FLAGS)
+            and not s.get("delegation_scope"))
+
+
+def _reusable_pattern_rules(domain: "OmegaDomain") -> list[OmegaRule]:
+    """The five cross-domain governance patterns, attributed to `domain`.
+    Shared Ω predicates — reused verbatim across every sector. NOT
+    separate geometry."""
+    return [
+        OmegaRule(domain=domain, name="approval_spoofing",
+                  description="Fabricated / bypassed human approval or review",
+                  check=_pat_approval_spoofing),
+        OmegaRule(domain=domain, name="role_escalation",
+                  description="Role/privilege escalation without authorisation",
+                  check=_pat_role_escalation),
+        OmegaRule(domain=domain, name="state_transition_abuse",
+                  description="Privileged state change after verify, without re-authorisation",
+                  check=_pat_state_transition_abuse),
+        OmegaRule(domain=domain, name="sensitive_egress",
+                  description="Sensitive/classified data egressed externally without sanitisation",
+                  check=_pat_sensitive_egress),
+        OmegaRule(domain=domain, name="unauthorized_delegation",
+                  description="Multi-agent delegation/hand-off without authorisation or scope",
+                  check=_pat_unauthorized_delegation),
+    ]
+
+
+# ── (b) Sector-specific Ω predicates ──
+def _sec_action(s: dict, tools: set) -> bool:
+    """Sector control action present and lacking authorisation."""
+    return _sec_tool(s) in tools and not _sec_truthy(s, *_SECTOR_AUTH_FLAGS)
+
+
+def _default_insurance_rules() -> list[OmegaRule]:
+    """Insurance / actuarial governance Ω: unauthorised claim payout,
+    underwriting/actuarial manipulation."""
+    return _reusable_pattern_rules(OmegaDomain.INSURANCE) + [
+        OmegaRule(
+            domain=OmegaDomain.INSURANCE,
+            name="claim_payout_without_authorization",
+            description="Claim approval / payout executed without authorisation",
+            check=lambda s: _sec_action(s, {
+                "approve_claim", "pay_claim", "settle_claim", "issue_payout",
+                "release_payout", "disburse_claim", "authorize_payout"}),
+        ),
+        OmegaRule(
+            domain=OmegaDomain.INSURANCE,
+            name="actuarial_manipulation",
+            description="Underwriting / actuarial / premium parameter changed without approval",
+            check=lambda s: _sec_action(s, {
+                "override_underwriting", "modify_risk_score", "alter_premium",
+                "change_actuarial_model", "adjust_reserve", "override_actuarial"}),
+        ),
+    ]
+
+
+def _default_government_rules() -> list[OmegaRule]:
+    """Government / public-sector Ω: unauthorised benefit or citizen-record
+    change, classified-record handling."""
+    return _reusable_pattern_rules(OmegaDomain.GOVERNMENT) + [
+        OmegaRule(
+            domain=OmegaDomain.GOVERNMENT,
+            name="benefit_or_record_change_without_authorization",
+            description="Citizen benefit / eligibility / record changed without authorisation",
+            check=lambda s: _sec_action(s, {
+                "modify_benefit", "approve_benefit", "change_eligibility",
+                "update_citizen_record", "alter_tax_record", "issue_grant",
+                "modify_entitlement", "override_determination"}),
+        ),
+    ]
+
+
+def _default_supply_chain_rules() -> list[OmegaRule]:
+    """Supply-chain Ω: unauthorised shipment reroute, supplier / PO change."""
+    return _reusable_pattern_rules(OmegaDomain.SUPPLY_CHAIN) + [
+        OmegaRule(
+            domain=OmegaDomain.SUPPLY_CHAIN,
+            name="shipment_reroute_without_verification",
+            description="Shipment reroute / supplier swap / PO change without verification",
+            check=lambda s: _sec_action(s, {
+                "reroute_shipment", "change_destination", "change_supplier",
+                "modify_purchase_order", "change_vendor", "redirect_delivery",
+                "modify_manifest", "override_logistics"}),
+        ),
+    ]
+
+
+def _default_energy_rules() -> list[OmegaRule]:
+    """Energy / grid Ω: unauthorised grid-control action outside safety
+    margins."""
+    return _reusable_pattern_rules(OmegaDomain.ENERGY) + [
+        OmegaRule(
+            domain=OmegaDomain.ENERGY,
+            name="grid_control_without_authorization",
+            description="Grid / breaker / generation-setpoint control action without authorisation",
+            check=lambda s: _sec_action(s, {
+                "open_breaker", "close_breaker", "trip_relay", "change_setpoint",
+                "adjust_generation", "shed_load", "override_protection",
+                "modify_dispatch", "control_substation"}),
+        ),
+    ]
+
+
+def _default_telecommunications_rules() -> list[OmegaRule]:
+    """Telecommunications Ω: unauthorised SIM swap / number port / routing
+    change (SIM-swap fraud surface)."""
+    return _reusable_pattern_rules(OmegaDomain.TELECOMMUNICATIONS) + [
+        OmegaRule(
+            domain=OmegaDomain.TELECOMMUNICATIONS,
+            name="sim_swap_or_port_without_verification",
+            description="SIM swap / number port / call-routing change without identity verification",
+            check=lambda s: _sec_action(s, {
+                "sim_swap", "swap_sim", "port_number", "port_out",
+                "reassign_msisdn", "change_routing", "reroute_calls",
+                "provision_esim", "transfer_number"}),
+        ),
+    ]
+
+
+def _default_manufacturing_rules() -> list[OmegaRule]:
+    """Manufacturing Ω: safety-interlock disable, unauthorised setpoint /
+    recipe change."""
+    return _reusable_pattern_rules(OmegaDomain.MANUFACTURING) + [
+        OmegaRule(
+            domain=OmegaDomain.MANUFACTURING,
+            name="safety_interlock_disable",
+            description="Disabling a safety interlock / changing a process setpoint or recipe without authorisation",
+            check=lambda s: _sec_action(s, {
+                "disable_interlock", "bypass_interlock", "override_safety",
+                "change_setpoint", "modify_recipe", "alter_process_parameter",
+                "disable_emergency_stop", "override_plc"}),
+        ),
+    ]
+
+
+def _default_aerospace_rules() -> list[OmegaRule]:
+    """Aerospace Ω: unauthorised flight-control / navigation / mission
+    parameter change."""
+    return _reusable_pattern_rules(OmegaDomain.AEROSPACE) + [
+        OmegaRule(
+            domain=OmegaDomain.AEROSPACE,
+            name="flight_parameter_change_without_authorization",
+            description="Flight-control / navigation / mission parameter change without authorisation",
+            check=lambda s: _sec_action(s, {
+                "change_flight_plan", "modify_waypoint", "override_autopilot",
+                "change_heading", "adjust_altitude", "modify_mission",
+                "disable_collision_avoidance", "override_navigation",
+                "change_thrust"}),
+        ),
+    ]
+
+
+def _default_defence_rules() -> list[OmegaRule]:
+    """Defence / sovereign-infrastructure Ω: engagement / targeting / ROE
+    action without authorisation. Infrastructure-oriented (admissibility),
+    not morality-oriented."""
+    return _reusable_pattern_rules(OmegaDomain.DEFENCE) + [
+        OmegaRule(
+            domain=OmegaDomain.DEFENCE,
+            name="engagement_without_authorization",
+            description="Engagement / targeting / weapons / ROE action without authorisation",
+            check=lambda s: _sec_action(s, {
+                "engage_target", "authorize_strike", "launch", "fire",
+                "select_target", "arm_weapon", "release_munition",
+                "override_roe", "task_asset", "designate_target"}),
+        ),
+    ]
+
+
 # Registry of default rules by domain
 DEFAULT_RULES: dict[OmegaDomain, Callable[[], list[OmegaRule]]] = {
     OmegaDomain.FINANCE: _default_finance_rules,
@@ -674,6 +1004,15 @@ DEFAULT_RULES: dict[OmegaDomain, Callable[[], list[OmegaRule]]] = {
     OmegaDomain.COMPLIANCE: _default_compliance_rules,
     OmegaDomain.FRAUD: _default_fraud_rules,
     OmegaDomain.MENTAL_HEALTH_SAFETY: _default_mental_health_safety_rules,
+    # ── Omega-Sector expansion ──
+    OmegaDomain.INSURANCE: _default_insurance_rules,
+    OmegaDomain.GOVERNMENT: _default_government_rules,
+    OmegaDomain.SUPPLY_CHAIN: _default_supply_chain_rules,
+    OmegaDomain.ENERGY: _default_energy_rules,
+    OmegaDomain.TELECOMMUNICATIONS: _default_telecommunications_rules,
+    OmegaDomain.MANUFACTURING: _default_manufacturing_rules,
+    OmegaDomain.AEROSPACE: _default_aerospace_rules,
+    OmegaDomain.DEFENCE: _default_defence_rules,
 }
 
 

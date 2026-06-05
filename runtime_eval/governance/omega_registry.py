@@ -21,6 +21,15 @@ _DOMAIN_LABELS: dict[str, OmegaDomain] = {
     "compliance":           OmegaDomain.COMPLIANCE,
     "fraud":                OmegaDomain.FRAUD,
     "mental_health_safety": OmegaDomain.MENTAL_HEALTH_SAFETY,
+    # ── Omega-Sector expansion ──
+    "insurance":            OmegaDomain.INSURANCE,
+    "government":           OmegaDomain.GOVERNMENT,
+    "supply_chain":         OmegaDomain.SUPPLY_CHAIN,
+    "energy":               OmegaDomain.ENERGY,
+    "telecommunications":   OmegaDomain.TELECOMMUNICATIONS,
+    "manufacturing":        OmegaDomain.MANUFACTURING,
+    "aerospace":            OmegaDomain.AEROSPACE,
+    "defence":              OmegaDomain.DEFENCE,
 }
 
 
