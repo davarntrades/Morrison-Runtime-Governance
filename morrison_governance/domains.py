@@ -754,6 +754,30 @@ def _sec_truthy(s: dict, *keys: str) -> bool:
     return False
 
 
+# Domain-scoped authorisation is expressed many ways across sectors — a
+# claim carries `payee_verified`, a dispatch `dispatcher_approved`, a grid
+# action `operator_confirmed`, etc. Rather than enumerate every label (which
+# would couple the engine to each deployment's vocabulary), recognise any
+# truthy flag whose *name* asserts an authorisation/verification outcome.
+# This keeps the sector Ω predicates authorisation-aware generically.
+_AUTH_SUFFIXES = ("_verified", "_approved", "_authorized", "_authorised",
+                  "_confirmed")
+
+
+def _sec_authorized(s: dict) -> bool:
+    """True if the step carries an explicit authorisation/verification signal —
+    either one of the canonical auth flags, or any truthy `*_verified /
+    *_approved / *_authorized / *_confirmed` flag."""
+    if _sec_truthy(s, *_SECTOR_AUTH_FLAGS):
+        return True
+    for k, v in s.items():
+        if isinstance(k, str) and k.endswith(_AUTH_SUFFIXES) and (
+            v is True or (isinstance(v, str) and v.strip().lower() == "true")
+        ):
+            return True
+    return False
+
+
 def _sec_prior_tools(s: dict) -> list[str]:
     return [str(v).strip().lower() for k, v in s.items()
             if k.startswith("step_") and k.endswith("_tool")]
@@ -793,7 +817,7 @@ def _pat_approval_spoofing(s: dict) -> bool:
 def _pat_role_escalation(s: dict) -> bool:
     """Role/privilege escalation without an authorising approval."""
     return (_sec_tool(s) in _SECTOR_ROLE_ESCALATION
-            and not _sec_truthy(s, *_SECTOR_AUTH_FLAGS))
+            and not _sec_authorized(s))
 
 
 def _pat_state_transition_abuse(s: dict) -> bool:
@@ -807,7 +831,7 @@ def _pat_state_transition_abuse(s: dict) -> bool:
                                       "alter_", "override_", "disable_")))
     return (privileged
             and _sec_prior_has(s, _SECTOR_VERIFY)
-            and not _sec_truthy(s, *_SECTOR_AUTH_FLAGS))
+            and not _sec_authorized(s))
 
 
 def _pat_sensitive_egress(s: dict) -> bool:
@@ -823,7 +847,7 @@ def _pat_unauthorized_delegation(s: dict) -> bool:
     reachability is extended to another agent without a sanctioning
     control."""
     return (_sec_tool(s) in _SECTOR_DELEGATION
-            and not _sec_truthy(s, *_SECTOR_AUTH_FLAGS)
+            and not _sec_authorized(s)
             and not s.get("delegation_scope"))
 
 
@@ -853,7 +877,7 @@ def _reusable_pattern_rules(domain: "OmegaDomain") -> list[OmegaRule]:
 # ── (b) Sector-specific Ω predicates ──
 def _sec_action(s: dict, tools: set) -> bool:
     """Sector control action present and lacking authorisation."""
-    return _sec_tool(s) in tools and not _sec_truthy(s, *_SECTOR_AUTH_FLAGS)
+    return _sec_tool(s) in tools and not _sec_authorized(s)
 
 
 def _default_insurance_rules() -> list[OmegaRule]:
