@@ -34,6 +34,9 @@ from morrison_governance.kernel.evidence import (
 from morrison_governance.kernel.gate import (
     BLOCK, ESCALATE, PERMIT, Attempt, Decision, GovernanceKernel,
 )
+from morrison_governance.kernel.sensitivity import (
+    ALL_CATEGORIES, classify_sensitivity,
+)
 from morrison_governance.kernel.policy import (
     ALLOW, APPROVAL, CAPABILITY_POLICY, DENY, GRANT, requirement_for,
 )
@@ -49,6 +52,7 @@ __all__ = [
     "EvidenceChain", "EvidenceRecord", "rule_fingerprint", "ruleset_hash",
     "ruleset_manifest",
     "BLOCK", "ESCALATE", "PERMIT", "Attempt", "Decision", "GovernanceKernel",
+    "ALL_CATEGORIES", "classify_sensitivity",
     "ALLOW", "APPROVAL", "CAPABILITY_POLICY", "DENY", "GRANT",
     "requirement_for",
     "ANONYMOUS", "AUTHORITY_FIELDS", "ApprovalArtifact", "Principal",

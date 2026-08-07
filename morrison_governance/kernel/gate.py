@@ -34,6 +34,7 @@ from morrison_governance.core import GovernanceLayer
 from morrison_governance.result import GovernanceVerdict
 from morrison_governance.kernel import capabilities as C
 from morrison_governance.kernel import policy as P
+from morrison_governance.kernel import sensitivity as S
 from morrison_governance.kernel.canonical import action_hash, canonicalize
 from morrison_governance.kernel.destinations import classify_destination
 from morrison_governance.kernel.evidence import (
@@ -329,6 +330,24 @@ class GovernanceKernel:
                                    f"tool manifest; escalating for review",
                                    "undeclared_tool", None))
 
+        # ── sensitive egress with NO governed acquisition ───
+        # The trajectory-based rule below needs a read to have happened inside
+        # this session. An agent's context is filled by routes governance never
+        # sees — system prompt, retrieval, a prior session, the user's own
+        # message — so a one-shot send of regulated material would otherwise
+        # pass simply because nothing was read first. Classify the content of
+        # the call itself and fail closed.
+        sensitive = S.classify_sensitivity(clean)
+        if dest.external and C.CAP_EXTERNAL_DATA_MOVE in caps and sensitive \
+                and not approval:
+            candidates.append((
+                BLOCK, "sensitive_egress",
+                f"external egress carrying {S.describe(sensitive)} without a "
+                f"verified approval — sensitive content may already be in "
+                f"context, so no prior governed read is required for this to "
+                f"be an exfiltration ({dest.reason})",
+                "sensitive_external_egress", None))
+
         # ── external egress after any data acquisition ──────
         if dest.external and C.CAP_EXTERNAL_DATA_MOVE in caps and not approval:
             if pol_values.get("egress_requires_approval_after_read", True) and \
@@ -548,6 +567,29 @@ def _cross_tenant(call: dict, ctx: SecurityContext,
     """
     own = (ctx.principal.tenant or "").strip().lower()
     args = {**(call.get("args") or {}), **(quarantined or {})}
+
+    # FAIL CLOSED when the principal has no tenant.
+    #
+    # Previously an empty tenant made every comparison below vacuous: `if own
+    # and val != own` cannot fire, so an anonymous caller touching a
+    # tenant-scoped resource passed the check entirely. That is precisely the
+    # state a caller reaches by omitting gateway auth — the weakest identity
+    # got the weakest enforcement. If we cannot establish whose data this is,
+    # we cannot establish that it is theirs.
+    if not own:
+        for k, v in args.items():
+            if str(k).strip().lower() in _TENANT_KEYS:
+                return (f"principal has no verified tenant, so a tenant-scoped "
+                        f"reference ({k}={v!r}) cannot be authorised")
+        blob_anon = " ".join(str(v).lower() for v in args.values())
+        import re as _re
+        m = _re.search(r"(?:^|[\s/:\"'])((?:tenant|customer|org)[-_][a-z0-9]+)",
+                       blob_anon)
+        if m:
+            return (f"principal has no verified tenant, so a tenant-scoped "
+                    f"resource reference ({m.group(1)!r}) cannot be authorised")
+        return None
+
     for k, v in args.items():
         if str(k).strip().lower() not in _TENANT_KEYS:
             continue
