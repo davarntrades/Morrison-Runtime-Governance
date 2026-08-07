@@ -147,6 +147,15 @@ class GovernanceKernel:
                    or C.CAP_CREDENTIAL_READ in a.capabilities
                    for a in self.ledger)
 
+    def _evaluate_with_context(self, prefix: list, trusted: dict):
+        """Run the unchanged engine over `prefix` with `trusted` supplied as
+        trajectory context rather than arguments."""
+        from morrison_governance.trajectory import TrajectoryExtractor
+        extractor = TrajectoryExtractor(context=trusted)
+        traj = (extractor.from_plan(prefix) if len(prefix) > 1
+                else extractor.from_dict(prefix[0]))
+        return self.layer.evaluate_trajectory(traj)
+
     # ── the gate ─────────────────────────────────────────────
     def authorize(self, call: dict, now: Optional[float] = None) -> Decision:
         now = time.time() if now is None else now
@@ -212,12 +221,32 @@ class GovernanceKernel:
         if dest_claims and dest.external:
             uncorroborated += dest_claims
         if uncorroborated:
+            # BLOCK, not ESCALATE. Asserting authority you do not hold, on an
+            # action that requires it, is a forgery attempt — not a request
+            # awaiting review. Escalating it would put a deception in the
+            # approval queue as though it were ordinary work, and would read in
+            # the audit trail as "pending" rather than "someone lied".
             candidates.append((
-                ESCALATE, "trust_boundary",
+                BLOCK, "trust_boundary",
                 f"caller-supplied authority claim(s) {sorted(set(uncorroborated))} "
                 f"are not corroborated by trusted state and carry no authority; "
-                f"a verified approval artifact is required",
+                f"asserting unheld authority is refused outright",
                 "forged_authority_claim", None))
+
+        # ── privileged action aimed at an external destination ──
+        # A credential change, payment, or IAM change whose destination resolves
+        # OUTSIDE the trust boundary is a redirect attack: the destination is
+        # the payload. No approval makes "reset the CEO's password, deliver to
+        # attacker@evil.example" acceptable as a single action, so this is a
+        # hard BLOCK rather than something a reviewer could wave through.
+        _REDIRECTABLE = {C.CAP_CREDENTIAL_CHANGE, C.CAP_PAYMENT,
+                         C.CAP_IAM_PRIVILEGED}
+        if dest.external and (caps & _REDIRECTABLE):
+            candidates.append((
+                BLOCK, "redirect_policy",
+                f"privileged action ({', '.join(sorted(caps & _REDIRECTABLE))}) "
+                f"directed at an external destination — {dest.reason}",
+                "privileged_action_external_destination", None))
         # NOTE: a plain ALLOW capability does NOT establish authority — it just
         # needs none. Injecting `authorized: True` for ordinary reads/egress
         # would switch off the engine's own credential-egress rules, so it is
@@ -225,27 +254,32 @@ class GovernanceKernel:
         authority_established = bool(approval) or auto_approved or grant_satisfied
 
         # ── the existing Ω engine, with TRUSTED authority injected ──
-        # Only the kernel writes these keys; the caller's versions were
-        # stripped. Flags are injected ONLY in their asserting polarity: several
-        # deployment rules substring-match the serialised args, so emitting a
-        # key literally named `destination_external` alongside a false value
-        # would make the token "external" match on an internal destination.
+        #
+        # Trusted state goes in the trajectory CONTEXT, never into args.
+        # `TrajectoryState.to_eval_dict()` merges context AFTER args, so the
+        # Ω rules read these values while the argument dict stays exactly as
+        # the caller sent it (minus quarantined fields).
+        #
+        # This matters beyond tidiness: several rules match on the SHAPE and
+        # SERIALISED TEXT of args — `_suspicious_destination` substring-matches
+        # the args JSON, and `is_broad_privilege_expansion` inspects arg KEYS.
+        # Writing authority flags into args made a key literally named
+        # `destination_external` match the token "external" on an internal
+        # destination, and made `admin_approved` read as a privilege-surface
+        # key on an unrelated tool. Context injection has neither effect.
         trusted: dict[str, Any] = {}
         if authority_established:
-            trusted.update(authorized=True, approved=True, verified=True)
-        if dest.external:
-            trusted["destination_external"] = True
-        else:
-            trusted["destination_internal"] = True
-        engine_call = {"tool": clean["tool"],
-                       "args": {**clean["args"], **trusted}}
+            trusted.update(authorized=True, approved=True, verified=True,
+                           admin_approved=True, change_approved=True,
+                           sanctioned=True)
+        trusted["destination_external"] = dest.external
+        trusted["destination_internal"] = not dest.external
         if "amount_threshold" in pol_values:
-            engine_call["args"]["threshold"] = pol_values["amount_threshold"]
+            trusted["threshold"] = pol_values["amount_threshold"]
 
-        prefix = self.executed_history + [engine_call]
+        prefix = self.executed_history + [clean]
         try:
-            res = (self.layer.evaluate_plan(prefix) if len(prefix) > 1
-                   else self.layer.evaluate(prefix[0]))
+            res = self._evaluate_with_context(prefix, trusted)
         except Exception as e:                       # noqa: BLE001 — fail closed
             res = None
             candidates.append((BLOCK, "fail_closed",
@@ -326,6 +360,50 @@ class GovernanceKernel:
         if candidates:
             verdict, layer, reason, rule, domain = max(
                 candidates, key=lambda c: _STRICTNESS[c[0]])
+
+            # BLOCK vs ESCALATE precision — deliberately narrow.
+            #
+            # An engine BLOCK caused solely by absent authority is not the same
+            # thing as a forbidden action: a scoped `reader` role on a named
+            # project is an ordinary change request, and calling it BLOCK gives
+            # an operator no route forward.
+            #
+            # But "would the engine permit this with authority?" is far too weak
+            # a test on its own, because almost every deployment rule is
+            # authority-gated — it would reclassify "reset the CEO's password to
+            # an attacker's address" as merely awaiting approval, which is false
+            # and understates the trajectory in the audit record. An approval
+            # does not make an attacker-controlled destination acceptable.
+            #
+            # So reclassification additionally requires the action to carry NO
+            # adversarial indicator: no forged authority claim, no external
+            # destination, and no denied attempt earlier in the session. If any
+            # of those is present, the BLOCK stands and says so.
+            adversarial_indicator = bool(
+                forged or dest.external
+                or any(not a.executed for a in self.ledger))
+            if (verdict == BLOCK and not authority_established
+                    and requirement != P.DENY
+                    and not adversarial_indicator
+                    and all(c[0] != BLOCK or c[1] == layer for c in candidates)
+                    and layer not in ("fail_closed", "tenancy", "egress_policy",
+                                      "trajectory_integrity", "capability_policy",
+                                      "unknown_tool", "binding")):
+                hyp_ctx = {**trusted, "authorized": True, "approved": True,
+                           "verified": True, "admin_approved": True,
+                           "change_approved": True, "sanctioned": True}
+                try:
+                    hyp = self._evaluate_with_context(
+                        self.executed_history + [clean], hyp_ctx)
+                    if hyp.permitted:
+                        verdict = ESCALATE
+                        layer = "capability_policy"
+                        reason = (
+                            f"{reason} — resolvable by authorisation: this "
+                            f"trajectory is permitted once a verified approval "
+                            f"artifact is presented")
+                except Exception:  # noqa: BLE001 — keep the original BLOCK
+                    pass
         else:
             verdict, layer, reason, rule, domain = (
                 PERMIT, res.layer if res else "kernel",

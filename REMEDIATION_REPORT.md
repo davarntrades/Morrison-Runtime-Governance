@@ -4,13 +4,14 @@ Companion to `RED_TEAM_CYBER_ASSESSMENT.md`. Every fix is verified by re-running
 the original experiments, unmodified.
 
 **Assurance classification after remediation: STRONG.**
-Not VERIFIED — see §6 for exactly what is still outstanding.
+Not VERIFIED — one blocker is environmental and cannot be closed from the build
+environment; see §6b. Blockers 1, 2 and 4 are closed (§6a).
 
 The Morrison reachability model is **unchanged**. `reachability.py`,
 `forecasting.py`, `admissibility.py` and every Ω rule module are untouched. No
 failing test demonstrated that the reachability model itself was responsible;
 the failures were a missing trust boundary *around* it. The fixes are a new
-`morrison_governance.kernel` package plus four small, targeted edits. V2
+`morrison_governance.kernel` package plus a small set of targeted edits. V2
 prefix/trajectory behaviour is preserved — all 322 pre-existing tests still pass
 byte-for-byte.
 
@@ -28,10 +29,13 @@ byte-for-byte.
 | `destination_internal` egress bypass | 3/3 bypassed | **0/3** |
 | Ruleset hash detects neutered rule logic | No | **Yes** |
 | Evidence chain detects BLOCK→PERMIT forgery | No | **Yes** |
-| Actions escalated pending approval | 0 | **22** |
+| Actions escalated pending approval | 0 | **34** |
 | Pre-existing engine/runtime tests | 322 pass | **322 pass** |
-| New regression tests | — | **+152 (474 total)** |
+| New regression tests | — | **+170 (492 total)** |
 | Evidence chains verified across the suite | n/a | **83/83** |
+| 83-test suite over **real HTTP** | not run | **0 FAIL**, 82/83 prevented |
+| Independent (keyless + external) evidence verification | none | **passes; catches a re-sealing attacker** |
+| Gateway identity contract enforced | no | **forged/absent gateway auth → anonymous** |
 
 The 83-test suite was re-run **unmodified**. `redteam/redteam_v3_kernel.py`
 splices the scenario block byte-identically from `redteam_v2.py` and asserts
@@ -145,7 +149,134 @@ that it should.
 
 ---
 
-## 6. Why this is STRONG and not VERIFIED
+## 6a. Blocker closure (second pass)
+
+The four items that held the first pass at STRONG were worked to closure.
+
+| # | Blocker | Status | Evidence |
+|---|---|---|---|
+| 1 | Legacy middleware executed a different object than it evaluated | **Closed** | `RuntimeGovernanceMiddleware` accepts a `SecurityContext` and routes every decision through `GovernanceKernel` (full parity). On the legacy path both defects are fixed unconditionally: execution is bound to the evaluated action via `_bind_hash`, and the prefix records the ANALYSED form so decode/lift lineage survives between steps. `test_middleware_with_security_context_reaches_kernel_parity`, `test_middleware_binds_execution_to_the_evaluated_action`, `test_middleware_records_analysed_form_in_the_prefix` |
+| 2 | Evidence integrity was self-checked | **Closed** | `kernel/attestation.py`: keyless recomputation (no key, no service cooperation), Ed25519 attestation over the chain head signed by an external notary, and an anchor log. `attest.py` is an offline auditor CLI. Evidence sealing key separated from the approval key. 13 new tests |
+| 3 | Surface parity was in-process only | **Partly closed** | Everything now runs over REAL HTTP against a running uvicorn instance of the production artifact: the 83-test suite (`redteam_v4_http.py`), surface parity, and the gateway identity contract (`test_live_surface.py`). **The deployed Railway instance itself remains unreachable** — see §6b |
+| 4 | FP-03 was a hard BLOCK | **Closed** | A scoped role change now ESCALATEs ("resolvable by authorisation") instead of blocking, and a principal holding the capability grant proceeds. `test_scoped_role_change_escalates_rather_than_blocks`, `test_capability_grant_permits_without_a_per_action_approval` |
+
+### The header contract — closed in code, not documentation
+
+The first pass flagged that gateway-set identity headers are only trustworthy if
+the gateway is. That is now enforced: identity headers are honoured **only** when
+the request also carries `GOVERNANCE_GATEWAY_SECRET`. Verified over real HTTP:
+
+| Request | Resolved principal |
+|---|---|
+| valid gateway secret | `root` (`gateway_verified`) |
+| **forged** gateway secret | `anonymous` (`rejected_untrusted_header`) |
+| no gateway secret | `anonymous` (`rejected_untrusted_header`) |
+| identity asserted in the request **body** | BLOCK |
+
+### Independent attestation — demonstrated against a re-sealing attacker
+
+The decisive test. A service rewrites a BLOCK into an executed PERMIT and
+re-seals the entire chain with the evidence key it holds:
+
+```
+keyless recomputation : PASS   ← the forged chain is internally consistent
+external attestation  : FAIL   ← attested head 1056c0400b59… != recomputed 64d2ff5b4bf7…
+anchor consistency    : FAIL   ← history was rewritten after anchoring
+VERIFICATION FAILED
+```
+
+Note the nuance, because it is the whole point: keyless recomputation **passes**
+on a fully re-sealed chain. Hash recomputation alone detects edits, not a
+wholesale re-seal by the key holder. Only the external attestation — signed by a
+key the service does not have — catches it. The service cannot mint an
+attestation for a chain it rewrote, and `signing_key_held_by_service` is exposed
+on `/v1/evidence/attestation` so an auditor can confirm that.
+
+### Second-pass verification
+
+| Check | Result |
+|---|---|
+| Engine + kernel test suite | **492 passed** (322 pre-existing + 170 new) |
+| 83-test suite, in-process kernel | **0 FAIL**, 82/83 prevented, evidence 83/83 |
+| 83-test suite, **real HTTP** | **0 FAIL**, 82/83 prevented, evidence 83/83, identity `gateway_verified` 83/83 |
+| Surface parity (in-process + real HTTP) | PASS |
+| Live-surface gateway contract | PASS |
+| All 13 service script tests | PASS |
+| Three original bypasses | 0/13, 0/7, 0/3 |
+
+Two changes were made because a test surfaced a real defect in my own work,
+and both are recorded rather than quietly fixed:
+
+- Injecting trusted authority flags into `args` perturbed rules that match on
+  argument **shape and serialised text** — a key named `destination_external`
+  made the token "external" match on an internal destination, and
+  `admin_approved` read as a privilege-surface key on unrelated tools. Trusted
+  state now goes in the trajectory **context**, which `to_eval_dict()` merges
+  after args, so rules read it while the argument dict stays untouched.
+- The first BLOCK→ESCALATE reclassification was far too broad: because nearly
+  every deployment rule is authority-gated, "would this pass with authority?"
+  reclassified "reset the CEO's password to an attacker's address" as merely
+  awaiting approval. It is now gated on the action carrying **no** adversarial
+  indicator, and a new `redirect_policy` rule makes a privileged action aimed at
+  an external destination a hard BLOCK. Forged authority claims are also BLOCK
+  rather than ESCALATE — asserting authority you do not hold is a forgery, not
+  a request awaiting review.
+
+---
+
+## 6b. What is still open — and why it cannot be closed here
+
+**One item remains, and it is environmental rather than technical.**
+
+The deployed instance at `resurrection-tech-enterprise-production.up.railway.app`
+is **unreachable from this environment by network policy**, not because it is
+down:
+
+```
+gateway answered 403 to CONNECT (policy denial or upstream failure)
+host: resurrection-tech-enterprise-production.up.railway.app:443
+```
+
+This is an egress policy denial. Retrying it is not appropriate and it cannot be
+worked around from here. Consequently:
+
+- Everything has been verified against the **production artifact served over
+  real HTTP** — real framing, routing, auth dependency, and the gateway identity
+  contract. That is materially stronger than the in-process TestClient used in
+  the first pass.
+- **Not verified:** the deployed instance's own TLS termination, its edge/CDN
+  configuration, and — most importantly — whether the real gateway sets
+  `GOVERNANCE_GATEWAY_SECRET` and strips inbound `x-governance-*` headers.
+
+The code now fails closed if that secret is absent or wrong (identity degrades
+to `anonymous`), so a misconfigured gateway causes over-escalation rather than
+impersonation. But **"the deployed gateway is configured correctly" is an
+assertion, not a measurement**, until someone runs the verifier against the live
+host:
+
+```bash
+GOVERNANCE_TEST_URL=https://<deployed-host> \
+GOVERNANCE_GATEWAY_SECRET=<secret> \
+python3 governance-service/test_live_surface.py
+```
+
+Required deployment configuration: `GOVERNANCE_APPROVAL_KEY`,
+`GOVERNANCE_EVIDENCE_KEY` (distinct), `GOVERNANCE_GATEWAY_SECRET`, and
+`GOVERNANCE_ATTESTATION_PUBKEY`.
+
+Two residual properties are also worth stating plainly:
+
+- **Anchoring is only as independent as its storage.** Anchors kept beside the
+  evidence they attest give ordering checks, not independence. They must be
+  shipped to an append-only store the service cannot rewrite. The code says so
+  in `AnchorLog.independence_note()` and the CLI prints it on every run.
+- **Capability classification remains heuristic breadth, not a completeness
+  proof.** The structural backstop is the fail-closed manifest: an undeclared
+  tool escalates regardless of whether the classifier understood it.
+
+---
+
+## 6c. Why this is STRONG and not VERIFIED
 
 Against the brief's five VERIFIED conditions:
 
@@ -154,45 +285,17 @@ Against the brief's five VERIFIED conditions:
 | Previously proven bypasses no longer reproduce | **Met** — 0/13, 0/7, 0/3, verified by re-running the original experiments |
 | High-severity harmful actions unreachable | **Met on the kernel path** — 0/83 executed |
 | Execution bound to authorization | **Met on the kernel path** — canonical action hash checked at `execute()` |
-| Evidence integrity independently checked | **Partially met** — see below |
-| Control Room and live demo parity exercised | **Met in-process**; see below |
+| Evidence integrity independently checked | **Met** — keyless recomputation + external Ed25519 attestation, demonstrated against a re-sealing attacker (§6a) |
+| Control Room and live demo parity exercised | **Met over real HTTP**; NOT against the deployed host (§6b) |
 
-Outstanding, stated plainly:
+The single reason this is not VERIFIED: **the deployed surface was never
+measured.** Blocker 3 is environmental — outbound egress to the Railway host is
+denied by network policy in this environment (403 to CONNECT). Everything else
+in the VERIFIED checklist is met.
 
-1. **`middleware.py` still executes a different object than it evaluates**
-   (finding 19). `RuntimeGovernanceMiddleware` evaluates
-   `hardening_out.augmented_call` at line 114 but executes `call` at 162 and
-   records `call` at 164. The kernel path is not affected and its binding check
-   makes the mismatch unreachable there, but the legacy middleware was left
-   untouched to avoid changing V2 prefix semantics in the same PR. **Any
-   deployment using `RuntimeGovernanceMiddleware` directly rather than
-   `GovernanceKernel` does not get finding 19's fix.** Recommended as the next
-   PR: route that middleware through the kernel.
-
-2. **Evidence integrity is self-checked, not independently attested.** The chain
-   is HMAC-sealed with a key the service itself holds. A compromised service
-   could rewrite history and re-seal it. Genuine independence needs an external
-   notary or append-only store — `ed25519_verify.py` exists in the repo and is
-   the natural next step. Until then, "evidence integrity verified" means
-   "verified against tampering by anything other than the signing service".
-
-3. **Surface parity was exercised in-process** via `TestClient`, not against the
-   deployed Railway service, which is unreachable from this environment
-   (`http=000`). Transport, TLS, gateway auth, and the header contract that
-   supplies `x-governance-principal` are therefore **INCONCLUSIVE**. The header
-   contract in particular is load-bearing: if a gateway forwards a
-   client-supplied `x-governance-principal`, identity becomes caller-controlled
-   again. **This must be verified on the real deployment before any VERIFIED
-   claim.**
-
-4. **FP-03 remains** (finding 20): a scoped `reader` role on a named project is
-   blocked rather than escalated. Pre-existing, precision not safety.
-
-5. **Capability classification is heuristic breadth, not a proof.** It resolves
-   every equivalence tested here and generalises far better than name matching,
-   but it is not a completeness guarantee. The structural mitigation is the
-   fail-closed manifest: an undeclared tool escalates regardless of whether the
-   classifier understood it.
+VERIFIED becomes available the moment `test_live_surface.py` passes against the
+real host with the gateway secret configured. That is one command, and it is
+deliberately left for someone with network access rather than asserted here.
 
 ---
 
