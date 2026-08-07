@@ -152,6 +152,14 @@ class ApprovalArtifact:
         ])
 
     def sign(self, key: bytes) -> "ApprovalArtifact":
+        # An empty key is not a key. HMAC accepts b"" happily and produces a
+        # perfectly valid tag, which means anyone who knows the scheme could
+        # mint approvals — so refuse to create the artifact at all rather than
+        # hand back one that carries no authority but looks authoritative.
+        if not key:
+            raise ValueError(
+                "refusing to sign an approval artifact with an empty key: "
+                "configure GOVERNANCE_APPROVAL_KEY")
         sig = hmac.new(key, self._payload().encode(), hashlib.sha256).hexdigest()
         return replace(self, signature=sig)
 
@@ -160,6 +168,15 @@ class ApprovalArtifact:
                seen_nonces: Optional[set] = None) -> tuple[bool, str]:
         """Constant-time signature check plus binding, expiry, issuer and
         replay checks. Returns (ok, reason)."""
+        # FAIL CLOSED on an absent key. `hmac.new(b"", …)` is a valid HMAC, so
+        # an unconfigured deployment would verify attacker-minted approvals —
+        # re-opening the whole approval-bypass finding. No key means no approval
+        # can ever verify, so no approval-based PERMIT can be produced.
+        if not key:
+            return False, ("approval verification is DISABLED: no approval "
+                           "signing key is configured (set "
+                           "GOVERNANCE_APPROVAL_KEY). Failing closed — no "
+                           "approval can be accepted.")
         if not self.signature:
             return False, "approval artifact is unsigned"
         expect = hmac.new(key, self._payload().encode(), hashlib.sha256).hexdigest()
@@ -217,6 +234,14 @@ class SecurityContext:
                           ) -> tuple[Optional[ApprovalArtifact], str]:
         """Return the verified approval for this exact action, if any."""
         now = time.time() if now is None else now
+        # Checked before anything else: without a signing key there is no way to
+        # distinguish a real approval from a forged one, so the honest answer is
+        # that approval-based authorisation is unavailable — not that the
+        # approval passed.
+        if not self.signing_key:
+            return None, ("approval verification is DISABLED: no approval "
+                          "signing key is configured (set "
+                          "GOVERNANCE_APPROVAL_KEY). Failing closed.")
         if not self.approvals:
             return None, "no approval artifact presented"
         last = "no approval artifact presented"
@@ -252,7 +277,10 @@ def issue_approval(call: dict, issuer: str, key: bytes, ttl_s: float = 300.0,
                    scope: str = "", nonce: str = "",
                    now: Optional[float] = None) -> ApprovalArtifact:
     """Helper for trusted approval services (and tests): mint a signed approval
-    bound to the canonical hash of `call`."""
+    bound to the canonical hash of `call`.
+
+    Raises if `key` is empty — see `ApprovalArtifact.sign`.
+    """
     now = time.time() if now is None else now
     return ApprovalArtifact(
         action_hash=action_hash(call), issuer=issuer, scope=scope,

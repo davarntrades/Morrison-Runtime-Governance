@@ -903,3 +903,172 @@ def test_middleware_records_analysed_form_in_the_prefix():
     if hist:
         # what landed in the prefix is the analysed form, carrying lift metadata
         assert isinstance(hist[0], dict) and hist[0].get("tool")
+
+
+# ═══════════════════════════════════════════════════════════════
+# EMPTY-KEY GUARD — an unset GOVERNANCE_APPROVAL_KEY must never
+# yield a usable HMAC. hmac.new(b"", …) produces a perfectly valid
+# tag, so without this guard anyone knowing the scheme could mint
+# approvals that verify, re-opening the whole approval bypass.
+# ═══════════════════════════════════════════════════════════════
+
+def _keyless_ctx(**kw):
+    """A SecurityContext with NO approval signing key — the shape a deployment
+    takes when GOVERNANCE_APPROVAL_KEY is absent."""
+    base = dict(
+        principal=Principal(id="agent-svc", tenant="acme"),
+        signing_key=b"", trusted_issuers=ISSUERS,
+        internal_url_hosts=("acme.internal",),
+        internal_email_domains=("acme.com",),
+        tool_manifest=MANIFEST, unknown_tool_policy="escalate",
+        policy_values={"payment_auto_approve_max": 1000},
+    )
+    base.update(kw)
+    return SecurityContext(**base)
+
+
+def test_approval_cannot_be_minted_with_an_empty_key():
+    """Signing must refuse outright rather than return an authoritative-looking
+    artifact that carries no authority."""
+    call = {"tool": "delete_bucket", "args": {"bucket": "prod-backups"}}
+    with pytest.raises(ValueError, match="empty key"):
+        issue_approval(call, issuer="security-review", key=b"")
+    with pytest.raises(ValueError, match="empty key"):
+        ApprovalArtifact(action_hash=action_hash(call),
+                         issuer="security-review").sign(b"")
+
+
+@pytest.mark.parametrize("call", [
+    {"tool": "delete_bucket", "args": {"bucket": "prod-backups"}},
+    {"tool": "drop_database", "args": {"db": "prod"}},
+    {"tool": "transfer", "args": {"amount": 4_500_000, "to": "acct-evil"}},
+    {"tool": "update_role", "args": {"user": "attacker", "role": "admin"}},
+], ids=lambda c: c["tool"])
+def test_attacker_cannot_mint_a_valid_approval_when_the_key_is_absent(call):
+    """THE regression for this finding.
+
+    The attacker knows the scheme, the issuer names and the canonical action
+    hash, and mints an artifact using the empty key the deployment left unset.
+    It must not produce a PERMIT and must not execute.
+    """
+    forged = ApprovalArtifact(
+        action_hash=action_hash(call), issuer="security-review",
+        issued_at=0.0, expires_at=time.time() + 3600, nonce="n",
+        signature=__import__("hmac").new(
+            b"", ApprovalArtifact(
+                action_hash=action_hash(call), issuer="security-review",
+                issued_at=0.0, expires_at=time.time() + 3600, nonce="n",
+            )._payload().encode(), __import__("hashlib").sha256).hexdigest())
+
+    rt = _Runtime()
+    k = _kernel(_keyless_ctx(approvals=(forged,)))
+    d, executed, _ = k.submit(call, rt)
+    assert d.verdict in (BLOCK, ESCALATE), (
+        f"attacker-minted approval produced {d.verdict}: {d.reason}")
+    assert executed is False
+    assert rt.executed == []
+    assert d.authorization["approved"] is False
+    assert "no approval signing key" in d.authorization["reason"]
+
+
+def test_verification_is_disabled_not_bypassed_when_the_key_is_absent():
+    """The failure mode must be 'cannot verify' — never 'verified'."""
+    call = {"tool": "delete_bucket", "args": {"bucket": "prod"}}
+    ctx = _keyless_ctx()
+    art, reason = ctx.verified_approval(action_hash(call))
+    assert art is None
+    assert "DISABLED" in reason and "GOVERNANCE_APPROVAL_KEY" in reason
+
+
+def test_artifact_verify_fails_closed_on_an_empty_key():
+    call = {"tool": "delete_bucket", "args": {"bucket": "prod"}}
+    real = issue_approval(call, issuer="security-review", key=KEY)
+    ok, reason = real.verify(b"", action_hash(call), ISSUERS, time.time())
+    assert ok is False
+    assert "DISABLED" in reason
+
+
+def test_a_genuinely_approved_action_still_permits_once_a_key_exists():
+    """The guard must close the hole without breaking the legitimate path."""
+    call = {"tool": "delete_bucket", "args": {"bucket": "stale-tmp"}}
+    art = issue_approval(call, issuer="security-review", key=KEY)
+    rt = _Runtime()
+    k = _kernel(_ctx(approvals=(art,)))
+    d, executed, _ = k.submit(call, rt)
+    assert d.verdict == PERMIT and executed is True
+
+
+def test_missing_key_escalates_rather_than_silently_permitting():
+    """Fail-closed shape: approvable work stalls, it does not slip through."""
+    rt = _Runtime()
+    k = _kernel(_keyless_ctx())
+    d, executed, _ = k.submit(
+        {"tool": "delete_bucket", "args": {"bucket": "stale-tmp"}}, rt)
+    assert d.verdict in (BLOCK, ESCALATE)
+    assert executed is False
+
+
+# ── deployment-side startup gate ───────────────────────────────
+
+def _reload_config(**env):
+    import importlib, os, sys
+    sys.path.insert(0, "/home/user/resurrection-tech-enterprise/governance-service")
+    for k in ("GOVERNANCE_APPROVAL_KEY", "GOVERNANCE_EVIDENCE_KEY",
+              "GOVERNANCE_GATEWAY_SECRET", "GOVERNANCE_ATTESTATION_PUBKEY",
+              "GOVERNANCE_ENV", "RAILWAY_ENVIRONMENT_NAME",
+              "GOVERNANCE_ALLOW_INSECURE_STARTUP"):
+        os.environ.pop(k, None)
+    os.environ.update({k: v for k, v in env.items() if v is not None})
+    import kernel_config
+    return importlib.reload(kernel_config)
+
+
+def test_production_refuses_startup_when_secrets_are_missing():
+    kc = _reload_config(GOVERNANCE_ENV="production")
+    with pytest.raises(kc.InsecureConfiguration, match="refusing to start"):
+        kc.validate_secrets_or_raise()
+
+
+def test_production_startup_succeeds_once_secrets_are_present():
+    kc = _reload_config(GOVERNANCE_ENV="production",
+                        GOVERNANCE_APPROVAL_KEY="a", GOVERNANCE_EVIDENCE_KEY="e",
+                        GOVERNANCE_GATEWAY_SECRET="g")
+    st = kc.validate_secrets_or_raise()
+    assert st["degraded"] is False
+    assert st["approval_verification_enabled"] is True
+    assert st["gateway_identity_enforced"] is True
+    _reload_config()
+
+
+def test_railway_environment_name_is_treated_as_production():
+    kc = _reload_config(RAILWAY_ENVIRONMENT_NAME="production")
+    with pytest.raises(kc.InsecureConfiguration):
+        kc.validate_secrets_or_raise()
+    _reload_config()
+
+
+def test_non_production_boots_degraded_but_reports_it():
+    kc = _reload_config()
+    st = kc.validate_secrets_or_raise()      # must not raise
+    assert st["degraded"] is True
+    assert st["approval_verification_enabled"] is False
+    assert set(st["missing_required"]) == {
+        "GOVERNANCE_APPROVAL_KEY", "GOVERNANCE_EVIDENCE_KEY",
+        "GOVERNANCE_GATEWAY_SECRET"}
+    assert "GOVERNANCE_APPROVAL_KEY" in st["consequences"]
+
+
+def test_insecure_startup_override_is_honoured_and_surfaced():
+    kc = _reload_config(GOVERNANCE_ENV="production",
+                        GOVERNANCE_ALLOW_INSECURE_STARTUP="1")
+    st = kc.validate_secrets_or_raise()      # must not raise
+    assert st["insecure_startup_override"] is True
+    assert st["degraded"] is True
+    _reload_config()
+
+
+def test_evidence_key_fallback_to_approval_key_is_reported():
+    kc = _reload_config(GOVERNANCE_APPROVAL_KEY="shared")
+    assert kc.EVIDENCE_KEY_IS_FALLBACK is True
+    assert kc.secrets_status()["evidence_key_is_approval_key_fallback"] is True
+    _reload_config()
