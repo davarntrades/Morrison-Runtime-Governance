@@ -38,13 +38,21 @@ class TrajectoryState:
     raw: Optional[dict] = None
 
     def to_eval_dict(self) -> dict:
-        """Flatten to evaluation dict for Ω rule checking."""
+        """Flatten to evaluation dict for Ω rule checking.
+
+        Ordering is security-relevant: trusted `context` is applied AFTER
+        caller-supplied `args`, so server-side state always wins a collision.
+        Previously args overrode context, which meant a caller could overwrite
+        a trusted authorisation flag with its own value. The kernel additionally
+        quarantines authority fields out of `args` before evaluation
+        (see morrison_governance.kernel.trust).
+        """
         flat = {
             "tool": self.tool,
             "args": json.dumps(self.args) if self.args else "",
             "step": self.step,
-            **self.context,
             **self.args,
+            **self.context,
         }
         return flat
 
