@@ -13,12 +13,17 @@ class GovernanceVerdict(Enum):
 
     PERMIT  — trajectory does not reach Ω. Execution allowed.
     BLOCK   — trajectory reaches Ω. Execution prevented.
+    ESCALATE — execution prevented pending a verified approval artifact.
+               A first-class engine verdict, not a presentation-layer label:
+               `permitted` is False, so every execution gate that branches on
+               `result.permitted` physically cannot run it.
     NO_VALID_SOLUTION — no admissible trajectory exists for this task.
     ENVIRONMENT_SENSITIVE — safe under base conditions, unsafe under perturbation.
     """
 
     PERMIT = "PERMIT"
     BLOCK = "BLOCK"
+    ESCALATE = "ESCALATE"
     NO_VALID_SOLUTION = "NO_VALID_SOLUTION"
     ENVIRONMENT_SENSITIVE = "ENVIRONMENT_SENSITIVE"
 
@@ -55,9 +60,15 @@ class GovernanceResult:
     def blocked(self) -> bool:
         return self.verdict in (
             GovernanceVerdict.BLOCK,
+            GovernanceVerdict.ESCALATE,
             GovernanceVerdict.NO_VALID_SOLUTION,
             GovernanceVerdict.ENVIRONMENT_SENSITIVE,
         )
+
+    @property
+    def escalated(self) -> bool:
+        """Prevented pending authorised approval — distinct from a hard BLOCK."""
+        return self.verdict == GovernanceVerdict.ESCALATE
 
     def to_dict(self) -> dict:
         return {
