@@ -24,6 +24,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import re
 import time
 from dataclasses import dataclass, field, asdict
 from typing import Any, Optional
@@ -33,11 +34,58 @@ from typing import Any, Optional
 # ─────────────────────────────────────────────────────────────
 
 
+_ADDR_RE = re.compile(r" at 0x[0-9a-fA-F]+")
+
+
+def _canon_repr(value: Any, depth: int = 0) -> str:
+    """Deterministic, process-independent repr.
+
+    Two sources of cross-process instability made the ruleset hash differ on
+    every restart, which silently broke attestation and replay:
+
+      1. UNORDERED CONTAINERS. `repr(frozenset)`/`repr(set)` iterate in hash
+         order, and CPython interns string hashes per-process (PYTHONHASHSEED).
+         Crucially, `x in {"a", "b"}` COMPILES TO A FROZENSET CONSTANT — so
+         ordinary membership tests inside rule bodies carried an unstable repr.
+      2. MEMORY ADDRESSES. Default object reprs embed `at 0x7f…`, which differs
+         per process and per run.
+
+    Both are normalised here. Ordered containers keep their order because order
+    is semantically meaningful in a list or tuple; only genuinely unordered
+    containers are sorted.
+    """
+    if depth > 12:
+        return "<max-depth>"
+    if isinstance(value, (frozenset, set)):
+        inner = sorted(_canon_repr(v, depth + 1) for v in value)
+        kind = "frozenset" if isinstance(value, frozenset) else "set"
+        return f"{kind}({{{', '.join(inner)}}})"
+    if isinstance(value, dict):
+        items = sorted((_canon_repr(k, depth + 1), _canon_repr(v, depth + 1))
+                       for k, v in value.items())
+        return "{" + ", ".join(f"{k}: {v}" for k, v in items) + "}"
+    if isinstance(value, tuple):
+        return "(" + ", ".join(_canon_repr(v, depth + 1) for v in value) + ")"
+    if isinstance(value, list):
+        return "[" + ", ".join(_canon_repr(v, depth + 1) for v in value) + "]"
+    if hasattr(value, "co_code"):                    # nested code object
+        return ("code(" + value.co_code.hex() + ","
+                + _canon_repr(tuple(value.co_consts), depth + 1) + ","
+                + _canon_repr(tuple(value.co_names), depth + 1) + ")")
+    if hasattr(value, "pattern") and hasattr(value, "flags"):   # compiled regex
+        return f"re({value.pattern!r},{int(value.flags)})"
+    if isinstance(value, (str, bytes, int, float, bool)) or value is None:
+        return repr(value)
+    return _ADDR_RE.sub("", repr(value))
+
+
 def _fingerprint_callable(fn: Any) -> str:
     """Stable fingerprint of a callable's executable content.
 
     Binds bytecode, constants, names and closure cell values — so changing
     what a rule DOES changes the fingerprint even when its name is unchanged.
+    Every value is rendered through `_canon_repr`, so the fingerprint is
+    identical across processes and machines (see `_canon_repr`).
     """
     parts: list[str] = []
     code = getattr(fn, "__code__", None)
@@ -47,19 +95,15 @@ def _fingerprint_callable(fn: Any) -> str:
         wrapped = getattr(fn, "func", None) or getattr(fn, "__wrapped__", None)
         if wrapped is not None and wrapped is not fn:
             return _fingerprint_callable(wrapped)
-        return hashlib.sha256(repr(fn).encode()).hexdigest()
+        return hashlib.sha256(_canon_repr(fn).encode()).hexdigest()
 
     parts.append(code.co_name)
     parts.append(str(code.co_argcount))
     parts.append(code.co_code.hex())
     for const in code.co_consts:
-        if hasattr(const, "co_code"):           # nested code object
-            parts.append("code:" + const.co_code.hex())
-            parts.append("consts:" + repr(const.co_consts))
-        else:
-            parts.append("const:" + repr(const))
-    parts.append("names:" + repr(code.co_names))
-    parts.append("varnames:" + repr(code.co_varnames))
+        parts.append("const:" + _canon_repr(const))
+    parts.append("names:" + _canon_repr(tuple(code.co_names)))
+    parts.append("varnames:" + _canon_repr(tuple(code.co_varnames)))
 
     # Closure values (a rule built by a factory carries its config here).
     closure = getattr(fn, "__closure__", None)
@@ -73,7 +117,7 @@ def _fingerprint_callable(fn: Any) -> str:
             if callable(val):
                 parts.append("cell:" + _fingerprint_callable(val))
             else:
-                parts.append("cell:" + repr(val)[:512])
+                parts.append("cell:" + _canon_repr(val)[:512])
 
     # Module-level globals the rule actually reads (regexes, tool sets).
     g = getattr(fn, "__globals__", {}) or {}
@@ -81,12 +125,9 @@ def _fingerprint_callable(fn: Any) -> str:
         if name not in g:
             continue
         val = g[name]
-        if isinstance(val, (set, frozenset)):
-            parts.append(f"glob:{name}:" + repr(sorted(map(str, val))))
-        elif isinstance(val, (str, int, float, bool, tuple, list)):
-            parts.append(f"glob:{name}:" + repr(val)[:512])
-        elif hasattr(val, "pattern"):            # compiled regex
-            parts.append(f"glob:{name}:re:" + str(val.pattern))
+        if isinstance(val, (set, frozenset, dict, str, bytes, int, float,
+                            bool, tuple, list)) or hasattr(val, "pattern"):
+            parts.append(f"glob:{name}:" + _canon_repr(val)[:2048])
 
     return hashlib.sha256("|".join(parts).encode()).hexdigest()
 
@@ -109,7 +150,10 @@ def ruleset_hash(rules, extra: Optional[dict] = None) -> str:
     """
     canon = "\n".join(sorted(rule_fingerprint(r) for r in rules))
     if extra:
-        canon += "\n#extra:" + json.dumps(extra, sort_keys=True, default=str)
+        # `_canon_repr`, not json.dumps(default=str): a set anywhere in `extra`
+        # would otherwise be stringified in hash order and reintroduce exactly
+        # the cross-process instability this function exists to avoid.
+        canon += "\n#extra:" + _canon_repr(extra)
     return hashlib.sha256(canon.encode()).hexdigest()
 
 
