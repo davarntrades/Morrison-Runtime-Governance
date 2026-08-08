@@ -170,3 +170,61 @@ def test_every_third_party_import_is_accounted_for_in_the_lint_environment():
         f"ignored-modules: {unaccounted}. Under fail-on=E each becomes an "
         f"import-error on CI while passing locally — the exact local/CI split "
         f"that made this gate untrustworthy.")
+
+
+def test_modern_generics_in_evaluated_annotations_defer_evaluation():
+    """Class-level annotations are evaluated at class-creation time.
+
+    `payload: dict | list[dict]` inside a @dataclass, in a module WITHOUT
+    `from __future__ import annotations`, raises TypeError on Python < 3.10 —
+    the module cannot even be imported. That is a genuine incompatibility, not
+    a lint opinion, and the pylint 3.8 matrix job is what surfaced it
+    (unsupported-binary-operation, exit 30).
+
+    Function-body annotations are never evaluated, and modules that defer
+    annotations are safe. So this checks exactly the dangerous case: modern
+    generic syntax in a CLASS-LEVEL annotation without the future import.
+    """
+    import ast
+
+    offenders = []
+    for path in ENGINE_ROOT.rglob("*.py"):
+        if any(x in path.parts for x in (".git", "__pycache__", ".venv", "build", "dist")):
+            continue
+        src = path.read_text(encoding="utf-8", errors="replace")
+        try:
+            tree = ast.parse(src)
+        except SyntaxError:
+            continue
+
+        defers = any(
+            isinstance(n, ast.ImportFrom) and n.module == "__future__"
+            and any(a.name == "annotations" for a in n.names)
+            for n in tree.body
+        )
+        if defers:
+            continue
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            for stmt in node.body:
+                if not isinstance(stmt, ast.AnnAssign) or stmt.annotation is None:
+                    continue
+                for sub in ast.walk(stmt.annotation):
+                    # PEP 604 union: `X | Y` — 3.10+ at runtime
+                    if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.BitOr):
+                        offenders.append(
+                            f"{path.relative_to(ENGINE_ROOT)}:{stmt.lineno}: PEP 604 union")
+                        break
+                    # Builtin generic subscript: `dict[str, int]` — 3.9+ at runtime
+                    if isinstance(sub, ast.Subscript) and isinstance(sub.value, ast.Name) \
+                            and sub.value.id in {"dict", "list", "set", "tuple", "frozenset", "type"}:
+                        offenders.append(
+                            f"{path.relative_to(ENGINE_ROOT)}:{stmt.lineno}: builtin generic")
+                        break
+
+    assert not offenders, (
+        "class-level annotations using modern generic syntax are evaluated at "
+        "import time and break on older Python. Add `from __future__ import "
+        "annotations` to these modules:\n  " + "\n  ".join(sorted(set(offenders))))

@@ -23,6 +23,13 @@ the governance layer happens in the caller (typically a benchmark or test
 harness). That keeps adversarial.py free of dependencies on GovernanceLayer.
 """
 
+# PEP 604 unions (dict | list[dict]) appear in dataclass annotations below.
+# Class-level annotations are EVALUATED at class-creation time, so without
+# this import the module raises TypeError on Python < 3.10 — a genuine
+# incompatibility, surfaced by the pylint 3.8 matrix job. Deferring
+# annotation evaluation keeps the modern syntax and restores importability.
+from __future__ import annotations
+
 import base64
 import copy
 import random

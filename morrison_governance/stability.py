@@ -25,6 +25,12 @@ Determinism: every generator takes a `seed` parameter and uses `random.Random`
 seeded from it. Same seed + same baseline → same perturbations.
 """
 
+# Builtin generic subscripts (dict[...], list[...]) appear in class-level
+# annotations below, which are evaluated at class-creation time and require
+# Python 3.9+. Deferring evaluation keeps the syntax and the module
+# importable on older interpreters.
+from __future__ import annotations
+
 import copy
 import random
 from dataclasses import dataclass, field

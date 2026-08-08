@@ -14,6 +14,12 @@ Determinism: every check is a pure function of the state dict. No I/O,
 no clocks, no random. The result is fully reproducible from the input.
 """
 
+# Builtin generic subscripts (dict[...], list[...]) appear in class-level
+# annotations below, which are evaluated at class-creation time and require
+# Python 3.9+. Deferring evaluation keeps the syntax and the module
+# importable on older interpreters.
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
