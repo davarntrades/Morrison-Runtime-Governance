@@ -24,11 +24,19 @@ import pytest
 # present and run unchanged when it is. Point MORRISON_SERVICE_PATH at a
 # checkout to enable them in CI.
 import os as _os
+import pathlib as _pathlib
 import sys as _cross_sys
 
-SERVICE_PATH = _os.environ.get(
-    "MORRISON_SERVICE_PATH",
-    "/home/user/resurrection-tech-enterprise/governance-service")
+
+# Resolved relative to THIS FILE, never to a developer's home directory. The
+# old default ("/home/user/resurrection-tech-enterprise/governance-service")
+# failed two ways: it crashed on a machine without that path, and — worse — on
+# a machine that happened to have one it silently imported a DIFFERENT
+# checkout, so the tests reported on code that was not under test.
+_ENGINE_ROOT = _pathlib.Path(__file__).resolve().parents[1]
+SERVICE_PATH = str(
+    _os.environ.get("MORRISON_SERVICE_PATH")
+    or _ENGINE_ROOT.parent / "resurrection-tech-enterprise" / "governance-service")
 
 requires_service_repo = pytest.mark.skipif(
     not _os.path.isdir(SERVICE_PATH),
