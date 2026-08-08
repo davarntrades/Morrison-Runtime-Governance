@@ -110,3 +110,63 @@ def test_every_disable_carries_a_reason():
     assert len(comments) >= len(entries) / 3, (
         f"{len(entries)} disabled checks but only {len(comments)} comment lines "
         f"— every disable needs a stated reason, or it reads as suppression")
+
+
+def test_every_third_party_import_is_accounted_for_in_the_lint_environment():
+    """Local and CI must see the same import graph.
+
+    The first attempt at repairing this gate passed locally and failed on CI
+    with exit 30. Cause: the lint job installs a minimal dependency set, so
+    `import pytest` was unresolvable there and raised import-error (E0401),
+    which fail-on=E then caught. Locally pytest is installed, so it never
+    appeared.
+
+    A gate whose result depends on which machine runs it is not a gate. Every
+    third-party module the code imports must therefore be EITHER installed by
+    the lint workflow OR listed in ignored-modules — never neither.
+    """
+    import re
+
+    workflow = (ENGINE_ROOT / ".github" / "workflows" / "pylint.yml").read_text()
+    installed = set(re.findall(r"pip install ([\w\s-]+)", workflow))
+    installed = {tok for group in installed for tok in group.split()}
+
+    cp = _config()
+    ignored = {
+        m.strip()
+        for m in cp.get("MAIN", "ignored-modules", fallback="").replace("\n", ",").split(",")
+        if m.strip()
+    }
+
+    stdlib = set(getattr(__import__("sys"), "stdlib_module_names", set()))
+    first_party = {"morrison_governance", "runtime_eval", "redteam", "multi_agent_eval",
+                   "global_governance", "audit", "artifacts", "_repo_paths"}
+
+    # Collected via the AST, not a regex. A text scan over source also matches
+    # prose — an earlier version of this test reported "its" and "the" as
+    # third-party packages, harvested from sentences like "import the module".
+    import ast
+
+    imported = set()
+    for p in ENGINE_ROOT.rglob("*.py"):
+        if any(x in p.parts for x in (".git", "__pycache__", ".venv", "build", "dist")):
+            continue
+        try:
+            tree = ast.parse(p.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    imported.add(alias.name.split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                if node.level == 0 and node.module:      # skip relative imports
+                    imported.add(node.module.split(".")[0])
+
+    unaccounted = sorted(imported - stdlib - first_party - ignored - installed
+                         - {"__future__"})
+    assert not unaccounted, (
+        f"third-party imports neither installed by the lint workflow nor in "
+        f"ignored-modules: {unaccounted}. Under fail-on=E each becomes an "
+        f"import-error on CI while passing locally — the exact local/CI split "
+        f"that made this gate untrustworthy.")
