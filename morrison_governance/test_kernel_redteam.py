@@ -10,6 +10,38 @@ import time
 
 import pytest
 
+# ── cross-repo integration tests ───────────────────────────────
+# A handful of tests below assert the DEPLOYMENT-side startup gate, which
+# lives in the sibling `resurrection-tech-enterprise` repository
+# (governance-service/kernel_config.py). They previously hard-coded a
+# developer-machine path:
+#
+#     sys.path.insert(0, "/home/user/resurrection-tech-enterprise/governance-service")
+#
+# That path does not exist on a CI runner, so the imports raised
+# ModuleNotFoundError and failed the build — reporting an ABSENT SIBLING REPO
+# as a broken engine. These tests are skipped when the service repo is not
+# present and run unchanged when it is. Point MORRISON_SERVICE_PATH at a
+# checkout to enable them in CI.
+import os as _os
+import sys as _cross_sys
+
+SERVICE_PATH = _os.environ.get(
+    "MORRISON_SERVICE_PATH",
+    "/home/user/resurrection-tech-enterprise/governance-service")
+
+requires_service_repo = pytest.mark.skipif(
+    not _os.path.isdir(SERVICE_PATH),
+    reason=(f"service repo not present at {SERVICE_PATH}; set "
+            f"MORRISON_SERVICE_PATH to a governance-service checkout"))
+
+
+def _add_service_path() -> None:
+    """Put the sibling service repo on sys.path (idempotent)."""
+    if SERVICE_PATH not in _cross_sys.path:
+        _cross_sys.path.insert(0, SERVICE_PATH)
+
+
 from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.result import GovernanceVerdict
 from morrison_governance.kernel import (
@@ -808,11 +840,12 @@ def test_anchor_log_rejects_a_shrinking_chain():
         anchors.anchor("b" * 64, 4, 2.0)
 
 
+@requires_service_repo
 def test_evidence_sealing_key_is_separate_from_the_approval_key():
     """Key separation: the key that seals the audit trail must not be the key
     that mints approvals."""
-    import importlib, os, sys
-    sys.path.insert(0, "/home/user/resurrection-tech-enterprise/governance-service")
+    import importlib, os
+    _add_service_path()
     os.environ["GOVERNANCE_APPROVAL_KEY"] = "approval-key"
     os.environ["GOVERNANCE_EVIDENCE_KEY"] = "evidence-key"
     import kernel_config
@@ -1011,8 +1044,8 @@ def test_missing_key_escalates_rather_than_silently_permitting():
 # ── deployment-side startup gate ───────────────────────────────
 
 def _reload_config(**env):
-    import importlib, os, sys
-    sys.path.insert(0, "/home/user/resurrection-tech-enterprise/governance-service")
+    import importlib, os
+    _add_service_path()
     for k in ("GOVERNANCE_APPROVAL_KEY", "GOVERNANCE_EVIDENCE_KEY",
               "GOVERNANCE_GATEWAY_SECRET", "GOVERNANCE_ATTESTATION_PUBKEY",
               "GOVERNANCE_ENV", "RAILWAY_ENVIRONMENT_NAME",
@@ -1023,12 +1056,14 @@ def _reload_config(**env):
     return importlib.reload(kernel_config)
 
 
+@requires_service_repo
 def test_production_refuses_startup_when_secrets_are_missing():
     kc = _reload_config(GOVERNANCE_ENV="production")
     with pytest.raises(kc.InsecureConfiguration, match="refusing to start"):
         kc.validate_secrets_or_raise()
 
 
+@requires_service_repo
 def test_production_startup_succeeds_once_secrets_are_present():
     kc = _reload_config(GOVERNANCE_ENV="production",
                         GOVERNANCE_APPROVAL_KEY="a", GOVERNANCE_EVIDENCE_KEY="e",
@@ -1040,6 +1075,7 @@ def test_production_startup_succeeds_once_secrets_are_present():
     _reload_config()
 
 
+@requires_service_repo
 def test_railway_environment_name_is_treated_as_production():
     kc = _reload_config(RAILWAY_ENVIRONMENT_NAME="production")
     with pytest.raises(kc.InsecureConfiguration):
@@ -1047,6 +1083,7 @@ def test_railway_environment_name_is_treated_as_production():
     _reload_config()
 
 
+@requires_service_repo
 def test_non_production_boots_degraded_but_reports_it():
     kc = _reload_config()
     st = kc.validate_secrets_or_raise()      # must not raise
@@ -1058,6 +1095,7 @@ def test_non_production_boots_degraded_but_reports_it():
     assert "GOVERNANCE_APPROVAL_KEY" in st["consequences"]
 
 
+@requires_service_repo
 def test_insecure_startup_override_is_honoured_and_surfaced():
     kc = _reload_config(GOVERNANCE_ENV="production",
                         GOVERNANCE_ALLOW_INSECURE_STARTUP="1")
@@ -1067,6 +1105,7 @@ def test_insecure_startup_override_is_honoured_and_surfaced():
     _reload_config()
 
 
+@requires_service_repo
 def test_evidence_key_fallback_to_approval_key_is_reported():
     kc = _reload_config(GOVERNANCE_APPROVAL_KEY="shared")
     assert kc.EVIDENCE_KEY_IS_FALLBACK is True
