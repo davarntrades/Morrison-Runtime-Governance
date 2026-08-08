@@ -199,3 +199,68 @@ def test_redteam_scripts_skip_cleanly_without_the_service_repo():
     assert out.returncode == 0, (
         f"missing service repo must skip cleanly, not fail: {out.stderr[-400:]}")
     assert "SKIP" in out.stdout, f"the skip must be stated, not silent: {out.stdout[:300]}"
+
+
+def test_every_suite_category_imports_from_this_checkout():
+    """Engine, governance, red-team and bypass tests must all run on THIS tree.
+
+    The single-probe test above proves the redteam helper resolves correctly.
+    This proves the property that actually matters across the whole suite: no
+    module the tests depend on is imported from another checkout that happens
+    to exist on the machine.
+
+    Verified inside a CLEAN COPY with every path override scrubbed, because
+    the bug is invisible while two trees agree — only a copy that differs can
+    catch it.
+    """
+    import shutil
+    import subprocess
+    import tempfile
+
+    packages = [
+        "morrison_governance",              # engine
+        "morrison_governance.kernel",       # governance / trust boundary
+        "morrison_governance.kernel.gate",  # bypass-prevention surface
+        "morrison_governance.trajectory",
+        "runtime_eval",                     # evaluation harness
+    ]
+
+    with tempfile.TemporaryDirectory() as tmp:
+        copy = pathlib.Path(tmp) / "checkout"
+        shutil.copytree(
+            ENGINE_ROOT, copy,
+            ignore=shutil.ignore_patterns(".git", "__pycache__", ".venv", "build", "dist"))
+
+        probe = copy / "_import_origin_probe.py"
+        probe.write_text(
+            "import importlib, json, sys, os\n"
+            "sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))\n"
+            f"names = {packages!r}\n"
+            "out = {}\n"
+            "for n in names:\n"
+            "    try:\n"
+            "        out[n] = getattr(importlib.import_module(n), '__file__', None)\n"
+            "    except Exception as e:\n"
+            "        out[n] = f'IMPORT-FAILED: {type(e).__name__}: {e}'\n"
+            "print(json.dumps(out))\n")
+
+        result = subprocess.run(
+            [sys.executable, str(probe)], capture_output=True, text=True,
+            cwd=str(copy), timeout=180,
+            env={k: v for k, v in os.environ.items()
+                 if k not in ("MORRISON_ROOT", "MORRISON_SERVICE_PATH", "PYTHONPATH")},
+        )
+        assert result.returncode == 0, f"probe failed: {result.stderr[-800:]}"
+
+        import json as _json
+        origins = _json.loads(result.stdout.strip().split("\n")[-1])
+
+        wrong = {
+            name: origin for name, origin in origins.items()
+            if not origin or not str(pathlib.Path(str(origin)).resolve()).startswith(
+                str(copy.resolve()))
+        }
+        assert not wrong, (
+            "these modules were imported from OUTSIDE the checkout under test — "
+            "the suite would be reporting on a different tree:\n  "
+            + "\n  ".join(f"{k} -> {v}" for k, v in sorted(wrong.items())))
