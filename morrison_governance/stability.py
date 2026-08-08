@@ -34,12 +34,15 @@ from __future__ import annotations
 import copy
 import random
 from dataclasses import dataclass, field
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterable, Optional, Dict, List
 
 from morrison_governance.result import GovernanceResult, GovernanceVerdict
 
 
-PerturbationGenerator = Callable[[dict, int, int], list[dict]]
+# A type ALIAS is a runtime value: `from __future__ import annotations`
+# above does NOT defer it, so list[dict] here is evaluated at import and
+# raises on Python < 3.9. typing.List/Dict are equivalent and portable.
+PerturbationGenerator = Callable[[Dict, int, int], List[Dict]]
 
 
 # ─────────────────────────────────────────────────────────────

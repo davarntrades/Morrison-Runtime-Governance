@@ -172,6 +172,34 @@ def test_every_third_party_import_is_accounted_for_in_the_lint_environment():
         f"that made this gate untrustworthy.")
 
 
+_BUILTIN_GENERICS = {"dict", "list", "set", "tuple", "frozenset", "type"}
+
+
+def _looks_like_type_expression(node) -> bool:
+    """Is this assignment value a TYPE ALIAS rather than ordinary runtime code?
+
+    Needed because `|` is overwhelmingly set/dict union in this codebase, not a
+    PEP 604 type union. A previous version of this check treated every `BinOp`
+    on the right of an assignment as an alias and reported five offenders that
+    were all real code:
+
+        merged = set(baseline.verdicts) | set(current.verdicts)
+        printable = set(range(0x20, 0x7F)) | {0x09, 0x0A, 0x0D}
+
+    Those are legal on every supported Python. A type alias is built only from
+    names, attributes, subscripts and literals — the moment a Call, a set/dict
+    display or a comprehension appears, it is a value expression and the runtime
+    version question does not arise.
+    """
+    import ast as _ast
+
+    if not isinstance(node, (_ast.Subscript, _ast.BinOp)):
+        return False
+    allowed = (_ast.Subscript, _ast.BinOp, _ast.Name, _ast.Attribute, _ast.Tuple,
+               _ast.List, _ast.Constant, _ast.Load, _ast.BitOr, _ast.Store)
+    return all(isinstance(sub, allowed) for sub in _ast.walk(node))
+
+
 def test_modern_generics_in_evaluated_annotations_defer_evaluation():
     """Class-level annotations are evaluated at class-creation time.
 
@@ -181,9 +209,11 @@ def test_modern_generics_in_evaluated_annotations_defer_evaluation():
     a lint opinion, and the pylint 3.8 matrix job is what surfaced it
     (unsupported-binary-operation, exit 30).
 
-    Function-body annotations are never evaluated, and modules that defer
-    annotations are safe. So this checks exactly the dangerous case: modern
-    generic syntax in a CLASS-LEVEL annotation without the future import.
+    Function-body annotations are never evaluated. The future import defers the
+    rest — but NOT type aliases, because an alias is an ordinary runtime value
+    on the right of an assignment, not an annotation. Treating the future import
+    as blanket immunity is what let stability.py:42 through and failed the 3.8
+    job a second time, so the two categories are scanned separately below.
     """
     import ast
 
@@ -202,48 +232,53 @@ def test_modern_generics_in_evaluated_annotations_defer_evaluation():
             and any(a.name == "annotations" for a in n.names)
             for n in tree.body
         )
-        if defers:
-            continue
 
-        # Three places modern generic syntax is EVALUATED at import time:
-        #   1. class-level annotations        (dataclass fields)
-        #   2. function signature annotations (defaults/params/returns)
-        #   3. type ALIAS assignments         — a runtime value, so the future
-        #      import does NOT defer it. This is the case that slipped through
-        #      the first version of this test and failed the 3.8 job:
-        #          PerturbFn = Callable[[dict, int], list[dict]]
         evaluated = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef):
-                evaluated += [st.annotation for st in node.body
-                              if isinstance(st, ast.AnnAssign) and st.annotation]
-            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                a = node.args
-                for arg in list(a.args) + list(a.posonlyargs) + list(a.kwonlyargs):
-                    if arg.annotation:
-                        evaluated.append(arg.annotation)
-                if node.returns:
-                    evaluated.append(node.returns)
-            elif isinstance(node, ast.Assign):
-                # Type aliases: a bare Subscript/BinOp value at module level.
-                if isinstance(node.value, (ast.Subscript, ast.BinOp)):
-                    evaluated.append(node.value)
 
-        for node in [None]:
-            for stmt_annotation in evaluated:
-                stmt = type("S", (), {"lineno": getattr(stmt_annotation, "lineno", 0)})
-                for sub in ast.walk(stmt_annotation):
-                    # PEP 604 union: `X | Y` — 3.10+ at runtime
-                    if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.BitOr):
-                        offenders.append(
-                            f"{path.relative_to(ENGINE_ROOT)}:{stmt.lineno}: PEP 604 union")
-                        break
-                    # Builtin generic subscript: `dict[str, int]` — 3.9+ at runtime
-                    if isinstance(sub, ast.Subscript) and isinstance(sub.value, ast.Name) \
-                            and sub.value.id in {"dict", "list", "set", "tuple", "frozenset", "type"}:
-                        offenders.append(
-                            f"{path.relative_to(ENGINE_ROOT)}:{stmt.lineno}: builtin generic")
-                        break
+        # (1) Type ALIASES — checked in EVERY module, deferred or not. The alias
+        #     is a value expression evaluated at import:
+        #         PerturbFn = Callable[[dict, int], list[dict]]
+        #     `from __future__ import annotations` does nothing for it.
+        for stmt in tree.body:
+            if isinstance(stmt, ast.Assign) and _looks_like_type_expression(stmt.value):
+                evaluated.append(stmt.value)
+
+        # (2) Annotations proper — only dangerous when the module does NOT defer.
+        if not defers:
+            for stmt in tree.body:
+                # Module-level annotated assignment: `X: dict[str, T] = {...}`.
+                # Only those directly in tree.body: an AnnAssign inside a
+                # function body is never evaluated. Missing this case is what
+                # let planners.py:87 through.
+                if isinstance(stmt, ast.AnnAssign) and stmt.annotation:
+                    evaluated.append(stmt.annotation)
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    # Class-level annotations run at class-creation time.
+                    evaluated += [st.annotation for st in node.body
+                                  if isinstance(st, ast.AnnAssign) and st.annotation]
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    a = node.args
+                    for arg in list(a.args) + list(a.posonlyargs) + list(a.kwonlyargs):
+                        if arg.annotation:
+                            evaluated.append(arg.annotation)
+                    if node.returns:
+                        evaluated.append(node.returns)
+
+        for expr in evaluated:
+            lineno = getattr(expr, "lineno", 0)
+            for sub in ast.walk(expr):
+                # PEP 604 union: `X | Y` — 3.10+ at runtime
+                if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.BitOr):
+                    offenders.append(
+                        f"{path.relative_to(ENGINE_ROOT)}:{lineno}: PEP 604 union")
+                    break
+                # Builtin generic subscript: `dict[str, int]` — 3.9+ at runtime
+                if isinstance(sub, ast.Subscript) and isinstance(sub.value, ast.Name) \
+                        and sub.value.id in _BUILTIN_GENERICS:
+                    offenders.append(
+                        f"{path.relative_to(ENGINE_ROOT)}:{lineno}: builtin generic")
+                    break
 
     assert not offenders, (
         "class-level annotations using modern generic syntax are evaluated at "
