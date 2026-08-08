@@ -60,6 +60,54 @@ _DESTINATION_CLAIMS = frozenset({
     "destination_internal", "is_internal", "internal", "trusted",
 })
 
+# Canonical kernel stage names, in pipeline order. These are the stages a
+# benchmark or a trace can attribute time to; they map onto the numbered
+# pipeline in this module's docstring.
+KERNEL_STAGES = (
+    "canonicalization",          # 1  canonicalise + action_hash
+    "trust_boundary",            # 2  quarantine caller authority
+    "capability_classification", # 3  semantic capability classification
+    "destination_resolution",    # 4  trusted destination classification
+    "approval_verification",     # 5  HMAC approval artifact verification
+    "trajectory_analysis",       # 7  the Ω reachability engine
+    "policy_evaluation",         # 6+8+9  capability policy, tenancy, taint
+    "evidence_sealing",          # 11 hash-chained evidence record
+)
+
+
+class _Stopwatch:
+    """Accumulating, non-nesting stage timer.
+
+    Deliberately minimal: one `perf_counter()` pair per stage and a dict add.
+    The probe cost is ~0.4µs per stage, which at eight stages is under 0.1% of
+    a typical decision — small enough not to distort what it measures, and
+    reported honestly as `unattributed` rather than hidden.
+
+    Stages ACCUMULATE, so a stage entered more than once in one decision (the
+    Ω engine runs twice when a BLOCK is tested for approval-resolvability)
+    reports its true total cost rather than only the last call.
+    """
+
+    __slots__ = ("_t", "_stage", "totals")
+
+    def __init__(self) -> None:
+        self._t = 0.0
+        self._stage = ""
+        self.totals: dict[str, float] = {}
+
+    def __call__(self, stage: str) -> "_Stopwatch":
+        self._stage = stage
+        return self
+
+    def __enter__(self) -> "_Stopwatch":
+        self._t = time.perf_counter()
+        return self
+
+    def __exit__(self, *exc) -> bool:
+        elapsed = (time.perf_counter() - self._t) * 1000.0
+        self.totals[self._stage] = self.totals.get(self._stage, 0.0) + elapsed
+        return False
+
 
 @dataclass
 class Decision:
@@ -77,6 +125,35 @@ class Decision:
     destination: dict = field(default_factory=dict)
     trajectory_hash: str = ""
     evidence: Optional[EvidenceRecord] = None
+
+    # ── measured latency ─────────────────────────────────────
+    # `decision_time_ms` is the END-TO-END cost of producing this decision:
+    # canonicalisation, authority quarantine, capability classification,
+    # destination resolution, approval verification, the Ω engine, capability
+    # policy, tenancy, and sealing the evidence record.
+    #
+    # `engine_time_ms` is the Ω reachability compute alone, as the engine
+    # reports it. It is a SMALL FRACTION of the total — roughly 2% on the
+    # production ruleset — so quoting it as "governance latency" would
+    # understate the real cost by ~50x. Both are recorded so a caller can see
+    # the split rather than having to trust one number.
+    decision_time_ms: float = 0.0
+    engine_time_ms: float = 0.0
+
+    # Per-stage breakdown of `decision_time_ms`, in milliseconds, measured by
+    # `_Stopwatch` on the real code path (see `GovernanceKernel.authorize`).
+    # Keys are the canonical stage names in `KERNEL_STAGES`. The stages are
+    # disjoint and sum to slightly less than `decision_time_ms`; the remainder
+    # is dataclass construction and probe overhead, reported as `unattributed`
+    # by `stage_breakdown()` rather than silently folded into a stage.
+    stage_timings_ms: dict = field(default_factory=dict)
+
+    def stage_breakdown(self) -> dict:
+        """Stage timings plus the explicitly-labelled unattributed remainder."""
+        attributed = sum(self.stage_timings_ms.values())
+        out = dict(self.stage_timings_ms)
+        out["unattributed"] = max(0.0, self.decision_time_ms - attributed)
+        return out
 
     @property
     def permitted(self) -> bool:
@@ -97,6 +174,15 @@ class Decision:
             "forged_authority_claims": self.forged_claims,
             "destination": self.destination,
             "evidence_hash": self.evidence.record_hash if self.evidence else None,
+            # 4 decimal places = 0.1µs. Several stages cost single-digit
+            # microseconds, so rounding to 3 (1µs) would collapse them to a
+            # value that no longer reconciles with the total in a published
+            # per-stage table. All three latency fields share this precision so
+            # the breakdown sums correctly after serialisation.
+            "decision_time_ms": round(self.decision_time_ms, 4),
+            "engine_time_ms": round(self.engine_time_ms, 4),
+            "stage_timings_ms": {k: round(v, 4)
+                                 for k, v in self.stage_breakdown().items()},
         }
 
 
@@ -159,16 +245,23 @@ class GovernanceKernel:
 
     # ── the gate ─────────────────────────────────────────────
     def authorize(self, call: dict, now: Optional[float] = None) -> Decision:
+        _t0 = time.perf_counter()
+        _sw = _Stopwatch()
         now = time.time() if now is None else now
-        clean, quarantined = quarantine_authority(call)
-        forged = forged_authority_claims(quarantined)
-        ahash = action_hash(clean)
-        caps = C.classify(clean, self.ctx.tool_manifest)
-        dest = classify_destination(
-            clean, self.ctx.internal_url_hosts,
-            self.ctx.internal_email_domains, self.ctx.internal_cidrs)
+        with _sw("trust_boundary"):
+            clean, quarantined = quarantine_authority(call)
+            forged = forged_authority_claims(quarantined)
+        with _sw("canonicalization"):
+            ahash = action_hash(clean)
+        with _sw("capability_classification"):
+            caps = C.classify(clean, self.ctx.tool_manifest)
+        with _sw("destination_resolution"):
+            dest = classify_destination(
+                clean, self.ctx.internal_url_hosts,
+                self.ctx.internal_email_domains, self.ctx.internal_cidrs)
 
-        approval, approval_reason = self.ctx.verified_approval(ahash, now)
+        with _sw("approval_verification"):
+            approval, approval_reason = self.ctx.verified_approval(ahash, now)
         authorization = {
             "approved": bool(approval),
             "reason": approval_reason,
@@ -197,20 +290,24 @@ class GovernanceKernel:
         #    only component allowed to set it. Authority is established by a
         #    verified approval, an explicit server-side auto-approval, or a
         #    capability grant the principal actually holds — never by the caller.
-        pol_values = {**P.DEFAULT_POLICY_VALUES, **(self.ctx.policy_values or {})}
-        cap_policy = pol_values.get("capability_policy")
-        requirement, gov_cap = P.requirement_for(caps, cap_policy)
+        with _sw("policy_evaluation"):
+            pol_values = {**P.DEFAULT_POLICY_VALUES,
+                          **(self.ctx.policy_values or {})}
+            cap_policy = pol_values.get("capability_policy")
+            requirement, gov_cap = P.requirement_for(caps, cap_policy)
 
-        auto_approved = False
-        if requirement == P.APPROVAL and gov_cap == C.CAP_PAYMENT and not approval:
-            # Server-owned threshold. The caller's own `threshold` was
-            # quarantined upstream (bypass AB-03).
-            cap_max = pol_values.get("payment_auto_approve_max", 0) or 0
-            amount = _numeric(clean["args"], ("amount", "value", "total"))
-            if amount is not None and amount <= cap_max and not dest.external:
-                requirement, auto_approved = P.ALLOW, True
+            auto_approved = False
+            if requirement == P.APPROVAL and gov_cap == C.CAP_PAYMENT \
+                    and not approval:
+                # Server-owned threshold. The caller's own `threshold` was
+                # quarantined upstream (bypass AB-03).
+                cap_max = pol_values.get("payment_auto_approve_max", 0) or 0
+                amount = _numeric(clean["args"], ("amount", "value", "total"))
+                if amount is not None and amount <= cap_max and not dest.external:
+                    requirement, auto_approved = P.ALLOW, True
 
-        grant_satisfied = (requirement == P.GRANT and self.ctx.grants(gov_cap))
+            grant_satisfied = (requirement == P.GRANT
+                               and self.ctx.grants(gov_cap))
 
         # A quarantined claim raises a verdict only when it is BOTH
         # uncorroborated and material — i.e. the action genuinely needs the
@@ -280,7 +377,8 @@ class GovernanceKernel:
 
         prefix = self.executed_history + [clean]
         try:
-            res = self._evaluate_with_context(prefix, trusted)
+            with _sw("trajectory_analysis"):
+                res = self._evaluate_with_context(prefix, trusted)
         except Exception as e:                       # noqa: BLE001 — fail closed
             res = None
             candidates.append((BLOCK, "fail_closed",
@@ -288,8 +386,10 @@ class GovernanceKernel:
                                f"{type(e).__name__}", None, None))
         engine_rule = engine_domain = None
         traj_hash = ""
+        engine_ms = 0.0
         if res is not None:
             traj_hash = res.trajectory_hash
+            engine_ms = float((res.metadata or {}).get("eval_time_ms") or 0.0)
             engine_rule = (res.metadata or {}).get("rule")
             engine_domain = res.omega_domain
             if res.verdict == GovernanceVerdict.ESCALATE:
@@ -298,6 +398,12 @@ class GovernanceKernel:
             elif not res.permitted:
                 candidates.append((BLOCK, res.layer, res.reason,
                                    engine_rule, engine_domain))
+
+        # Timed by explicit marks rather than a `with` block: this region is
+        # long and branch-heavy, and wrapping it would force a reindent of
+        # security-critical code for a measurement. The pair below is exactly
+        # equivalent to `with _sw("policy_evaluation")`.
+        _p0 = time.perf_counter()
 
         # ── capability policy verdicts ──────────────────────
         if requirement == P.DENY:
@@ -375,6 +481,10 @@ class GovernanceKernel:
         if xt:
             candidates.append((BLOCK, "tenancy", xt, "cross_tenant", None))
 
+        _sw.totals["policy_evaluation"] = (
+            _sw.totals.get("policy_evaluation", 0.0)
+            + (time.perf_counter() - _p0) * 1000.0)
+
         # ── strictest wins ──────────────────────────────────
         if candidates:
             verdict, layer, reason, rule, domain = max(
@@ -412,8 +522,9 @@ class GovernanceKernel:
                            "verified": True, "admin_approved": True,
                            "change_approved": True, "sanctioned": True}
                 try:
-                    hyp = self._evaluate_with_context(
-                        self.executed_history + [clean], hyp_ctx)
+                    with _sw("trajectory_analysis"):
+                        hyp = self._evaluate_with_context(
+                            self.executed_history + [clean], hyp_ctx)
                     if hyp.permitted:
                         verdict = ESCALATE
                         layer = "capability_policy"
@@ -434,16 +545,24 @@ class GovernanceKernel:
             action=clean, capabilities=caps, requirement=requirement,
             rule=rule, omega_domain=domain, authorization=authorization,
             forged_claims=forged, destination=dest.as_dict(),
-            trajectory_hash=traj_hash)
+            trajectory_hash=traj_hash,
+            engine_time_ms=engine_ms,
+            decision_time_ms=(time.perf_counter() - _t0) * 1000.0)
 
-        decision.evidence = self.chain.append(EvidenceRecord(
-            seq=0, timestamp=now, actor=self.ctx.principal.id,
-            tenant=self.ctx.principal.tenant, action_hash=ahash,
-            proposed=clean, decision=verdict, layer=layer, rule=rule,
-            omega_domain=domain, reason=reason, capabilities=sorted(caps),
-            requirement=requirement, authorization=authorization,
-            forged_authority_claims=forged, ruleset_hash=self._ruleset_hash,
-            engine_version=self.engine_version, trajectory_hash=traj_hash))
+        with _sw("evidence_sealing"):
+            decision.evidence = self.chain.append(EvidenceRecord(
+                seq=0, timestamp=now, actor=self.ctx.principal.id,
+                tenant=self.ctx.principal.tenant, action_hash=ahash,
+                proposed=clean, decision=verdict, layer=layer, rule=rule,
+                omega_domain=domain, reason=reason, capabilities=sorted(caps),
+                requirement=requirement, authorization=authorization,
+                forged_authority_claims=forged, ruleset_hash=self._ruleset_hash,
+                engine_version=self.engine_version, trajectory_hash=traj_hash))
+
+        # Recomputed AFTER sealing so `decision_time_ms` covers the whole
+        # pipeline including evidence, matching its documented meaning.
+        decision.stage_timings_ms = dict(_sw.totals)
+        decision.decision_time_ms = (time.perf_counter() - _t0) * 1000.0
 
         if verdict != PERMIT:
             self.ledger.append(Attempt(

@@ -27,7 +27,13 @@ import base64
 import copy
 import random
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover - import cycle guard
+    # Imported for type annotations only. `core` imports this module, so a
+    # runtime import here would be circular; the quoted forward references
+    # below resolve against this block for type checkers and linters.
+    from morrison_governance.result import GovernanceResult
 
 
 @dataclass
