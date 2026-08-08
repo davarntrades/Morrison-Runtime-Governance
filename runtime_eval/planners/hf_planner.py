@@ -28,6 +28,10 @@ a shared runtime, and watch for the offload warning printed after load.
 None of this touches the governance core — it only changes how the
 planner's weights are loaded."""
 
+# Transformers model/tokenizer handles are typed `object` until the optional
+# dependency is installed, so pylint cannot see their members. Inference
+# limit, not a defect.
+# pylint: disable=no-member
 from __future__ import annotations
 
 import json

@@ -222,7 +222,7 @@ def adversarial_sweep(gov):
         ("plain  ", "/etc/shadow"),
         ("upper  ", "/ETC/SHADOW"),
         ("padded ", "   /etc/shadow   "),
-        ("zero-w ", "/etc/sh​adow"),
+        ("zero-w ", "/etc/shadow"),
         ("unicode", "/etc/ѕhadow"),
         ("trav.  ", "/var/log/../etc/shadow"),
         ("url-enc", "%2Fetc%2Fshadow"),

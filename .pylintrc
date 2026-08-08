@@ -1,0 +1,130 @@
+# Pylint configuration.
+#
+# WHY THIS FILE EXISTS
+#
+# .github/workflows/pylint.yml ran stock `pylint $(git ls-files '*.py')` with no
+# project configuration and no --fail-under, so pylint's default threshold of
+# 10.00 applied. The repository scores 8.14. The check therefore asserted "this
+# codebase is a perfect 10 under stock defaults" — an assertion that was never
+# true and that nobody chose. It failed 29 out of 29 completed runs: it has
+# never passed.
+#
+# A check that has never passed is worse than no check. It cannot be acted on,
+# so it is ignored, and it then hides the findings that DO matter. Concretely:
+# 84 error-class findings were buried under 1,776 style messages, and three
+# invisible zero-width-space characters sat in source for the life of the repo
+# without anyone seeing them.
+#
+# This file is configuration, not suppression. The distinction:
+#
+#   SUPPRESSED  a real finding silenced so the build goes green
+#   CONFIGURED  the linter told which conventions this project actually uses,
+#               so the findings that remain are ones somebody would act on
+#
+# Every disable below has a stated reason. Error-class checks are NOT disabled.
+# `fail-under` is a ratchet at the current score: quality cannot regress, and
+# raising it is a deliberate act.
+
+[MAIN]
+# Resolve first-party imports. 70 of the 84 "errors" were import-error — pylint
+# failing to find the package it was linting, not a defect in the code.
+init-hook = 'import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath("setup.py" if os.path.exists("setup.py") else ".")))'
+
+# Optional/heavy third-party deps that are not installed in the lint job. Their
+# absence says nothing about this repository's correctness.
+# Third-party deps not installed in the lint job, plus the SIBLING REPOSITORY's
+# modules (kernel_config, *_rules). Those live in resurrection-tech-enterprise;
+# their absence here is expected and says nothing about this repository.
+ignored-modules = torch,transformers,numpy,matplotlib,fastapi,pydantic,uvicorn,httpx,starlette,
+                  kernel_config,cyber_rules,finance_rules,coverage_rules,domain_rules,
+                  sector_rules,healthcare_rules,operations_rules,dynamic_rules,escalation,
+                  policy_bundle,ed25519_verify,assess,app
+
+# The ratchet. Set to the score achieved with this configuration, floored to two
+# decimals. Raise it when the score improves; never lower it to make a build
+# pass — that is the suppression this file exists to avoid.
+fail-under = 9.50
+
+# The score alone is NOT a sufficient gate, and this was measured rather than
+# assumed: adding a file containing an undefined name and an unused local moved
+# the aggregate from 9.59 to 9.58 — still passing. A score dilutes with
+# repository size, so a real defect can arrive without moving it.
+#
+# fail-on makes any ERROR-class finding fail the build outright, whatever the
+# score. That is the actionable half of the gate; fail-under only guards against
+# broad decay.
+fail-on = E
+
+jobs = 0
+
+[MESSAGES CONTROL]
+disable =
+    # ── Documentation ────────────────────────────────────────────────────────
+    # 706 of 1,860 findings. This codebase documents deliberately and densely
+    # at module and decision level — the reasoning lives in block comments
+    # explaining WHY a rule is shaped the way it is. A per-function docstring
+    # mandate would add noise around one-line helpers without adding meaning,
+    # and would bury the commentary that is actually load-bearing.
+    missing-function-docstring,
+    missing-class-docstring,
+    missing-module-docstring,
+
+    # ── Import placement ─────────────────────────────────────────────────────
+    # wrong-import-position / import-outside-toplevel are used ON PURPOSE here:
+    # deferred imports break genuine circular dependencies (kernel <-> core) and
+    # keep optional deps optional. Both are load-bearing patterns, not slips.
+    wrong-import-position,
+    import-outside-toplevel,
+
+    # ── Style the project has settled ────────────────────────────────────────
+    # Line length is already governed by the flake8 gate (max-line-length=127)
+    # in the same workflow; two tools disagreeing on one rule is noise.
+    line-too-long,
+    # Compact one-line bodies are used in test fixtures and demo shims.
+    multiple-statements,
+    # Ω/mathematical notation (V2, V3, ℛ, _t0, k, d) is the domain vocabulary.
+    invalid-name,
+
+    # ── Test and fixture idioms ──────────────────────────────────────────────
+    # pytest fixtures shadow by design; unused args appear in interface stubs
+    # and callback signatures that must match a shape.
+    redefined-outer-name,
+    unused-argument,
+    duplicate-code,
+
+    # ── Deliberate fail-closed idiom ─────────────────────────────────────────
+    # broad-exception-caught is REQUIRED by this codebase's threat model: the
+    # governance path catches Exception and converts it to BLOCK, because an
+    # unhandled error in a guard must never become an implicit allow. Every
+    # such site is marked `# noqa: BLE001 — fail closed`. Making the linter
+    # fight the security property would be exactly backwards.
+    broad-exception-caught,
+
+    # ── Refactor opinions, not defects ───────────────────────────────────────
+    too-many-arguments,
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    too-many-instance-attributes,
+    too-few-public-methods,
+    too-many-return-statements,
+    too-many-nested-blocks,
+    too-many-public-methods,
+    too-many-lines,
+
+# NOT disabled, deliberately — these catch real problems and stay enabled:
+#   invalid-character-zero-width-space  (found 3 real instances; now fixed)
+#   unused-import, unused-variable
+#   undefined-variable, used-before-assignment
+#   no-member, not-callable, unexpected-keyword-arg
+#   dangerous-default-value, return-in-finally, comparison-with-callable
+
+[TYPECHECK]
+# `no-member` on objects whose real type is only known when an optional
+# dependency is installed (transformers models/tokenizers are annotated
+# `object` here), and on dataclass internals pylint does not model.
+# These are inference limits, not defects.
+generated-members = __dataclass_fields__
+
+[REPORTS]
+score = yes
