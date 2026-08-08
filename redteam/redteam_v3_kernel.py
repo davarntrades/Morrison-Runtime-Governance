@@ -21,8 +21,11 @@ import json
 import os
 import sys
 
-sys.path.insert(0, "/home/user/Morrison-Runtime-Governance")
-sys.path.insert(0, "/home/user/resurrection-tech-enterprise/governance-service")
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _repo_paths as _rp  # noqa: E402
+_rp.install()
+_rp.require_service("redteam_v3_kernel.py")
 os.environ.setdefault("GOVERNANCE_APPROVAL_KEY", "redteam-rerun-key")
 
 from morrison_governance import GovernanceLayer, OmegaDomain

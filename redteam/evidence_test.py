@@ -1,6 +1,9 @@
 import sys, hashlib, json, copy
-sys.path.insert(0,"/home/user/Morrison-Runtime-Governance")
-sys.path.insert(0,"/home/user/resurrection-tech-enterprise/governance-service")
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _repo_paths as _rp  # noqa: E402
+_rp.install()
+_rp.require_service("evidence_test.py")
 from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.domains import OmegaRule
 from cyber_rules import cyber_custom_rules

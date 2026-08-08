@@ -1,5 +1,8 @@
 import sys, json, copy
-sys.path.insert(0,"/home/user/Morrison-Runtime-Governance")
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _repo_paths as _rp  # noqa: E402
+_rp.install()
 from morrison_governance import GovernanceLayer, OmegaDomain
 from runtime_eval.governance.middleware import RuntimeGovernanceMiddleware
 from runtime_eval.governance.hardening import HardeningPipeline

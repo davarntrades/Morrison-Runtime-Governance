@@ -4,8 +4,11 @@ Each block reproduces the original experiment verbatim. A bypass is closed only
 if the previously-executing variant no longer executes.
 """
 import os, sys
-sys.path.insert(0,"/home/user/Morrison-Runtime-Governance")
-sys.path.insert(0,"/home/user/resurrection-tech-enterprise/governance-service")
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _repo_paths as _rp  # noqa: E402
+_rp.install()
+_rp.require_service("verify_bypasses_closed.py")
 os.environ.setdefault("GOVERNANCE_APPROVAL_KEY","verify-key")
 from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.kernel import GovernanceKernel, ruleset_hash, EvidenceChain, EvidenceRecord
