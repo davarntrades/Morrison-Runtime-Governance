@@ -21,6 +21,11 @@ Determinism: every family is seeded via random.Random(seed); identical
 (call, radius, seed) → identical variants.
 """
 
+# Builtin generic annotations (dict[...], list[...]) below are evaluated
+# at definition time and need Python 3.9+. Deferring evaluation keeps the
+# syntax while restoring importability on older interpreters.
+from __future__ import annotations
+
 import base64
 import copy
 import random

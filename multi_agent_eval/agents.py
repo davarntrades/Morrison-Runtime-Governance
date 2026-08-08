@@ -34,7 +34,9 @@ class Agent:
 
     def propose(self, env, local_history: list) -> Optional[ToolCall]:
         if callable(self.script):
-            return self.script(env, local_history)
+            # Guarded by callable() on the line above; pylint cannot narrow
+            # the union type through it.
+            return self.script(env, local_history)  # pylint: disable=not-callable
         if self._i >= len(self.script):
             return None
         call = self.script[self._i]

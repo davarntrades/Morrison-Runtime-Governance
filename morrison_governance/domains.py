@@ -6,6 +6,11 @@ Each domain defines what must not occur.
 The framework guarantees it cannot occur.
 """
 
+# Builtin generic annotations (dict[...], list[...]) below are evaluated
+# at definition time and need Python 3.9+. Deferring evaluation keeps the
+# syntax while restoring importability on older interpreters.
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable, Optional

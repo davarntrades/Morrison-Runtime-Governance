@@ -15,6 +15,11 @@ used to assert governance invariance across planner identity.
 Geometry does not change. Only Ω changes — and Ω is not touched here.
 """
 
+# PLANNER_PROFILES carries a dict[...] annotation, evaluated at module import
+# and requiring Python 3.9+. Deferring annotation evaluation keeps the syntax
+# and restores importability.
+from __future__ import annotations
+
 import copy
 import random
 from typing import Callable

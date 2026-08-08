@@ -7,6 +7,11 @@ A_safe ⊂ V2 ⊂ V3 ⊂ V4 ⊂ V4+ ⊂ V5
 Each layer catches failures invisible to every layer below it.
 """
 
+# Builtin generic annotations (dict[...], list[...]) below are evaluated
+# at definition time and need Python 3.9+. Deferring evaluation keeps the
+# syntax while restoring importability on older interpreters.
+from __future__ import annotations
+
 from typing import Optional
 from morrison_governance.trajectory import Trajectory, TrajectoryState
 from morrison_governance.domains import OmegaRule

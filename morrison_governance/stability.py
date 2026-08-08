@@ -25,15 +25,24 @@ Determinism: every generator takes a `seed` parameter and uses `random.Random`
 seeded from it. Same seed + same baseline → same perturbations.
 """
 
+# Builtin generic subscripts (dict[...], list[...]) appear in class-level
+# annotations below, which are evaluated at class-creation time and require
+# Python 3.9+. Deferring evaluation keeps the syntax and the module
+# importable on older interpreters.
+from __future__ import annotations
+
 import copy
 import random
 from dataclasses import dataclass, field
-from typing import Callable, Iterable, Optional
+from typing import Callable, Iterable, Optional, Dict, List
 
 from morrison_governance.result import GovernanceResult, GovernanceVerdict
 
 
-PerturbationGenerator = Callable[[dict, int, int], list[dict]]
+# A type ALIAS is a runtime value: `from __future__ import annotations`
+# above does NOT defer it, so list[dict] here is evaluated at import and
+# raises on Python < 3.9. typing.List/Dict are equivalent and portable.
+PerturbationGenerator = Callable[[Dict, int, int], List[Dict]]
 
 
 # ─────────────────────────────────────────────────────────────

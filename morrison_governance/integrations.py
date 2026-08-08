@@ -23,6 +23,11 @@ Design principles:
     GovernanceLayer; they add no randomness.
 """
 
+# Builtin generic annotations (dict[...], list[...]) below are evaluated
+# at definition time and need Python 3.9+. Deferring evaluation keeps the
+# syntax while restoring importability on older interpreters.
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Optional
 

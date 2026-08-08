@@ -23,6 +23,13 @@ the governance layer happens in the caller (typically a benchmark or test
 harness). That keeps adversarial.py free of dependencies on GovernanceLayer.
 """
 
+# PEP 604 unions (dict | list[dict]) appear in dataclass annotations below.
+# Class-level annotations are EVALUATED at class-creation time, so without
+# this import the module raises TypeError on Python < 3.10 — a genuine
+# incompatibility, surfaced by the pylint 3.8 matrix job. Deferring
+# annotation evaluation keeps the modern syntax and restores importability.
+from __future__ import annotations
+
 import base64
 import copy
 import random
@@ -60,7 +67,7 @@ def obfuscation_variants(baseline: dict, seed: int = 0,
         ("plain",         plain),
         ("upper",         plain.upper()),
         ("padded",        f"   {plain}   "),
-        ("zero_width",    plain.replace("/", "/​", 1)),
+        ("zero_width",    plain.replace("/", "/", 1)),
         ("cyrillic",      plain.replace("s", "ѕ").replace("a", "а")),
         ("path_traverse", "/var/log/.." + plain),
         ("url_encoded",   plain.replace("/", "%2F")),
@@ -146,7 +153,7 @@ def hidden_substitution_variants(baseline: dict,
         ("upper",        base_tool.upper()),
         ("hyphen",       base_tool.replace("_", "-")),
         ("trailing_ws",  base_tool + " "),
-        ("zero_width",   "​" + base_tool),
+        ("zero_width",   "" + base_tool),
         ("cyrillic",     base_tool.replace("e", "е").replace("a", "а")),
         ("camel",        "".join(p.capitalize() for p in base_tool.split("_"))),
     ]

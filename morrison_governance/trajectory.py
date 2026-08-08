@@ -12,6 +12,12 @@ Supports:
 - Custom formats via adapters
 """
 
+# Builtin generic subscripts (dict[...], list[...]) appear in class-level
+# annotations below, which are evaluated at class-creation time and require
+# Python 3.9+. Deferring evaluation keeps the syntax and the module
+# importable on older interpreters.
+from __future__ import annotations
+
 import hashlib
 import json
 from dataclasses import dataclass, field

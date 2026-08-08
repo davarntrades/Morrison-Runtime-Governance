@@ -17,7 +17,10 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pylint
+        # pytest is imported throughout the test modules. Linting without it
+        # produced import-error (E0401) on CI but not locally, where it is
+        # installed — a local/CI divergence that made the gate untrustworthy.
+        pip install pylint pytest
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files '*.py')

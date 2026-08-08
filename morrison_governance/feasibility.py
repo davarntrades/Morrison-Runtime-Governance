@@ -15,6 +15,11 @@ admissible-and-goal-satisfying trajectory wins. No tie-breaking by
 randomness.
 """
 
+# Builtin generic annotations (dict[...], list[...]) below are evaluated
+# at definition time and need Python 3.9+. Deferring evaluation keeps the
+# syntax while restoring importability on older interpreters.
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 

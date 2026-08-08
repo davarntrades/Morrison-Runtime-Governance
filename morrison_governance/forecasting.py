@@ -19,6 +19,11 @@ Foundational principle preserved:
     Safe(local_step)  ⇏  Safe(global_trajectory)
 """
 
+# Builtin generic annotations (dict[...], list[...]) below are evaluated
+# at definition time and need Python 3.9+. Deferring evaluation keeps the
+# syntax while restoring importability on older interpreters.
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Iterable, Optional
 

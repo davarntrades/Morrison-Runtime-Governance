@@ -9,7 +9,12 @@ from runtime_eval.planners.base import Planner, PlannerInfo
 class Scripted(Planner):
     def __init__(self, script):
         self.script=script; self._i=0
-        self.info=PlannerInfo(name="scripted", kind="scripted") if hasattr(PlannerInfo,'__call__') else None
+        # PlannerInfo takes (name, model_id, family, ...) — never `kind`.
+        # The old line passed kind= behind `hasattr(PlannerInfo, "__call__")`,
+        # which is True for every class and therefore guarded nothing: any
+        # instantiation of Scripted raised TypeError. Found by the pylint
+        # error gate once it was made actionable.
+        self.info=PlannerInfo(name="scripted", family="scripted")
     def propose(self, observation, history):
         if self._i>=len(self.script): return []
         b=self.script[self._i]; self._i+=1; return b
