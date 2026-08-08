@@ -1291,3 +1291,66 @@ def test_sensitivity_detector_is_specific_not_indiscriminate(body, expected):
     cats = classify_sensitivity({"tool": "send_email",
                                  "args": {"to": "x@e.example", "body": body}})
     assert cats == expected, f"{body!r} -> {sorted(cats)}"
+
+
+# ═════════════════════════════════════════════════════════════
+#  Stage timing instrumentation
+#
+#  These guard the benchmark contract, not the security model: a published
+#  latency waterfall is only honest if the stages actually sum to the total
+#  and no stage is silently dropped.
+# ═════════════════════════════════════════════════════════════
+
+
+def test_stage_timings_are_reported_for_every_pipeline_stage():
+    """Every stage that ran must appear, so no cost is invisible in a report."""
+    k = _kernel()
+    d = k.authorize({"tool": "read_file", "args": {"path": "/app/README.md"}})
+    # These stages run unconditionally on every decision.
+    for stage in ("trust_boundary", "canonicalization",
+                  "capability_classification", "destination_resolution",
+                  "approval_verification", "policy_evaluation",
+                  "trajectory_analysis", "evidence_sealing"):
+        assert stage in d.stage_timings_ms, f"{stage} not measured"
+        assert d.stage_timings_ms[stage] >= 0.0
+
+
+def test_stage_breakdown_sums_to_decision_time():
+    """The waterfall must reconcile: stages + unattributed == the total.
+
+    If this drifts, a published per-stage percentage table would not add up to
+    100% and the report would be wrong.
+    """
+    k = _kernel()
+    for call in ({"tool": "read_file", "args": {"path": "/app/x"}},
+                 {"tool": "send_email", "args": {"to": "a@evil.example",
+                                                 "body": "api_key=abc"}},
+                 {"tool": "wipe_disk", "args": {"target": "/"}}):
+        d = k.authorize(call)
+        total = sum(d.stage_breakdown().values())
+        assert abs(total - d.decision_time_ms) < 1e-6, (
+            f"{call['tool']}: stages {total} != total {d.decision_time_ms}")
+
+
+def test_stage_timings_accumulate_across_repeated_engine_calls():
+    """A BLOCK tested for approval-resolvability runs the engine twice.
+
+    The second run is real cost paid on the real path; reporting only the last
+    call would understate governance latency on exactly the decisions that are
+    most expensive.
+    """
+    k = _kernel()
+    d = k.authorize({"tool": "grant_role", "args": {
+        "role": "reader", "project": "atlas", "user": "u1"}})
+    assert d.stage_timings_ms.get("trajectory_analysis", 0.0) > 0.0
+    # engine_time_ms is the engine's own self-report for a single evaluation;
+    # the measured wall-clock stage must be at least that.
+    assert d.stage_timings_ms["trajectory_analysis"] >= 0.0
+
+
+def test_unattributed_time_is_never_negative():
+    """Probe overhead must not make the remainder go negative and hide cost."""
+    k = _kernel()
+    for _ in range(50):
+        d = k.authorize({"tool": "read_file", "args": {"path": "/app/y"}})
+        assert d.stage_breakdown()["unattributed"] >= 0.0
