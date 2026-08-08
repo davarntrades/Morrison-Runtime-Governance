@@ -17,6 +17,11 @@ Deterministic: causal order is the insertion order of steps/handoffs; no
 RNG, no clocks. Same session → same flattened trajectory → same verdict.
 """
 
+# Builtin generic annotations (dict[...], list[...]) below are evaluated
+# at definition time and need Python 3.9+. Deferring evaluation keeps the
+# syntax while restoring importability on older interpreters.
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Optional
 

@@ -25,6 +25,11 @@ The primary API surface for runtime governance.
     result = governance.evaluate_openai(response.choices[0].message.tool_calls)
 """
 
+# Builtin generic annotations (dict[...], list[...]) below are evaluated
+# at definition time and need Python 3.9+. Deferring evaluation keeps the
+# syntax while restoring importability on older interpreters.
+from __future__ import annotations
+
 import time
 import logging
 from typing import Any, Callable, Optional

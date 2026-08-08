@@ -7,12 +7,16 @@ from __future__ import annotations
 
 import copy
 import random
-from typing import Callable
+from typing import Callable, Dict, List
 
 from morrison_governance.planners import PLANNER_PROFILES
 
 
-PerturbFn = Callable[[dict, int], list[dict]]
+# A type ALIAS is a runtime value, not an annotation, so
+# `from __future__ import annotations` does not defer it: `list[dict]`
+# here is evaluated at import and raises on Python < 3.9. typing.List
+# is equivalent and importable everywhere.
+PerturbFn = Callable[[Dict, int], List[Dict]]
 
 
 _SYNONYMS = {

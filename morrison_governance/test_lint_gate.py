@@ -205,13 +205,34 @@ def test_modern_generics_in_evaluated_annotations_defer_evaluation():
         if defers:
             continue
 
+        # Three places modern generic syntax is EVALUATED at import time:
+        #   1. class-level annotations        (dataclass fields)
+        #   2. function signature annotations (defaults/params/returns)
+        #   3. type ALIAS assignments         — a runtime value, so the future
+        #      import does NOT defer it. This is the case that slipped through
+        #      the first version of this test and failed the 3.8 job:
+        #          PerturbFn = Callable[[dict, int], list[dict]]
+        evaluated = []
         for node in ast.walk(tree):
-            if not isinstance(node, ast.ClassDef):
-                continue
-            for stmt in node.body:
-                if not isinstance(stmt, ast.AnnAssign) or stmt.annotation is None:
-                    continue
-                for sub in ast.walk(stmt.annotation):
+            if isinstance(node, ast.ClassDef):
+                evaluated += [st.annotation for st in node.body
+                              if isinstance(st, ast.AnnAssign) and st.annotation]
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                a = node.args
+                for arg in list(a.args) + list(a.posonlyargs) + list(a.kwonlyargs):
+                    if arg.annotation:
+                        evaluated.append(arg.annotation)
+                if node.returns:
+                    evaluated.append(node.returns)
+            elif isinstance(node, ast.Assign):
+                # Type aliases: a bare Subscript/BinOp value at module level.
+                if isinstance(node.value, (ast.Subscript, ast.BinOp)):
+                    evaluated.append(node.value)
+
+        for node in [None]:
+            for stmt_annotation in evaluated:
+                stmt = type("S", (), {"lineno": getattr(stmt_annotation, "lineno", 0)})
+                for sub in ast.walk(stmt_annotation):
                     # PEP 604 union: `X | Y` — 3.10+ at runtime
                     if isinstance(sub, ast.BinOp) and isinstance(sub.op, ast.BitOr):
                         offenders.append(
