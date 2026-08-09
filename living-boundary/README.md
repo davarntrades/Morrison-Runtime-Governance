@@ -1,0 +1,656 @@
+# Morrison Runtime Governance — Living Boundary Prototype
+
+**Status:** Experimental / Research Prototype  
+**Phase:** LB-0 — Composition Discovery  
+**Production Authority:** None  
+**Goal:** Prove whether Morrison can discover unsafe compositional trajectories that are not explicitly represented in the current governance ontology.
+
+---
+
+## 1. Prototype Objective
+
+The first Living Boundary prototype should answer one question:
+
+> Can the system detect a previously unmodelled unsafe composition made from individually permitted actions, infer the relevant coupling, and produce a falsifiable candidate governance primitive without modifying production policy?
+
+The prototype is successful only if it discovers structure that improves prediction on unseen cases.
+
+This is not a self-modifying policy engine.
+
+The prototype may:
+
+- observe traces
+- detect unexplained failures
+- cluster patterns
+- infer candidate latent structure
+- propose experimental primitives
+- generate adversarial tests
+- compare predictions against held-out cases
+- create evidence packages
+
+The prototype may not:
+
+- modify production policy
+- activate enforcement
+- weaken existing constraints
+- change trust boundaries
+- grant permissions
+- promote its own discoveries
+
+> **The system may discover that the map is wrong. It does not receive authority to redraw the border.**
+
+---
+
+## 2. Prototype Architecture
+
+```text
+Existing Morrison Runtime Governance
+                │
+                │ immutable / replayable traces
+                ▼
+        Living Boundary Observer
+                │
+                ▼
+        Trace Normalisation
+                │
+                ▼
+        Ontology Gap Detector
+                │
+                ▼
+        Structure Discovery
+                │
+                ▼
+       Candidate Primitive Generator
+                │
+                ▼
+         Experiment Generator
+                │
+                ▼
+       Controlled Replay / Simulation
+                │
+                ▼
+          Evidence Evaluator
+                │
+                ▼
+       Experimental Evidence Package
+                │
+                ▼
+         HUMAN / AUTHORISED REVIEW
+
+NO AUTOMATIC PATH TO PRODUCTION ENFORCEMENT
+```
+
+The entire LB-0 prototype must live outside the production `/v1/govern` decision path.
+
+If the Living Boundary process crashes, hangs, produces malformed output, or becomes unavailable, existing Runtime Governance behaviour must remain unchanged.
+
+---
+
+## 3. First Experiment: Hidden Unsafe Composition
+
+Create a controlled dataset in which individual actions are permitted but one or more compositions are unsafe.
+
+Example:
+
+```text
+A = read approved customer metadata
+B = prepare approved payment instruction
+C = send approved CRM update
+
+Safe(A) = true
+Safe(B) = true
+Safe(C) = true
+
+But:
+
+Safe(A → B → C | shared identity + permission accumulation) = false
+```
+
+The discovery layer must not be told the hidden governing rule directly.
+
+It receives only observable traces and labelled outcomes from the experimental environment.
+
+### Required control groups
+
+Generate trajectories covering:
+
+- A only
+- B only
+- C only
+- A → B
+- B → C
+- A → C
+- A → B → C
+- C → B → A
+- same sequence with different identities
+- same sequence with reduced permission scopes
+- same sequence across different trust boundaries
+- same sequence with timing changes
+- safe three-action sequences with similar surface characteristics
+
+The point is to prevent the model from simply learning that "three steps = unsafe".
+
+---
+
+## 4. Prototype Data Contract
+
+Each trace should be normalised into a stable schema before discovery.
+
+Suggested minimum trace structure:
+
+```json
+{
+  "trace_id": "trace_000001",
+  "timestamp": "2026-08-09T22:00:00Z",
+  "environment": "living-boundary-lb0",
+  "provider": "test-provider",
+  "actor_id": "agent_01",
+  "identity_id": "identity_01",
+  "sequence_id": "sequence_01",
+  "step_index": 1,
+  "capability": "crm.read",
+  "action": "read_customer_metadata",
+  "resource": "customer:123",
+  "domain": "crm",
+  "trust_boundary": "internal",
+  "permission_scope": ["crm.read"],
+  "policy_decision": "allow",
+  "execution_outcome": "success",
+  "trajectory_outcome": "safe",
+  "existing_ontology_labels": [],
+  "provenance": {
+    "source": "lb0-generator",
+    "scenario_version": "1.0"
+  }
+}
+```
+
+For composed trajectories, the evaluator must also retain sequence-level features such as:
+
+- ordered action list
+- domains traversed
+- trust boundaries crossed
+- cumulative permissions
+- identities involved
+- resources touched
+- elapsed time
+- delegation depth
+- provider/model
+- final outcome
+
+---
+
+## 5. Ground Truth Separation
+
+The hidden unsafe rule must be owned by the experiment harness, not the discovery agent.
+
+Recommended structure:
+
+```text
+Scenario Generator
+      │
+      ├── public trace representation ──────► discovery layer
+      │
+      └── hidden ground truth ──────────────► evaluator only
+```
+
+The discovery system must never receive the ground-truth rule in its prompt, context, metadata, file names, labels, or logs.
+
+This separation is essential. Otherwise the experiment tests retrieval or paraphrasing rather than discovery.
+
+---
+
+## 6. Dataset Split
+
+Use at least three partitions:
+
+```text
+DISCOVERY SET
+Used to identify unexplained patterns.
+
+VALIDATION SET
+Used to test candidate primitives and tune thresholds.
+
+HELD-OUT TEST SET
+Never exposed during candidate generation. Used only for final evaluation.
+```
+
+The held-out set should contain perturbations not seen during discovery, including different action orders, identities, resource names, timing, and safe near-misses.
+
+A candidate primitive only counts as useful if it improves prediction on the held-out set.
+
+---
+
+## 7. LB-0 Components
+
+### 7.1 Observer
+
+Responsibilities:
+
+- ingest Morrison-style trace events
+- reject malformed evidence
+- preserve provenance
+- preserve ordering
+- group events into trajectories
+- never write to production governance state
+
+Suggested module:
+
+```text
+living-boundary/observer/
+  trace_reader.py
+  normalizer.py
+  trajectory_builder.py
+```
+
+### 7.2 Ontology Gap Detector
+
+Purpose:
+
+Determine whether observed unsafe outcomes are inadequately represented by the existing ontology.
+
+Initial LB-0 implementation can use explicit measurable signals rather than attempting a fully general ontology model.
+
+Signals may include:
+
+- unsafe outcome where every individual step received `allow`
+- repeated unsafe outcomes with no matching existing primitive
+- materially different outcomes among superficially similar allowed trajectories
+- unusual domain or permission combinations
+- high residual error from the baseline policy model
+
+Output example:
+
+```json
+{
+  "gap_id": "gap_001",
+  "detected": true,
+  "supporting_trace_ids": ["trace_101", "trace_225", "trace_314"],
+  "reason": "unsafe compositions formed entirely from individually allowed actions",
+  "confidence": 0.91,
+  "status": "experimental"
+}
+```
+
+### 7.3 Structure Discovery
+
+Purpose:
+
+Find candidate variables that distinguish unsafe compositions from safe controls.
+
+Start with interpretable features:
+
+- action order
+- domain transitions
+- permission accumulation
+- identity reuse
+- trust-boundary crossings
+- resource overlap
+- delegation depth
+- elapsed time
+
+LB-0 should prefer interpretable candidate structure over opaque high-dimensional embeddings.
+
+The prototype can later compare multiple methods, but the first result should be inspectable.
+
+### 7.4 Candidate Primitive Generator
+
+Convert discovered structure into a machine-readable hypothesis.
+
+Example:
+
+```json
+{
+  "candidate_id": "CP-LB0-001",
+  "name": "cross_domain_authority_accumulation",
+  "status": "experimental",
+  "hypothesis": "Unsafe reachability increases when one identity accumulates approved capabilities across CRM, payment and outbound communication domains within a single trajectory.",
+  "variables": [
+    "identity_id",
+    "domain_transition_count",
+    "cumulative_permission_scope"
+  ],
+  "predicted_condition": {
+    "same_identity": true,
+    "required_domains": ["crm", "payments", "communications"],
+    "minimum_domain_transitions": 2
+  },
+  "source_evidence": ["trace_101", "trace_225", "trace_314"]
+}
+```
+
+The primitive must remain `experimental` throughout LB-0.
+
+### 7.5 Experiment Generator
+
+For every candidate primitive, generate cases designed both to confirm and falsify it.
+
+Examples:
+
+- preserve sequence but change identity
+- preserve identity but reduce permissions
+- preserve domains but reverse order
+- preserve sequence but remove one domain
+- create a safe near-match
+- create an unsafe case with different surface wording
+
+A candidate that survives only confirming examples is not validated.
+
+### 7.6 Evaluator
+
+Compare candidate predictions with hidden ground truth.
+
+At minimum record:
+
+- true positives
+- false positives
+- true negatives
+- false negatives
+- precision
+- recall
+- F1
+- baseline accuracy
+- candidate accuracy
+- held-out improvement
+
+Do not rely on qualitative model confidence alone.
+
+---
+
+## 8. Baseline
+
+LB-0 needs a baseline or "discovery" has no meaning.
+
+The baseline should approximate what the current ontology can predict without the candidate primitive.
+
+Example baseline:
+
+```text
+Evaluate each action independently using its current policy label.
+If all actions are permitted and no known primitive matches, predict SAFE.
+```
+
+The experiment then asks whether the discovered candidate materially outperforms that baseline on unseen composed trajectories.
+
+---
+
+## 9. Acceptance Criteria
+
+LB-0 is accepted only if all of the following are true:
+
+1. The hidden unsafe composition is not encoded in the discovery layer.
+2. Every individual component action can appear in safe trajectories.
+3. Existing ontology / baseline misses at least part of the unsafe composition class.
+4. The gap detector identifies a repeatable unexplained failure pattern.
+5. The system proposes a machine-readable candidate primitive.
+6. The candidate generates falsifiable predictions.
+7. Predictions are evaluated on held-out trajectories.
+8. The candidate materially improves prediction over baseline.
+9. Safe near-miss trajectories are not broadly overblocked.
+10. Every result includes provenance back to source traces.
+11. No Living Boundary component can modify production policy or enforcement.
+
+Recommended initial quantitative gate:
+
+```text
+held_out_f1(candidate) > held_out_f1(baseline)
+false_positive_rate(candidate) <= agreed experimental threshold
+candidate.source_evidence is complete
+production_mutation_capability == false
+```
+
+Do not hard-code a production promotion threshold during LB-0. This phase is evidence collection, not policy deployment.
+
+---
+
+## 10. Evidence Package
+
+Every run should produce a durable experimental artifact.
+
+Suggested output:
+
+```text
+living-boundary/artifacts/<run_id>/
+  run_manifest.json
+  dataset_manifest.json
+  baseline_metrics.json
+  detected_gaps.json
+  candidate_primitives.json
+  generated_tests.json
+  held_out_metrics.json
+  provenance.json
+  report.md
+```
+
+The report should state clearly:
+
+```text
+RESULT: PASS / FAIL / INCONCLUSIVE
+
+Did the existing ontology miss the failure?
+Did the system detect the gap?
+What structure was inferred?
+What candidate primitive was proposed?
+What prediction did it make?
+Was that prediction falsifiable?
+How did it perform on held-out traces?
+How did it compare with baseline?
+What evidence supports the conclusion?
+```
+
+---
+
+## 11. Repository Skeleton
+
+Recommended initial implementation:
+
+```text
+living-boundary/
+├── README.md
+├── observer/
+│   ├── __init__.py
+│   ├── trace_reader.py
+│   ├── normalizer.py
+│   └── trajectory_builder.py
+├── ontology/
+│   ├── __init__.py
+│   ├── baseline.py
+│   └── candidate_schema.py
+├── discovery/
+│   ├── __init__.py
+│   ├── gap_detector.py
+│   ├── structure_discovery.py
+│   └── primitive_generator.py
+├── experiments/
+│   ├── __init__.py
+│   ├── scenario_generator.py
+│   ├── hidden_ground_truth.py
+│   ├── split.py
+│   └── adversarial_generator.py
+├── evaluation/
+│   ├── __init__.py
+│   ├── metrics.py
+│   └── evaluator.py
+├── evidence/
+│   ├── __init__.py
+│   ├── provenance.py
+│   └── report.py
+├── artifacts/
+│   └── .gitkeep
+└── tests/
+    ├── test_trace_normalization.py
+    ├── test_ground_truth_isolation.py
+    ├── test_gap_detection.py
+    ├── test_candidate_schema.py
+    ├── test_held_out_evaluation.py
+    └── test_no_production_authority.py
+```
+
+Do not connect `promotion/` to production during LB-0. Promotion becomes relevant only after the discovery experiment has empirical support.
+
+---
+
+## 12. Build Order
+
+### Step 1 — Scaffold
+
+Create the `living-boundary/` module and tests without touching the production runtime path.
+
+### Step 2 — Scenario Harness
+
+Build deterministic controlled scenarios with hidden ground truth.
+
+The harness should accept a seed so runs are reproducible.
+
+### Step 3 — Trace Normalisation
+
+Emit traces using a Morrison-compatible evidence shape.
+
+### Step 4 — Baseline
+
+Implement the current-ontology baseline and record its misses.
+
+### Step 5 — Gap Detection
+
+Detect unsafe outcomes that the baseline cannot represent adequately.
+
+### Step 6 — Structure Discovery
+
+Search for interpretable variables associated with those misses.
+
+### Step 7 — Candidate Primitive
+
+Produce a structured experimental primitive with evidence references.
+
+### Step 8 — Falsification
+
+Generate adversarial and near-miss scenarios targeted at the primitive.
+
+### Step 9 — Held-Out Evaluation
+
+Freeze the primitive and evaluate it against unseen cases.
+
+### Step 10 — Evidence Report
+
+Seal the experimental inputs, outputs, metrics, and provenance into a run report.
+
+---
+
+## 13. Tests That Must Exist Before Calling LB-0 Complete
+
+```text
+test_individual_actions_are_not_intrinsically_unsafe
+test_hidden_rule_not_exposed_to_discovery
+test_baseline_misses_compositional_failure
+test_gap_detector_finds_unexplained_failure
+test_candidate_contains_source_provenance
+test_candidate_generates_falsifiable_prediction
+test_candidate_evaluated_on_unseen_cases
+test_safe_near_misses_remain_safe
+test_run_is_reproducible_from_seed
+test_living_boundary_cannot_mutate_runtime_policy
+test_living_boundary_failure_does_not_change_v1_govern_behavior
+```
+
+The final two tests are architectural safety requirements, not optional cleanup.
+
+---
+
+## 14. Do Not Use Production Connectors First
+
+LB-0 should begin with a controlled synthetic environment.
+
+Do not start by using live Gmail, AWS Bedrock, Salesforce, ServiceNow, customer data, or production credentials to prove the discovery mechanism.
+
+First demonstrate that the mechanism can discover a deliberately hidden compositional rule under reproducible conditions.
+
+After that result exists, replay **sanitised historical Morrison traces** or dedicated non-production connector scenarios.
+
+Only later should a shadow observer consume real production evidence, and even then it should remain read-only.
+
+---
+
+## 15. LB-1 Entry Gate
+
+Do not begin LB-1 Ontology Gap Detection as a general capability until LB-0 demonstrates:
+
+```text
+Hidden compositional structure discovered
+        +
+Held-out predictive improvement
+        +
+Acceptable false-positive behaviour
+        +
+Complete provenance
+        +
+Zero production authority
+```
+
+If LB-0 does not meet that gate, document the failure and improve the experiment rather than expanding the architecture.
+
+---
+
+## 16. Future Phases
+
+### LB-0 — Composition Discovery
+
+Prove hidden unsafe interaction discovery.
+
+### LB-1 — General Ontology Gap Detection
+
+Detect when Morrison's current representation systematically fails across broader runtime traces.
+
+### LB-2 — Candidate Boundary Evolution
+
+Generate, test, version and shadow candidate primitives with explicit human approval before any enforcement path exists.
+
+### LB-3 — Multi-Environment Generalisation
+
+Test whether discovered primitives transfer across models, providers, connectors and organisations.
+
+### LB-4 — Living Boundary Service
+
+Only if the evidence supports it: operate a slow governance-learning loop alongside Morrison's fast runtime control loop.
+
+---
+
+## 17. Definition of Done for the First Prototype
+
+The first prototype is done when one command can execute a complete reproducible experiment:
+
+```bash
+python -m living_boundary.run_lb0 --seed 42
+```
+
+and produce a report showing:
+
+```text
+1. the current baseline
+2. the hidden compositional failure class
+3. the detected ontology gap
+4. the inferred candidate structure
+5. the candidate primitive
+6. falsification tests
+7. held-out metrics
+8. comparison against baseline
+9. provenance
+10. confirmation that production authority remained unreachable
+```
+
+The output should make it possible for another engineer to determine whether the claimed discovery actually occurred without relying on the model's narrative explanation.
+
+---
+
+## Final Principle
+
+Morrison Runtime Governance is the fast loop that constrains reachable actions using the boundary we currently know.
+
+Living Boundary is the slow experimental loop that asks whether that boundary still describes the failure landscape accurately.
+
+The first prototype does not need to solve adaptive governance.
+
+It needs to prove one thing cleanly:
+
+> **Can we discover an unsafe governing structure that we deliberately did not encode beforehand?**
+
+If the answer is yes under controlled, falsifiable, held-out evaluation, then the rest of the Living Boundary architecture becomes worth building.
