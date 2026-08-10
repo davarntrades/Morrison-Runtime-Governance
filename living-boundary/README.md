@@ -954,3 +954,36 @@ like exhaustive, or that a proposal should be adopted. The strongest honest
 statement is the negative one: **an inadequacy that would previously have been
 silent is now reported, with a computable bound on what it costs, and separated
 from noise by an experiment rather than by assertion.**
+
+## 9. Why replayability is the blocker, and what it costs
+
+LB-1's verdict rests entirely on one operation: **run the trajectory again,
+twice**. Every discrimination it makes comes from that probe, not from the
+collision statistics — `inadequate_timing` and `stochastic` collide at
+essentially the same rate and are separated only by what re-running reveals.
+
+That operation is unavailable for most real governance evidence, and not for
+engineering reasons. The trajectories a governance system most needs to learn
+from are exactly the ones that must never be repeated:
+
+- an email that has already been sent
+- a payment that has already been initiated
+- a healthcare record that has already been accessed
+- a cloud resource that has already been mutated
+- a permission state that has since changed underneath the trace
+
+Re-running any of those to test an ontology hypothesis would cause the harm a
+second time in order to study it. No experimental value justifies that, so the
+probe cannot simply be pointed at production evidence.
+
+**What is lost with it is specific, and worth naming before attempting a
+replacement.** Replay is what lets LB-1 separate *the world is random* from
+*something real drove this and we did not record it*. Both produce identical
+observational signatures: trajectories that agree on every field the telemetry
+carries and disagree in outcome. Only re-execution distinguishes them, because
+only re-execution can ask the world the same question twice.
+
+LB-2 therefore removes the probe and asks whether defensible evidence of
+representational inadequacy can still be assembled from **sealed, irreversible,
+observational** traces alone — and reports honestly which of LB-1's
+discriminations survive the loss and which do not.
