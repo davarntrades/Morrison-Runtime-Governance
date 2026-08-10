@@ -987,3 +987,270 @@ LB-2 therefore removes the probe and asks whether defensible evidence of
 representational inadequacy can still be assembled from **sealed, irreversible,
 observational** traces alone — and reports honestly which of LB-1's
 discriminations survive the loss and which do not.
+
+---
+
+# Part IV — LB-2 As Built
+
+## 1. The question
+
+LB-1's every discrimination came from one operation: **run the trajectory again,
+twice**. §9 above sets out why that operation is unavailable on the evidence a
+governance system most needs to learn from, and what specifically is lost with
+it. LB-2 removes the probe and asks what survives:
+
+> Can defensible evidence of representational inadequacy be gathered from
+> **sealed, irreversible** trajectories, without re-executing the original
+> real-world action?
+
+**Verdict: SUPPORTED**, on eight constructed worlds — with one discrimination
+LB-1 could make and LB-2 provably cannot, reported rather than papered over.
+
+## 2. Reproduce it
+
+```bash
+cd living-boundary
+python -m living_boundary.run_lb2 --seed 42
+```
+
+Standard library only, no credentials, no network. ~9 seconds. Writes evidence
+to `living-boundary/artifacts/lb2/lb2-seed42-<chain>/`.
+
+## 3. The safety invariant, enforced structurally
+
+> LB-2 must never require repetition of a potentially harmful real-world action
+> merely to test an ontology hypothesis.
+
+That is not implemented as a rule the code follows, because a rule can be
+forgotten. `SealedArchive` has no `observe()`, no environment reference, and no
+callable of any kind. The `Scenario` object that decided these outcomes exists
+only inside the harness at generation time and is **destroyed before analysis
+begins** — `_analyse_scenario` builds the archives from it, then never passes it
+to anything downstream. LB-2 cannot replay because there is nothing to call.
+
+`tests/test_lb2_isolation.py` asserts both halves: an import-graph walk proving
+no module under `observational/` can reach `experiments/replay_probe.py` or any
+harness module, and a source-level check that no analysis call receives the
+scenario. Every artifact that could be mistaken for an execution carries
+`"executed_anything": false`.
+
+## 4. What replaces the probe
+
+Two levels of disagreement, and the gap between them:
+
+| | |
+|---|---|
+| **feature-level collision** | same features, different outcome → *no predicate over the grammar separates these* |
+| **record-level collision** | same complete record, different outcome → *nothing the telemetry captured separates these* |
+
+Records determine features, so record collisions are a strict subset of feature
+collisions, and
+
+    resolvable = feature-level minority − record-level minority
+
+is exactly the disagreement the telemetry **did** capture and the representation
+ignored. That single decomposition is the observational stand-in for LB-1's
+"the world is reproducible and the record is faithful, yet the grammar cannot
+separate these".
+
+Seven methods sit on top of it, and all seven are computed on every scenario:
+
+| method | module | what it contributes |
+|---|---|---|
+| representation-collision lower bounds | `observational/strata.py` | two computable error floors — one for the current grammar, one for *any* representation built from this telemetry |
+| confidence-bounded inference | `observational/uncertainty.py` | Wilson intervals on every rate; Mantel–Haenszel pooling with a variance-based interval, so a verdict rests on a bound rather than a point |
+| matched cohort analysis | `observational/cohorts.py` | stratify on the canonical record with the candidate observable **masked out**, compare outcomes within stratum |
+| counterfactual proxy generation | `observational/cohorts.py` | the matched pairs themselves: two *real, already-executed* events the telemetry says were identical except for one thing. Counted and reported (`proxy_pairs`, `proxy_availability`) |
+| nearest-neighbour comparison | `observational/cohorts.py` | fallback when exact strata are too sparse — coarser, weaker, and **always labelled** `matching: "nearest_neighbour"` rather than silently substituted |
+| temporal consistency checks | `observational/temporal.py` | re-measure each surviving exposure inside each collection period; a sign reversal is disqualifying |
+| synthetic shadow replay | `observational/counterfactual.py` | perturb the **record**, evaluate the **hypothesis** on it, observe nothing. Establishes that the candidate predicate responds to the observable it claims to depend on |
+
+The last one is deliberately weaker than LB-1's falsification battery and the
+module docstring says so in those words: LB-1 perturbed a trajectory and asked
+the environment what happened; LB-2 can only ask what its own hypothesis says.
+Truth about outcomes comes solely from the matched real events.
+
+**Record identity.** None of this works without a notion of "the same event as
+far as the telemetry is concerned". Identifiers are alpha-renamed by order of
+first appearance and timestamps kept as offsets from the first step, with a
+coarse `period` tag retained. Those are modelling assumptions, not facts, and
+they are the first thing a reviewer should challenge — a corpus where customer
+identity genuinely matters would be mis-matched by this canonicalisation.
+
+## 5. The verdict ladder
+
+Verdicts are reached **by elimination**, in a fixed order, and every rung is
+recorded in the output whether it fired or not:
+
+1. **telemetry integrity** — broken seals, blanked fields, step gaps → `TELEMETRY_LIMITED`
+2. **sample sufficiency** — too few trajectories, or a collision-rate interval too wide → `INCONCLUSIVE`
+3. **no material collisions** → `ADEQUATE`
+4. **collisions, but record-identical** → `BEYOND_TELEMETRY`; a split verdict → `INCONCLUSIVE`
+5. **an exposure reverses sign across periods** → `INCONCLUSIVE`
+6. **nothing supported, or supported candidates collinear, or shadow-inconsistent** → `INADEQUATE_UNLOCALISED`
+7. **the survivor replicates on a disjoint validation archive** → `INADEQUATE_LOCALISED`
+
+Rung 7 exists because a candidate selected on the discovery archive and never
+re-measured anywhere else is a candidate selected on noise. The validation
+archive has disjoint identity and subject pools and is never used to *choose*
+anything — only to confirm the sign and significance of what discovery already
+picked. Held-out is reserved for the simulated recovery and is consulted once.
+
+Abstention is a first-class outcome, not a failure path: three of the eight
+scenarios are constructed so that abstaining is the *correct* answer.
+
+## 6. The eight worlds
+
+All eight share one corpus shape (12 structural templates, two collection
+periods, 900 discovery / 500 validation / 900 held-out sealed trajectories) and
+differ only in the hidden rule that assigned outcomes at generation time.
+
+| scenario | hidden construction | correct verdict |
+|---|---|---|
+| `adequate` | outcome is exactly a conjunction of LB-0 literals | ADEQUATE |
+| `missing_observable` | …AND a burst condition on elapsed time — **recorded**, not read by the grammar | INADEQUATE_LOCALISED |
+| `unobserved_driver` | …AND a real driver **never written to the trace at all** | BEYOND_TELEMETRY |
+| `stochastic` | …AND a coin flip | BEYOND_TELEMETRY |
+| `telemetry_degraded` | the same recoverable gap, on an archive tampered with after sealing (6% seals) and holed (8% fields) | TELEMETRY_LIMITED |
+| `collinear_confounding` | …AND burst, with delegation forced to move in lockstep with burst | INADEQUATE_UNLOCALISED |
+| `small_sample` | a genuine, localisable gap on 72 trajectories | INCONCLUSIVE |
+| `temporal_drift` | burst drives harm in period 1 and protects against it in period 2 | INCONCLUSIVE |
+
+**The pair that matters most** is `unobserved_driver` and `stochastic`. LB-1
+separated them trivially by re-running. LB-2 cannot, and the acceptance gate
+**expects the same verdict for both** — the run is scored on reporting the limit,
+not on beating it. The end-to-end suite asserts that property directly, so if a
+future change makes the two diverge, the mechanism has to be explained before it
+is believed.
+
+Between them the eight cover the seven conditions LB-2 was required to tell
+apart: representation inadequacy (localised and unlocalised), stochastic outcome
+variation, missing/corrupt telemetry, insufficient sample size, distribution
+shift (measured and reported on every scenario), confounding, and genuine causal
+uncertainty — the last handled by never claiming causation anywhere.
+
+## 7. Leakage prevention
+
+The hidden rule reaches the analysis layer through nothing but sealed records
+and their observed outcomes.
+
+- The hidden state is a `Draw`, and its fields are named `burst`, `delegated`,
+  `hidden`, `coin` — never `timestamp` or `actor_id`. Only `burst` and
+  `delegated` reach the trace at all, and they reach it as ordinary timestamps
+  and actor ids, indistinguishable in form from every other trajectory's.
+- The candidate pool (`EXTENSION_POOL`, inherited unchanged from LB-1) is
+  generic and identical for all eight scenarios. Nothing about which scenario is
+  running changes what candidates exist or how they are ranked.
+- Scenario names, file names, feature names, log lines and artifact keys carry
+  no reference to the withheld observable. `metadata["missing_observable"]` is
+  harness-owned, attached to the record **after** `_analyse_scenario` returns,
+  and used only by the scorer.
+- The analysis package imports no `random` — asserted by test. A module that can
+  draw random numbers can simulate an outcome, and an outcome LB-2 simulated is
+  not an outcome the world produced.
+- Discovery, validation and held-out archives are independently generated with
+  disjoint identity and subject pools, not carved from one pool.
+
+## 8. Results (seed 42)
+
+Reference package: `artifacts/lb2/lb2-seed42-f02e86b8/`, evidence chain head
+`26b5ec16ee1a4384…`, 10 sealed records, verified.
+
+| scenario | verdict | collision rate | resolvable by record | localised |
+|---|---|---|---|---|
+| `adequate` | **ADEQUATE** | 0.000 [0.000, 0.004] | n/a — nothing to resolve | — |
+| `missing_observable` | **INADEQUATE_LOCALISED** | 0.333 [0.303, 0.365] | 1.000 [0.973, 1.000] | `timestamp` |
+| `unobserved_driver` | **BEYOND_TELEMETRY** | 0.333 [0.303, 0.365] | 0.061 [0.032, 0.117] | — |
+| `stochastic` | **BEYOND_TELEMETRY** | 0.333 [0.303, 0.365] | 0.046 [0.021, 0.096] | — |
+| `telemetry_degraded` | **TELEMETRY_LIMITED** | not reached — 5.7% of seals fail, 2.5% of events holed | | — |
+| `collinear_confounding` | **INADEQUATE_UNLOCALISED** | 0.333 [0.303, 0.365] | 1.000 [0.974, 1.000] | — |
+| `small_sample` | **INCONCLUSIVE** | 0.333 [0.235, 0.448] | 1.000 [0.723, 1.000] | — |
+| `temporal_drift` | **INCONCLUSIVE** | 0.333 [0.303, 0.365] | 1.000 [0.972, 1.000] | — |
+
+Eight of eight. Classification accuracy 1.0, abstention rate 0.375.
+
+**The columns that do the work.** Six scenarios collide at an identical 0.333 and
+receive five different verdicts. The collision rate is not carrying the
+discrimination — the *resolvable by record* column and the rungs above it are.
+
+**`missing_observable`, in full.** Matched on the complete record minus
+`timestamp`, its presence shifts the outcome rate by **+0.341 [+0.341, +0.341]**
+across 22 informative strata covering all 900 trajectories, under **exact**
+matching. The association holds its sign across both collection periods, no
+rival observable is collinear with it, perturbing it in the record moves the
+hypothesis, and it replicates on the validation archive at **+0.332** over 22
+strata. Simulated recovery: held-out F1 **0.6871 → 1.0000 (+0.3129)**, measured
+by re-scoring records that already exist.
+
+**`collinear_confounding`** is the control that keeps localisation honest. The
+representation is genuinely insufficient and LB-2 says so — but `timestamp` and
+`actor_id` agree on every trajectory in the archive, so no matched comparison
+can separate them. It names neither and emits no proposal. Without that case,
+every localisation above would be indistinguishable from a lucky guess.
+
+**Error floors are reported at both levels**, and the difference between them is
+the finding. On `missing_observable` the current grammar's floor is 15.1% while
+the telemetry floor is 0.0% — everything the grammar cannot do, the records
+could. On `stochastic` the two floors nearly coincide (14.56% and 13.89%): no
+representation built from this telemetry can do better, so the next move is
+better telemetry, not a new feature.
+
+## 9. The new authority invariant
+
+Every LB-0 and LB-1 invariant still holds, verified on each run. LB-2 adds
+nothing new to the list but extends the same checks to a new pipeline:
+
+- `FEATURE_FAMILIES` byte-identical before and after a full run
+- production ruleset fingerprint (rule **bytecode**, not names) unchanged
+- `production_authority_reachable: false` from an AST scan of the package
+- `RepresentationProposal.advance(ADOPTED)` raises; every LB-2 proposal
+  terminates at `REVIEW_REQUIRED`
+- a test crashes LB-2 mid-run and asserts the kernel's decisions are unchanged
+
+> **LB-2 may observe, reconstruct, compare, simulate, hypothesise, falsify,
+> quantify uncertainty, and propose a representation extension. It may not adopt
+> one.**
+
+## 10. Known weaknesses
+
+1. **`BEYOND_TELEMETRY` fuses two different worlds.** A stochastic outcome and a
+   real unrecorded cause get the same verdict, because observation cannot
+   separate them. This is the measured cost of losing replay, and it is a *hard*
+   limit of the method, not a threshold that could be tuned. LB-1 could tell
+   these apart; LB-2 cannot and does not try.
+2. **Matching holds constant only what the telemetry recorded.** An unrecorded
+   common cause remains possible in every matched comparison and cannot be
+   excluded observationally. Every assessment carries that sentence in its
+   `claims` block, and `causation_established` is `False` on all eight scenarios
+   by construction.
+3. **Canonicalisation is an assumption.** Alpha-renaming identities and using
+   relative offsets is what makes record identity non-vacuous, and it would be
+   wrong on a corpus where the specific customer genuinely matters.
+4. **Thresholds are sharp.** `MAX_ADEQUATE_COLLISION_RATE = 0.02`,
+   `MIN_RESOLVABLE_FRACTION = 0.60`, `MIN_ARCHIVE_TRAJECTORIES = 200` and the
+   collinearity cutoff at 0.98 are judgement calls. A world sitting just either
+   side of one of them would flip verdict.
+5. **The candidate pool still contains the answer** for the localisable
+   scenario. `collinear_confounding` limits what that buys, but LB-1's weakness
+   is inherited whole: LB-2 cannot name an observable nobody thought to offer.
+6. **Two collection periods.** Temporal consistency is tested against exactly one
+   possible reversal point. Real drift is not so tidy.
+7. **The archive is synthetic and its author wrote the matcher.** Real telemetry
+   is messier than 12 templates, and exact matching would be far sparser —
+   pushing more comparisons onto the labelled nearest-neighbour fallback, which
+   is weaker evidence.
+8. **Eight worlds, one corpus shape, three seeds checked** (42, 88, 1234). Not a
+   general result.
+
+## 11. What is NOT claimed
+
+Not that LB-2 establishes causation — it explicitly never does. Not that any
+proposal should be adopted; the terminal state is `REVIEW_REQUIRED`. Not that
+these methods transfer to production telemetry, where matching will be sparser
+and confounding worse. Not that abstention is rare: on this suite it is 37.5%,
+and a real archive would likely abstain more.
+
+The strongest honest statement is narrow and negative: **when replay is
+forbidden, a representational gap can still be detected, bounded, localised and
+falsified from sealed records alone — and where it cannot be, the system now
+says which of the seven reasons applies instead of guessing.**

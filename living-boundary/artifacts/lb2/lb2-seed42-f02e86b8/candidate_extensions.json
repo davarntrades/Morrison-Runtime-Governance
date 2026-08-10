@@ -1,0 +1,1457 @@
+[
+  {
+    "demonstrated_recovery": {
+      "base_held_out": {
+        "accuracy": 0.8411,
+        "f1": 0.6871,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.1925,
+        "fn": 0,
+        "fp": 143,
+        "mcc": 0.6501,
+        "negatives": 743,
+        "positives": 157,
+        "precision": 0.5233,
+        "recall": 1.0,
+        "tn": 600,
+        "total": 900,
+        "tp": 157
+      },
+      "executed_anything": false,
+      "extended_held_out": {
+        "accuracy": 1.0,
+        "f1": 1.0,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.0,
+        "fn": 0,
+        "fp": 0,
+        "mcc": 1.0,
+        "negatives": 743,
+        "positives": 157,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 743,
+        "total": 900,
+        "tp": 157
+      },
+      "f1_gain": 0.3129,
+      "family": "elapsed",
+      "note": "measured by re-scoring records that already exist; no trajectory was re-run and no provider was contacted",
+      "observable": "timestamp"
+    },
+    "evidence": {
+      "cohorts": {
+        "collinear_groups": [
+          [
+            "elapsed_le::120",
+            "elapsed_le::300",
+            "elapsed_le::60",
+            "elapsed_le::900",
+            "max_gap_le::10",
+            "max_gap_le::30",
+            "max_gap_le::300",
+            "max_gap_le::60"
+          ],
+          [
+            "elapsed_le::30"
+          ]
+        ],
+        "exposures_supported": 9,
+        "exposures_tested": 17,
+        "ranked": [
+          {
+            "association": {
+              "ci_lower": 0.3408,
+              "ci_upper": 0.3408,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    34
+                  ],
+                  "key": "89b68446bde9c566ac57688b",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    41
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    37
+                  ],
+                  "key": "eab805b0aff843255c9607e2",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    38
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    20
+                  ],
+                  "key": "636ad493d622d6604e4d39a5",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    23
+                  ]
+                },
+                {
+                  "exposed": [
+                    18,
+                    18
+                  ],
+                  "key": "834a5d78ec340f70b3e81e27",
+                  "risk_difference": 1.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    17
+                  ],
+                  "key": "7f5efcba082fd472fa095a43",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                }
+              ],
+              "exposure": "elapsed_le::120",
+              "matched_trajectories": 900,
+              "observable": "timestamp",
+              "pooled_risk_difference": 0.3408,
+              "significant": true,
+              "strata_informative": 22,
+              "strata_total": 22
+            },
+            "exposure": "elapsed_le::120",
+            "family": "elapsed",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "timestamp",
+            "proxy_availability": 1.0,
+            "proxy_pairs": 389,
+            "supported": true,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.3408,
+              "ci_upper": 0.3408,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    34
+                  ],
+                  "key": "89b68446bde9c566ac57688b",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    41
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    37
+                  ],
+                  "key": "eab805b0aff843255c9607e2",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    38
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    20
+                  ],
+                  "key": "636ad493d622d6604e4d39a5",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    23
+                  ]
+                },
+                {
+                  "exposed": [
+                    18,
+                    18
+                  ],
+                  "key": "834a5d78ec340f70b3e81e27",
+                  "risk_difference": 1.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    17
+                  ],
+                  "key": "7f5efcba082fd472fa095a43",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                }
+              ],
+              "exposure": "elapsed_le::300",
+              "matched_trajectories": 900,
+              "observable": "timestamp",
+              "pooled_risk_difference": 0.3408,
+              "significant": true,
+              "strata_informative": 22,
+              "strata_total": 22
+            },
+            "exposure": "elapsed_le::300",
+            "family": "elapsed",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "timestamp",
+            "proxy_availability": 1.0,
+            "proxy_pairs": 389,
+            "supported": true,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.3408,
+              "ci_upper": 0.3408,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    34
+                  ],
+                  "key": "89b68446bde9c566ac57688b",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    41
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    37
+                  ],
+                  "key": "eab805b0aff843255c9607e2",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    38
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    20
+                  ],
+                  "key": "636ad493d622d6604e4d39a5",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    23
+                  ]
+                },
+                {
+                  "exposed": [
+                    18,
+                    18
+                  ],
+                  "key": "834a5d78ec340f70b3e81e27",
+                  "risk_difference": 1.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    17
+                  ],
+                  "key": "7f5efcba082fd472fa095a43",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                }
+              ],
+              "exposure": "elapsed_le::60",
+              "matched_trajectories": 900,
+              "observable": "timestamp",
+              "pooled_risk_difference": 0.3408,
+              "significant": true,
+              "strata_informative": 22,
+              "strata_total": 22
+            },
+            "exposure": "elapsed_le::60",
+            "family": "elapsed",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "timestamp",
+            "proxy_availability": 1.0,
+            "proxy_pairs": 389,
+            "supported": true,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.3408,
+              "ci_upper": 0.3408,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    34
+                  ],
+                  "key": "89b68446bde9c566ac57688b",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    41
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    37
+                  ],
+                  "key": "eab805b0aff843255c9607e2",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    38
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    20
+                  ],
+                  "key": "636ad493d622d6604e4d39a5",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    23
+                  ]
+                },
+                {
+                  "exposed": [
+                    18,
+                    18
+                  ],
+                  "key": "834a5d78ec340f70b3e81e27",
+                  "risk_difference": 1.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    17
+                  ],
+                  "key": "7f5efcba082fd472fa095a43",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                }
+              ],
+              "exposure": "elapsed_le::900",
+              "matched_trajectories": 900,
+              "observable": "timestamp",
+              "pooled_risk_difference": 0.3408,
+              "significant": true,
+              "strata_informative": 22,
+              "strata_total": 22
+            },
+            "exposure": "elapsed_le::900",
+            "family": "elapsed",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "timestamp",
+            "proxy_availability": 1.0,
+            "proxy_pairs": 389,
+            "supported": true,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.3408,
+              "ci_upper": 0.3408,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    34
+                  ],
+                  "key": "89b68446bde9c566ac57688b",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    41
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    37
+                  ],
+                  "key": "eab805b0aff843255c9607e2",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    38
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    20
+                  ],
+                  "key": "636ad493d622d6604e4d39a5",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    23
+                  ]
+                },
+                {
+                  "exposed": [
+                    18,
+                    18
+                  ],
+                  "key": "834a5d78ec340f70b3e81e27",
+                  "risk_difference": 1.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    17
+                  ],
+                  "key": "7f5efcba082fd472fa095a43",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                }
+              ],
+              "exposure": "max_gap_le::10",
+              "matched_trajectories": 900,
+              "observable": "timestamp",
+              "pooled_risk_difference": 0.3408,
+              "significant": true,
+              "strata_informative": 22,
+              "strata_total": 22
+            },
+            "exposure": "max_gap_le::10",
+            "family": "max_gap",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "timestamp",
+            "proxy_availability": 1.0,
+            "proxy_pairs": 389,
+            "supported": true,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.3408,
+              "ci_upper": 0.3408,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    34
+                  ],
+                  "key": "89b68446bde9c566ac57688b",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    41
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    37
+                  ],
+                  "key": "eab805b0aff843255c9607e2",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    38
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    20
+                  ],
+                  "key": "636ad493d622d6604e4d39a5",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    23
+                  ]
+                },
+                {
+                  "exposed": [
+                    18,
+                    18
+                  ],
+                  "key": "834a5d78ec340f70b3e81e27",
+                  "risk_difference": 1.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    17
+                  ],
+                  "key": "7f5efcba082fd472fa095a43",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                }
+              ],
+              "exposure": "max_gap_le::30",
+              "matched_trajectories": 900,
+              "observable": "timestamp",
+              "pooled_risk_difference": 0.3408,
+              "significant": true,
+              "strata_informative": 22,
+              "strata_total": 22
+            },
+            "exposure": "max_gap_le::30",
+            "family": "max_gap",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "timestamp",
+            "proxy_availability": 1.0,
+            "proxy_pairs": 389,
+            "supported": true,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.3408,
+              "ci_upper": 0.3408,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    34
+                  ],
+                  "key": "89b68446bde9c566ac57688b",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    41
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    37
+                  ],
+                  "key": "eab805b0aff843255c9607e2",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    38
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    20
+                  ],
+                  "key": "636ad493d622d6604e4d39a5",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    23
+                  ]
+                },
+                {
+                  "exposed": [
+                    18,
+                    18
+                  ],
+                  "key": "834a5d78ec340f70b3e81e27",
+                  "risk_difference": 1.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    17
+                  ],
+                  "key": "7f5efcba082fd472fa095a43",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                }
+              ],
+              "exposure": "max_gap_le::300",
+              "matched_trajectories": 900,
+              "observable": "timestamp",
+              "pooled_risk_difference": 0.3408,
+              "significant": true,
+              "strata_informative": 22,
+              "strata_total": 22
+            },
+            "exposure": "max_gap_le::300",
+            "family": "max_gap",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "timestamp",
+            "proxy_availability": 1.0,
+            "proxy_pairs": 389,
+            "supported": true,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.3408,
+              "ci_upper": 0.3408,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    34
+                  ],
+                  "key": "89b68446bde9c566ac57688b",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    41
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    37
+                  ],
+                  "key": "eab805b0aff843255c9607e2",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    38
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    20
+                  ],
+                  "key": "636ad493d622d6604e4d39a5",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    23
+                  ]
+                },
+                {
+                  "exposed": [
+                    18,
+                    18
+                  ],
+                  "key": "834a5d78ec340f70b3e81e27",
+                  "risk_difference": 1.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    17
+                  ],
+                  "key": "7f5efcba082fd472fa095a43",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                }
+              ],
+              "exposure": "max_gap_le::60",
+              "matched_trajectories": 900,
+              "observable": "timestamp",
+              "pooled_risk_difference": 0.3408,
+              "significant": true,
+              "strata_informative": 22,
+              "strata_total": 22
+            },
+            "exposure": "max_gap_le::60",
+            "family": "max_gap",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "timestamp",
+            "proxy_availability": 1.0,
+            "proxy_pairs": 389,
+            "supported": true,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.28,
+              "ci_upper": 0.28,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    34
+                  ],
+                  "key": "89b68446bde9c566ac57688b",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    41
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    37
+                  ],
+                  "key": "eab805b0aff843255c9607e2",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    38
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    20
+                  ],
+                  "key": "636ad493d622d6604e4d39a5",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    23
+                  ]
+                },
+                {
+                  "exposed": [
+                    18,
+                    18
+                  ],
+                  "key": "834a5d78ec340f70b3e81e27",
+                  "risk_difference": 1.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    17
+                  ],
+                  "key": "7f5efcba082fd472fa095a43",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                }
+              ],
+              "exposure": "elapsed_le::30",
+              "matched_trajectories": 825,
+              "observable": "timestamp",
+              "pooled_risk_difference": 0.28,
+              "significant": true,
+              "strata_informative": 20,
+              "strata_total": 22
+            },
+            "exposure": "elapsed_le::30",
+            "family": "elapsed",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "timestamp",
+            "proxy_availability": 0.9167,
+            "proxy_pairs": 357,
+            "supported": true,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.0,
+              "ci_upper": 0.0,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    26
+                  ],
+                  "key": "443b0b185533ee3fbd1f3964",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    20
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    19
+                  ],
+                  "key": "bddeaa9dc1c64d39993df86e",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    23
+                  ],
+                  "key": "3e26b6b9715dcc7fbee770b7",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    20
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    25
+                  ],
+                  "key": "4a563cf1b60a8a55cd4696be",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    18
+                  ]
+                },
+                {
+                  "exposed": [
+                    21,
+                    21
+                  ],
+                  "key": "fd46afb307759650af6dae97",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    22,
+                    22
+                  ]
+                }
+              ],
+              "exposure": "actor_diverges_at::data.external_move@communications@crossing",
+              "matched_trajectories": 825,
+              "observable": "actor_id",
+              "pooled_risk_difference": 0.0,
+              "significant": false,
+              "strata_informative": 22,
+              "strata_total": 24
+            },
+            "exposure": "actor_diverges_at::data.external_move@communications@crossing",
+            "family": "actor_divergence",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "actor_id",
+            "proxy_availability": 0.9167,
+            "proxy_pairs": 348,
+            "supported": false,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.0,
+              "ci_upper": 0.0,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    26
+                  ],
+                  "key": "443b0b185533ee3fbd1f3964",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    20
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    19
+                  ],
+                  "key": "bddeaa9dc1c64d39993df86e",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    23
+                  ],
+                  "key": "3e26b6b9715dcc7fbee770b7",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    20
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    25
+                  ],
+                  "key": "4a563cf1b60a8a55cd4696be",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    18
+                  ]
+                },
+                {
+                  "exposed": [
+                    21,
+                    21
+                  ],
+                  "key": "fd46afb307759650af6dae97",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    22,
+                    22
+                  ]
+                }
+              ],
+              "exposure": "actor_diverges_from_identity::",
+              "matched_trajectories": 825,
+              "observable": "actor_id",
+              "pooled_risk_difference": 0.0,
+              "significant": false,
+              "strata_informative": 22,
+              "strata_total": 24
+            },
+            "exposure": "actor_diverges_from_identity::",
+            "family": "actor_divergence",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "actor_id",
+            "proxy_availability": 0.9167,
+            "proxy_pairs": 348,
+            "supported": false,
+            "usable": true
+          },
+          {
+            "association": {
+              "ci_lower": 0.0,
+              "ci_upper": 0.0,
+              "example_strata": [
+                {
+                  "exposed": [
+                    0,
+                    26
+                  ],
+                  "key": "443b0b185533ee3fbd1f3964",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    20
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    19
+                  ],
+                  "key": "bddeaa9dc1c64d39993df86e",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    25
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    23
+                  ],
+                  "key": "3e26b6b9715dcc7fbee770b7",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    20
+                  ]
+                },
+                {
+                  "exposed": [
+                    0,
+                    25
+                  ],
+                  "key": "4a563cf1b60a8a55cd4696be",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    0,
+                    18
+                  ]
+                },
+                {
+                  "exposed": [
+                    21,
+                    21
+                  ],
+                  "key": "fd46afb307759650af6dae97",
+                  "risk_difference": 0.0,
+                  "unexposed": [
+                    22,
+                    22
+                  ]
+                }
+              ],
+              "exposure": "actors_ge::2",
+              "matched_trajectories": 750,
+              "observable": "actor_id",
+              "pooled_risk_difference": 0.0,
+              "significant": false,
+              "strata_informative": 20,
+              "strata_total": 24
+            },
+            "exposure": "actors_ge::2",
+            "family": "actor_count",
+            "matchable": true,
+            "matching": "exact",
+            "observable": "actor_id",
+            "proxy_availability": 0.8333,
+            "proxy_pairs": 319,
+            "supported": false,
+            "usable": true
+          }
+        ]
+      },
+      "integrity": {
+        "entries": 900,
+        "events": 2925,
+        "events_missing_fields": 0,
+        "example_broken_seals": [],
+        "field_incompleteness_rate": 0.0,
+        "seal_failure_rate": 0.0,
+        "seals_broken": 0,
+        "sequences_with_step_gaps": 0
+      },
+      "strata": {
+        "collision_rate": {
+          "lower": 0.3033,
+          "point": 0.3333,
+          "successes": 300,
+          "total": 900,
+          "upper": 0.3648,
+          "width": 0.0615
+        },
+        "example_beyond_telemetry": [],
+        "example_colliding": [
+          "lb2-missing_observable-discovery-00000",
+          "lb2-missing_observable-discovery-00001",
+          "lb2-missing_observable-discovery-00002",
+          "lb2-missing_observable-discovery-00003",
+          "lb2-missing_observable-discovery-00012"
+        ],
+        "feature_colliding_groups": 3,
+        "feature_groups": 11,
+        "feature_minority": 136,
+        "irreducible_error_rate_current_grammar": 0.1511,
+        "record_colliding_groups": 0,
+        "record_groups": 44,
+        "record_minority": 0,
+        "resolvable_fraction": {
+          "lower": 0.9725,
+          "point": 1.0,
+          "successes": 136,
+          "total": 136,
+          "upper": 1.0,
+          "width": 0.0275
+        },
+        "resolvable_minority": 136,
+        "telemetry_floor": 0.0,
+        "trajectories": 900,
+        "trajectories_in_feature_collisions": 300
+      }
+    },
+    "extension_family": "elapsed",
+    "grammar_mutation_authority": "none",
+    "localisation": {
+      "association": {
+        "ci_lower": 0.3408,
+        "ci_upper": 0.3408,
+        "example_strata": [
+          {
+            "exposed": [
+              0,
+              34
+            ],
+            "key": "89b68446bde9c566ac57688b",
+            "risk_difference": 0.0,
+            "unexposed": [
+              0,
+              41
+            ]
+          },
+          {
+            "exposed": [
+              0,
+              37
+            ],
+            "key": "eab805b0aff843255c9607e2",
+            "risk_difference": 0.0,
+            "unexposed": [
+              0,
+              38
+            ]
+          },
+          {
+            "exposed": [
+              0,
+              20
+            ],
+            "key": "636ad493d622d6604e4d39a5",
+            "risk_difference": 0.0,
+            "unexposed": [
+              0,
+              23
+            ]
+          },
+          {
+            "exposed": [
+              18,
+              18
+            ],
+            "key": "834a5d78ec340f70b3e81e27",
+            "risk_difference": 1.0,
+            "unexposed": [
+              0,
+              25
+            ]
+          },
+          {
+            "exposed": [
+              0,
+              17
+            ],
+            "key": "7f5efcba082fd472fa095a43",
+            "risk_difference": 0.0,
+            "unexposed": [
+              0,
+              25
+            ]
+          }
+        ],
+        "exposure": "elapsed_le::120",
+        "matched_trajectories": 900,
+        "observable": "timestamp",
+        "pooled_risk_difference": 0.3408,
+        "significant": true,
+        "strata_informative": 22,
+        "strata_total": 22
+      },
+      "exposure": "elapsed_le::120",
+      "family": "elapsed",
+      "localised": true,
+      "matching": "exact",
+      "observable": "timestamp",
+      "replication": {
+        "association": {
+          "ci_lower": 0.3322,
+          "ci_upper": 0.3322,
+          "example_strata": [
+            {
+              "exposed": [
+                0,
+                19
+              ],
+              "key": "89b68446bde9c566ac57688b",
+              "risk_difference": 0.0,
+              "unexposed": [
+                0,
+                23
+              ]
+            },
+            {
+              "exposed": [
+                0,
+                17
+              ],
+              "key": "eab805b0aff843255c9607e2",
+              "risk_difference": 0.0,
+              "unexposed": [
+                0,
+                25
+              ]
+            },
+            {
+              "exposed": [
+                0,
+                17
+              ],
+              "key": "3949eb8a294cac668fbd31e2",
+              "risk_difference": 0.0,
+              "unexposed": [
+                0,
+                9
+              ]
+            },
+            {
+              "exposed": [
+                0,
+                14
+              ],
+              "key": "7d5a195238e98bd50d3964ad",
+              "risk_difference": 0.0,
+              "unexposed": [
+                0,
+                12
+              ]
+            },
+            {
+              "exposed": [
+                0,
+                10
+              ],
+              "key": "00650c048bd36f7685a6d9cd",
+              "risk_difference": 0.0,
+              "unexposed": [
+                0,
+                14
+              ]
+            }
+          ],
+          "exposure": "elapsed_le::120",
+          "matched_trajectories": 500,
+          "observable": "timestamp",
+          "pooled_risk_difference": 0.3322,
+          "significant": true,
+          "strata_informative": 22,
+          "strata_total": 22
+        },
+        "detail": "validation risk difference +0.332 [+0.332, +0.332] over 22 strata",
+        "matching": "exact",
+        "sign_flipped": false,
+        "supported": true
+      },
+      "shadow": {
+        "cases": 60,
+        "consistent": true,
+        "examples": [],
+        "executed_anything": false,
+        "exposure": "elapsed_le::120",
+        "exposure_flipped": 60,
+        "flip_rate": 1.0,
+        "notes": "",
+        "observable": "timestamp",
+        "prediction_flipped": 60,
+        "synthesisable": true
+      },
+      "temporal": {
+        "consistent": true,
+        "exposure": "elapsed_le::120",
+        "periods": {
+          "p1": {
+            "ci_lower": 0.3398,
+            "ci_upper": 0.3398,
+            "example_strata": [
+              {
+                "exposed": [
+                  0,
+                  37
+                ],
+                "key": "eab805b0aff843255c9607e2",
+                "risk_difference": 0.0,
+                "unexposed": [
+                  0,
+                  38
+                ]
+              },
+              {
+                "exposed": [
+                  0,
+                  20
+                ],
+                "key": "636ad493d622d6604e4d39a5",
+                "risk_difference": 0.0,
+                "unexposed": [
+                  0,
+                  23
+                ]
+              },
+              {
+                "exposed": [
+                  18,
+                  18
+                ],
+                "key": "834a5d78ec340f70b3e81e27",
+                "risk_difference": 1.0,
+                "unexposed": [
+                  0,
+                  25
+                ]
+              },
+              {
+                "exposed": [
+                  0,
+                  17
+                ],
+                "key": "7f5efcba082fd472fa095a43",
+                "risk_difference": 0.0,
+                "unexposed": [
+                  0,
+                  25
+                ]
+              },
+              {
+                "exposed": [
+                  22,
+                  22
+                ],
+                "key": "d6176786974316398126ef16",
+                "risk_difference": 1.0,
+                "unexposed": [
+                  0,
+                  20
+                ]
+              }
+            ],
+            "exposure": "elapsed_le::120",
+            "matched_trajectories": 450,
+            "observable": "timestamp",
+            "pooled_risk_difference": 0.3398,
+            "significant": true,
+            "strata_informative": 11,
+            "strata_total": 11
+          },
+          "p2": {
+            "ci_lower": 0.3417,
+            "ci_upper": 0.3417,
+            "example_strata": [
+              {
+                "exposed": [
+                  0,
+                  34
+                ],
+                "key": "89b68446bde9c566ac57688b",
+                "risk_difference": 0.0,
+                "unexposed": [
+                  0,
+                  41
+                ]
+              },
+              {
+                "exposed": [
+                  0,
+                  21
+                ],
+                "key": "50d0bed54a663b4d2ac965b6",
+                "risk_difference": 0.0,
+                "unexposed": [
+                  0,
+                  20
+                ]
+              },
+              {
+                "exposed": [
+                  0,
+                  21
+                ],
+                "key": "7d5a195238e98bd50d3964ad",
+                "risk_difference": 0.0,
+                "unexposed": [
+                  0,
+                  19
+                ]
+              },
+              {
+                "exposed": [
+                  22,
+                  22
+                ],
+                "key": "35d035bc8ebb8cac12e8f84c",
+                "risk_difference": 1.0,
+                "unexposed": [
+                  0,
+                  17
+                ]
+              },
+              {
+                "exposed": [
+                  0,
+                  19
+                ],
+                "key": "b6450c9a43f9ee38e43e988d",
+                "risk_difference": 0.0,
+                "unexposed": [
+                  0,
+                  20
+                ]
+              }
+            ],
+            "exposure": "elapsed_le::120",
+            "matched_trajectories": 450,
+            "observable": "timestamp",
+            "pooled_risk_difference": 0.3417,
+            "significant": true,
+            "strata_informative": 11,
+            "strata_total": 11
+          }
+        },
+        "reason": "the association keeps its sign across periods (p1=+0.340, p2=+0.342)",
+        "testable": true
+      }
+    },
+    "missing_observable": "timestamp",
+    "production_authority": "none",
+    "proposal_hash": "00d7ff603cc67529",
+    "proposal_id": "RP-LB2-missing_observable",
+    "rationale": "The representation is insufficient and the gap localises to 'timestamp'. Matched on the complete record minus that observable, its presence shifts the outcome rate by +0.341 [+0.341, +0.341] across 22 informative strata covering 900 trajectories (exact matching). The association keeps its sign across collection periods, no rival observable is collinear with it, perturbing it in the record moves the hypothesis, and it replicates on a validation archive it was not selected on. This is an association under matching, not a demonstrated cause.",
+    "representation": "lb0-feature-grammar-1.1",
+    "status": "REVIEW_REQUIRED",
+    "verdict": "INADEQUATE_LOCALISED"
+  }
+]

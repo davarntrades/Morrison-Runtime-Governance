@@ -1,0 +1,175 @@
+{
+  "authority": {
+    "checks": {
+      "artifacts_isolated": {
+        "passed": true,
+        "violations": []
+      },
+      "production_fingerprint_unchanged": {
+        "checked": true,
+        "passed": true,
+        "violations": []
+      },
+      "promotion_lifecycle_refusal": {
+        "passed": true,
+        "violations": []
+      },
+      "static_import_and_call_scan": {
+        "passed": true,
+        "violations": []
+      }
+    },
+    "invariants": [
+      {
+        "name": "cannot_write_production_policy",
+        "statement": "No module writes to morrison_governance configuration or source."
+      },
+      {
+        "name": "cannot_modify_ontology_versions",
+        "statement": "Ontology versions are source constants; LB-0 has no setter for them."
+      },
+      {
+        "name": "cannot_transition_candidate_to_enforced",
+        "statement": "The promotion lifecycle refuses APPROVED / SHADOW / ENFORCED."
+      },
+      {
+        "name": "cannot_bypass_approval_verification",
+        "statement": "No approval artifact is constructed, signed or verified anywhere in LB-0."
+      },
+      {
+        "name": "cannot_invoke_provider_actions",
+        "statement": "No execution or provider surface is imported or called."
+      },
+      {
+        "name": "cannot_disable_runtime_governance",
+        "statement": "The production ruleset fingerprint is unchanged across a full run."
+      }
+    ],
+    "production_authority_reachable": false,
+    "violations": []
+  },
+  "code": {
+    "branch": "claude/living-boundary-lb2-observational",
+    "commit": "cd0ec9200fb18134835762b6d469399ad80c5b1f",
+    "engine_root": "/home/user/Morrison-Runtime-Governance",
+    "python": "3.11.15",
+    "working_tree_clean": false
+  },
+  "evidence": {
+    "chain": {
+      "head": "26b5ec16ee1a4384dc2e5b38b62449af4fce5f2ebca073f8bcc6a213743d7646",
+      "problems": [],
+      "records": 10,
+      "verified": true
+    },
+    "run_id": "lb2-seed42",
+    "stages": [
+      {
+        "payload_hash": "92be26afcd0ceefade3cce7ecd8b6311159e3a65ef8cf2f4ba4b29fb3e5dc2a5",
+        "record_hash": "ba90c2ce2db2de37c43a84c3374d2de25590b4d3ebf8aa81351197c7c725bfb6",
+        "stage": "scenario:adequate",
+        "summary": "ADEQUATE"
+      },
+      {
+        "payload_hash": "f0b4b519f6685300830790aa1b88ea616df9a57ae4abf3a03e8d7a1da050e917",
+        "record_hash": "705c8844581578aed2cdeb10a6c01f3354064ac3a6553308b217769a143340d9",
+        "stage": "scenario:missing_observable",
+        "summary": "INADEQUATE_LOCALISED"
+      },
+      {
+        "payload_hash": "d77a9530cf77594e3e50326c8362ba1b20f5e4994366597cacdfec6f6c8deb5f",
+        "record_hash": "b0b459ca1678ab67102a32b86a115faba15440889646b923d80b307c232f53aa",
+        "stage": "scenario:unobserved_driver",
+        "summary": "BEYOND_TELEMETRY"
+      },
+      {
+        "payload_hash": "bebbc1903e388bd7e396ff1840a3da4ed244f7854d85ebf9129e5bfe40fe5861",
+        "record_hash": "13841b6763cacd01cf7e6bae39dc1af33e0a4e205b05b0bafebf0c8310b04c26",
+        "stage": "scenario:stochastic",
+        "summary": "BEYOND_TELEMETRY"
+      },
+      {
+        "payload_hash": "39384a18cd28370de2e65db3b2a12bcb58edb36ffc6f76287021066f2d41b231",
+        "record_hash": "3f2d91b6e0a5273c19ef7148cafb06e5a80fe8756ccf8c9c43c8a159cb4f1a39",
+        "stage": "scenario:telemetry_degraded",
+        "summary": "TELEMETRY_LIMITED"
+      },
+      {
+        "payload_hash": "f41ac98d9e7c077a88a7d46f1e28c437f715c601eed9cd60a72781239efaae8c",
+        "record_hash": "a6df0360778001f8c14b0c19c6ff1b77dd099f7ea6f4c26307c56d397c9053cb",
+        "stage": "scenario:collinear_confounding",
+        "summary": "INADEQUATE_UNLOCALISED"
+      },
+      {
+        "payload_hash": "7eae210b4393b1a61a1131dcf8bbe0a7c5157af21102a43fa2c17c730caee3d5",
+        "record_hash": "8f7179d9a1481a75d7240139d87728c0e686e8f07732fd077c031a37c4a6e0d1",
+        "stage": "scenario:small_sample",
+        "summary": "INCONCLUSIVE"
+      },
+      {
+        "payload_hash": "037c4e0bd1c74b395bd81b365a214d2903aa46b4fb89c4c1d5b97e5580bf318e",
+        "record_hash": "f02e86b852da00982516135843adb1fdfa0c8274d6e5b42257511d73029a0423",
+        "stage": "scenario:temporal_drift",
+        "summary": "INCONCLUSIVE"
+      },
+      {
+        "payload_hash": "c838cc54b40a1cb70c391c326facb87292bae6baabe6ce347cb6950ee5f2f388",
+        "record_hash": "58de3f1a09cac92de69be8baa57b4e316285aeffd7a5fc5b3acd3d367279f21c",
+        "stage": "authority",
+        "summary": "authority boundary verified"
+      },
+      {
+        "payload_hash": "08f59e7474a6cba721c04f99defe562796165e66b5239de741e6d5f1386859f1",
+        "record_hash": "26b5ec16ee1a4384dc2e5b38b62449af4fce5f2ebca073f8bcc6a213743d7646",
+        "stage": "verdict",
+        "summary": "SUPPORTED"
+      }
+    ]
+  },
+  "grammar_immutability": {
+    "families_after": [
+      "has_token",
+      "has_cap",
+      "has_domain",
+      "has_boundary",
+      "scope",
+      "order2",
+      "order3",
+      "order3_identity",
+      "same_identity",
+      "subject_link",
+      "single_identity",
+      "transition",
+      "crosses_boundary",
+      "steps_ge",
+      "provider",
+      "region",
+      "session_tag"
+    ],
+    "families_before": [
+      "has_token",
+      "has_cap",
+      "has_domain",
+      "has_boundary",
+      "scope",
+      "order2",
+      "order3",
+      "order3_identity",
+      "same_identity",
+      "subject_link",
+      "single_identity",
+      "transition",
+      "crosses_boundary",
+      "steps_ge",
+      "provider",
+      "region",
+      "session_tag"
+    ],
+    "unchanged": true
+  },
+  "production_fingerprint": {
+    "after": "d385b9bad3dd0fc7eb00cd7794b9190355762450db3821f01b9e5d6d373418f3",
+    "before": "d385b9bad3dd0fc7eb00cd7794b9190355762450db3821f01b9e5d6d373418f3",
+    "unchanged": true
+  }
+}
