@@ -1,0 +1,2797 @@
+{
+  "authority": {
+    "checks": {
+      "artifacts_isolated": {
+        "passed": true,
+        "violations": []
+      },
+      "production_fingerprint_unchanged": {
+        "checked": true,
+        "passed": true,
+        "violations": []
+      },
+      "promotion_lifecycle_refusal": {
+        "passed": true,
+        "violations": []
+      },
+      "static_import_and_call_scan": {
+        "passed": true,
+        "violations": []
+      }
+    },
+    "invariants": [
+      {
+        "name": "cannot_write_production_policy",
+        "statement": "No module writes to morrison_governance configuration or source."
+      },
+      {
+        "name": "cannot_modify_ontology_versions",
+        "statement": "Ontology versions are source constants; LB-0 has no setter for them."
+      },
+      {
+        "name": "cannot_transition_candidate_to_enforced",
+        "statement": "The promotion lifecycle refuses APPROVED / SHADOW / ENFORCED."
+      },
+      {
+        "name": "cannot_bypass_approval_verification",
+        "statement": "No approval artifact is constructed, signed or verified anywhere in LB-0."
+      },
+      {
+        "name": "cannot_invoke_provider_actions",
+        "statement": "No execution or provider surface is imported or called."
+      },
+      {
+        "name": "cannot_disable_runtime_governance",
+        "statement": "The production ruleset fingerprint is unchanged across a full run."
+      }
+    ],
+    "production_authority_reachable": false,
+    "violations": []
+  },
+  "code_provenance": {
+    "branch": "claude/living-boundary-lb1-representation",
+    "commit": "5d130cb33be18133c2d3e4887a2af3b4cc743c41",
+    "engine_root": "/home/user/Morrison-Runtime-Governance",
+    "python": "3.11.15",
+    "working_tree_clean": false
+  },
+  "dataset": {
+    "corpus_hash": "dbf6eb03dd23d4795ba1a15a69484af8ebd85cabe7c8713eb15e4ca39e63220a",
+    "dataset_version": "lb1-dataset-1.0",
+    "note": "one corpus, labelled independently by every environment; the traces handed to the analysis layer are identical across environments",
+    "partitions": {
+      "discovery": {
+        "burst_fraction": 0.54,
+        "delegated_fraction": 0.456,
+        "family_counts": {
+          "chain": 82,
+          "chain_padded": 80,
+          "domain_swapped": 25,
+          "identity_split": 52,
+          "internal_egress": 29,
+          "no_egress": 13,
+          "no_payment": 29,
+          "ordinary": 15,
+          "reordered": 45,
+          "scope_reduced_egress": 24,
+          "scope_reduced_payment": 34,
+          "scope_reduced_read": 42,
+          "subject_mismatch": 30
+        },
+        "trajectories": 500
+      },
+      "held_out": {
+        "burst_fraction": 0.546,
+        "delegated_fraction": 0.478,
+        "family_counts": {
+          "chain": 73,
+          "chain_padded": 70,
+          "domain_swapped": 31,
+          "identity_split": 49,
+          "internal_egress": 39,
+          "no_egress": 18,
+          "no_payment": 28,
+          "ordinary": 13,
+          "reordered": 43,
+          "scope_reduced_egress": 30,
+          "scope_reduced_payment": 44,
+          "scope_reduced_read": 35,
+          "subject_mismatch": 27
+        },
+        "trajectories": 500
+      }
+    },
+    "seed": 42,
+    "world_version": "lb0-world-1.0"
+  },
+  "environments": {
+    "adequate": {
+      "assessment": {
+        "collision": {
+          "colliding_groups": 0,
+          "collision_rate": 0.0,
+          "distinct_feature_signatures": 120,
+          "irreducible_error_rate": 0.0,
+          "largest_colliding_groups": [],
+          "mean_minority_fraction": 0.0,
+          "minority_total": 0,
+          "trajectories": 500,
+          "trajectories_in_colliding_groups": 0
+        },
+        "confidence": 1.0,
+        "eliminations": [
+          "collision rate 0.0000 is below the 0.02 floor: the representation separates the corpus, so no representational claim is available"
+        ],
+        "probe": {
+          "examples": [],
+          "record_disagreement_rate": 0.0,
+          "record_disagreements": 0,
+          "record_is_faithful": true,
+          "sampled": 240,
+          "self_disagreement_rate": 0.0,
+          "self_disagreements": 0,
+          "world_is_reproducible": true
+        },
+        "reason": "0 of 120 feature signatures carry more than one outcome, covering 0.00% of the corpus. The current representation is sufficient to express the observed outcome; any remaining error belongs to the search, not to the grammar.",
+        "representation": "lb0-feature-grammar-1.1",
+        "residual_beyond_noise": {
+          "estimated_label_noise_rate": 0.0,
+          "minority_expected_under_noise": 0.0,
+          "minority_observed": 0,
+          "ratio": null,
+          "unexplained_by_noise": false
+        },
+        "status": "experimental",
+        "verdict": "ADEQUATE"
+      },
+      "base_refit": {
+        "held_out": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 357,
+          "positives": 143,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 357,
+          "total": 500,
+          "tp": 143
+        },
+        "literals": [
+          "NOT scope::comms.send.internal",
+          "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+          "scope::customer.read.pii",
+          "scope::payments.instrument.write",
+          "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+        ]
+      },
+      "collision": {
+        "colliding_groups": 0,
+        "collision_rate": 0.0,
+        "distinct_feature_signatures": 120,
+        "irreducible_error_rate": 0.0,
+        "largest_colliding_groups": [],
+        "mean_minority_fraction": 0.0,
+        "minority_total": 0,
+        "trajectories": 500,
+        "trajectories_in_colliding_groups": 0
+      },
+      "environment": {
+        "description": "The outcome is exactly a conjunction of LB-0 literals. The grammar can express it, so a competent detector must report ADEQUATE.",
+        "deterministic": true,
+        "label_noise": 0.0,
+        "name": "adequate",
+        "unmodelled_observable": null,
+        "unsafe_probability": 1.0,
+        "version": "lb1-environment-1.0"
+      },
+      "environment_expectations": {
+        "expected_verdict": "ADEQUATE"
+      },
+      "localisation": null,
+      "probe": {
+        "examples": [],
+        "record_disagreement_rate": 0.0,
+        "record_disagreements": 0,
+        "record_is_faithful": true,
+        "sampled": 240,
+        "self_disagreement_rate": 0.0,
+        "self_disagreements": 0,
+        "world_is_reproducible": true
+      },
+      "proposal": null,
+      "recovery": null
+    },
+    "inadequate_delegation": {
+      "assessment": {
+        "collision": {
+          "colliding_groups": 4,
+          "collision_rate": 0.18,
+          "distinct_feature_signatures": 120,
+          "irreducible_error_rate": 0.086,
+          "largest_colliding_groups": [
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00003",
+                "lb1-discovery-00005",
+                "lb1-discovery-00015",
+                "lb1-discovery-00023",
+                "lb1-discovery-00029"
+              ],
+              "minority": 29,
+              "minority_fraction": 0.5,
+              "outcome_counts": {
+                "safe": 29,
+                "unsafe": 29
+              },
+              "signature": "3f5c131e6ae6418b4abd5342",
+              "size": 58
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00016",
+                "lb1-discovery-00024",
+                "lb1-discovery-00025",
+                "lb1-discovery-00033",
+                "lb1-discovery-00035"
+              ],
+              "minority": 11,
+              "minority_fraction": 0.4583,
+              "outcome_counts": {
+                "safe": 13,
+                "unsafe": 11
+              },
+              "signature": "356ac026ecfbcfbfd7cdd879",
+              "size": 24
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00072",
+                "lb1-discovery-00076",
+                "lb1-discovery-00110",
+                "lb1-discovery-00257",
+                "lb1-discovery-00305"
+              ],
+              "minority": 2,
+              "minority_fraction": 0.3333,
+              "outcome_counts": {
+                "safe": 2,
+                "unsafe": 4
+              },
+              "signature": "3b526627448c5bdf78132b88",
+              "size": 6
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00114",
+                "lb1-discovery-00499"
+              ],
+              "minority": 1,
+              "minority_fraction": 0.5,
+              "outcome_counts": {
+                "safe": 1,
+                "unsafe": 1
+              },
+              "signature": "ee00b985f49c29a5ae18323e",
+              "size": 2
+            }
+          ],
+          "mean_minority_fraction": 0.4479,
+          "minority_total": 43,
+          "trajectories": 500,
+          "trajectories_in_colliding_groups": 90
+        },
+        "confidence": 0.18,
+        "eliminations": [
+          "the world is reproducible: re-running the same trajectory agreed with itself in 100.00% of 240 probes",
+          "the record is faithful: re-running matched the recorded outcome in 100.00% of 240 probes",
+          "43 trajectories nevertheless sit in feature signatures carrying more than one outcome"
+        ],
+        "probe": {
+          "examples": [],
+          "record_disagreement_rate": 0.0,
+          "record_disagreements": 0,
+          "record_is_faithful": true,
+          "sampled": 240,
+          "self_disagreement_rate": 0.0,
+          "self_disagreements": 0,
+          "world_is_reproducible": true
+        },
+        "reason": "The representation is the limiting factor. 4 feature signatures carry more than one outcome, covering 18.00% of the corpus, with a mean minority fraction of 0.45 \u2014 far from the thin minority that label noise produces. The world is reproducible and the record is faithful, so the disagreement cannot be blamed on either. No predicate over the current feature grammar can separate these trajectories: its error is bounded below by 8.60% however the search is improved. Something observable in the traces is not being read.",
+        "representation": "lb0-feature-grammar-1.1",
+        "residual_beyond_noise": {
+          "estimated_label_noise_rate": 0.0,
+          "minority_expected_under_noise": 0.0,
+          "minority_observed": 43,
+          "ratio": null,
+          "unexplained_by_noise": true
+        },
+        "status": "experimental",
+        "verdict": "INADEQUATE"
+      },
+      "base_refit": {
+        "held_out": {
+          "accuracy": 0.858,
+          "f1": 0.6359,
+          "false_negative_rate": 0.1014,
+          "false_positive_rate": 0.1485,
+          "fn": 7,
+          "fp": 64,
+          "mcc": 0.5959,
+          "negatives": 431,
+          "positives": 69,
+          "precision": 0.4921,
+          "recall": 0.8986,
+          "tn": 367,
+          "total": 500,
+          "tp": 62
+        },
+        "literals": [
+          "NOT order2::payment.move_funds@payments@internal|data.read@payments@internal",
+          "NOT scope::comms.send.internal",
+          "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+          "scope::customer.read.pii",
+          "scope::payments.instrument.write",
+          "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+        ]
+      },
+      "collision": {
+        "colliding_groups": 4,
+        "collision_rate": 0.18,
+        "distinct_feature_signatures": 120,
+        "irreducible_error_rate": 0.086,
+        "largest_colliding_groups": [
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00003",
+              "lb1-discovery-00005",
+              "lb1-discovery-00015",
+              "lb1-discovery-00023",
+              "lb1-discovery-00029"
+            ],
+            "minority": 29,
+            "minority_fraction": 0.5,
+            "outcome_counts": {
+              "safe": 29,
+              "unsafe": 29
+            },
+            "signature": "3f5c131e6ae6418b4abd5342",
+            "size": 58
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00016",
+              "lb1-discovery-00024",
+              "lb1-discovery-00025",
+              "lb1-discovery-00033",
+              "lb1-discovery-00035"
+            ],
+            "minority": 11,
+            "minority_fraction": 0.4583,
+            "outcome_counts": {
+              "safe": 13,
+              "unsafe": 11
+            },
+            "signature": "356ac026ecfbcfbfd7cdd879",
+            "size": 24
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00072",
+              "lb1-discovery-00076",
+              "lb1-discovery-00110",
+              "lb1-discovery-00257",
+              "lb1-discovery-00305"
+            ],
+            "minority": 2,
+            "minority_fraction": 0.3333,
+            "outcome_counts": {
+              "safe": 2,
+              "unsafe": 4
+            },
+            "signature": "3b526627448c5bdf78132b88",
+            "size": 6
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00114",
+              "lb1-discovery-00499"
+            ],
+            "minority": 1,
+            "minority_fraction": 0.5,
+            "outcome_counts": {
+              "safe": 1,
+              "unsafe": 1
+            },
+            "signature": "ee00b985f49c29a5ae18323e",
+            "size": 2
+          }
+        ],
+        "mean_minority_fraction": 0.4479,
+        "minority_total": 43,
+        "trajectories": 500,
+        "trajectories_in_colliding_groups": 90
+      },
+      "environment": {
+        "description": "The base rule AND the egress performed by an actor other than the authorising identity. `actor_id` is in every event and read by no feature.",
+        "deterministic": true,
+        "label_noise": 0.0,
+        "name": "inadequate_delegation",
+        "unmodelled_observable": "delegation",
+        "unsafe_probability": 1.0,
+        "version": "lb1-environment-1.0"
+      },
+      "environment_expectations": {
+        "expected_verdict": "INADEQUATE",
+        "missing_observable": "actor_id"
+      },
+      "localisation": {
+        "best": {
+          "collision_rate_after": 0.0,
+          "description": "How many distinct actors participated.",
+          "family": "actor_count",
+          "fully_resolves": true,
+          "minority_after": 0,
+          "minority_before": 43,
+          "observable": "actor_id",
+          "resolution": 1.0,
+          "resolved": 43
+        },
+        "localised": true,
+        "minimum_resolution_required": 0.8,
+        "ranked": [
+          {
+            "collision_rate_after": 0.0,
+            "description": "How many distinct actors participated.",
+            "family": "actor_count",
+            "fully_resolves": true,
+            "minority_after": 0,
+            "minority_before": 43,
+            "observable": "actor_id",
+            "resolution": 1.0,
+            "resolved": 43
+          },
+          {
+            "collision_rate_after": 0.0,
+            "description": "Whether the acting agent differs from the authorising identity, overall and at each kind of step.",
+            "family": "actor_divergence",
+            "fully_resolves": true,
+            "minority_after": 0,
+            "minority_before": 43,
+            "observable": "actor_id",
+            "resolution": 1.0,
+            "resolved": 43
+          },
+          {
+            "collision_rate_after": 0.172,
+            "description": "Total elapsed time from the first step to the last, against a log-spaced ladder of thresholds.",
+            "family": "elapsed",
+            "fully_resolves": false,
+            "minority_after": 28,
+            "minority_before": 43,
+            "observable": "timestamp",
+            "resolution": 0.3488,
+            "resolved": 15
+          },
+          {
+            "collision_rate_after": 0.17,
+            "description": "The largest interval between consecutive steps.",
+            "family": "max_gap",
+            "fully_resolves": false,
+            "minority_after": 30,
+            "minority_before": 43,
+            "observable": "timestamp",
+            "resolution": 0.3023,
+            "resolved": 13
+          },
+          {
+            "collision_rate_after": 0.172,
+            "description": "Which six-hour bucket of the day the trajectory started in.",
+            "family": "hour_of_day",
+            "fully_resolves": false,
+            "minority_after": 33,
+            "minority_before": 43,
+            "observable": "timestamp",
+            "resolution": 0.2326,
+            "resolved": 10
+          },
+          {
+            "collision_rate_after": 0.18,
+            "description": "Whether a capability was exercised more than once.",
+            "family": "capability_multiplicity",
+            "fully_resolves": false,
+            "minority_after": 43,
+            "minority_before": 43,
+            "observable": "capability",
+            "resolution": 0.0,
+            "resolved": 0
+          },
+          {
+            "collision_rate_after": 0.18,
+            "description": "How many distinct identities participated.",
+            "family": "identity_count",
+            "fully_resolves": false,
+            "minority_after": 43,
+            "minority_before": 43,
+            "observable": "identity_id",
+            "resolution": 0.0,
+            "resolved": 0
+          },
+          {
+            "collision_rate_after": 0.18,
+            "description": "Whether any single resource was touched more than once.",
+            "family": "resource_repeat",
+            "fully_resolves": false,
+            "minority_after": 43,
+            "minority_before": 43,
+            "observable": "resource",
+            "resolution": 0.0,
+            "resolved": 0
+          },
+          {
+            "collision_rate_after": 0.18,
+            "description": "How many distinct data subjects were touched.",
+            "family": "subject_count",
+            "fully_resolves": false,
+            "minority_after": 43,
+            "minority_before": 43,
+            "observable": "resource",
+            "resolution": 0.0,
+            "resolved": 0
+          }
+        ]
+      },
+      "probe": {
+        "examples": [],
+        "record_disagreement_rate": 0.0,
+        "record_disagreements": 0,
+        "record_is_faithful": true,
+        "sampled": 240,
+        "self_disagreement_rate": 0.0,
+        "self_disagreements": 0,
+        "world_is_reproducible": true
+      },
+      "proposal": {
+        "demonstrated_recovery": {
+          "base_held_out": {
+            "accuracy": 0.858,
+            "f1": 0.6359,
+            "false_negative_rate": 0.1014,
+            "false_positive_rate": 0.1485,
+            "fn": 7,
+            "fp": 64,
+            "mcc": 0.5959,
+            "negatives": 431,
+            "positives": 69,
+            "precision": 0.4921,
+            "recall": 0.8986,
+            "tn": 367,
+            "total": 500,
+            "tp": 62
+          },
+          "extended_held_out": {
+            "accuracy": 1.0,
+            "f1": 1.0,
+            "false_negative_rate": 0.0,
+            "false_positive_rate": 0.0,
+            "fn": 0,
+            "fp": 0,
+            "mcc": 1.0,
+            "negatives": 431,
+            "positives": 69,
+            "precision": 1.0,
+            "recall": 1.0,
+            "tn": 431,
+            "total": 500,
+            "tp": 69
+          },
+          "extended_literals": [
+            "NOT scope::comms.send.internal",
+            "actors_ge::2",
+            "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+            "scope::customer.read.pii",
+            "scope::payments.instrument.write",
+            "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+          ],
+          "extension_family": "actor_count",
+          "f1_gain": 0.3641,
+          "observable": "actor_id"
+        },
+        "evidence": {
+          "collision": {
+            "colliding_groups": 4,
+            "collision_rate": 0.18,
+            "distinct_feature_signatures": 120,
+            "irreducible_error_rate": 0.086,
+            "largest_colliding_groups": [
+              {
+                "example_sequence_ids": [
+                  "lb1-discovery-00003",
+                  "lb1-discovery-00005",
+                  "lb1-discovery-00015",
+                  "lb1-discovery-00023",
+                  "lb1-discovery-00029"
+                ],
+                "minority": 29,
+                "minority_fraction": 0.5,
+                "outcome_counts": {
+                  "safe": 29,
+                  "unsafe": 29
+                },
+                "signature": "3f5c131e6ae6418b4abd5342",
+                "size": 58
+              },
+              {
+                "example_sequence_ids": [
+                  "lb1-discovery-00016",
+                  "lb1-discovery-00024",
+                  "lb1-discovery-00025",
+                  "lb1-discovery-00033",
+                  "lb1-discovery-00035"
+                ],
+                "minority": 11,
+                "minority_fraction": 0.4583,
+                "outcome_counts": {
+                  "safe": 13,
+                  "unsafe": 11
+                },
+                "signature": "356ac026ecfbcfbfd7cdd879",
+                "size": 24
+              },
+              {
+                "example_sequence_ids": [
+                  "lb1-discovery-00072",
+                  "lb1-discovery-00076",
+                  "lb1-discovery-00110",
+                  "lb1-discovery-00257",
+                  "lb1-discovery-00305"
+                ],
+                "minority": 2,
+                "minority_fraction": 0.3333,
+                "outcome_counts": {
+                  "safe": 2,
+                  "unsafe": 4
+                },
+                "signature": "3b526627448c5bdf78132b88",
+                "size": 6
+              },
+              {
+                "example_sequence_ids": [
+                  "lb1-discovery-00114",
+                  "lb1-discovery-00499"
+                ],
+                "minority": 1,
+                "minority_fraction": 0.5,
+                "outcome_counts": {
+                  "safe": 1,
+                  "unsafe": 1
+                },
+                "signature": "ee00b985f49c29a5ae18323e",
+                "size": 2
+              }
+            ],
+            "mean_minority_fraction": 0.4479,
+            "minority_total": 43,
+            "trajectories": 500,
+            "trajectories_in_colliding_groups": 90
+          },
+          "probe": {
+            "examples": [],
+            "record_disagreement_rate": 0.0,
+            "record_disagreements": 0,
+            "record_is_faithful": true,
+            "sampled": 240,
+            "self_disagreement_rate": 0.0,
+            "self_disagreements": 0,
+            "world_is_reproducible": true
+          }
+        },
+        "extension_family": "actor_count",
+        "grammar_mutation_authority": "none",
+        "localisation": {
+          "best": {
+            "collision_rate_after": 0.0,
+            "description": "How many distinct actors participated.",
+            "family": "actor_count",
+            "fully_resolves": true,
+            "minority_after": 0,
+            "minority_before": 43,
+            "observable": "actor_id",
+            "resolution": 1.0,
+            "resolved": 43
+          },
+          "localised": true,
+          "minimum_resolution_required": 0.8,
+          "ranked": [
+            {
+              "collision_rate_after": 0.0,
+              "description": "How many distinct actors participated.",
+              "family": "actor_count",
+              "fully_resolves": true,
+              "minority_after": 0,
+              "minority_before": 43,
+              "observable": "actor_id",
+              "resolution": 1.0,
+              "resolved": 43
+            },
+            {
+              "collision_rate_after": 0.0,
+              "description": "Whether the acting agent differs from the authorising identity, overall and at each kind of step.",
+              "family": "actor_divergence",
+              "fully_resolves": true,
+              "minority_after": 0,
+              "minority_before": 43,
+              "observable": "actor_id",
+              "resolution": 1.0,
+              "resolved": 43
+            },
+            {
+              "collision_rate_after": 0.172,
+              "description": "Total elapsed time from the first step to the last, against a log-spaced ladder of thresholds.",
+              "family": "elapsed",
+              "fully_resolves": false,
+              "minority_after": 28,
+              "minority_before": 43,
+              "observable": "timestamp",
+              "resolution": 0.3488,
+              "resolved": 15
+            },
+            {
+              "collision_rate_after": 0.17,
+              "description": "The largest interval between consecutive steps.",
+              "family": "max_gap",
+              "fully_resolves": false,
+              "minority_after": 30,
+              "minority_before": 43,
+              "observable": "timestamp",
+              "resolution": 0.3023,
+              "resolved": 13
+            },
+            {
+              "collision_rate_after": 0.172,
+              "description": "Which six-hour bucket of the day the trajectory started in.",
+              "family": "hour_of_day",
+              "fully_resolves": false,
+              "minority_after": 33,
+              "minority_before": 43,
+              "observable": "timestamp",
+              "resolution": 0.2326,
+              "resolved": 10
+            },
+            {
+              "collision_rate_after": 0.18,
+              "description": "Whether a capability was exercised more than once.",
+              "family": "capability_multiplicity",
+              "fully_resolves": false,
+              "minority_after": 43,
+              "minority_before": 43,
+              "observable": "capability",
+              "resolution": 0.0,
+              "resolved": 0
+            },
+            {
+              "collision_rate_after": 0.18,
+              "description": "How many distinct identities participated.",
+              "family": "identity_count",
+              "fully_resolves": false,
+              "minority_after": 43,
+              "minority_before": 43,
+              "observable": "identity_id",
+              "resolution": 0.0,
+              "resolved": 0
+            },
+            {
+              "collision_rate_after": 0.18,
+              "description": "Whether any single resource was touched more than once.",
+              "family": "resource_repeat",
+              "fully_resolves": false,
+              "minority_after": 43,
+              "minority_before": 43,
+              "observable": "resource",
+              "resolution": 0.0,
+              "resolved": 0
+            },
+            {
+              "collision_rate_after": 0.18,
+              "description": "How many distinct data subjects were touched.",
+              "family": "subject_count",
+              "fully_resolves": false,
+              "minority_after": 43,
+              "minority_before": 43,
+              "observable": "resource",
+              "resolution": 0.0,
+              "resolved": 0
+            }
+          ]
+        },
+        "missing_observable": "actor_id",
+        "production_authority": "none",
+        "proposal_hash": "db3be702cd28663b",
+        "proposal_id": "RP-LB1-inadequate_delegation",
+        "rationale": "The representation is the limiting factor. 4 feature signatures carry more than one outcome, covering 18.00% of the corpus, with a mean minority fraction of 0.45 \u2014 far from the thin minority that label noise produces. The world is reproducible and the record is faithful, so the disagreement cannot be blamed on either. No predicate over the current feature grammar can separate these trajectories: its error is bounded below by 8.60% however the search is improved. Something observable in the traces is not being read. The disagreement is resolved by reading 'actor_id' (How many distinct actors participated.), which accounts for 100% of it; adding that observable raises held-out F1 by +0.3641.",
+        "representation": "lb0-feature-grammar-1.1",
+        "status": "REVIEW_REQUIRED",
+        "verdict": "INADEQUATE"
+      },
+      "recovery": {
+        "base_held_out": {
+          "accuracy": 0.858,
+          "f1": 0.6359,
+          "false_negative_rate": 0.1014,
+          "false_positive_rate": 0.1485,
+          "fn": 7,
+          "fp": 64,
+          "mcc": 0.5959,
+          "negatives": 431,
+          "positives": 69,
+          "precision": 0.4921,
+          "recall": 0.8986,
+          "tn": 367,
+          "total": 500,
+          "tp": 62
+        },
+        "extended_held_out": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 431,
+          "positives": 69,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 431,
+          "total": 500,
+          "tp": 69
+        },
+        "extended_literals": [
+          "NOT scope::comms.send.internal",
+          "actors_ge::2",
+          "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+          "scope::customer.read.pii",
+          "scope::payments.instrument.write",
+          "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+        ],
+        "extension_family": "actor_count",
+        "f1_gain": 0.3641,
+        "observable": "actor_id"
+      }
+    },
+    "inadequate_timing": {
+      "assessment": {
+        "collision": {
+          "colliding_groups": 3,
+          "collision_rate": 0.176,
+          "distinct_feature_signatures": 120,
+          "irreducible_error_rate": 0.084,
+          "largest_colliding_groups": [
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00003",
+                "lb1-discovery-00005",
+                "lb1-discovery-00015",
+                "lb1-discovery-00023",
+                "lb1-discovery-00029"
+              ],
+              "minority": 28,
+              "minority_fraction": 0.4828,
+              "outcome_counts": {
+                "safe": 30,
+                "unsafe": 28
+              },
+              "signature": "3f5c131e6ae6418b4abd5342",
+              "size": 58
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00016",
+                "lb1-discovery-00024",
+                "lb1-discovery-00025",
+                "lb1-discovery-00033",
+                "lb1-discovery-00035"
+              ],
+              "minority": 11,
+              "minority_fraction": 0.4583,
+              "outcome_counts": {
+                "safe": 11,
+                "unsafe": 13
+              },
+              "signature": "356ac026ecfbcfbfd7cdd879",
+              "size": 24
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00072",
+                "lb1-discovery-00076",
+                "lb1-discovery-00110",
+                "lb1-discovery-00257",
+                "lb1-discovery-00305"
+              ],
+              "minority": 3,
+              "minority_fraction": 0.5,
+              "outcome_counts": {
+                "safe": 3,
+                "unsafe": 3
+              },
+              "signature": "3b526627448c5bdf78132b88",
+              "size": 6
+            }
+          ],
+          "mean_minority_fraction": 0.4804,
+          "minority_total": 42,
+          "trajectories": 500,
+          "trajectories_in_colliding_groups": 88
+        },
+        "confidence": 0.176,
+        "eliminations": [
+          "the world is reproducible: re-running the same trajectory agreed with itself in 100.00% of 240 probes",
+          "the record is faithful: re-running matched the recorded outcome in 100.00% of 240 probes",
+          "42 trajectories nevertheless sit in feature signatures carrying more than one outcome"
+        ],
+        "probe": {
+          "examples": [],
+          "record_disagreement_rate": 0.0,
+          "record_disagreements": 0,
+          "record_is_faithful": true,
+          "sampled": 240,
+          "self_disagreement_rate": 0.0,
+          "self_disagreements": 0,
+          "world_is_reproducible": true
+        },
+        "reason": "The representation is the limiting factor. 3 feature signatures carry more than one outcome, covering 17.60% of the corpus, with a mean minority fraction of 0.48 \u2014 far from the thin minority that label noise produces. The world is reproducible and the record is faithful, so the disagreement cannot be blamed on either. No predicate over the current feature grammar can separate these trajectories: its error is bounded below by 8.40% however the search is improved. Something observable in the traces is not being read.",
+        "representation": "lb0-feature-grammar-1.1",
+        "residual_beyond_noise": {
+          "estimated_label_noise_rate": 0.0,
+          "minority_expected_under_noise": 0.0,
+          "minority_observed": 42,
+          "ratio": null,
+          "unexplained_by_noise": true
+        },
+        "status": "experimental",
+        "verdict": "INADEQUATE"
+      },
+      "base_refit": {
+        "held_out": {
+          "accuracy": 0.874,
+          "f1": 0.7042,
+          "false_negative_rate": 0.0964,
+          "false_positive_rate": 0.1319,
+          "fn": 8,
+          "fp": 55,
+          "mcc": 0.6546,
+          "negatives": 417,
+          "positives": 83,
+          "precision": 0.5769,
+          "recall": 0.9036,
+          "tn": 362,
+          "total": 500,
+          "tp": 75
+        },
+        "literals": [
+          "NOT order2::payment.move_funds@payments@internal|infra.scale@infrastructure@internal",
+          "NOT scope::comms.send.internal",
+          "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+          "scope::customer.read.pii",
+          "scope::payments.instrument.write",
+          "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+        ]
+      },
+      "collision": {
+        "colliding_groups": 3,
+        "collision_rate": 0.176,
+        "distinct_feature_signatures": 120,
+        "irreducible_error_rate": 0.084,
+        "largest_colliding_groups": [
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00003",
+              "lb1-discovery-00005",
+              "lb1-discovery-00015",
+              "lb1-discovery-00023",
+              "lb1-discovery-00029"
+            ],
+            "minority": 28,
+            "minority_fraction": 0.4828,
+            "outcome_counts": {
+              "safe": 30,
+              "unsafe": 28
+            },
+            "signature": "3f5c131e6ae6418b4abd5342",
+            "size": 58
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00016",
+              "lb1-discovery-00024",
+              "lb1-discovery-00025",
+              "lb1-discovery-00033",
+              "lb1-discovery-00035"
+            ],
+            "minority": 11,
+            "minority_fraction": 0.4583,
+            "outcome_counts": {
+              "safe": 11,
+              "unsafe": 13
+            },
+            "signature": "356ac026ecfbcfbfd7cdd879",
+            "size": 24
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00072",
+              "lb1-discovery-00076",
+              "lb1-discovery-00110",
+              "lb1-discovery-00257",
+              "lb1-discovery-00305"
+            ],
+            "minority": 3,
+            "minority_fraction": 0.5,
+            "outcome_counts": {
+              "safe": 3,
+              "unsafe": 3
+            },
+            "signature": "3b526627448c5bdf78132b88",
+            "size": 6
+          }
+        ],
+        "mean_minority_fraction": 0.4804,
+        "minority_total": 42,
+        "trajectories": 500,
+        "trajectories_in_colliding_groups": 88
+      },
+      "environment": {
+        "description": "The base rule AND a burst condition on elapsed time between the read and the egress. Timestamps are in every event and read by no feature.",
+        "deterministic": true,
+        "label_noise": 0.0,
+        "name": "inadequate_timing",
+        "unmodelled_observable": "timing",
+        "unsafe_probability": 1.0,
+        "version": "lb1-environment-1.0"
+      },
+      "environment_expectations": {
+        "expected_verdict": "INADEQUATE",
+        "missing_observable": "timestamp"
+      },
+      "localisation": {
+        "best": {
+          "collision_rate_after": 0.0,
+          "description": "Total elapsed time from the first step to the last, against a log-spaced ladder of thresholds.",
+          "family": "elapsed",
+          "fully_resolves": true,
+          "minority_after": 0,
+          "minority_before": 42,
+          "observable": "timestamp",
+          "resolution": 1.0,
+          "resolved": 42
+        },
+        "localised": true,
+        "minimum_resolution_required": 0.8,
+        "ranked": [
+          {
+            "collision_rate_after": 0.0,
+            "description": "Total elapsed time from the first step to the last, against a log-spaced ladder of thresholds.",
+            "family": "elapsed",
+            "fully_resolves": true,
+            "minority_after": 0,
+            "minority_before": 42,
+            "observable": "timestamp",
+            "resolution": 1.0,
+            "resolved": 42
+          },
+          {
+            "collision_rate_after": 0.0,
+            "description": "The largest interval between consecutive steps.",
+            "family": "max_gap",
+            "fully_resolves": true,
+            "minority_after": 0,
+            "minority_before": 42,
+            "observable": "timestamp",
+            "resolution": 1.0,
+            "resolved": 42
+          },
+          {
+            "collision_rate_after": 0.168,
+            "description": "Which six-hour bucket of the day the trajectory started in.",
+            "family": "hour_of_day",
+            "fully_resolves": false,
+            "minority_after": 30,
+            "minority_before": 42,
+            "observable": "timestamp",
+            "resolution": 0.2857,
+            "resolved": 12
+          },
+          {
+            "collision_rate_after": 0.176,
+            "description": "How many distinct actors participated.",
+            "family": "actor_count",
+            "fully_resolves": false,
+            "minority_after": 32,
+            "minority_before": 42,
+            "observable": "actor_id",
+            "resolution": 0.2381,
+            "resolved": 10
+          },
+          {
+            "collision_rate_after": 0.176,
+            "description": "Whether the acting agent differs from the authorising identity, overall and at each kind of step.",
+            "family": "actor_divergence",
+            "fully_resolves": false,
+            "minority_after": 32,
+            "minority_before": 42,
+            "observable": "actor_id",
+            "resolution": 0.2381,
+            "resolved": 10
+          },
+          {
+            "collision_rate_after": 0.176,
+            "description": "Whether a capability was exercised more than once.",
+            "family": "capability_multiplicity",
+            "fully_resolves": false,
+            "minority_after": 42,
+            "minority_before": 42,
+            "observable": "capability",
+            "resolution": 0.0,
+            "resolved": 0
+          },
+          {
+            "collision_rate_after": 0.176,
+            "description": "How many distinct identities participated.",
+            "family": "identity_count",
+            "fully_resolves": false,
+            "minority_after": 42,
+            "minority_before": 42,
+            "observable": "identity_id",
+            "resolution": 0.0,
+            "resolved": 0
+          },
+          {
+            "collision_rate_after": 0.176,
+            "description": "Whether any single resource was touched more than once.",
+            "family": "resource_repeat",
+            "fully_resolves": false,
+            "minority_after": 42,
+            "minority_before": 42,
+            "observable": "resource",
+            "resolution": 0.0,
+            "resolved": 0
+          },
+          {
+            "collision_rate_after": 0.176,
+            "description": "How many distinct data subjects were touched.",
+            "family": "subject_count",
+            "fully_resolves": false,
+            "minority_after": 42,
+            "minority_before": 42,
+            "observable": "resource",
+            "resolution": 0.0,
+            "resolved": 0
+          }
+        ]
+      },
+      "probe": {
+        "examples": [],
+        "record_disagreement_rate": 0.0,
+        "record_disagreements": 0,
+        "record_is_faithful": true,
+        "sampled": 240,
+        "self_disagreement_rate": 0.0,
+        "self_disagreements": 0,
+        "world_is_reproducible": true
+      },
+      "proposal": {
+        "demonstrated_recovery": {
+          "base_held_out": {
+            "accuracy": 0.874,
+            "f1": 0.7042,
+            "false_negative_rate": 0.0964,
+            "false_positive_rate": 0.1319,
+            "fn": 8,
+            "fp": 55,
+            "mcc": 0.6546,
+            "negatives": 417,
+            "positives": 83,
+            "precision": 0.5769,
+            "recall": 0.9036,
+            "tn": 362,
+            "total": 500,
+            "tp": 75
+          },
+          "extended_held_out": {
+            "accuracy": 0.998,
+            "f1": 0.9939,
+            "false_negative_rate": 0.012,
+            "false_positive_rate": 0.0,
+            "fn": 1,
+            "fp": 0,
+            "mcc": 0.9928,
+            "negatives": 417,
+            "positives": 83,
+            "precision": 1.0,
+            "recall": 0.988,
+            "tn": 417,
+            "total": 500,
+            "tp": 82
+          },
+          "extended_literals": [
+            "NOT scope::comms.send.internal",
+            "elapsed_le::120",
+            "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+            "scope::customer.read.pii",
+            "scope::payments.instrument.write",
+            "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+          ],
+          "extension_family": "elapsed",
+          "f1_gain": 0.2897,
+          "observable": "timestamp"
+        },
+        "evidence": {
+          "collision": {
+            "colliding_groups": 3,
+            "collision_rate": 0.176,
+            "distinct_feature_signatures": 120,
+            "irreducible_error_rate": 0.084,
+            "largest_colliding_groups": [
+              {
+                "example_sequence_ids": [
+                  "lb1-discovery-00003",
+                  "lb1-discovery-00005",
+                  "lb1-discovery-00015",
+                  "lb1-discovery-00023",
+                  "lb1-discovery-00029"
+                ],
+                "minority": 28,
+                "minority_fraction": 0.4828,
+                "outcome_counts": {
+                  "safe": 30,
+                  "unsafe": 28
+                },
+                "signature": "3f5c131e6ae6418b4abd5342",
+                "size": 58
+              },
+              {
+                "example_sequence_ids": [
+                  "lb1-discovery-00016",
+                  "lb1-discovery-00024",
+                  "lb1-discovery-00025",
+                  "lb1-discovery-00033",
+                  "lb1-discovery-00035"
+                ],
+                "minority": 11,
+                "minority_fraction": 0.4583,
+                "outcome_counts": {
+                  "safe": 11,
+                  "unsafe": 13
+                },
+                "signature": "356ac026ecfbcfbfd7cdd879",
+                "size": 24
+              },
+              {
+                "example_sequence_ids": [
+                  "lb1-discovery-00072",
+                  "lb1-discovery-00076",
+                  "lb1-discovery-00110",
+                  "lb1-discovery-00257",
+                  "lb1-discovery-00305"
+                ],
+                "minority": 3,
+                "minority_fraction": 0.5,
+                "outcome_counts": {
+                  "safe": 3,
+                  "unsafe": 3
+                },
+                "signature": "3b526627448c5bdf78132b88",
+                "size": 6
+              }
+            ],
+            "mean_minority_fraction": 0.4804,
+            "minority_total": 42,
+            "trajectories": 500,
+            "trajectories_in_colliding_groups": 88
+          },
+          "probe": {
+            "examples": [],
+            "record_disagreement_rate": 0.0,
+            "record_disagreements": 0,
+            "record_is_faithful": true,
+            "sampled": 240,
+            "self_disagreement_rate": 0.0,
+            "self_disagreements": 0,
+            "world_is_reproducible": true
+          }
+        },
+        "extension_family": "elapsed",
+        "grammar_mutation_authority": "none",
+        "localisation": {
+          "best": {
+            "collision_rate_after": 0.0,
+            "description": "Total elapsed time from the first step to the last, against a log-spaced ladder of thresholds.",
+            "family": "elapsed",
+            "fully_resolves": true,
+            "minority_after": 0,
+            "minority_before": 42,
+            "observable": "timestamp",
+            "resolution": 1.0,
+            "resolved": 42
+          },
+          "localised": true,
+          "minimum_resolution_required": 0.8,
+          "ranked": [
+            {
+              "collision_rate_after": 0.0,
+              "description": "Total elapsed time from the first step to the last, against a log-spaced ladder of thresholds.",
+              "family": "elapsed",
+              "fully_resolves": true,
+              "minority_after": 0,
+              "minority_before": 42,
+              "observable": "timestamp",
+              "resolution": 1.0,
+              "resolved": 42
+            },
+            {
+              "collision_rate_after": 0.0,
+              "description": "The largest interval between consecutive steps.",
+              "family": "max_gap",
+              "fully_resolves": true,
+              "minority_after": 0,
+              "minority_before": 42,
+              "observable": "timestamp",
+              "resolution": 1.0,
+              "resolved": 42
+            },
+            {
+              "collision_rate_after": 0.168,
+              "description": "Which six-hour bucket of the day the trajectory started in.",
+              "family": "hour_of_day",
+              "fully_resolves": false,
+              "minority_after": 30,
+              "minority_before": 42,
+              "observable": "timestamp",
+              "resolution": 0.2857,
+              "resolved": 12
+            },
+            {
+              "collision_rate_after": 0.176,
+              "description": "How many distinct actors participated.",
+              "family": "actor_count",
+              "fully_resolves": false,
+              "minority_after": 32,
+              "minority_before": 42,
+              "observable": "actor_id",
+              "resolution": 0.2381,
+              "resolved": 10
+            },
+            {
+              "collision_rate_after": 0.176,
+              "description": "Whether the acting agent differs from the authorising identity, overall and at each kind of step.",
+              "family": "actor_divergence",
+              "fully_resolves": false,
+              "minority_after": 32,
+              "minority_before": 42,
+              "observable": "actor_id",
+              "resolution": 0.2381,
+              "resolved": 10
+            },
+            {
+              "collision_rate_after": 0.176,
+              "description": "Whether a capability was exercised more than once.",
+              "family": "capability_multiplicity",
+              "fully_resolves": false,
+              "minority_after": 42,
+              "minority_before": 42,
+              "observable": "capability",
+              "resolution": 0.0,
+              "resolved": 0
+            },
+            {
+              "collision_rate_after": 0.176,
+              "description": "How many distinct identities participated.",
+              "family": "identity_count",
+              "fully_resolves": false,
+              "minority_after": 42,
+              "minority_before": 42,
+              "observable": "identity_id",
+              "resolution": 0.0,
+              "resolved": 0
+            },
+            {
+              "collision_rate_after": 0.176,
+              "description": "Whether any single resource was touched more than once.",
+              "family": "resource_repeat",
+              "fully_resolves": false,
+              "minority_after": 42,
+              "minority_before": 42,
+              "observable": "resource",
+              "resolution": 0.0,
+              "resolved": 0
+            },
+            {
+              "collision_rate_after": 0.176,
+              "description": "How many distinct data subjects were touched.",
+              "family": "subject_count",
+              "fully_resolves": false,
+              "minority_after": 42,
+              "minority_before": 42,
+              "observable": "resource",
+              "resolution": 0.0,
+              "resolved": 0
+            }
+          ]
+        },
+        "missing_observable": "timestamp",
+        "production_authority": "none",
+        "proposal_hash": "00d7ff603cc67529",
+        "proposal_id": "RP-LB1-inadequate_timing",
+        "rationale": "The representation is the limiting factor. 3 feature signatures carry more than one outcome, covering 17.60% of the corpus, with a mean minority fraction of 0.48 \u2014 far from the thin minority that label noise produces. The world is reproducible and the record is faithful, so the disagreement cannot be blamed on either. No predicate over the current feature grammar can separate these trajectories: its error is bounded below by 8.40% however the search is improved. Something observable in the traces is not being read. The disagreement is resolved by reading 'timestamp' (Total elapsed time from the first step to the last, against a log-spaced ladder of thresholds.), which accounts for 100% of it; adding that observable raises held-out F1 by +0.2897.",
+        "representation": "lb0-feature-grammar-1.1",
+        "status": "REVIEW_REQUIRED",
+        "verdict": "INADEQUATE"
+      },
+      "recovery": {
+        "base_held_out": {
+          "accuracy": 0.874,
+          "f1": 0.7042,
+          "false_negative_rate": 0.0964,
+          "false_positive_rate": 0.1319,
+          "fn": 8,
+          "fp": 55,
+          "mcc": 0.6546,
+          "negatives": 417,
+          "positives": 83,
+          "precision": 0.5769,
+          "recall": 0.9036,
+          "tn": 362,
+          "total": 500,
+          "tp": 75
+        },
+        "extended_held_out": {
+          "accuracy": 0.998,
+          "f1": 0.9939,
+          "false_negative_rate": 0.012,
+          "false_positive_rate": 0.0,
+          "fn": 1,
+          "fp": 0,
+          "mcc": 0.9928,
+          "negatives": 417,
+          "positives": 83,
+          "precision": 1.0,
+          "recall": 0.988,
+          "tn": 417,
+          "total": 500,
+          "tp": 82
+        },
+        "extended_literals": [
+          "NOT scope::comms.send.internal",
+          "elapsed_le::120",
+          "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+          "scope::customer.read.pii",
+          "scope::payments.instrument.write",
+          "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+        ],
+        "extension_family": "elapsed",
+        "f1_gain": 0.2897,
+        "observable": "timestamp"
+      }
+    },
+    "inadequate_unlocalised": {
+      "assessment": {
+        "collision": {
+          "colliding_groups": 4,
+          "collision_rate": 0.136,
+          "distinct_feature_signatures": 120,
+          "irreducible_error_rate": 0.064,
+          "largest_colliding_groups": [
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00003",
+                "lb1-discovery-00005",
+                "lb1-discovery-00015",
+                "lb1-discovery-00023",
+                "lb1-discovery-00029"
+              ],
+              "minority": 28,
+              "minority_fraction": 0.4828,
+              "outcome_counts": {
+                "safe": 30,
+                "unsafe": 28
+              },
+              "signature": "3f5c131e6ae6418b4abd5342",
+              "size": 58
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00072",
+                "lb1-discovery-00076",
+                "lb1-discovery-00110",
+                "lb1-discovery-00257",
+                "lb1-discovery-00305"
+              ],
+              "minority": 2,
+              "minority_fraction": 0.3333,
+              "outcome_counts": {
+                "safe": 2,
+                "unsafe": 4
+              },
+              "signature": "3b526627448c5bdf78132b88",
+              "size": 6
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00106",
+                "lb1-discovery-00379"
+              ],
+              "minority": 1,
+              "minority_fraction": 0.5,
+              "outcome_counts": {
+                "safe": 1,
+                "unsafe": 1
+              },
+              "signature": "681b30d5c01697d8cbfe8861",
+              "size": 2
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00198",
+                "lb1-discovery-00418"
+              ],
+              "minority": 1,
+              "minority_fraction": 0.5,
+              "outcome_counts": {
+                "safe": 1,
+                "unsafe": 1
+              },
+              "signature": "69f3f1698630b2b1661bd0ab",
+              "size": 2
+            }
+          ],
+          "mean_minority_fraction": 0.454,
+          "minority_total": 32,
+          "trajectories": 500,
+          "trajectories_in_colliding_groups": 68
+        },
+        "confidence": 0.136,
+        "eliminations": [
+          "the world is reproducible: re-running the same trajectory agreed with itself in 100.00% of 240 probes",
+          "the record is faithful: re-running matched the recorded outcome in 100.00% of 240 probes",
+          "32 trajectories nevertheless sit in feature signatures carrying more than one outcome"
+        ],
+        "probe": {
+          "examples": [],
+          "record_disagreement_rate": 0.0,
+          "record_disagreements": 0,
+          "record_is_faithful": true,
+          "sampled": 240,
+          "self_disagreement_rate": 0.0,
+          "self_disagreements": 0,
+          "world_is_reproducible": true
+        },
+        "reason": "The representation is the limiting factor. 4 feature signatures carry more than one outcome, covering 13.60% of the corpus, with a mean minority fraction of 0.45 \u2014 far from the thin minority that label noise produces. The world is reproducible and the record is faithful, so the disagreement cannot be blamed on either. No predicate over the current feature grammar can separate these trajectories: its error is bounded below by 6.40% however the search is improved. Something observable in the traces is not being read.",
+        "representation": "lb0-feature-grammar-1.1",
+        "residual_beyond_noise": {
+          "estimated_label_noise_rate": 0.0,
+          "minority_expected_under_noise": 0.0,
+          "minority_observed": 32,
+          "ratio": null,
+          "unexplained_by_noise": true
+        },
+        "status": "experimental",
+        "verdict": "INADEQUATE"
+      },
+      "base_refit": {
+        "held_out": {
+          "accuracy": 0.892,
+          "f1": 0.449,
+          "false_negative_rate": 0.5926,
+          "false_positive_rate": 0.0493,
+          "fn": 32,
+          "fp": 22,
+          "mcc": 0.3923,
+          "negatives": 446,
+          "positives": 54,
+          "precision": 0.5,
+          "recall": 0.4074,
+          "tn": 424,
+          "total": 500,
+          "tp": 22
+        },
+        "literals": [
+          "NOT has_boundary::external",
+          "NOT order2::record.write@support@internal|data.read@customer_data@internal",
+          "order2::payment.move_funds@payments@internal|data.external_move@communications@crossing",
+          "steps_ge::4"
+        ]
+      },
+      "collision": {
+        "colliding_groups": 4,
+        "collision_rate": 0.136,
+        "distinct_feature_signatures": 120,
+        "irreducible_error_rate": 0.064,
+        "largest_colliding_groups": [
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00003",
+              "lb1-discovery-00005",
+              "lb1-discovery-00015",
+              "lb1-discovery-00023",
+              "lb1-discovery-00029"
+            ],
+            "minority": 28,
+            "minority_fraction": 0.4828,
+            "outcome_counts": {
+              "safe": 30,
+              "unsafe": 28
+            },
+            "signature": "3f5c131e6ae6418b4abd5342",
+            "size": 58
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00072",
+              "lb1-discovery-00076",
+              "lb1-discovery-00110",
+              "lb1-discovery-00257",
+              "lb1-discovery-00305"
+            ],
+            "minority": 2,
+            "minority_fraction": 0.3333,
+            "outcome_counts": {
+              "safe": 2,
+              "unsafe": 4
+            },
+            "signature": "3b526627448c5bdf78132b88",
+            "size": 6
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00106",
+              "lb1-discovery-00379"
+            ],
+            "minority": 1,
+            "minority_fraction": 0.5,
+            "outcome_counts": {
+              "safe": 1,
+              "unsafe": 1
+            },
+            "signature": "681b30d5c01697d8cbfe8861",
+            "size": 2
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00198",
+              "lb1-discovery-00418"
+            ],
+            "minority": 1,
+            "minority_fraction": 0.5,
+            "outcome_counts": {
+              "safe": 1,
+              "unsafe": 1
+            },
+            "signature": "69f3f1698630b2b1661bd0ab",
+            "size": 2
+          }
+        ],
+        "mean_minority_fraction": 0.454,
+        "minority_total": 32,
+        "trajectories": 500,
+        "trajectories_in_colliding_groups": 68
+      },
+      "environment": {
+        "description": "The base rule AND the crossing egress performed by one PARTICULAR tool among three that share a capability, domain and boundary. Beyond the grammar AND beyond every family in the extension pool.",
+        "deterministic": true,
+        "label_noise": 0.0,
+        "name": "inadequate_unlocalised",
+        "unmodelled_observable": "specific_action",
+        "unsafe_probability": 1.0,
+        "version": "lb1-environment-1.0"
+      },
+      "environment_expectations": {
+        "expected_localisation": "UNLOCALISED",
+        "expected_verdict": "INADEQUATE",
+        "missing_observable": null
+      },
+      "localisation": {
+        "best": {
+          "collision_rate_after": 0.11,
+          "description": "Total elapsed time from the first step to the last, against a log-spaced ladder of thresholds.",
+          "family": "elapsed",
+          "fully_resolves": false,
+          "minority_after": 16,
+          "minority_before": 32,
+          "observable": "timestamp",
+          "resolution": 0.5,
+          "resolved": 16
+        },
+        "localised": false,
+        "minimum_resolution_required": 0.8,
+        "ranked": [
+          {
+            "collision_rate_after": 0.11,
+            "description": "Total elapsed time from the first step to the last, against a log-spaced ladder of thresholds.",
+            "family": "elapsed",
+            "fully_resolves": false,
+            "minority_after": 16,
+            "minority_before": 32,
+            "observable": "timestamp",
+            "resolution": 0.5,
+            "resolved": 16
+          },
+          {
+            "collision_rate_after": 0.124,
+            "description": "The largest interval between consecutive steps.",
+            "family": "max_gap",
+            "fully_resolves": false,
+            "minority_after": 20,
+            "minority_before": 32,
+            "observable": "timestamp",
+            "resolution": 0.375,
+            "resolved": 12
+          },
+          {
+            "collision_rate_after": 0.12,
+            "description": "Which six-hour bucket of the day the trajectory started in.",
+            "family": "hour_of_day",
+            "fully_resolves": false,
+            "minority_after": 24,
+            "minority_before": 32,
+            "observable": "timestamp",
+            "resolution": 0.25,
+            "resolved": 8
+          },
+          {
+            "collision_rate_after": 0.124,
+            "description": "How many distinct actors participated.",
+            "family": "actor_count",
+            "fully_resolves": false,
+            "minority_after": 25,
+            "minority_before": 32,
+            "observable": "actor_id",
+            "resolution": 0.2188,
+            "resolved": 7
+          },
+          {
+            "collision_rate_after": 0.124,
+            "description": "Whether the acting agent differs from the authorising identity, overall and at each kind of step.",
+            "family": "actor_divergence",
+            "fully_resolves": false,
+            "minority_after": 25,
+            "minority_before": 32,
+            "observable": "actor_id",
+            "resolution": 0.2188,
+            "resolved": 7
+          },
+          {
+            "collision_rate_after": 0.136,
+            "description": "Whether a capability was exercised more than once.",
+            "family": "capability_multiplicity",
+            "fully_resolves": false,
+            "minority_after": 32,
+            "minority_before": 32,
+            "observable": "capability",
+            "resolution": 0.0,
+            "resolved": 0
+          },
+          {
+            "collision_rate_after": 0.136,
+            "description": "How many distinct identities participated.",
+            "family": "identity_count",
+            "fully_resolves": false,
+            "minority_after": 32,
+            "minority_before": 32,
+            "observable": "identity_id",
+            "resolution": 0.0,
+            "resolved": 0
+          },
+          {
+            "collision_rate_after": 0.136,
+            "description": "Whether any single resource was touched more than once.",
+            "family": "resource_repeat",
+            "fully_resolves": false,
+            "minority_after": 32,
+            "minority_before": 32,
+            "observable": "resource",
+            "resolution": 0.0,
+            "resolved": 0
+          },
+          {
+            "collision_rate_after": 0.136,
+            "description": "How many distinct data subjects were touched.",
+            "family": "subject_count",
+            "fully_resolves": false,
+            "minority_after": 32,
+            "minority_before": 32,
+            "observable": "resource",
+            "resolution": 0.0,
+            "resolved": 0
+          }
+        ]
+      },
+      "probe": {
+        "examples": [],
+        "record_disagreement_rate": 0.0,
+        "record_disagreements": 0,
+        "record_is_faithful": true,
+        "sampled": 240,
+        "self_disagreement_rate": 0.0,
+        "self_disagreements": 0,
+        "world_is_reproducible": true
+      },
+      "proposal": null,
+      "recovery": null
+    },
+    "noise_limited": {
+      "assessment": {
+        "collision": {
+          "colliding_groups": 19,
+          "collision_rate": 0.714,
+          "distinct_feature_signatures": 120,
+          "irreducible_error_rate": 0.106,
+          "largest_colliding_groups": [
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00021",
+                "lb1-discovery-00031",
+                "lb1-discovery-00048",
+                "lb1-discovery-00092",
+                "lb1-discovery-00111"
+              ],
+              "minority": 7,
+              "minority_fraction": 0.2917,
+              "outcome_counts": {
+                "safe": 17,
+                "unsafe": 7
+              },
+              "signature": "eac1ee6376fd82845589ff54",
+              "size": 24
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00003",
+                "lb1-discovery-00005",
+                "lb1-discovery-00015",
+                "lb1-discovery-00023",
+                "lb1-discovery-00029"
+              ],
+              "minority": 5,
+              "minority_fraction": 0.0862,
+              "outcome_counts": {
+                "safe": 5,
+                "unsafe": 53
+              },
+              "signature": "3f5c131e6ae6418b4abd5342",
+              "size": 58
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00001",
+                "lb1-discovery-00019",
+                "lb1-discovery-00049",
+                "lb1-discovery-00053",
+                "lb1-discovery-00060"
+              ],
+              "minority": 5,
+              "minority_fraction": 0.2632,
+              "outcome_counts": {
+                "safe": 14,
+                "unsafe": 5
+              },
+              "signature": "a221becd2be06fd45e38e900",
+              "size": 19
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00012",
+                "lb1-discovery-00013",
+                "lb1-discovery-00057",
+                "lb1-discovery-00058",
+                "lb1-discovery-00077"
+              ],
+              "minority": 4,
+              "minority_fraction": 0.1379,
+              "outcome_counts": {
+                "safe": 25,
+                "unsafe": 4
+              },
+              "signature": "9dc0e8060ee21598bcba4efc",
+              "size": 29
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00016",
+                "lb1-discovery-00024",
+                "lb1-discovery-00025",
+                "lb1-discovery-00033",
+                "lb1-discovery-00035"
+              ],
+              "minority": 4,
+              "minority_fraction": 0.1667,
+              "outcome_counts": {
+                "safe": 4,
+                "unsafe": 20
+              },
+              "signature": "356ac026ecfbcfbfd7cdd879",
+              "size": 24
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00055",
+                "lb1-discovery-00101",
+                "lb1-discovery-00112",
+                "lb1-discovery-00171",
+                "lb1-discovery-00204"
+              ],
+              "minority": 4,
+              "minority_fraction": 0.2222,
+              "outcome_counts": {
+                "safe": 14,
+                "unsafe": 4
+              },
+              "signature": "b348386c3f92b6b5bcc4629a",
+              "size": 18
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00002",
+                "lb1-discovery-00011",
+                "lb1-discovery-00032",
+                "lb1-discovery-00034",
+                "lb1-discovery-00038"
+              ],
+              "minority": 3,
+              "minority_fraction": 0.0857,
+              "outcome_counts": {
+                "safe": 32,
+                "unsafe": 3
+              },
+              "signature": "61874f91abfbadd56c242061",
+              "size": 35
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00018",
+                "lb1-discovery-00037",
+                "lb1-discovery-00078",
+                "lb1-discovery-00140",
+                "lb1-discovery-00166"
+              ],
+              "minority": 3,
+              "minority_fraction": 0.1071,
+              "outcome_counts": {
+                "safe": 25,
+                "unsafe": 3
+              },
+              "signature": "1dba900fda1b6e13bfc029cc",
+              "size": 28
+            }
+          ],
+          "mean_minority_fraction": 0.1997,
+          "minority_total": 53,
+          "trajectories": 500,
+          "trajectories_in_colliding_groups": 357
+        },
+        "confidence": 0.1208,
+        "eliminations": [
+          "the world is reproducible: re-running the same trajectory agreed with itself in 100.00% of 240 probes",
+          "re-running disagreed with the RECORDED outcome at rate 0.1208, above the 0.02 fidelity margin"
+        ],
+        "probe": {
+          "examples": [
+            {
+              "observations": [
+                "safe",
+                "safe"
+              ],
+              "recorded": "unsafe",
+              "sequence_id": "lb1-discovery-00002"
+            },
+            {
+              "observations": [
+                "safe",
+                "safe"
+              ],
+              "recorded": "unsafe",
+              "sequence_id": "lb1-discovery-00012"
+            },
+            {
+              "observations": [
+                "safe",
+                "safe"
+              ],
+              "recorded": "unsafe",
+              "sequence_id": "lb1-discovery-00042"
+            },
+            {
+              "observations": [
+                "safe",
+                "safe"
+              ],
+              "recorded": "unsafe",
+              "sequence_id": "lb1-discovery-00060"
+            },
+            {
+              "observations": [
+                "safe",
+                "safe"
+              ],
+              "recorded": "unsafe",
+              "sequence_id": "lb1-discovery-00062"
+            }
+          ],
+          "record_disagreement_rate": 0.1208,
+          "record_disagreements": 29,
+          "record_is_faithful": false,
+          "sampled": 240,
+          "self_disagreement_rate": 0.0,
+          "self_disagreements": 0,
+          "world_is_reproducible": true
+        },
+        "reason": "The recorded outcomes are wrong at about 12.08%, which is enough to manufacture these collisions in a corpus the representation could otherwise express. Extending the grammar here would fit the label noise.",
+        "representation": "lb0-feature-grammar-1.1",
+        "residual_beyond_noise": {
+          "estimated_label_noise_rate": 0.1208,
+          "minority_expected_under_noise": 43.14,
+          "minority_observed": 53,
+          "ratio": 1.229,
+          "unexplained_by_noise": false
+        },
+        "status": "experimental",
+        "verdict": "NOISE_LIMITED"
+      },
+      "base_refit": {
+        "held_out": {
+          "accuracy": 0.878,
+          "f1": 0.7946,
+          "false_negative_rate": 0.2338,
+          "false_positive_rate": 0.0723,
+          "fn": 36,
+          "fp": 25,
+          "mcc": 0.709,
+          "negatives": 346,
+          "positives": 154,
+          "precision": 0.8252,
+          "recall": 0.7662,
+          "tn": 321,
+          "total": 500,
+          "tp": 118
+        },
+        "literals": [
+          "NOT scope::comms.send.internal",
+          "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+          "scope::customer.read.pii",
+          "scope::payments.instrument.write",
+          "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+        ]
+      },
+      "collision": {
+        "colliding_groups": 19,
+        "collision_rate": 0.714,
+        "distinct_feature_signatures": 120,
+        "irreducible_error_rate": 0.106,
+        "largest_colliding_groups": [
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00021",
+              "lb1-discovery-00031",
+              "lb1-discovery-00048",
+              "lb1-discovery-00092",
+              "lb1-discovery-00111"
+            ],
+            "minority": 7,
+            "minority_fraction": 0.2917,
+            "outcome_counts": {
+              "safe": 17,
+              "unsafe": 7
+            },
+            "signature": "eac1ee6376fd82845589ff54",
+            "size": 24
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00003",
+              "lb1-discovery-00005",
+              "lb1-discovery-00015",
+              "lb1-discovery-00023",
+              "lb1-discovery-00029"
+            ],
+            "minority": 5,
+            "minority_fraction": 0.0862,
+            "outcome_counts": {
+              "safe": 5,
+              "unsafe": 53
+            },
+            "signature": "3f5c131e6ae6418b4abd5342",
+            "size": 58
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00001",
+              "lb1-discovery-00019",
+              "lb1-discovery-00049",
+              "lb1-discovery-00053",
+              "lb1-discovery-00060"
+            ],
+            "minority": 5,
+            "minority_fraction": 0.2632,
+            "outcome_counts": {
+              "safe": 14,
+              "unsafe": 5
+            },
+            "signature": "a221becd2be06fd45e38e900",
+            "size": 19
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00012",
+              "lb1-discovery-00013",
+              "lb1-discovery-00057",
+              "lb1-discovery-00058",
+              "lb1-discovery-00077"
+            ],
+            "minority": 4,
+            "minority_fraction": 0.1379,
+            "outcome_counts": {
+              "safe": 25,
+              "unsafe": 4
+            },
+            "signature": "9dc0e8060ee21598bcba4efc",
+            "size": 29
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00016",
+              "lb1-discovery-00024",
+              "lb1-discovery-00025",
+              "lb1-discovery-00033",
+              "lb1-discovery-00035"
+            ],
+            "minority": 4,
+            "minority_fraction": 0.1667,
+            "outcome_counts": {
+              "safe": 4,
+              "unsafe": 20
+            },
+            "signature": "356ac026ecfbcfbfd7cdd879",
+            "size": 24
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00055",
+              "lb1-discovery-00101",
+              "lb1-discovery-00112",
+              "lb1-discovery-00171",
+              "lb1-discovery-00204"
+            ],
+            "minority": 4,
+            "minority_fraction": 0.2222,
+            "outcome_counts": {
+              "safe": 14,
+              "unsafe": 4
+            },
+            "signature": "b348386c3f92b6b5bcc4629a",
+            "size": 18
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00002",
+              "lb1-discovery-00011",
+              "lb1-discovery-00032",
+              "lb1-discovery-00034",
+              "lb1-discovery-00038"
+            ],
+            "minority": 3,
+            "minority_fraction": 0.0857,
+            "outcome_counts": {
+              "safe": 32,
+              "unsafe": 3
+            },
+            "signature": "61874f91abfbadd56c242061",
+            "size": 35
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00018",
+              "lb1-discovery-00037",
+              "lb1-discovery-00078",
+              "lb1-discovery-00140",
+              "lb1-discovery-00166"
+            ],
+            "minority": 3,
+            "minority_fraction": 0.1071,
+            "outcome_counts": {
+              "safe": 25,
+              "unsafe": 3
+            },
+            "signature": "1dba900fda1b6e13bfc029cc",
+            "size": 28
+          }
+        ],
+        "mean_minority_fraction": 0.1997,
+        "minority_total": 53,
+        "trajectories": 500,
+        "trajectories_in_colliding_groups": 357
+      },
+      "environment": {
+        "description": "The adequate rule with recorded labels flipped at rate 0.12. The representation is sufficient; the record is not.",
+        "deterministic": true,
+        "label_noise": 0.12,
+        "name": "noise_limited",
+        "unmodelled_observable": null,
+        "unsafe_probability": 1.0,
+        "version": "lb1-environment-1.0"
+      },
+      "environment_expectations": {
+        "expected_verdict": "NOISE_LIMITED"
+      },
+      "localisation": null,
+      "probe": {
+        "examples": [
+          {
+            "observations": [
+              "safe",
+              "safe"
+            ],
+            "recorded": "unsafe",
+            "sequence_id": "lb1-discovery-00002"
+          },
+          {
+            "observations": [
+              "safe",
+              "safe"
+            ],
+            "recorded": "unsafe",
+            "sequence_id": "lb1-discovery-00012"
+          },
+          {
+            "observations": [
+              "safe",
+              "safe"
+            ],
+            "recorded": "unsafe",
+            "sequence_id": "lb1-discovery-00042"
+          },
+          {
+            "observations": [
+              "safe",
+              "safe"
+            ],
+            "recorded": "unsafe",
+            "sequence_id": "lb1-discovery-00060"
+          },
+          {
+            "observations": [
+              "safe",
+              "safe"
+            ],
+            "recorded": "unsafe",
+            "sequence_id": "lb1-discovery-00062"
+          }
+        ],
+        "record_disagreement_rate": 0.1208,
+        "record_disagreements": 29,
+        "record_is_faithful": false,
+        "sampled": 240,
+        "self_disagreement_rate": 0.0,
+        "self_disagreements": 0,
+        "world_is_reproducible": true
+      },
+      "proposal": null,
+      "recovery": null
+    },
+    "stochastic": {
+      "assessment": {
+        "collision": {
+          "colliding_groups": 4,
+          "collision_rate": 0.18,
+          "distinct_feature_signatures": 120,
+          "irreducible_error_rate": 0.07,
+          "largest_colliding_groups": [
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00003",
+                "lb1-discovery-00005",
+                "lb1-discovery-00015",
+                "lb1-discovery-00023",
+                "lb1-discovery-00029"
+              ],
+              "minority": 24,
+              "minority_fraction": 0.4138,
+              "outcome_counts": {
+                "safe": 24,
+                "unsafe": 34
+              },
+              "signature": "3f5c131e6ae6418b4abd5342",
+              "size": 58
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00016",
+                "lb1-discovery-00024",
+                "lb1-discovery-00025",
+                "lb1-discovery-00033",
+                "lb1-discovery-00035"
+              ],
+              "minority": 8,
+              "minority_fraction": 0.3333,
+              "outcome_counts": {
+                "safe": 16,
+                "unsafe": 8
+              },
+              "signature": "356ac026ecfbcfbfd7cdd879",
+              "size": 24
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00072",
+                "lb1-discovery-00076",
+                "lb1-discovery-00110",
+                "lb1-discovery-00257",
+                "lb1-discovery-00305"
+              ],
+              "minority": 2,
+              "minority_fraction": 0.3333,
+              "outcome_counts": {
+                "safe": 4,
+                "unsafe": 2
+              },
+              "signature": "3b526627448c5bdf78132b88",
+              "size": 6
+            },
+            {
+              "example_sequence_ids": [
+                "lb1-discovery-00198",
+                "lb1-discovery-00418"
+              ],
+              "minority": 1,
+              "minority_fraction": 0.5,
+              "outcome_counts": {
+                "safe": 1,
+                "unsafe": 1
+              },
+              "signature": "69f3f1698630b2b1661bd0ab",
+              "size": 2
+            }
+          ],
+          "mean_minority_fraction": 0.3951,
+          "minority_total": 35,
+          "trajectories": 500,
+          "trajectories_in_colliding_groups": 90
+        },
+        "confidence": 0.1667,
+        "eliminations": [
+          "re-running the same trajectory disagreed with itself at rate 0.1667, above the 0.02 reproducibility margin"
+        ],
+        "probe": {
+          "examples": [
+            {
+              "observations": [
+                "safe",
+                "unsafe"
+              ],
+              "recorded": "unsafe",
+              "sequence_id": "lb1-discovery-00004"
+            },
+            {
+              "observations": [
+                "unsafe",
+                "safe"
+              ],
+              "recorded": "unsafe",
+              "sequence_id": "lb1-discovery-00008"
+            },
+            {
+              "observations": [
+                "unsafe",
+                "unsafe"
+              ],
+              "recorded": "safe",
+              "sequence_id": "lb1-discovery-00010"
+            },
+            {
+              "observations": [
+                "safe",
+                "unsafe"
+              ],
+              "recorded": "safe",
+              "sequence_id": "lb1-discovery-00014"
+            },
+            {
+              "observations": [
+                "unsafe",
+                "safe"
+              ],
+              "recorded": "safe",
+              "sequence_id": "lb1-discovery-00016"
+            }
+          ],
+          "record_disagreement_rate": 0.1833,
+          "record_disagreements": 44,
+          "record_is_faithful": false,
+          "sampled": 240,
+          "self_disagreement_rate": 0.1667,
+          "self_disagreements": 40,
+          "world_is_reproducible": false
+        },
+        "reason": "The outcome is not a function of the trajectory: re-running the same trajectory returned a different result 16.67% of the time. Collisions here say nothing about the representation, because NO representation of the trajectory could predict this outcome. Extending the grammar would fit sampling variation.",
+        "representation": "lb0-feature-grammar-1.1",
+        "residual_beyond_noise": {
+          "estimated_label_noise_rate": 0.1833,
+          "minority_expected_under_noise": 16.5,
+          "minority_observed": 35,
+          "ratio": 2.121,
+          "unexplained_by_noise": true
+        },
+        "status": "experimental",
+        "verdict": "STOCHASTIC"
+      },
+      "base_refit": {
+        "held_out": {
+          "accuracy": 0.858,
+          "f1": 0.6468,
+          "false_negative_rate": 0.1216,
+          "false_positive_rate": 0.1455,
+          "fn": 9,
+          "fp": 62,
+          "mcc": 0.5978,
+          "negatives": 426,
+          "positives": 74,
+          "precision": 0.5118,
+          "recall": 0.8784,
+          "tn": 364,
+          "total": 500,
+          "tp": 65
+        },
+        "literals": [
+          "NOT order2::payment.move_funds@payments@internal|data.read@support@internal",
+          "NOT scope::comms.send.internal",
+          "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+          "scope::customer.read.pii",
+          "scope::payments.instrument.write",
+          "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+        ]
+      },
+      "collision": {
+        "colliding_groups": 4,
+        "collision_rate": 0.18,
+        "distinct_feature_signatures": 120,
+        "irreducible_error_rate": 0.07,
+        "largest_colliding_groups": [
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00003",
+              "lb1-discovery-00005",
+              "lb1-discovery-00015",
+              "lb1-discovery-00023",
+              "lb1-discovery-00029"
+            ],
+            "minority": 24,
+            "minority_fraction": 0.4138,
+            "outcome_counts": {
+              "safe": 24,
+              "unsafe": 34
+            },
+            "signature": "3f5c131e6ae6418b4abd5342",
+            "size": 58
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00016",
+              "lb1-discovery-00024",
+              "lb1-discovery-00025",
+              "lb1-discovery-00033",
+              "lb1-discovery-00035"
+            ],
+            "minority": 8,
+            "minority_fraction": 0.3333,
+            "outcome_counts": {
+              "safe": 16,
+              "unsafe": 8
+            },
+            "signature": "356ac026ecfbcfbfd7cdd879",
+            "size": 24
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00072",
+              "lb1-discovery-00076",
+              "lb1-discovery-00110",
+              "lb1-discovery-00257",
+              "lb1-discovery-00305"
+            ],
+            "minority": 2,
+            "minority_fraction": 0.3333,
+            "outcome_counts": {
+              "safe": 4,
+              "unsafe": 2
+            },
+            "signature": "3b526627448c5bdf78132b88",
+            "size": 6
+          },
+          {
+            "example_sequence_ids": [
+              "lb1-discovery-00198",
+              "lb1-discovery-00418"
+            ],
+            "minority": 1,
+            "minority_fraction": 0.5,
+            "outcome_counts": {
+              "safe": 1,
+              "unsafe": 1
+            },
+            "signature": "69f3f1698630b2b1661bd0ab",
+            "size": 2
+          }
+        ],
+        "mean_minority_fraction": 0.3951,
+        "minority_total": 35,
+        "trajectories": 500,
+        "trajectories_in_colliding_groups": 90
+      },
+      "environment": {
+        "description": "The adequate rule, but a base-satisfying trajectory goes wrong only 55% of the time, drawn fresh on every run. The representation is sufficient; the world is not deterministic.",
+        "deterministic": false,
+        "label_noise": 0.0,
+        "name": "stochastic",
+        "unmodelled_observable": null,
+        "unsafe_probability": 0.55,
+        "version": "lb1-environment-1.0"
+      },
+      "environment_expectations": {
+        "expected_verdict": "STOCHASTIC"
+      },
+      "localisation": null,
+      "probe": {
+        "examples": [
+          {
+            "observations": [
+              "safe",
+              "unsafe"
+            ],
+            "recorded": "unsafe",
+            "sequence_id": "lb1-discovery-00004"
+          },
+          {
+            "observations": [
+              "unsafe",
+              "safe"
+            ],
+            "recorded": "unsafe",
+            "sequence_id": "lb1-discovery-00008"
+          },
+          {
+            "observations": [
+              "unsafe",
+              "unsafe"
+            ],
+            "recorded": "safe",
+            "sequence_id": "lb1-discovery-00010"
+          },
+          {
+            "observations": [
+              "safe",
+              "unsafe"
+            ],
+            "recorded": "safe",
+            "sequence_id": "lb1-discovery-00014"
+          },
+          {
+            "observations": [
+              "unsafe",
+              "safe"
+            ],
+            "recorded": "safe",
+            "sequence_id": "lb1-discovery-00016"
+          }
+        ],
+        "record_disagreement_rate": 0.1833,
+        "record_disagreements": 44,
+        "record_is_faithful": false,
+        "sampled": 240,
+        "self_disagreement_rate": 0.1667,
+        "self_disagreements": 40,
+        "world_is_reproducible": false
+      },
+      "proposal": null,
+      "recovery": null
+    }
+  },
+  "evidence": {
+    "chain": {
+      "head": "48da84ad74709a2f7ad6507b9d2188c2f80f2c54196fa188460db7c94996580f",
+      "problems": [],
+      "records": 9,
+      "verified": true
+    },
+    "run_id": "lb1-seed42-dbf6eb03",
+    "stages": [
+      {
+        "payload_hash": "56d62c75607e417d22f8d85e61289b84cf2898148b4104bde50961cebec98798",
+        "record_hash": "c5a6ec7fb0af7363560bc45144178e7fb7293c5031d49881876ddb3ce44d9be0",
+        "stage": "corpus",
+        "summary": "one corpus, five environments"
+      },
+      {
+        "payload_hash": "d9a947920ec04b60d25b416b24a464860ce6705de42f2c74c4d46ea15b991e61",
+        "record_hash": "97913f61ef4ecef39b40a49f9b969b3ca07c542cad585eee8fee8b806818c6dd",
+        "stage": "environment:adequate",
+        "summary": "ADEQUATE"
+      },
+      {
+        "payload_hash": "df159bb4501b3d0d584d9075d3cbeb2079b611980c8aa233d8e3f6338749374f",
+        "record_hash": "336fb176cb845e305aaf369fcb3e748f28281044801e7f854dde0b744fd4017a",
+        "stage": "environment:inadequate_timing",
+        "summary": "INADEQUATE"
+      },
+      {
+        "payload_hash": "e9326b0807c1fbd952cb4ea40809c63fd916c3f443f46b7b196c55c524647d7d",
+        "record_hash": "d9e9345bf1ce7ea7961812c92f98c23d687e4314c2032ff286409a1ece1a3df0",
+        "stage": "environment:inadequate_delegation",
+        "summary": "INADEQUATE"
+      },
+      {
+        "payload_hash": "2a9a4be000fd0f6423a4b068d1311b1608a50eca7186cd987bc92fd23012e15c",
+        "record_hash": "5cf1874e0439f60c4ed2849e6727f423ccd3426dec237b84786112a77579e0ca",
+        "stage": "environment:inadequate_unlocalised",
+        "summary": "INADEQUATE"
+      },
+      {
+        "payload_hash": "78f3238150fe17b351377b4cdc28f438e28daaad6c840479eae154aa6c590ec6",
+        "record_hash": "b70f854722df91863ac0aedc84138aff357a985ee3c9350218b4f0086b3b823d",
+        "stage": "environment:noise_limited",
+        "summary": "NOISE_LIMITED"
+      },
+      {
+        "payload_hash": "5044aed79bca2409fb8c212f6aa746689e41747a17381f4e5c8396bec86345f2",
+        "record_hash": "49203fd9124aaa6cfad3209c7760bf9012124a364e7119993a80a84b042b50e9",
+        "stage": "environment:stochastic",
+        "summary": "STOCHASTIC"
+      },
+      {
+        "payload_hash": "05aa66d40e54f14775b1fedb8fe9ccb36d6fd256f34327922c03414f0deb0cc8",
+        "record_hash": "8a54651c4d3b61c563e835290ed4e250fee85077b4bdb7f89790b5aaaa294859",
+        "stage": "authority",
+        "summary": "authority boundary verified"
+      },
+      {
+        "payload_hash": "c12a5822b698e328683f06aa2971bab82b5e6915a7a25df6faa0800b319a8312",
+        "record_hash": "48da84ad74709a2f7ad6507b9d2188c2f80f2c54196fa188460db7c94996580f",
+        "stage": "verdict",
+        "summary": "SUPPORTED"
+      }
+    ]
+  },
+  "generated_at": "2026-08-10T12:29:24Z",
+  "grammar_immutability": {
+    "families_after": [
+      "has_token",
+      "has_cap",
+      "has_domain",
+      "has_boundary",
+      "scope",
+      "order2",
+      "order3",
+      "order3_identity",
+      "same_identity",
+      "subject_link",
+      "single_identity",
+      "transition",
+      "crosses_boundary",
+      "steps_ge",
+      "provider",
+      "region",
+      "session_tag"
+    ],
+    "families_before": [
+      "has_token",
+      "has_cap",
+      "has_domain",
+      "has_boundary",
+      "scope",
+      "order2",
+      "order3",
+      "order3_identity",
+      "same_identity",
+      "subject_link",
+      "single_identity",
+      "transition",
+      "crosses_boundary",
+      "steps_ge",
+      "provider",
+      "region",
+      "session_tag"
+    ],
+    "note": "LB-1 may propose a representation extension; it may not adopt one. The feature grammar is a source constant.",
+    "unchanged": true
+  },
+  "phase": "LB-1",
+  "production_fingerprint": {
+    "after": "d385b9bad3dd0fc7eb00cd7794b9190355762450db3821f01b9e5d6d373418f3",
+    "before": "d385b9bad3dd0fc7eb00cd7794b9190355762450db3821f01b9e5d6d373418f3",
+    "unchanged": true
+  },
+  "question": "can the discovery layer detect when its OWN representation is inadequate, rather than merely when Morrison's ontology is?",
+  "representation_under_test": "lb0-feature-grammar-1.1",
+  "run_id": "lb1-seed42-dbf6eb03",
+  "seed": 42,
+  "verdict": {
+    "criteria": [
+      {
+        "criterion": "all_environments_classified_correctly",
+        "detail": "6 of 6 environments received the verdict their construction warrants: adequate\u2192ADEQUATE; inadequate_delegation\u2192INADEQUATE; inadequate_timing\u2192INADEQUATE; inadequate_unlocalised\u2192INADEQUATE; noise_limited\u2192NOISE_LIMITED; stochastic\u2192STOCHASTIC",
+        "passed": true
+      },
+      {
+        "criterion": "inadequacy_localised_to_the_withheld_observable",
+        "detail": "inadequate_delegation: nominated 'actor_id' (withheld: 'actor_id'), resolution 1.0; inadequate_timing: nominated 'timestamp' (withheld: 'timestamp'), resolution 1.0",
+        "passed": true
+      },
+      {
+        "criterion": "inadequacy_outside_the_pool_is_reported_as_unlocalised",
+        "detail": "inadequate_unlocalised: localised=False, best family 'elapsed' resolved only 0.5, proposal emitted=False",
+        "passed": true
+      },
+      {
+        "criterion": "reading_the_observable_recovers_the_outcome",
+        "detail": "inadequate_delegation: held-out F1 +0.3641; inadequate_timing: held-out F1 +0.2897 (minimum +0.10)",
+        "passed": true
+      },
+      {
+        "criterion": "the_adequate_control_really_is_adequate",
+        "detail": "the current grammar reaches held-out F1 1.0 on the adequate environment (minimum 0.95); a low score would mean the negative control was not testing adequacy",
+        "passed": true
+      },
+      {
+        "criterion": "no_extension_proposed_where_none_is_warranted",
+        "detail": "a representation-extension proposal was emitted only for environments that are genuinely beyond the grammar",
+        "passed": true
+      }
+    ],
+    "decision": "SUPPORTED",
+    "per_environment": [
+      {
+        "actual": "ADEQUATE",
+        "correct": true,
+        "environment": "adequate",
+        "expected": "ADEQUATE"
+      },
+      {
+        "actual": "INADEQUATE",
+        "correct": true,
+        "environment": "inadequate_delegation",
+        "expected": "INADEQUATE"
+      },
+      {
+        "actual": "INADEQUATE",
+        "correct": true,
+        "environment": "inadequate_timing",
+        "expected": "INADEQUATE"
+      },
+      {
+        "actual": "INADEQUATE",
+        "correct": true,
+        "environment": "inadequate_unlocalised",
+        "expected": "INADEQUATE"
+      },
+      {
+        "actual": "NOISE_LIMITED",
+        "correct": true,
+        "environment": "noise_limited",
+        "expected": "NOISE_LIMITED"
+      },
+      {
+        "actual": "STOCHASTIC",
+        "correct": true,
+        "environment": "stochastic",
+        "expected": "STOCHASTIC"
+      }
+    ],
+    "thresholds": {
+      "min_adequate_baseline_f1": 0.95,
+      "min_recovery_f1_gain": 0.1,
+      "probe_sample": 240
+    }
+  }
+}

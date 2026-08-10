@@ -156,12 +156,21 @@ def write_package(run_id: str, files: dict) -> Path:
     if root not in target.parents and target != root:
         raise ArtifactPathError(
             f"refusing to write outside the LB-0 artifacts tree: {target}")
-    target.mkdir(parents=True, exist_ok=True)
+
+    # Every destination is validated BEFORE anything is created. Creating the
+    # run directory first left an empty directory behind on a refused write —
+    # a refusal that still changes the filesystem is a refusal that did not
+    # fully refuse.
+    resolved = []
     for name, text in sorted(files.items()):
         destination = (target / name).resolve()
         if target not in destination.parents:
             raise ArtifactPathError(
                 f"refusing to write {name!r}: resolves outside {target}")
+        resolved.append((destination, text))
+
+    target.mkdir(parents=True, exist_ok=True)
+    for destination, text in resolved:
         destination.write_text(text, encoding="utf-8")
     return target
 

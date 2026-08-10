@@ -1,0 +1,703 @@
+{
+  "adequate": {
+    "collision": {
+      "colliding_groups": 0,
+      "collision_rate": 0.0,
+      "distinct_feature_signatures": 120,
+      "irreducible_error_rate": 0.0,
+      "largest_colliding_groups": [],
+      "mean_minority_fraction": 0.0,
+      "minority_total": 0,
+      "trajectories": 500,
+      "trajectories_in_colliding_groups": 0
+    },
+    "confidence": 1.0,
+    "eliminations": [
+      "collision rate 0.0000 is below the 0.02 floor: the representation separates the corpus, so no representational claim is available"
+    ],
+    "probe": {
+      "examples": [],
+      "record_disagreement_rate": 0.0,
+      "record_disagreements": 0,
+      "record_is_faithful": true,
+      "sampled": 240,
+      "self_disagreement_rate": 0.0,
+      "self_disagreements": 0,
+      "world_is_reproducible": true
+    },
+    "reason": "0 of 120 feature signatures carry more than one outcome, covering 0.00% of the corpus. The current representation is sufficient to express the observed outcome; any remaining error belongs to the search, not to the grammar.",
+    "representation": "lb0-feature-grammar-1.1",
+    "residual_beyond_noise": {
+      "estimated_label_noise_rate": 0.0,
+      "minority_expected_under_noise": 0.0,
+      "minority_observed": 0,
+      "ratio": null,
+      "unexplained_by_noise": false
+    },
+    "status": "experimental",
+    "verdict": "ADEQUATE"
+  },
+  "inadequate_delegation": {
+    "collision": {
+      "colliding_groups": 4,
+      "collision_rate": 0.18,
+      "distinct_feature_signatures": 120,
+      "irreducible_error_rate": 0.086,
+      "largest_colliding_groups": [
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00003",
+            "lb1-discovery-00005",
+            "lb1-discovery-00015",
+            "lb1-discovery-00023",
+            "lb1-discovery-00029"
+          ],
+          "minority": 29,
+          "minority_fraction": 0.5,
+          "outcome_counts": {
+            "safe": 29,
+            "unsafe": 29
+          },
+          "signature": "3f5c131e6ae6418b4abd5342",
+          "size": 58
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00016",
+            "lb1-discovery-00024",
+            "lb1-discovery-00025",
+            "lb1-discovery-00033",
+            "lb1-discovery-00035"
+          ],
+          "minority": 11,
+          "minority_fraction": 0.4583,
+          "outcome_counts": {
+            "safe": 13,
+            "unsafe": 11
+          },
+          "signature": "356ac026ecfbcfbfd7cdd879",
+          "size": 24
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00072",
+            "lb1-discovery-00076",
+            "lb1-discovery-00110",
+            "lb1-discovery-00257",
+            "lb1-discovery-00305"
+          ],
+          "minority": 2,
+          "minority_fraction": 0.3333,
+          "outcome_counts": {
+            "safe": 2,
+            "unsafe": 4
+          },
+          "signature": "3b526627448c5bdf78132b88",
+          "size": 6
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00114",
+            "lb1-discovery-00499"
+          ],
+          "minority": 1,
+          "minority_fraction": 0.5,
+          "outcome_counts": {
+            "safe": 1,
+            "unsafe": 1
+          },
+          "signature": "ee00b985f49c29a5ae18323e",
+          "size": 2
+        }
+      ],
+      "mean_minority_fraction": 0.4479,
+      "minority_total": 43,
+      "trajectories": 500,
+      "trajectories_in_colliding_groups": 90
+    },
+    "confidence": 0.18,
+    "eliminations": [
+      "the world is reproducible: re-running the same trajectory agreed with itself in 100.00% of 240 probes",
+      "the record is faithful: re-running matched the recorded outcome in 100.00% of 240 probes",
+      "43 trajectories nevertheless sit in feature signatures carrying more than one outcome"
+    ],
+    "probe": {
+      "examples": [],
+      "record_disagreement_rate": 0.0,
+      "record_disagreements": 0,
+      "record_is_faithful": true,
+      "sampled": 240,
+      "self_disagreement_rate": 0.0,
+      "self_disagreements": 0,
+      "world_is_reproducible": true
+    },
+    "reason": "The representation is the limiting factor. 4 feature signatures carry more than one outcome, covering 18.00% of the corpus, with a mean minority fraction of 0.45 \u2014 far from the thin minority that label noise produces. The world is reproducible and the record is faithful, so the disagreement cannot be blamed on either. No predicate over the current feature grammar can separate these trajectories: its error is bounded below by 8.60% however the search is improved. Something observable in the traces is not being read.",
+    "representation": "lb0-feature-grammar-1.1",
+    "residual_beyond_noise": {
+      "estimated_label_noise_rate": 0.0,
+      "minority_expected_under_noise": 0.0,
+      "minority_observed": 43,
+      "ratio": null,
+      "unexplained_by_noise": true
+    },
+    "status": "experimental",
+    "verdict": "INADEQUATE"
+  },
+  "inadequate_timing": {
+    "collision": {
+      "colliding_groups": 3,
+      "collision_rate": 0.176,
+      "distinct_feature_signatures": 120,
+      "irreducible_error_rate": 0.084,
+      "largest_colliding_groups": [
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00003",
+            "lb1-discovery-00005",
+            "lb1-discovery-00015",
+            "lb1-discovery-00023",
+            "lb1-discovery-00029"
+          ],
+          "minority": 28,
+          "minority_fraction": 0.4828,
+          "outcome_counts": {
+            "safe": 30,
+            "unsafe": 28
+          },
+          "signature": "3f5c131e6ae6418b4abd5342",
+          "size": 58
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00016",
+            "lb1-discovery-00024",
+            "lb1-discovery-00025",
+            "lb1-discovery-00033",
+            "lb1-discovery-00035"
+          ],
+          "minority": 11,
+          "minority_fraction": 0.4583,
+          "outcome_counts": {
+            "safe": 11,
+            "unsafe": 13
+          },
+          "signature": "356ac026ecfbcfbfd7cdd879",
+          "size": 24
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00072",
+            "lb1-discovery-00076",
+            "lb1-discovery-00110",
+            "lb1-discovery-00257",
+            "lb1-discovery-00305"
+          ],
+          "minority": 3,
+          "minority_fraction": 0.5,
+          "outcome_counts": {
+            "safe": 3,
+            "unsafe": 3
+          },
+          "signature": "3b526627448c5bdf78132b88",
+          "size": 6
+        }
+      ],
+      "mean_minority_fraction": 0.4804,
+      "minority_total": 42,
+      "trajectories": 500,
+      "trajectories_in_colliding_groups": 88
+    },
+    "confidence": 0.176,
+    "eliminations": [
+      "the world is reproducible: re-running the same trajectory agreed with itself in 100.00% of 240 probes",
+      "the record is faithful: re-running matched the recorded outcome in 100.00% of 240 probes",
+      "42 trajectories nevertheless sit in feature signatures carrying more than one outcome"
+    ],
+    "probe": {
+      "examples": [],
+      "record_disagreement_rate": 0.0,
+      "record_disagreements": 0,
+      "record_is_faithful": true,
+      "sampled": 240,
+      "self_disagreement_rate": 0.0,
+      "self_disagreements": 0,
+      "world_is_reproducible": true
+    },
+    "reason": "The representation is the limiting factor. 3 feature signatures carry more than one outcome, covering 17.60% of the corpus, with a mean minority fraction of 0.48 \u2014 far from the thin minority that label noise produces. The world is reproducible and the record is faithful, so the disagreement cannot be blamed on either. No predicate over the current feature grammar can separate these trajectories: its error is bounded below by 8.40% however the search is improved. Something observable in the traces is not being read.",
+    "representation": "lb0-feature-grammar-1.1",
+    "residual_beyond_noise": {
+      "estimated_label_noise_rate": 0.0,
+      "minority_expected_under_noise": 0.0,
+      "minority_observed": 42,
+      "ratio": null,
+      "unexplained_by_noise": true
+    },
+    "status": "experimental",
+    "verdict": "INADEQUATE"
+  },
+  "inadequate_unlocalised": {
+    "collision": {
+      "colliding_groups": 4,
+      "collision_rate": 0.136,
+      "distinct_feature_signatures": 120,
+      "irreducible_error_rate": 0.064,
+      "largest_colliding_groups": [
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00003",
+            "lb1-discovery-00005",
+            "lb1-discovery-00015",
+            "lb1-discovery-00023",
+            "lb1-discovery-00029"
+          ],
+          "minority": 28,
+          "minority_fraction": 0.4828,
+          "outcome_counts": {
+            "safe": 30,
+            "unsafe": 28
+          },
+          "signature": "3f5c131e6ae6418b4abd5342",
+          "size": 58
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00072",
+            "lb1-discovery-00076",
+            "lb1-discovery-00110",
+            "lb1-discovery-00257",
+            "lb1-discovery-00305"
+          ],
+          "minority": 2,
+          "minority_fraction": 0.3333,
+          "outcome_counts": {
+            "safe": 2,
+            "unsafe": 4
+          },
+          "signature": "3b526627448c5bdf78132b88",
+          "size": 6
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00106",
+            "lb1-discovery-00379"
+          ],
+          "minority": 1,
+          "minority_fraction": 0.5,
+          "outcome_counts": {
+            "safe": 1,
+            "unsafe": 1
+          },
+          "signature": "681b30d5c01697d8cbfe8861",
+          "size": 2
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00198",
+            "lb1-discovery-00418"
+          ],
+          "minority": 1,
+          "minority_fraction": 0.5,
+          "outcome_counts": {
+            "safe": 1,
+            "unsafe": 1
+          },
+          "signature": "69f3f1698630b2b1661bd0ab",
+          "size": 2
+        }
+      ],
+      "mean_minority_fraction": 0.454,
+      "minority_total": 32,
+      "trajectories": 500,
+      "trajectories_in_colliding_groups": 68
+    },
+    "confidence": 0.136,
+    "eliminations": [
+      "the world is reproducible: re-running the same trajectory agreed with itself in 100.00% of 240 probes",
+      "the record is faithful: re-running matched the recorded outcome in 100.00% of 240 probes",
+      "32 trajectories nevertheless sit in feature signatures carrying more than one outcome"
+    ],
+    "probe": {
+      "examples": [],
+      "record_disagreement_rate": 0.0,
+      "record_disagreements": 0,
+      "record_is_faithful": true,
+      "sampled": 240,
+      "self_disagreement_rate": 0.0,
+      "self_disagreements": 0,
+      "world_is_reproducible": true
+    },
+    "reason": "The representation is the limiting factor. 4 feature signatures carry more than one outcome, covering 13.60% of the corpus, with a mean minority fraction of 0.45 \u2014 far from the thin minority that label noise produces. The world is reproducible and the record is faithful, so the disagreement cannot be blamed on either. No predicate over the current feature grammar can separate these trajectories: its error is bounded below by 6.40% however the search is improved. Something observable in the traces is not being read.",
+    "representation": "lb0-feature-grammar-1.1",
+    "residual_beyond_noise": {
+      "estimated_label_noise_rate": 0.0,
+      "minority_expected_under_noise": 0.0,
+      "minority_observed": 32,
+      "ratio": null,
+      "unexplained_by_noise": true
+    },
+    "status": "experimental",
+    "verdict": "INADEQUATE"
+  },
+  "noise_limited": {
+    "collision": {
+      "colliding_groups": 19,
+      "collision_rate": 0.714,
+      "distinct_feature_signatures": 120,
+      "irreducible_error_rate": 0.106,
+      "largest_colliding_groups": [
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00021",
+            "lb1-discovery-00031",
+            "lb1-discovery-00048",
+            "lb1-discovery-00092",
+            "lb1-discovery-00111"
+          ],
+          "minority": 7,
+          "minority_fraction": 0.2917,
+          "outcome_counts": {
+            "safe": 17,
+            "unsafe": 7
+          },
+          "signature": "eac1ee6376fd82845589ff54",
+          "size": 24
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00003",
+            "lb1-discovery-00005",
+            "lb1-discovery-00015",
+            "lb1-discovery-00023",
+            "lb1-discovery-00029"
+          ],
+          "minority": 5,
+          "minority_fraction": 0.0862,
+          "outcome_counts": {
+            "safe": 5,
+            "unsafe": 53
+          },
+          "signature": "3f5c131e6ae6418b4abd5342",
+          "size": 58
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00001",
+            "lb1-discovery-00019",
+            "lb1-discovery-00049",
+            "lb1-discovery-00053",
+            "lb1-discovery-00060"
+          ],
+          "minority": 5,
+          "minority_fraction": 0.2632,
+          "outcome_counts": {
+            "safe": 14,
+            "unsafe": 5
+          },
+          "signature": "a221becd2be06fd45e38e900",
+          "size": 19
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00012",
+            "lb1-discovery-00013",
+            "lb1-discovery-00057",
+            "lb1-discovery-00058",
+            "lb1-discovery-00077"
+          ],
+          "minority": 4,
+          "minority_fraction": 0.1379,
+          "outcome_counts": {
+            "safe": 25,
+            "unsafe": 4
+          },
+          "signature": "9dc0e8060ee21598bcba4efc",
+          "size": 29
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00016",
+            "lb1-discovery-00024",
+            "lb1-discovery-00025",
+            "lb1-discovery-00033",
+            "lb1-discovery-00035"
+          ],
+          "minority": 4,
+          "minority_fraction": 0.1667,
+          "outcome_counts": {
+            "safe": 4,
+            "unsafe": 20
+          },
+          "signature": "356ac026ecfbcfbfd7cdd879",
+          "size": 24
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00055",
+            "lb1-discovery-00101",
+            "lb1-discovery-00112",
+            "lb1-discovery-00171",
+            "lb1-discovery-00204"
+          ],
+          "minority": 4,
+          "minority_fraction": 0.2222,
+          "outcome_counts": {
+            "safe": 14,
+            "unsafe": 4
+          },
+          "signature": "b348386c3f92b6b5bcc4629a",
+          "size": 18
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00002",
+            "lb1-discovery-00011",
+            "lb1-discovery-00032",
+            "lb1-discovery-00034",
+            "lb1-discovery-00038"
+          ],
+          "minority": 3,
+          "minority_fraction": 0.0857,
+          "outcome_counts": {
+            "safe": 32,
+            "unsafe": 3
+          },
+          "signature": "61874f91abfbadd56c242061",
+          "size": 35
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00018",
+            "lb1-discovery-00037",
+            "lb1-discovery-00078",
+            "lb1-discovery-00140",
+            "lb1-discovery-00166"
+          ],
+          "minority": 3,
+          "minority_fraction": 0.1071,
+          "outcome_counts": {
+            "safe": 25,
+            "unsafe": 3
+          },
+          "signature": "1dba900fda1b6e13bfc029cc",
+          "size": 28
+        }
+      ],
+      "mean_minority_fraction": 0.1997,
+      "minority_total": 53,
+      "trajectories": 500,
+      "trajectories_in_colliding_groups": 357
+    },
+    "confidence": 0.1208,
+    "eliminations": [
+      "the world is reproducible: re-running the same trajectory agreed with itself in 100.00% of 240 probes",
+      "re-running disagreed with the RECORDED outcome at rate 0.1208, above the 0.02 fidelity margin"
+    ],
+    "probe": {
+      "examples": [
+        {
+          "observations": [
+            "safe",
+            "safe"
+          ],
+          "recorded": "unsafe",
+          "sequence_id": "lb1-discovery-00002"
+        },
+        {
+          "observations": [
+            "safe",
+            "safe"
+          ],
+          "recorded": "unsafe",
+          "sequence_id": "lb1-discovery-00012"
+        },
+        {
+          "observations": [
+            "safe",
+            "safe"
+          ],
+          "recorded": "unsafe",
+          "sequence_id": "lb1-discovery-00042"
+        },
+        {
+          "observations": [
+            "safe",
+            "safe"
+          ],
+          "recorded": "unsafe",
+          "sequence_id": "lb1-discovery-00060"
+        },
+        {
+          "observations": [
+            "safe",
+            "safe"
+          ],
+          "recorded": "unsafe",
+          "sequence_id": "lb1-discovery-00062"
+        }
+      ],
+      "record_disagreement_rate": 0.1208,
+      "record_disagreements": 29,
+      "record_is_faithful": false,
+      "sampled": 240,
+      "self_disagreement_rate": 0.0,
+      "self_disagreements": 0,
+      "world_is_reproducible": true
+    },
+    "reason": "The recorded outcomes are wrong at about 12.08%, which is enough to manufacture these collisions in a corpus the representation could otherwise express. Extending the grammar here would fit the label noise.",
+    "representation": "lb0-feature-grammar-1.1",
+    "residual_beyond_noise": {
+      "estimated_label_noise_rate": 0.1208,
+      "minority_expected_under_noise": 43.14,
+      "minority_observed": 53,
+      "ratio": 1.229,
+      "unexplained_by_noise": false
+    },
+    "status": "experimental",
+    "verdict": "NOISE_LIMITED"
+  },
+  "stochastic": {
+    "collision": {
+      "colliding_groups": 4,
+      "collision_rate": 0.18,
+      "distinct_feature_signatures": 120,
+      "irreducible_error_rate": 0.07,
+      "largest_colliding_groups": [
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00003",
+            "lb1-discovery-00005",
+            "lb1-discovery-00015",
+            "lb1-discovery-00023",
+            "lb1-discovery-00029"
+          ],
+          "minority": 24,
+          "minority_fraction": 0.4138,
+          "outcome_counts": {
+            "safe": 24,
+            "unsafe": 34
+          },
+          "signature": "3f5c131e6ae6418b4abd5342",
+          "size": 58
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00016",
+            "lb1-discovery-00024",
+            "lb1-discovery-00025",
+            "lb1-discovery-00033",
+            "lb1-discovery-00035"
+          ],
+          "minority": 8,
+          "minority_fraction": 0.3333,
+          "outcome_counts": {
+            "safe": 16,
+            "unsafe": 8
+          },
+          "signature": "356ac026ecfbcfbfd7cdd879",
+          "size": 24
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00072",
+            "lb1-discovery-00076",
+            "lb1-discovery-00110",
+            "lb1-discovery-00257",
+            "lb1-discovery-00305"
+          ],
+          "minority": 2,
+          "minority_fraction": 0.3333,
+          "outcome_counts": {
+            "safe": 4,
+            "unsafe": 2
+          },
+          "signature": "3b526627448c5bdf78132b88",
+          "size": 6
+        },
+        {
+          "example_sequence_ids": [
+            "lb1-discovery-00198",
+            "lb1-discovery-00418"
+          ],
+          "minority": 1,
+          "minority_fraction": 0.5,
+          "outcome_counts": {
+            "safe": 1,
+            "unsafe": 1
+          },
+          "signature": "69f3f1698630b2b1661bd0ab",
+          "size": 2
+        }
+      ],
+      "mean_minority_fraction": 0.3951,
+      "minority_total": 35,
+      "trajectories": 500,
+      "trajectories_in_colliding_groups": 90
+    },
+    "confidence": 0.1667,
+    "eliminations": [
+      "re-running the same trajectory disagreed with itself at rate 0.1667, above the 0.02 reproducibility margin"
+    ],
+    "probe": {
+      "examples": [
+        {
+          "observations": [
+            "safe",
+            "unsafe"
+          ],
+          "recorded": "unsafe",
+          "sequence_id": "lb1-discovery-00004"
+        },
+        {
+          "observations": [
+            "unsafe",
+            "safe"
+          ],
+          "recorded": "unsafe",
+          "sequence_id": "lb1-discovery-00008"
+        },
+        {
+          "observations": [
+            "unsafe",
+            "unsafe"
+          ],
+          "recorded": "safe",
+          "sequence_id": "lb1-discovery-00010"
+        },
+        {
+          "observations": [
+            "safe",
+            "unsafe"
+          ],
+          "recorded": "safe",
+          "sequence_id": "lb1-discovery-00014"
+        },
+        {
+          "observations": [
+            "unsafe",
+            "safe"
+          ],
+          "recorded": "safe",
+          "sequence_id": "lb1-discovery-00016"
+        }
+      ],
+      "record_disagreement_rate": 0.1833,
+      "record_disagreements": 44,
+      "record_is_faithful": false,
+      "sampled": 240,
+      "self_disagreement_rate": 0.1667,
+      "self_disagreements": 40,
+      "world_is_reproducible": false
+    },
+    "reason": "The outcome is not a function of the trajectory: re-running the same trajectory returned a different result 16.67% of the time. Collisions here say nothing about the representation, because NO representation of the trajectory could predict this outcome. Extending the grammar would fit sampling variation.",
+    "representation": "lb0-feature-grammar-1.1",
+    "residual_beyond_noise": {
+      "estimated_label_noise_rate": 0.1833,
+      "minority_expected_under_noise": 16.5,
+      "minority_observed": 35,
+      "ratio": 2.121,
+      "unexplained_by_noise": true
+    },
+    "status": "experimental",
+    "verdict": "STOCHASTIC"
+  }
+}
