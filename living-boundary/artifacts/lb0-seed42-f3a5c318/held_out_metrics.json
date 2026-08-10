@@ -1,0 +1,98 @@
+{
+  "baseline": {
+    "baseline": {
+      "accuracy": 0.7833,
+      "f1": 0.4507,
+      "false_negative_rate": 0.7091,
+      "false_positive_rate": 0.0,
+      "fn": 195,
+      "fp": 0,
+      "mcc": 0.4709,
+      "negatives": 625,
+      "positives": 275,
+      "precision": 1.0,
+      "recall": 0.2909,
+      "tn": 625,
+      "total": 900,
+      "tp": 80
+    },
+    "baseline_name": "morrison-ontology-lb0-v1.0",
+    "candidate": {
+      "accuracy": 1.0,
+      "f1": 1.0,
+      "false_negative_rate": 0.0,
+      "false_positive_rate": 0.0,
+      "fn": 0,
+      "fp": 0,
+      "mcc": 1.0,
+      "negatives": 625,
+      "positives": 275,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tn": 625,
+      "total": 900,
+      "tp": 275
+    },
+    "candidate_name": "baseline+CP-LB0-001",
+    "discordance": {
+      "b_breaks_a": 0,
+      "b_corrects_a": 195,
+      "net_improvement": 195
+    },
+    "f1_delta": 0.5493,
+    "improved": true,
+    "split": "held_out"
+  },
+  "residual_recovery": {
+    "false_positive_rate_on_uncovered_safe": 0.0,
+    "false_positives_on_uncovered_safe": 0,
+    "recovered_unsafe": 195,
+    "recovery_rate": 1.0,
+    "uncovered_trajectories": 820,
+    "uncovered_unsafe": 195
+  },
+  "strengthened_baseline": {
+    "baseline": {
+      "accuracy": 0.5444,
+      "f1": 0.5729,
+      "false_negative_rate": 0.0,
+      "false_positive_rate": 0.656,
+      "fn": 0,
+      "fp": 410,
+      "mcc": 0.3716,
+      "negatives": 625,
+      "positives": 275,
+      "precision": 0.4015,
+      "recall": 1.0,
+      "tn": 215,
+      "total": 900,
+      "tp": 275
+    },
+    "baseline_name": "morrison-ontology-lb0-v1.0+egress_heuristic",
+    "candidate": {
+      "accuracy": 1.0,
+      "f1": 1.0,
+      "false_negative_rate": 0.0,
+      "false_positive_rate": 0.0,
+      "fn": 0,
+      "fp": 0,
+      "mcc": 1.0,
+      "negatives": 625,
+      "positives": 275,
+      "precision": 1.0,
+      "recall": 1.0,
+      "tn": 625,
+      "total": 900,
+      "tp": 275
+    },
+    "candidate_name": "baseline+CP-LB0-001",
+    "discordance": {
+      "b_breaks_a": 0,
+      "b_corrects_a": 410,
+      "net_improvement": 410
+    },
+    "f1_delta": 0.4271,
+    "improved": true,
+    "split": "held_out"
+  }
+}

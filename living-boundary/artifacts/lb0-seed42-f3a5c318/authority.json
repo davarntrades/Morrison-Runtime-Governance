@@ -1,0 +1,49 @@
+{
+  "checks": {
+    "artifacts_isolated": {
+      "passed": true,
+      "violations": []
+    },
+    "production_fingerprint_unchanged": {
+      "checked": true,
+      "passed": true,
+      "violations": []
+    },
+    "promotion_lifecycle_refusal": {
+      "passed": true,
+      "violations": []
+    },
+    "static_import_and_call_scan": {
+      "passed": true,
+      "violations": []
+    }
+  },
+  "invariants": [
+    {
+      "name": "cannot_write_production_policy",
+      "statement": "No module writes to morrison_governance configuration or source."
+    },
+    {
+      "name": "cannot_modify_ontology_versions",
+      "statement": "Ontology versions are source constants; LB-0 has no setter for them."
+    },
+    {
+      "name": "cannot_transition_candidate_to_enforced",
+      "statement": "The promotion lifecycle refuses APPROVED / SHADOW / ENFORCED."
+    },
+    {
+      "name": "cannot_bypass_approval_verification",
+      "statement": "No approval artifact is constructed, signed or verified anywhere in LB-0."
+    },
+    {
+      "name": "cannot_invoke_provider_actions",
+      "statement": "No execution or provider surface is imported or called."
+    },
+    {
+      "name": "cannot_disable_runtime_governance",
+      "statement": "The production ruleset fingerprint is unchanged across a full run."
+    }
+  ],
+  "production_authority_reachable": false,
+  "violations": []
+}

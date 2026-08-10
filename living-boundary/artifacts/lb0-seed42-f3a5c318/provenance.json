@@ -1,0 +1,91 @@
+{
+  "code": {
+    "branch": "claude/living-boundary-lb0-1m9itj",
+    "commit": "a9ad6236c96c8514c95c9c017cf79a449e100c03",
+    "engine_root": "/home/user/Morrison-Runtime-Governance",
+    "python": "3.11.15",
+    "working_tree_clean": false
+  },
+  "evidence": {
+    "chain": {
+      "head": "e0fd0cd6e9adcc9630ca33d828caa112c4f6c4a32431851673459327cc9015ee",
+      "problems": [],
+      "records": 11,
+      "verified": true
+    },
+    "run_id": "lb0-seed42-f3a5c318",
+    "stages": [
+      {
+        "payload_hash": "90b35fb626ea84b0a00d251a7e26b4806d92a8acbf84b69a213d4c146eed8d3c",
+        "record_hash": "e078642a59da4826a7e7c922359d6589fd9dccb7e10cfef3e7aa1e55ac699d4f",
+        "stage": "dataset",
+        "summary": "seeded synthetic corpus generated"
+      },
+      {
+        "payload_hash": "a13d986392c6dbd25543a3666a38718feab765afaed682c204bf8078a9da554f",
+        "record_hash": "936b6198f99781423144d60fb6a0d10c7dcc3fb6172142f4c4efb7ebc46b160a",
+        "stage": "split_integrity",
+        "summary": "partition disjointness verified"
+      },
+      {
+        "payload_hash": "df2d6af69bd8ecb3db399cb9412281eab7a2d30b3d9bfafa1c1e49a626e293f6",
+        "record_hash": "9d5942fd14baef8494ad19f3bea3c6c65e2e81958177ebeab72791f84a350d71",
+        "stage": "baseline",
+        "summary": "baseline ontology measured on every split"
+      },
+      {
+        "payload_hash": "8cc7987758db9ec70aa0a87a160b9bdb6d91d3b77abc317fb3a9f16418b3b27e",
+        "record_hash": "a4dc3ffcbe741c0aa2c09b37b7787bec720f8e08a6e15cf91440163b0a1329d4",
+        "stage": "ontology_gap",
+        "summary": "180 unsafe trajectories (75.3% of all observed harm) were composed entirely of individually permitted actions and matched no primitive in morrison-ontology-lb0-v1.0; 107 of them are indistinguishable from safe trajectories at the (capability, domain) level the ontology operates on, so no per-action refinement of the existing primitives can separate them"
+      },
+      {
+        "payload_hash": "419b0b03bf345d1948624a5fa1ff32b122a3caa8ee45c6d0d63d2f29b4191a22",
+        "record_hash": "7b5140dab6483edb9ba00c002177fd0427f5895fae3d63a58f6c06cca5302087",
+        "stage": "structure_search",
+        "summary": "beam search over generic trajectory features"
+      },
+      {
+        "payload_hash": "20d90e29c2a2b537fe5f0b55b64780ea748c0702ffe1f6677b13d5fcdbf29e91",
+        "record_hash": "5d9dba55d4a16364e29ffcafe86506272626e2de92004c2a2ef3d1d078f2d375",
+        "stage": "refinement_rounds",
+        "summary": "1 discovery round(s)"
+      },
+      {
+        "payload_hash": "094e67a70a7457f6990faf4fb70c7a73a8fb4397e3adda01289dadebe27ad8a7",
+        "record_hash": "2146e80cd4807bcd2c978b66cd509a624a7fcecd0a1151d7ff3fa4ca4e87d8ea",
+        "stage": "falsification",
+        "summary": "PASS"
+      },
+      {
+        "payload_hash": "5b66ca56ccc1762dbd6122cab9093a5efc770e57cfde1ef7fb30cd2203289436",
+        "record_hash": "a931b1c1736509158a5441fd55c82952bb9ca1ae4a0f1c2941e44a3f8f54362f",
+        "stage": "held_out",
+        "summary": "held-out evaluation, single use"
+      },
+      {
+        "payload_hash": "c51cc3c4cbf552b374725fd5f9dffcdcabf086ad6c984d22a7c818b37e19e720",
+        "record_hash": "764074f0a514baed02a35b9da81ae90afedc16ce31ee354c764916512e90435d",
+        "stage": "controls",
+        "summary": "memorisation and stability controls"
+      },
+      {
+        "payload_hash": "bf9b4400d3ae2ca843c678a102feacc426b6c3dd2650192b23c5ebdc7e322b41",
+        "record_hash": "9a6787c4c2d788688f2d6a0852d5381240309cb07cf458a170d1f30a70a5cb71",
+        "stage": "authority",
+        "summary": "authority boundary verified"
+      },
+      {
+        "payload_hash": "c3391231a31f55efafe89a27afac8c9f8c4894737c430757f43368ecd09aba24",
+        "record_hash": "e0fd0cd6e9adcc9630ca33d828caa112c4f6c4a32431851673459327cc9015ee",
+        "stage": "verdict",
+        "summary": "SUPPORTED"
+      }
+    ]
+  },
+  "production_fingerprint": {
+    "after": "d385b9bad3dd0fc7eb00cd7794b9190355762450db3821f01b9e5d6d373418f3",
+    "before": "d385b9bad3dd0fc7eb00cd7794b9190355762450db3821f01b9e5d6d373418f3",
+    "unchanged": true
+  }
+}

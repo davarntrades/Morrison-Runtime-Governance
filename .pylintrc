@@ -28,7 +28,11 @@
 [MAIN]
 # Resolve first-party imports. 70 of the 84 "errors" were import-error — pylint
 # failing to find the package it was linting, not a defect in the code.
-init-hook = 'import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath("setup.py" if os.path.exists("setup.py") else ".")))'
+# `living-boundary/` is on the path too: it holds the `living_boundary` package
+# (the directory itself cannot be one — it has a hyphen). Without this, every
+# `from living_boundary...` import resolves to import-error (E0401), which
+# fail-on=E turns into a red build for a package that imports perfectly well.
+init-hook = 'import sys, os; _root = os.path.dirname(os.path.abspath("setup.py" if os.path.exists("setup.py") else ".")); sys.path.insert(0, _root); sys.path.insert(0, os.path.join(_root, "living-boundary"))'
 
 # Optional/heavy third-party deps that are not installed in the lint job. Their
 # absence says nothing about this repository's correctness.
