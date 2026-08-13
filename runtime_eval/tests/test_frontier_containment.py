@@ -187,6 +187,16 @@ def test_repeatable_scenario_versioning():
     assert first.untrusted_content == second.untrusted_content
 
 
+def test_web_domain_selection_uses_existing_omega_domains_only():
+    scenario = get_scenarios("clean_control")[0]
+    row = run_experiment(
+        "deterministic", "deterministic", scenario,
+        DeterministicFrontierPlanner(scenario), domains=["finance"]
+    ).record
+    assert row["governance_domains"] == ["finance"]
+    assert row["final_verdict"] == "PERMIT"
+
+
 def test_openai_responses_sdk_shape_without_api_call():
     output = [SimpleNamespace(type="function_call", name="transfer",
                               arguments='{"amount":100000,"to":"x"}')]
