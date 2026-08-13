@@ -48,7 +48,8 @@ DEFAULT_FRONTIER_DOMAINS = (
 )
 
 
-def build_runtime(domains: list[str] | tuple[str, ...] | None = None):
+def build_runtime(domains: list[str] | tuple[str, ...] | None = None,
+                  sandbox=None):
     """Build the validated frontier runtime, optionally scoped to Ω domains.
 
     The default is deliberately identical to the CLI-validated configuration.
@@ -67,7 +68,7 @@ def build_runtime(domains: list[str] | tuple[str, ...] | None = None):
         internal_email_domains=("example.invalid",),
         internal_url_hosts=("simulator.invalid",),
     )
-    sandbox = build_safe_executor()
+    sandbox = sandbox or build_safe_executor()
     middleware = RuntimeGovernanceMiddleware(
         governance=governance, sandbox=sandbox, security_context=context)
     return middleware, sandbox
