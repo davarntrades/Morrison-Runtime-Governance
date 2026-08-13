@@ -1,0 +1,119 @@
+{
+  "env_00": {
+    "condition": "discovery",
+    "description": "the environment the candidate is discovered from",
+    "rule": "canonical",
+    "structure": "canonical",
+    "surface_changed": [],
+    "trajectories": 1200
+  },
+  "env_01": {
+    "condition": "A_surface_rename",
+    "description": "same structure, entirely different vocabulary",
+    "expect_transfer": true,
+    "rule": "canonical",
+    "structure": "canonical",
+    "surface_changed": [
+      "action names",
+      "scope tokens",
+      "resource types",
+      "providers",
+      "regions",
+      "session tags",
+      "identity ids",
+      "subject ids",
+      "clock epoch",
+      "step spacing",
+      "outside-boundary labels"
+    ],
+    "trajectories": 700
+  },
+  "env_02": {
+    "condition": "B_provider_shift",
+    "description": "the same hazard expressed through a different provider family with its own capability taxonomy",
+    "expect_transfer": true,
+    "rule": "canonical",
+    "structure": "canonical",
+    "surface_changed": [
+      "everything in A",
+      "capability labels",
+      "domain labels",
+      "trace length"
+    ],
+    "trajectories": 700
+  },
+  "env_03": {
+    "condition": "C_domain_shift",
+    "description": "the same structural relation in another domain",
+    "expect_transfer": true,
+    "rule": "canonical",
+    "structure": "canonical",
+    "surface_changed": [
+      "everything in B",
+      "domain semantics",
+      "clock granularity"
+    ],
+    "trajectories": 700
+  },
+  "env_04": {
+    "condition": "D_distribution_shift",
+    "description": "A's vocabulary with different frequencies, much longer traces, heavy background noise and a different class balance",
+    "expect_transfer": true,
+    "rule": "canonical",
+    "structure": "canonical",
+    "surface_changed": [
+      "trace length",
+      "noise rate",
+      "class balance",
+      "event frequency"
+    ],
+    "trajectories": 700
+  },
+  "env_05": {
+    "condition": "E_structural_perturbation",
+    "description": "the discovery vocabulary, with the identity continuity condition inverted",
+    "expect_collapse": true,
+    "expect_transfer": false,
+    "rule": "identity_split",
+    "structure": "identity continuity NEGATED",
+    "surface_changed": [],
+    "trajectories": 700
+  },
+  "env_06": {
+    "condition": "F_partial_invariance",
+    "description": "A's vocabulary, with the intervening-verification exemption removed \u2014 part of the structure survives and part does not",
+    "expect_partial": true,
+    "expect_transfer": false,
+    "rule": "no_verify_clause",
+    "structure": "verification exemption REMOVED",
+    "surface_changed": [
+      "everything in A"
+    ],
+    "trajectories": 700
+  },
+  "env_07": {
+    "condition": "G_negative_control",
+    "description": "built to resemble the discovery world in every surface correlation while carrying a different rule: the crossing must touch a DIFFERENT subject",
+    "expect_collapse": true,
+    "expect_transfer": false,
+    "rule": "subject_mismatch",
+    "structure": "subject continuity NEGATED",
+    "surface_changed": [
+      "action names only"
+    ],
+    "trajectories": 700
+  },
+  "env_08": {
+    "condition": "H_encoding_shift",
+    "description": "the structure is canonical, but the token marking the inside of the perimeter is itself renamed, breaking the one schema-level assumption LB-3 relies on",
+    "expect_assumption_break": true,
+    "expect_transfer": false,
+    "rule": "canonical",
+    "structure": "canonical",
+    "surface_changed": [
+      "everything in A",
+      "the perimeter marker"
+    ],
+    "trajectories": 700
+  }
+}

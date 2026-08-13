@@ -1,0 +1,280 @@
+{
+  "relational": {
+    "candidate_id": "LB3-RELATIONAL",
+    "discovery_environment": "env_00",
+    "discovery_metrics": {
+      "fit": {
+        "baseline_f1": 0.493976,
+        "baseline_rule": "always_unsafe",
+        "f1": 1.0,
+        "lift": 0.506024,
+        "metrics": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 336,
+          "positives": 164,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 336,
+          "total": 500,
+          "tp": 164
+        }
+      },
+      "held_out": {
+        "baseline_f1": 0.51577,
+        "baseline_rule": "always_unsafe",
+        "f1": 1.0,
+        "lift": 0.48423,
+        "metrics": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 261,
+          "positives": 139,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 261,
+          "total": 400,
+          "tp": 139
+        }
+      },
+      "scoring_rule": "min(F1_fit, F1_select) over depths 2..6, ties to fewer literals",
+      "search_depth": 2,
+      "select": {
+        "baseline_f1": 0.477157,
+        "baseline_rule": "always_unsafe",
+        "f1": 1.0,
+        "lift": 0.522843,
+        "metrics": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 206,
+          "positives": 94,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 206,
+          "total": 300,
+          "tp": 94
+        }
+      }
+    },
+    "grammar": "relational",
+    "grammar_version": "lb3-relational-grammar-1.0",
+    "literal_count": 2,
+    "literals": [
+      "NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing",
+      "rr_ord3is::role_2@internal|role_0@internal|role_1@crossing"
+    ],
+    "production_authority": "none",
+    "scoring_rule": "min(F1_fit, F1_select) over depths 2..6, ties to fewer literals",
+    "seal": "9f85a4e7e759e3840861677bb94bad2e2a704f967a1ff0ee77e97758fdae52e4",
+    "structure_hash": "af8835d9f56dc1c4",
+    "thresholds": {
+      "max_alignment_cost": 6.0,
+      "min_destructive_extinction": 0.8,
+      "min_discovery_lift": 0.15,
+      "min_preserving_agreement": 0.95,
+      "min_retention_for_transfer": 0.7
+    }
+  },
+  "surface": {
+    "candidate_id": "LB3-SURFACE",
+    "discovery_environment": "env_00",
+    "discovery_metrics": {
+      "fit": {
+        "baseline_f1": 0.493976,
+        "baseline_rule": "always_unsafe",
+        "f1": 1.0,
+        "lift": 0.506024,
+        "metrics": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 336,
+          "positives": 164,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 336,
+          "total": 500,
+          "tp": 164
+        }
+      },
+      "held_out": {
+        "baseline_f1": 0.51577,
+        "baseline_rule": "always_unsafe",
+        "f1": 1.0,
+        "lift": 0.48423,
+        "metrics": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 261,
+          "positives": 139,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 261,
+          "total": 400,
+          "tp": 139
+        }
+      },
+      "scoring_rule": "min(F1_fit, F1_select) over depths 2..6, ties to fewer literals",
+      "search_depth": 3,
+      "select": {
+        "baseline_f1": 0.477157,
+        "baseline_rule": "always_unsafe",
+        "f1": 1.0,
+        "lift": 0.522843,
+        "metrics": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 206,
+          "positives": 94,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 206,
+          "total": 300,
+          "tp": 94
+        }
+      }
+    },
+    "grammar": "surface",
+    "grammar_version": "lb0-feature-grammar-1.1",
+    "literal_count": 3,
+    "literals": [
+      "NOT order3_identity::data.read@customer_data@internal|identity.reverify@identity@internal|data.external_move@communications@crossing",
+      "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+      "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+    ],
+    "production_authority": "none",
+    "scoring_rule": "min(F1_fit, F1_select) over depths 2..6, ties to fewer literals",
+    "seal": "a83bf79ee98ad7e1f718984f8f215935cfceec2696171a08ceb89b4e9cc68232",
+    "structure_hash": "7a35e52a161d8d9e",
+    "thresholds": {
+      "max_alignment_cost": 6.0,
+      "min_destructive_extinction": 0.8,
+      "min_discovery_lift": 0.15,
+      "min_preserving_agreement": 0.95,
+      "min_retention_for_transfer": 0.7
+    }
+  },
+  "typed": {
+    "candidate_id": "LB3-TYPED",
+    "discovery_environment": "env_00",
+    "discovery_metrics": {
+      "fit": {
+        "baseline_f1": 0.493976,
+        "baseline_rule": "always_unsafe",
+        "f1": 1.0,
+        "lift": 0.506024,
+        "metrics": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 336,
+          "positives": 164,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 336,
+          "total": 500,
+          "tp": 164
+        }
+      },
+      "held_out": {
+        "baseline_f1": 0.51577,
+        "baseline_rule": "always_unsafe",
+        "f1": 1.0,
+        "lift": 0.48423,
+        "metrics": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 261,
+          "positives": 139,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 261,
+          "total": 400,
+          "tp": 139
+        }
+      },
+      "scoring_rule": "min(F1_fit, F1_select) over depths 2..6, ties to fewer literals",
+      "search_depth": 3,
+      "select": {
+        "baseline_f1": 0.477157,
+        "baseline_rule": "always_unsafe",
+        "f1": 1.0,
+        "lift": 0.522843,
+        "metrics": {
+          "accuracy": 1.0,
+          "f1": 1.0,
+          "false_negative_rate": 0.0,
+          "false_positive_rate": 0.0,
+          "fn": 0,
+          "fp": 0,
+          "mcc": 1.0,
+          "negatives": 206,
+          "positives": 94,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tn": 206,
+          "total": 300,
+          "tp": 94
+        }
+      }
+    },
+    "grammar": "typed",
+    "grammar_version": "lb3-typed-grammar-1.0",
+    "literal_count": 3,
+    "literals": [
+      "NOT order3_identity::data.read@customer_data@internal|identity.reverify@identity@internal|data.external_move@communications@crossing",
+      "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing",
+      "subject_link::data.read@customer_data@internal|data.external_move@communications@crossing"
+    ],
+    "production_authority": "none",
+    "scoring_rule": "min(F1_fit, F1_select) over depths 2..6, ties to fewer literals",
+    "seal": "3c42b3128d08341b3af69f0e81cbfd619cbfc5130c2fe2449bdfd34c9ff6fdb1",
+    "structure_hash": "7a35e52a161d8d9e",
+    "thresholds": {
+      "max_alignment_cost": 6.0,
+      "min_destructive_extinction": 0.8,
+      "min_discovery_lift": 0.15,
+      "min_preserving_agreement": 0.95,
+      "min_retention_for_transfer": 0.7
+    }
+  }
+}

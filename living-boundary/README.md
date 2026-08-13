@@ -1254,3 +1254,311 @@ The strongest honest statement is narrow and negative: **when replay is
 forbidden, a representational gap can still be detected, bounded, localised and
 falsified from sealed records alone — and where it cannot be, the system now
 says which of the seven reasons applies instead of guessing.**
+
+---
+
+# Part V — LB-3 As Built
+
+## 1. The question
+
+LB-0, LB-1 and LB-2 all ran inside **one** environment, so every claim any of
+them made carries an unasked question:
+
+> Is the thing that was discovered a property of the trajectory, or a property
+> of the world it was discovered in?
+
+LB-3 asks it directly:
+
+> Can Living Boundary distinguish invariant structural information from
+> environment-specific correlations?
+
+**Verdict: PARTIALLY_SUPPORTED.** Two of eleven declared acceptance criteria
+fail, and they are the same measured fact seen twice. What transfers, what does
+not, and where the boundary falls are all located below.
+
+## 2. Reproduce it
+
+```bash
+cd living-boundary
+python -m living_boundary.run_lb3 --seed 42
+```
+
+Standard library only, no credentials, no network. ~40 seconds (a full run plus
+three replication seeds). Writes evidence to
+`living-boundary/artifacts/lb3/lb3-seed42-<chain>/`.
+
+## 3. Design
+
+A candidate is discovered in `env_00`, **sealed**, and evaluated in eight
+environments it has never seen. The seal is not a convention: `FrozenCandidate`
+is immutable, hashes its own literals *together with* the thresholds and scoring
+rule in force when it was sealed, and re-verifies that hash on entry to every
+evaluation.
+
+The structural hazard is held invariant and everything used to express it is
+not. Each environment renders trajectories from a **plan** — role, identity
+slot, subject slot, does-it-leave-the-perimeter — using its own vocabulary. The
+hidden rule reads the plan and never the trace, so "same structure, different
+surface" is true by construction rather than by hope.
+
+**The hidden hazard.** A sensitive observation; later a consequential mutation
+by the same identity; later a crossing of the perimeter by that same identity
+touching the same subject; with no intervening verification **by that identity**.
+
+**Three representations** run through the identical matrix:
+
+| grammar | atoms | prediction recorded before the run |
+|---|---|---|
+| `surface` | the LB-0 grammar unchanged — capability, domain, boundary, scope, provider, region, session tag | cannot transfer anywhere |
+| `typed` | the same minus the four vocabulary-bound families | transfers exactly as far as the ontology labels do |
+| `relational` | **induced role @ boundary class** — no vocabulary at all | transfers as far as the role alignment holds |
+
+Role induction is the load-bearing new machinery. Each environment's step types
+are clustered from eight **relational statistics computed on unlabelled traces**
+— crossing rate, mean relative position, first-step rate, precedes-crossing
+rate, subject-shared-with-crossing, identity-shared-with-crossing, mean scope
+count, subject recurrence — z-scored within the environment, k-means with a
+deterministic farthest-point initialisation, then greedily matched to the
+discovery environment's centroids. No labels, no cross-environment vocabulary,
+no RNG.
+
+## 4. The nine environments
+
+| id | condition | what changes | correct outcome |
+|---|---|---|---|
+| `env_00` | discovery | — | — |
+| `env_01` | A · surface rename | action names, scopes, resource types, providers, regions, tags, id formats, clock, spacing, outside-boundary labels | transfer |
+| `env_02` | B · provider shift | everything in A **plus capability and domain labels** | transfer |
+| `env_03` | C · domain shift | everything in B, in another domain entirely, longer traces | transfer |
+| `env_04` | D · distribution shift | trace length, noise rate, class balance, event frequency | transfer |
+| `env_05` | E · structural perturbation | nothing on the surface; **identity continuity inverted** | collapse |
+| `env_06` | F · partial invariance | A's vocabulary; **verification exemption removed** | degrade |
+| `env_07` | G · negative control | action names only — built to keep every correlation the discovery world had; **subject continuity inverted** | collapse |
+| `env_08` | H · encoding shift | everything in A **plus the perimeter marker itself** | measured, not predicted |
+
+Plus three probe corpora used only by the falsification battery: an inverted
+session-metadata correlation, an entirely unseen action vocabulary, and the
+over-approximation probe described in §7.
+
+## 5. Leakage controls
+
+Stronger than LB-2's, and almost entirely static:
+
+- **Import graph.** No module under `transfer/` can reach `lb3_worlds`,
+  `lb3_generator`, or any earlier phase's harness. Asserted by walking the graph,
+  not by convention.
+- **Role induction is blind.** `induce_roles` and `observe_statistics` take no
+  labels — checked on the signature — and their source is asserted not to
+  mention `is_unsafe_observed`, `trajectory_outcome` or `.outcome`.
+- **Discovery cannot see transfer.** `_discover` takes `(splits, grammar,
+  reference_roles)` and its AST is asserted to reference no transfer
+  environment, no corpus builder and no evaluator.
+- **Opaque identifiers.** Environments are `env_00`…`env_08`. Their conditions,
+  rule variants and expectations are harness metadata attached to the record
+  *after* evaluation, for scoring only.
+- **No construction parameter reaches a trace.** A rendered corpus is asserted
+  to contain none of the rule names, role names or shape names anywhere in any
+  field, including the free-form provenance dict.
+- **No RNG in the analysis path**, except inside `falsification.label_shuffle`,
+  which exists to permute labels and says so in its name.
+
+## 6. Transfer retention
+
+Defined in `transfer/retention.py` **before the experiment ran**:
+
+```
+lift(c, X) = F1_X(c) − F1_X(baseline_X)
+R(c, E)    = lift(c, E) / max(ε, lift(c, D))
+```
+
+`baseline_X` is the best trivial predictor in that environment, by F1, computed
+from its labels alone — so a change in class balance cannot be mistaken for a
+change in transfer. R is reported raw (including negative) and clipped to [0,1]
+for the gate. **Aggregation is by minimum, not mean**: a mean over five
+environments hides a collapse in one of them, and a collapse in one of them is
+the finding. Retention is reported as *undefined* when the discovery-side lift
+is below 0.15, because below that it is a ratio of two noise terms.
+
+## 7. Results (seed 42)
+
+Reference package: `artifacts/lb3/lb3-seed42-ab2740f1/`, evidence chain head `ab2740f1859feb5b…`, 8 sealed records, verified.
+
+**The candidate**, discovered in `env_00` and never touched again:
+
+```
+rr_ord3is::role_2@internal|role_0@internal|role_1@crossing
+NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing
+```
+
+Read back: *one identity performed a role-2 step inside, then a role-0 step
+inside, then a role-1 step that left the perimeter, with the first and last
+touching the same subject — and that identity did not interpose a role-4 step
+between the mutation and the crossing.* That is the hidden rule. Discovery
+held-out F1 1.0000 against a trivial baseline of 0.5158 (lift +0.4842).
+
+**The transfer matrix.** Retention of the discovery-side advantage:
+
+| grammar | env_01 | env_02 | env_03 | env_04 | env_05 | env_06 | env_07 | env_08 |
+|---|---|---|---|---|---|---|---|---|
+| `surface` | **1.00** | 0.00 | 0.00 | **1.00** | 0.00 | 0.65 | 0.18 | 0.00 |
+| `typed` | **1.00** | 0.00 | 0.00 | **1.00** | 0.00 | 0.65 | 0.18 | 0.00 |
+| `relational` | **1.00** | **1.00** | **1.00** | **1.00** | 0.00 | 0.65 | 0.18 | 0.00 |
+
+**This table is the phase's result.** The vocabulary-bound encodings survive a
+tool rename and stop dead the moment the capability and domain taxonomy changes
+with it. The relational encoding carries all four. Every control behaves as
+constructed: `env_05` and `env_07` collapse, `env_06` degrades to 0.65 — part of
+the structure survived and part did not, reported as partial rather than forced
+to a binary.
+
+**`surface` and `typed` found the identical candidate.** The surface grammar can
+express provider, region and session tag; the trap was baited at a 0.9
+correlation and the search declined it unprompted. That is a result about the
+search, not about transfer, and it is why two rows of the matrix are the same.
+
+**Competing explanations**, fitted and transferred on identical terms:
+
+| hypothesis | mean retention | note |
+|---|---|---|
+| `nearest_neighbour` | 0.627 | see below |
+| `token_literal` | 0.500 | survives A and D, dies on B and C |
+| `session_metadata` | 0.000 | discovery lift +0.32, carries none of it across |
+| `provider_identity`, `domain_identity`, `capability_domain`, `event_frequency`, `tool_identity`, `trace_length`, `positional` | 0.000 | |
+
+`nearest_neighbour` retaining 0.63 is a finding rather than a leak, and worth
+stating plainly: Jaccard similarity over the LB-0 feature set is **not** zero
+across a complete vocabulary change, because that grammar contains
+vocabulary-free families — step counts, boundary crossings, single-identity.
+The crudest possible model therefore transfers partially. The candidate's margin
+over it (1.00 − 0.63 = 0.37) is what the acceptance gate actually tests, against
+a declared floor of 0.25.
+
+**Invariance.** Eight of nine semantics-preserving transforms hold at agreement
+1.0000 — including alpha-renaming identities, renaming every tool, substituting
+capability and domain labels, translating timestamps and rewriting the
+provenance dict. All five destructive transforms extinguish the candidate
+completely.
+
+**Falsification.** A candidate fitted to permuted labels retains 0.000. Evaluated
+through a neighbouring environment's role model it retains 0.000, so the
+alignment step is load-bearing rather than decorative. Both conjuncts are
+load-bearing under ablation. Injecting a session tag correlated perfectly with
+the outcome changes 0.0% of its calls.
+
+## 8. Why the verdict is not SUPPORTED
+
+Two criteria fail, and they are one fact seen twice.
+
+**`pad_trace` breaks the alignment, not the candidate.** Padding every trajectory
+with copies of an existing step type skews that step type's statistics; the
+induced roles move; and the candidate is evaluated through a mapping that no
+longer means what it did. Agreement 0.5875 against a floor of 0.95. The
+**re-alignment cost** — reported per transform for exactly this reason — is
+6.177, *above* the 6.0 ceiling at which an environment would have been marked
+ABSTAINED. The candidate did not break; the translation did.
+
+**And the verdict is seed-dependent because of it.** Every seed recovers a
+byte-identical candidate with identical retention. But the `pad_trace`
+re-alignment cost lands in **[3.795, 6.177]** across seeds against a ceiling of
+6.0, and which side of it a seed falls on decides whether the invariance
+criterion passes. It passes on 2 of 3 replication seeds. A replication check
+that reported only the structure hash would have called this perfectly stable;
+it is not, and the run says so.
+
+Two consequences follow, and neither is comfortable:
+
+1. **Role induction is sensitive to the step-type frequency profile**, not only
+   to the relations in a trajectory. That is the sharpest limitation LB-3 found
+   in its own method.
+2. **The abstention gate is miscalibrated in both directions on this evidence.**
+   It fired where it should not have (`pad_trace`, a semantics-preserving
+   transform) and failed to fire where it should have (`env_08`, where the
+   perimeter marker is renamed, the alignment cost rises 70× to 3.48 and the
+   candidate collapses to F1 0.000 instead of declining to answer). Abstaining
+   there would have been the more useful outcome. `MAX_ALIGNMENT_COST = 6.0` was
+   declared before the run and **has not been changed after it**.
+
+## 9. Two things changed after a measurement, and both are recorded
+
+The same discipline as LB-0's three findings. Neither is a threshold that was
+moved to make a run pass.
+
+1. **`drop_last_step` was removed from the destructive gate and kept in the
+   report.** It scored 0.7266 against a floor of 0.80. Inspection showed the
+   transform is not destructive: a hazard whose crossing is not the final step
+   still contains the whole relation after its last step is removed, and the
+   candidate is *correct* to keep firing. The failing number described the
+   transform, not the candidate. It is still measured on every run and printed
+   beside the gated ones; `hoist_crossing_to_front`, which destroys the ordering
+   for every trajectory rather than most, took its place in the gate.
+2. **`reproduces_across_seeds` was tightened.** It originally required only that
+   the discovered structure be identical across seeds — which it is, on every
+   seed tried. Running the invariance battery per seed showed the *verdict* is
+   not stable, so the criterion now requires both. Tightening a gate so it
+   detects a measured instability is the opposite of the move this project warns
+   about; loosening one to make a run pass is what it warns about.
+
+## 10. The adversarial question
+
+> Did we discover something invariant about the trajectory, or merely something
+> that happened to remain correlated across the environments we constructed?
+
+Four pieces of evidence bear on it, and none of them is conclusive alone:
+
+- `env_07` keeps every surface correlation the discovery world had and changes
+  the rule. The candidate collapses to 0.18 there.
+- `env_05` keeps the discovery vocabulary exactly and inverts one relation. The
+  candidate collapses to 0.00.
+- Ten cheaper explanations were fitted on identical terms; the best retains 0.63
+  against the candidate's 1.00.
+- Shuffling the role alignment destroys the result entirely, so the transfer is
+  not surviving on residual vocabulary overlap.
+
+Together that is a real answer for **the environment family LB-3 constructed**,
+and it is not a general one. `env_08` shows exactly how the answer ends: break
+the shared encoding of the perimeter and nothing transfers at all.
+
+**Structural invariance is not causal invariance and LB-3 claims only the
+first.** Nothing here establishes that the relation *causes* the outcome. What
+is established is that a predicate over induced relational roles keeps its
+discriminative power across changes of vocabulary, provider taxonomy, domain and
+distribution, while ten alternative stories do not.
+
+## 11. Honest limitations
+
+1. **The environments are synthetic and their author wrote the role
+   statistics.** Eight relational statistics were chosen knowing what roles
+   exist. `env_05` and `env_07` limit what that buys — roles align perfectly in
+   both and the relation underneath has changed — but they do not eliminate it.
+2. **Nine environments is not environment diversity.** They share a generator, a
+   plan library and a step-type inventory of roughly the same size in each.
+3. **Per-environment z-scoring assumes a comparable step-type inventory.** Real
+   telemetry is not balanced that way, and §8 shows the method already breaks
+   when the frequency profile is skewed *within* an environment.
+4. **The shared perimeter encoding is a load-bearing assumption**, measured in
+   `env_08` and not defended.
+5. **Candidate grammar expressiveness.** A hazard not expressible as a
+   conjunction over these relational families is invisible to LB-3 — the LB-0
+   weakness, inherited whole and now one abstraction level up.
+6. **The second-corpus gate is weaker than LB-0's.** LB-3 scores by
+   `min(F1_fit, F1_select)` at *selection* time; LB-0 learned the hard way that
+   the gate belongs inside the beam, at *search* time.
+7. **Remaining confounders.** Matching across environments rests on the role
+   alignment, and an alignment that is wrong in a way the cost function cannot
+   see would be invisible.
+8. **Three replication seeds**, and they disagree about the verdict.
+9. **No claim of universal invariance is possible from this design**, and none
+   is made.
+
+## 12. What is NOT claimed
+
+Not that the relational encoding transfers in general. Not that role induction
+is a solved problem — §8 is a counterexample found by LB-3 against itself. Not
+that the structure is causal. Not that any candidate should be adopted; the
+terminal state is `REVIEW_REQUIRED`, `FEATURE_FAMILIES` is byte-identical before
+and after every run, and the production ruleset fingerprint is unchanged.
+
+The strongest honest statement is narrow: **for one hazard, one grammar and nine
+constructed environments, the level of abstraction that transfers is the
+relational one, the level that does not is the vocabulary-bound one, and the
+boundary between them can be located and measured rather than asserted.**

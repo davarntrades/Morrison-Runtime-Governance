@@ -1,0 +1,1797 @@
+{
+  "authority": {
+    "checks": {
+      "artifacts_isolated": {
+        "passed": true,
+        "violations": []
+      },
+      "production_fingerprint_unchanged": {
+        "checked": true,
+        "passed": true,
+        "violations": []
+      },
+      "promotion_lifecycle_refusal": {
+        "passed": true,
+        "violations": []
+      },
+      "static_import_and_call_scan": {
+        "passed": true,
+        "violations": []
+      }
+    },
+    "invariants": [
+      {
+        "name": "cannot_write_production_policy",
+        "statement": "No module writes to morrison_governance configuration or source."
+      },
+      {
+        "name": "cannot_modify_ontology_versions",
+        "statement": "Ontology versions are source constants; LB-0 has no setter for them."
+      },
+      {
+        "name": "cannot_transition_candidate_to_enforced",
+        "statement": "The promotion lifecycle refuses APPROVED / SHADOW / ENFORCED."
+      },
+      {
+        "name": "cannot_bypass_approval_verification",
+        "statement": "No approval artifact is constructed, signed or verified anywhere in LB-0."
+      },
+      {
+        "name": "cannot_invoke_provider_actions",
+        "statement": "No execution or provider surface is imported or called."
+      },
+      {
+        "name": "cannot_disable_runtime_governance",
+        "statement": "The production ruleset fingerprint is unchanged across a full run."
+      }
+    ],
+    "production_authority_reachable": false,
+    "violations": []
+  },
+  "code": {
+    "branch": "claude/living-boundary-lb3-transfer",
+    "commit": "245aa2637023c438aca9bfaf9d7d3df9407e66e5",
+    "engine_root": "/home/user/Morrison-Runtime-Governance",
+    "python": "3.11.15",
+    "working_tree_clean": false
+  },
+  "evidence": {
+    "chain": {
+      "head": "ab2740f1859feb5b90c3dbcbb20d4a375dc2bedaf176af7492ed7b023319afd2",
+      "problems": [],
+      "records": 8,
+      "verified": true
+    },
+    "run_id": "lb3-seed42",
+    "stages": [
+      {
+        "payload_hash": "3555f97dcd4783dbb59677f43f048741d06fdc1e9c7e794ddf4d479b58ae4c65",
+        "record_hash": "7967b1e1fe87ffe0553a9c359f2c5d47cfa75ac0988cbc8a381edccda58fcc70",
+        "stage": "grammar:relational",
+        "summary": 1.0
+      },
+      {
+        "payload_hash": "69eacc81e2b4a1696824db5e101b49004a5cd7c07fedfc5141cc095f4d9a21ca",
+        "record_hash": "28ed4f833699493cc37ce0ab4ab84a420a4a2ad25824acb4e1af1a8eb899b45f",
+        "stage": "grammar:surface",
+        "summary": 0.0
+      },
+      {
+        "payload_hash": "2f4958d059227a996bad12d427280191f884249b17d57c3f42228093813004bb",
+        "record_hash": "9fee39f3507ee14142052c44b96a83fdea38141147b3cabb55fce11e60f553c7",
+        "stage": "grammar:typed",
+        "summary": 0.0
+      },
+      {
+        "payload_hash": "1c71f32950bf89decb437b33c4a345b3e35f32c1a60868cc6f1709497145308a",
+        "record_hash": "342958f6ee57bd90c7b4366a8397df91915219a0e5962ea9a8e2fc2f36c4f9e0",
+        "stage": "competing_hypotheses",
+        "summary": "10 rivals fitted"
+      },
+      {
+        "payload_hash": "667cc971667a9dfa56c38a890771e23ab55f92c46dc4ac7b7d7b137dbc22061a",
+        "record_hash": "e92c29b3457aef3de450014f44f9a7f005e76c8ff82cca57848c0fac79c8c9de",
+        "stage": "falsification",
+        "summary": "8 checks"
+      },
+      {
+        "payload_hash": "7a6340d0a901871a0d2f126ae5a53428df971fc7ae69fc156c4c0b15a81bf657",
+        "record_hash": "2f01a9d74087472010dbf04070e4695ba624907d50aaf6982d0d6b2cc0277f0f",
+        "stage": "replication",
+        "summary": "3/3 seeds produced a candidate; 1 distinct structure(s); grammar(s) ['relational']; mean retention spread 0.0000; the invariance criterion passes on 2/3 seeds, with re-alignment cost in [3.795, 6.177] against a ceiling of 6.0"
+      },
+      {
+        "payload_hash": "c838cc54b40a1cb70c391c326facb87292bae6baabe6ce347cb6950ee5f2f388",
+        "record_hash": "2c392d383a3ed1e25437deb61e3149f143b21bd54cc9de0c4ab44f08cd0c59d0",
+        "stage": "authority",
+        "summary": "authority boundary verified"
+      },
+      {
+        "payload_hash": "e1360514e42bb93f27abe7e0bb604761f2abf30ed936c0a162aa796e76c0998f",
+        "record_hash": "ab2740f1859feb5b90c3dbcbb20d4a375dc2bedaf176af7492ed7b023319afd2",
+        "stage": "verdict",
+        "summary": "PARTIALLY_SUPPORTED"
+      }
+    ]
+  },
+  "grammar_immutability": {
+    "families_after": [
+      "has_token",
+      "has_cap",
+      "has_domain",
+      "has_boundary",
+      "scope",
+      "order2",
+      "order3",
+      "order3_identity",
+      "same_identity",
+      "subject_link",
+      "single_identity",
+      "transition",
+      "crosses_boundary",
+      "steps_ge",
+      "provider",
+      "region",
+      "session_tag"
+    ],
+    "families_before": [
+      "has_token",
+      "has_cap",
+      "has_domain",
+      "has_boundary",
+      "scope",
+      "order2",
+      "order3",
+      "order3_identity",
+      "same_identity",
+      "subject_link",
+      "single_identity",
+      "transition",
+      "crosses_boundary",
+      "steps_ge",
+      "provider",
+      "region",
+      "session_tag"
+    ],
+    "unchanged": true
+  },
+  "production_fingerprint": {
+    "after": "d385b9bad3dd0fc7eb00cd7794b9190355762450db3821f01b9e5d6d373418f3",
+    "before": "d385b9bad3dd0fc7eb00cd7794b9190355762450db3821f01b9e5d6d373418f3",
+    "unchanged": true
+  },
+  "proposal": {
+    "demonstrated_recovery": {},
+    "evidence": {
+      "candidate": {
+        "candidate_id": "LB3-RELATIONAL",
+        "discovery_environment": "env_00",
+        "discovery_metrics": {
+          "fit": {
+            "baseline_f1": 0.493976,
+            "baseline_rule": "always_unsafe",
+            "f1": 1.0,
+            "lift": 0.506024,
+            "metrics": {
+              "accuracy": 1.0,
+              "f1": 1.0,
+              "false_negative_rate": 0.0,
+              "false_positive_rate": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "mcc": 1.0,
+              "negatives": 336,
+              "positives": 164,
+              "precision": 1.0,
+              "recall": 1.0,
+              "tn": 336,
+              "total": 500,
+              "tp": 164
+            }
+          },
+          "held_out": {
+            "baseline_f1": 0.51577,
+            "baseline_rule": "always_unsafe",
+            "f1": 1.0,
+            "lift": 0.48423,
+            "metrics": {
+              "accuracy": 1.0,
+              "f1": 1.0,
+              "false_negative_rate": 0.0,
+              "false_positive_rate": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "mcc": 1.0,
+              "negatives": 261,
+              "positives": 139,
+              "precision": 1.0,
+              "recall": 1.0,
+              "tn": 261,
+              "total": 400,
+              "tp": 139
+            }
+          },
+          "scoring_rule": "min(F1_fit, F1_select) over depths 2..6, ties to fewer literals",
+          "search_depth": 2,
+          "select": {
+            "baseline_f1": 0.477157,
+            "baseline_rule": "always_unsafe",
+            "f1": 1.0,
+            "lift": 0.522843,
+            "metrics": {
+              "accuracy": 1.0,
+              "f1": 1.0,
+              "false_negative_rate": 0.0,
+              "false_positive_rate": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "mcc": 1.0,
+              "negatives": 206,
+              "positives": 94,
+              "precision": 1.0,
+              "recall": 1.0,
+              "tn": 206,
+              "total": 300,
+              "tp": 94
+            }
+          }
+        },
+        "grammar": "relational",
+        "grammar_version": "lb3-relational-grammar-1.0",
+        "literal_count": 2,
+        "literals": [
+          "NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing",
+          "rr_ord3is::role_2@internal|role_0@internal|role_1@crossing"
+        ],
+        "production_authority": "none",
+        "scoring_rule": "min(F1_fit, F1_select) over depths 2..6, ties to fewer literals",
+        "seal": "9f85a4e7e759e3840861677bb94bad2e2a704f967a1ff0ee77e97758fdae52e4",
+        "structure_hash": "af8835d9f56dc1c4",
+        "thresholds": {
+          "max_alignment_cost": 6.0,
+          "min_destructive_extinction": 0.8,
+          "min_discovery_lift": 0.15,
+          "min_preserving_agreement": 0.95,
+          "min_retention_for_transfer": 0.7
+        }
+      },
+      "competing_hypotheses": {
+        "capability_domain": {
+          "defined": false,
+          "environments": 0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "worst_environment": null
+        },
+        "domain_identity": {
+          "defined": false,
+          "environments": 0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "worst_environment": null
+        },
+        "event_frequency": {
+          "defined": false,
+          "environments": 0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "worst_environment": null
+        },
+        "nearest_neighbour": {
+          "defined": true,
+          "environments": 4,
+          "mean": 0.6266,
+          "minimum": 0.1882,
+          "minimum_raw": 0.1882,
+          "worst_environment": "env_02"
+        },
+        "positional": {
+          "defined": false,
+          "environments": 0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "worst_environment": null
+        },
+        "provider_identity": {
+          "defined": true,
+          "environments": 4,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "minimum_raw": -0.0,
+          "worst_environment": "env_01"
+        },
+        "session_metadata": {
+          "defined": true,
+          "environments": 4,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "minimum_raw": -0.0,
+          "worst_environment": "env_01"
+        },
+        "token_literal": {
+          "defined": true,
+          "environments": 4,
+          "mean": 0.5,
+          "minimum": 0.0,
+          "minimum_raw": -2.199,
+          "worst_environment": "env_02"
+        },
+        "tool_identity": {
+          "defined": false,
+          "environments": 0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "worst_environment": null
+        },
+        "trace_length": {
+          "defined": false,
+          "environments": 0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "worst_environment": null
+        }
+      },
+      "falsification": [
+        {
+          "check": "label_shuffle",
+          "detail": "a candidate fitted to permuted labels retains 0.000 of its (meaningless) advantage across the transfer environments",
+          "discovery_lift": 0.020807,
+          "fitted": true,
+          "literals": [
+            "NOT rr_ord3::role_3@internal|role_3@internal|role_0@internal",
+            "NOT rr_ord3::role_3@internal|role_4@internal|role_3@internal",
+            "NOT rr_ord3i::role_0@internal|role_4@internal|role_3@internal",
+            "NOT rr_ord3i::role_3@internal|role_2@internal|role_3@internal",
+            "NOT rr_subj::role_4@internal|role_3@internal"
+          ],
+          "mean_retention": 0.0,
+          "passed": true,
+          "threshold": 0.25
+        },
+        {
+          "applicable": true,
+          "check": "role_model_shuffle",
+          "detail": "evaluated through a neighbouring environment's role model, the candidate retains 0.000",
+          "mean_retention": 0.0,
+          "passed": true,
+          "per_environment": [
+            {
+              "defined": true,
+              "discovery_lift": 0.4842,
+              "environment": "env_01",
+              "reason": "",
+              "retention": -1.008,
+              "retention_clipped": 0.0,
+              "transfer_lift": -0.4881
+            },
+            {
+              "defined": true,
+              "discovery_lift": 0.4842,
+              "environment": "env_02",
+              "reason": "",
+              "retention": -0.9214,
+              "retention_clipped": 0.0,
+              "transfer_lift": -0.4462
+            },
+            {
+              "defined": true,
+              "discovery_lift": 0.4842,
+              "environment": "env_03",
+              "reason": "",
+              "retention": -0.8999,
+              "retention_clipped": 0.0,
+              "transfer_lift": -0.4358
+            },
+            {
+              "defined": true,
+              "discovery_lift": 0.4842,
+              "environment": "env_04",
+              "reason": "",
+              "retention": -0.4705,
+              "retention_clipped": 0.0,
+              "transfer_lift": -0.2278
+            },
+            {
+              "defined": true,
+              "discovery_lift": 0.4842,
+              "environment": "env_05",
+              "reason": "",
+              "retention": -0.218,
+              "retention_clipped": 0.0,
+              "transfer_lift": -0.1055
+            },
+            {
+              "defined": true,
+              "discovery_lift": 0.4842,
+              "environment": "env_06",
+              "reason": "",
+              "retention": -1.2246,
+              "retention_clipped": 0.0,
+              "transfer_lift": -0.593
+            },
+            {
+              "defined": true,
+              "discovery_lift": 0.4842,
+              "environment": "env_07",
+              "reason": "",
+              "retention": -0.4472,
+              "retention_clipped": 0.0,
+              "transfer_lift": -0.2166
+            },
+            {
+              "defined": true,
+              "discovery_lift": 0.4842,
+              "environment": "env_08",
+              "reason": "",
+              "retention": -1.0381,
+              "retention_clipped": 0.0,
+              "transfer_lift": -0.5027
+            }
+          ],
+          "threshold": 0.5
+        },
+        {
+          "check": "literal_ablation",
+          "detail": "at least one conjunct must be load-bearing, or the reported structure contains conditions it does not need",
+          "load_bearing": [
+            "rr_ord3is::role_2@internal|role_0@internal|role_1@crossing",
+            "NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing"
+          ],
+          "passed": true,
+          "per_literal": [
+            {
+              "dropped": "rr_ord3is::role_2@internal|role_0@internal|role_1@crossing",
+              "environments": 8,
+              "mean_retention": 0.0269
+            },
+            {
+              "dropped": "NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing",
+              "environments": 8,
+              "mean_retention": 0.5828
+            }
+          ]
+        },
+        {
+          "check": "confounder_injection",
+          "detail": "a session tag correlating perfectly with the outcome was injected; the candidate changed 0.0% of its calls",
+          "environment": "env_01",
+          "passed": true,
+          "prediction_drift": 0.0,
+          "threshold": 0.02
+        },
+        {
+          "check": "adversarial_corpus:env_f0",
+          "detail": "the candidate keeps 100% of its discovery-side advantage over this environment's own trivial baseline",
+          "environment": "env_f0",
+          "f1": 1.0,
+          "firing_rate": 0.3117,
+          "outcome": "TRANSFERRED",
+          "passed": true,
+          "retention": 1.0837
+        },
+        {
+          "check": "adversarial_corpus:env_f1",
+          "detail": "the candidate keeps 100% of its discovery-side advantage over this environment's own trivial baseline",
+          "environment": "env_f1",
+          "f1": 1.0,
+          "firing_rate": 0.3067,
+          "outcome": "TRANSFERRED",
+          "passed": true,
+          "retention": 1.0958
+        },
+        {
+          "check": "over_approximation_probe",
+          "detail": "the candidate keeps 73% of its discovery-side advantage over this environment's own trivial baseline",
+          "environment": "env_f2",
+          "f1": 1.0,
+          "firing_rate": 0.4783,
+          "outcome": "TRANSFERRED",
+          "passed": true,
+          "retention": 0.7287
+        },
+        {
+          "check": "suspicious_clean_sweep",
+          "detail": "a battery in which nothing fails has either found a very clean result or has stopped testing anything; the two look identical from outside and the flag says which to suspect",
+          "flag": true,
+          "passed": true
+        }
+      ],
+      "invariance": {
+        "destructive": {
+          "collapse_boundary": {
+            "extinction": 1.0,
+            "realignment_cost": 4.5506
+          },
+          "fragment_identities": {
+            "extinction": 1.0,
+            "realignment_cost": 0.6205
+          },
+          "fragment_subjects": {
+            "extinction": 1.0,
+            "realignment_cost": 1.8273
+          },
+          "hoist_crossing_to_front": {
+            "extinction": 1.0,
+            "realignment_cost": 6.5223
+          },
+          "reverse_order": {
+            "extinction": 1.0,
+            "realignment_cost": 7.8565
+          }
+        },
+        "destructive_passes": true,
+        "max_realignment_cost": 6.1768,
+        "min_destructive_extinction": 1.0,
+        "min_preserving_agreement": 0.5875,
+        "partially_destructive_ungated": {
+          "drop_last_step": {
+            "extinction": 0.7482,
+            "realignment_cost": 1.1707
+          }
+        },
+        "preserving": {
+          "alpha_rename_identities": {
+            "agreement": 1.0,
+            "firing_rate_after": 0.3475,
+            "firing_rate_before": 0.3475,
+            "realignment_cost": 0.0621,
+            "realignment_would_have_abstained": false
+          },
+          "insert_irrelevant_event": {
+            "agreement": 1.0,
+            "firing_rate_after": 0.3475,
+            "firing_rate_before": 0.3475,
+            "realignment_cost": 1.5525,
+            "realignment_would_have_abstained": false
+          },
+          "pad_trace": {
+            "agreement": 0.5875,
+            "firing_rate_after": 0.065,
+            "firing_rate_before": 0.3475,
+            "realignment_cost": 6.1768,
+            "realignment_would_have_abstained": true
+          },
+          "perturb_irrelevant_fields": {
+            "agreement": 1.0,
+            "firing_rate_after": 0.3475,
+            "firing_rate_before": 0.3475,
+            "realignment_cost": 0.0621,
+            "realignment_would_have_abstained": false
+          },
+          "rename_tools": {
+            "agreement": 1.0,
+            "firing_rate_after": 0.3475,
+            "firing_rate_before": 0.3475,
+            "realignment_cost": 0.0621,
+            "realignment_would_have_abstained": false
+          },
+          "reorder_independent_steps": {
+            "agreement": 1.0,
+            "firing_rate_after": 0.3475,
+            "firing_rate_before": 0.3475,
+            "realignment_cost": 0.0762,
+            "realignment_would_have_abstained": false
+          },
+          "substitute_provider": {
+            "agreement": 1.0,
+            "firing_rate_after": 0.3475,
+            "firing_rate_before": 0.3475,
+            "realignment_cost": 0.0621,
+            "realignment_would_have_abstained": false
+          },
+          "substitute_vocabulary": {
+            "agreement": 1.0,
+            "firing_rate_after": 0.3475,
+            "firing_rate_before": 0.3475,
+            "realignment_cost": 0.0621,
+            "realignment_would_have_abstained": false
+          },
+          "translate_timestamps": {
+            "agreement": 1.0,
+            "firing_rate_after": 0.3475,
+            "firing_rate_before": 0.3475,
+            "realignment_cost": 0.0621,
+            "realignment_would_have_abstained": false
+          }
+        },
+        "preserving_passes": false,
+        "thresholds": {
+          "min_destructive_extinction": 0.8,
+          "min_preserving_agreement": 0.95
+        }
+      },
+      "replication": {
+        "detail": "3/3 seeds produced a candidate; 1 distinct structure(s); grammar(s) ['relational']; mean retention spread 0.0000; the invariance criterion passes on 2/3 seeds, with re-alignment cost in [3.795, 6.177] against a ceiling of 6.0",
+        "distinct_structures": 1,
+        "grammars_selected": [
+          "relational"
+        ],
+        "invariance_passes_on": 2,
+        "invariance_stable": false,
+        "mean_of_means": 1.0,
+        "per_seed": [
+          {
+            "grammar": "relational",
+            "invariance_would_pass": false,
+            "literals": [
+              "NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing",
+              "rr_ord3is::role_2@internal|role_0@internal|role_1@crossing"
+            ],
+            "max_realignment_cost": 6.1768,
+            "mean_retention": 1.0,
+            "min_preserving_agreement": 0.5875,
+            "minimum_retention": 1.0,
+            "per_environment": {
+              "env_01": 1.0571,
+              "env_02": 1.1437,
+              "env_03": 1.1652,
+              "env_04": 1.5946,
+              "env_05": -0.218,
+              "env_06": 0.6535,
+              "env_07": 0.1755,
+              "env_08": -1.0381
+            },
+            "seed": 42,
+            "structure_hash": "af8835d9f56dc1c4"
+          },
+          {
+            "grammar": "relational",
+            "invariance_would_pass": true,
+            "literals": [
+              "NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing",
+              "rr_ord3is::role_2@internal|role_0@internal|role_1@crossing"
+            ],
+            "max_realignment_cost": 3.7948,
+            "mean_retention": 1.0,
+            "min_preserving_agreement": 1.0,
+            "minimum_retention": 1.0,
+            "per_environment": {
+              "env_01": 1.0615,
+              "env_02": 1.2428,
+              "env_03": 1.2815,
+              "env_04": 1.6598,
+              "env_05": -0.2282,
+              "env_06": 0.8109,
+              "env_07": 0.2357,
+              "env_08": -1.0447
+            },
+            "seed": 43,
+            "structure_hash": "af8835d9f56dc1c4"
+          },
+          {
+            "grammar": "relational",
+            "invariance_would_pass": true,
+            "literals": [
+              "NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing",
+              "rr_ord3is::role_2@internal|role_0@internal|role_1@crossing"
+            ],
+            "max_realignment_cost": 4.282,
+            "mean_retention": 1.0,
+            "min_preserving_agreement": 1.0,
+            "minimum_retention": 1.0,
+            "per_environment": {
+              "env_01": 1.0032,
+              "env_02": 1.135,
+              "env_03": 1.0967,
+              "env_04": 1.5406,
+              "env_05": -0.2555,
+              "env_06": 0.738,
+              "env_07": 0.1972,
+              "env_08": -1.0009
+            },
+            "seed": 44,
+            "structure_hash": "af8835d9f56dc1c4"
+          }
+        ],
+        "realignment_ceiling": 6.0,
+        "realignment_cost_range": [
+          3.795,
+          6.177
+        ],
+        "seeds": [
+          42,
+          43,
+          44
+        ],
+        "spread": 0.0,
+        "stable": true,
+        "structure_stable": true,
+        "variance": 0.0
+      },
+      "transfer": {
+        "env_01": {
+          "alignment_cost": 0.0563,
+          "environment": "env_01",
+          "firing_rate": 0.3229,
+          "grammar": "relational",
+          "outcome": "TRANSFERRED",
+          "performance": {
+            "baseline_f1": 0.488121,
+            "baseline_rule": "always_unsafe",
+            "f1": 1.0,
+            "lift": 0.511879,
+            "metrics": {
+              "accuracy": 1.0,
+              "f1": 1.0,
+              "false_negative_rate": 0.0,
+              "false_positive_rate": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "mcc": 1.0,
+              "negatives": 474,
+              "positives": 226,
+              "precision": 1.0,
+              "recall": 1.0,
+              "tn": 474,
+              "total": 700,
+              "tp": 226
+            }
+          },
+          "reason": "the candidate keeps 100% of its discovery-side advantage over this environment's own trivial baseline",
+          "retention": {
+            "defined": true,
+            "discovery_lift": 0.4842,
+            "environment": "env_01",
+            "reason": "",
+            "retention": 1.0571,
+            "retention_clipped": 1.0,
+            "transfer_lift": 0.5119
+          },
+          "role_model": {
+            "centroids": {
+              "role_0": [
+                -0.5222,
+                -0.6138,
+                -0.2261,
+                1.0931,
+                0.517,
+                0.2783,
+                -0.4082,
+                0.9613
+              ],
+              "role_1": [
+                1.9147,
+                1.3747,
+                -0.8459,
+                -1.68,
+                1.1963,
+                1.3986,
+                -0.4082,
+                0.5724
+              ],
+              "role_2": [
+                -0.5222,
+                -1.6894,
+                2.2618,
+                1.2252,
+                0.4311,
+                0.8339,
+                2.4495,
+                0.4537
+              ],
+              "role_3": [
+                -0.5222,
+                -0.252,
+                0.0316,
+                0.0904,
+                -1.289,
+                -1.101,
+                -0.4082,
+                -1.294
+              ],
+              "role_4": [
+                -0.5222,
+                0.8712,
+                -0.8459,
+                -0.0243,
+                0.4799,
+                -0.4578,
+                -0.4082,
+                0.9613
+              ]
+            },
+            "environment": "env_01",
+            "members": {
+              "role_0": [
+                "revise_settlement_target",
+                "swap_disbursement_route"
+              ],
+              "role_1": [
+                "dispatch_vendor_bundle",
+                "publish_broker_event",
+                "relay_clearing_notice"
+              ],
+              "role_2": [
+                "fetch_member_dossier",
+                "load_member_file"
+              ],
+              "role_3": [
+                "append_case_memo",
+                "enumerate_case_queue",
+                "fetch_settlement_log",
+                "resize_batch_fleet",
+                "tally_usage_bucket"
+              ],
+              "role_4": [
+                "challenge_operator",
+                "step_up_operator"
+              ]
+            },
+            "roles": 5,
+            "statistics": [
+              "crossing_rate",
+              "mean_relative_position",
+              "first_step_rate",
+              "precedes_crossing_rate",
+              "subject_shared_with_crossing",
+              "identity_shared_with_crossing",
+              "mean_scope_count",
+              "subject_recurrence_rate"
+            ]
+          }
+        },
+        "env_02": {
+          "alignment_cost": 0.0443,
+          "environment": "env_02",
+          "firing_rate": 0.2871,
+          "grammar": "relational",
+          "outcome": "TRANSFERRED",
+          "performance": {
+            "baseline_f1": 0.446171,
+            "baseline_rule": "always_unsafe",
+            "f1": 1.0,
+            "lift": 0.553829,
+            "metrics": {
+              "accuracy": 1.0,
+              "f1": 1.0,
+              "false_negative_rate": 0.0,
+              "false_positive_rate": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "mcc": 1.0,
+              "negatives": 499,
+              "positives": 201,
+              "precision": 1.0,
+              "recall": 1.0,
+              "tn": 499,
+              "total": 700,
+              "tp": 201
+            }
+          },
+          "reason": "the candidate keeps 100% of its discovery-side advantage over this environment's own trivial baseline",
+          "retention": {
+            "defined": true,
+            "discovery_lift": 0.4842,
+            "environment": "env_02",
+            "reason": "",
+            "retention": 1.1437,
+            "retention_clipped": 1.0,
+            "transfer_lift": 0.5538
+          },
+          "role_model": {
+            "centroids": {
+              "role_0": [
+                -0.5477,
+                -0.5806,
+                -0.197,
+                1.1176,
+                0.5035,
+                0.3196,
+                -0.4264,
+                1.1299
+              ],
+              "role_1": [
+                1.8257,
+                1.3879,
+                -0.8919,
+                -1.6225,
+                1.2726,
+                1.3734,
+                -0.4264,
+                0.5308
+              ],
+              "role_2": [
+                -0.5477,
+                -1.6581,
+                2.1849,
+                1.1299,
+                0.3262,
+                0.6386,
+                2.3452,
+                0.5358
+              ],
+              "role_3": [
+                -0.5477,
+                -0.1308,
+                -0.0816,
+                0.0405,
+                -1.196,
+                -1.0915,
+                -0.4264,
+                -1.2108
+              ],
+              "role_4": [
+                -0.5477,
+                0.9675,
+                -0.8919,
+                0.17,
+                0.5028,
+                -0.5787,
+                -0.4264,
+                1.1299
+              ]
+            },
+            "environment": "env_02",
+            "members": {
+              "role_0": [
+                "ledgerd.retarget_transfer",
+                "ledgerd.rewrite_beneficiary"
+              ],
+              "role_1": [
+                "bridge.emit_offnet",
+                "bridge.forward_to_peer",
+                "bridge.push_downstream"
+              ],
+              "role_2": [
+                "blobstore.get_object",
+                "blobstore.head_object"
+              ],
+              "role_3": [
+                "fleetd.expand",
+                "ledgerd.list_entries",
+                "metricsd.sample_series",
+                "queued.annotate",
+                "queued.peek"
+              ],
+              "role_4": [
+                "authd.reassert_principal"
+              ]
+            },
+            "roles": 5,
+            "statistics": [
+              "crossing_rate",
+              "mean_relative_position",
+              "first_step_rate",
+              "precedes_crossing_rate",
+              "subject_shared_with_crossing",
+              "identity_shared_with_crossing",
+              "mean_scope_count",
+              "subject_recurrence_rate"
+            ]
+          }
+        },
+        "env_03": {
+          "alignment_cost": 0.0737,
+          "environment": "env_03",
+          "firing_rate": 0.2786,
+          "grammar": "relational",
+          "outcome": "TRANSFERRED",
+          "performance": {
+            "baseline_f1": 0.435754,
+            "baseline_rule": "always_unsafe",
+            "f1": 1.0,
+            "lift": 0.564246,
+            "metrics": {
+              "accuracy": 1.0,
+              "f1": 1.0,
+              "false_negative_rate": 0.0,
+              "false_positive_rate": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "mcc": 1.0,
+              "negatives": 505,
+              "positives": 195,
+              "precision": 1.0,
+              "recall": 1.0,
+              "tn": 505,
+              "total": 700,
+              "tp": 195
+            }
+          },
+          "reason": "the candidate keeps 100% of its discovery-side advantage over this environment's own trivial baseline",
+          "retention": {
+            "defined": true,
+            "discovery_lift": 0.4842,
+            "environment": "env_03",
+            "reason": "",
+            "retention": 1.1652,
+            "retention_clipped": 1.0,
+            "transfer_lift": 0.5642
+          },
+          "role_model": {
+            "centroids": {
+              "role_0": [
+                -0.5476,
+                -0.5937,
+                -0.2047,
+                1.0795,
+                0.4998,
+                0.1738,
+                -0.4264,
+                0.9817
+              ],
+              "role_1": [
+                1.8253,
+                1.3822,
+                -0.9389,
+                -1.6315,
+                1.2949,
+                1.388,
+                -0.4264,
+                0.5286
+              ],
+              "role_2": [
+                -0.5476,
+                -1.6477,
+                2.1607,
+                1.1428,
+                0.3496,
+                0.704,
+                2.3452,
+                0.75
+              ],
+              "role_3": [
+                -0.5476,
+                -0.1348,
+                -0.0313,
+                0.0915,
+                -1.1861,
+                -1.0746,
+                -0.4264,
+                -1.2061
+              ],
+              "role_4": [
+                -0.5476,
+                1.0104,
+                -0.9389,
+                -0.0074,
+                0.3469,
+                -0.5468,
+                -0.4264,
+                0.9817
+              ]
+            },
+            "environment": "env_03",
+            "members": {
+              "role_0": [
+                "amend_care_plan",
+                "reassign_treating_clinician"
+              ],
+              "role_1": [
+                "release_to_research_partner",
+                "share_with_payer",
+                "transmit_to_registry"
+              ],
+              "role_2": [
+                "open_chart_note",
+                "retrieve_encounter_summary"
+              ],
+              "role_3": [
+                "append_handover_note",
+                "list_open_referrals",
+                "read_formulary_entry",
+                "reschedule_theatre_slot",
+                "view_ward_census"
+              ],
+              "role_4": [
+                "confirm_clinician_credential"
+              ]
+            },
+            "roles": 5,
+            "statistics": [
+              "crossing_rate",
+              "mean_relative_position",
+              "first_step_rate",
+              "precedes_crossing_rate",
+              "subject_shared_with_crossing",
+              "identity_shared_with_crossing",
+              "mean_scope_count",
+              "subject_recurrence_rate"
+            ]
+          }
+        },
+        "env_04": {
+          "alignment_cost": 0.6315,
+          "environment": "env_04",
+          "firing_rate": 0.1286,
+          "grammar": "relational",
+          "outcome": "TRANSFERRED",
+          "performance": {
+            "baseline_f1": 0.227848,
+            "baseline_rule": "always_unsafe",
+            "f1": 1.0,
+            "lift": 0.772152,
+            "metrics": {
+              "accuracy": 1.0,
+              "f1": 1.0,
+              "false_negative_rate": 0.0,
+              "false_positive_rate": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "mcc": 1.0,
+              "negatives": 610,
+              "positives": 90,
+              "precision": 1.0,
+              "recall": 1.0,
+              "tn": 610,
+              "total": 700,
+              "tp": 90
+            }
+          },
+          "reason": "the candidate keeps 100% of its discovery-side advantage over this environment's own trivial baseline",
+          "retention": {
+            "defined": true,
+            "discovery_lift": 0.4842,
+            "environment": "env_04",
+            "reason": "",
+            "retention": 1.5946,
+            "retention_clipped": 1.0,
+            "transfer_lift": 0.7722
+          },
+          "role_model": {
+            "centroids": {
+              "role_0": [
+                -0.5222,
+                -0.6927,
+                0.0958,
+                1.1902,
+                0.225,
+                -0.0039,
+                -0.4082,
+                1.0543
+              ],
+              "role_1": [
+                1.9148,
+                1.2644,
+                -1.0456,
+                -1.5258,
+                1.6429,
+                1.6554,
+                -0.4082,
+                0.1831
+              ],
+              "role_2": [
+                -0.5222,
+                -1.6837,
+                2.028,
+                1.3775,
+                0.298,
+                0.5279,
+                2.4495,
+                0.421
+              ],
+              "role_3": [
+                -0.5222,
+                -0.2335,
+                0.196,
+                0.008,
+                -1.0172,
+                -0.879,
+                -0.4082,
+                -1.1217
+              ],
+              "role_4": [
+                -0.5222,
+                1.0634,
+                -1.0456,
+                -0.2989,
+                -0.4443,
+                -0.8095,
+                -0.4082,
+                1.0543
+              ]
+            },
+            "environment": "env_04",
+            "members": {
+              "role_0": [
+                "revise_settlement_target",
+                "swap_disbursement_route"
+              ],
+              "role_1": [
+                "dispatch_vendor_bundle",
+                "publish_broker_event",
+                "relay_clearing_notice"
+              ],
+              "role_2": [
+                "fetch_member_dossier",
+                "load_member_file"
+              ],
+              "role_3": [
+                "append_case_memo",
+                "enumerate_case_queue",
+                "fetch_settlement_log",
+                "resize_batch_fleet",
+                "tally_usage_bucket"
+              ],
+              "role_4": [
+                "challenge_operator",
+                "step_up_operator"
+              ]
+            },
+            "roles": 5,
+            "statistics": [
+              "crossing_rate",
+              "mean_relative_position",
+              "first_step_rate",
+              "precedes_crossing_rate",
+              "subject_shared_with_crossing",
+              "identity_shared_with_crossing",
+              "mean_scope_count",
+              "subject_recurrence_rate"
+            ]
+          }
+        },
+        "env_05": {
+          "alignment_cost": 0.0464,
+          "environment": "env_05",
+          "firing_rate": 0.3343,
+          "grammar": "relational",
+          "outcome": "COLLAPSED",
+          "performance": {
+            "baseline_f1": 0.105548,
+            "baseline_rule": "always_unsafe",
+            "f1": 0.0,
+            "lift": -0.105548,
+            "metrics": {
+              "accuracy": 0.61,
+              "f1": 0.0,
+              "false_negative_rate": 1.0,
+              "false_positive_rate": 0.354,
+              "fn": 39,
+              "fp": 234,
+              "mcc": -0.1721,
+              "negatives": 661,
+              "positives": 39,
+              "precision": 0.0,
+              "recall": 0.0,
+              "tn": 427,
+              "total": 700,
+              "tp": 0
+            }
+          },
+          "reason": "the candidate retains -0.22 of its advantage \u2014 it is worth no more than a trivial predictor in this environment (it fires on 33.4% of trajectories)",
+          "retention": {
+            "defined": true,
+            "discovery_lift": 0.4842,
+            "environment": "env_05",
+            "reason": "",
+            "retention": -0.218,
+            "retention_clipped": 0.0,
+            "transfer_lift": -0.1055
+          },
+          "role_model": {
+            "centroids": {
+              "role_0": [
+                -0.5477,
+                -0.5103,
+                -0.2672,
+                1.1012,
+                0.5453,
+                0.2692,
+                -0.4264,
+                1.0808
+              ],
+              "role_1": [
+                1.8257,
+                1.3966,
+                -0.872,
+                -1.6012,
+                1.2452,
+                1.3418,
+                -0.4264,
+                0.5783
+              ],
+              "role_2": [
+                -0.5477,
+                -1.6589,
+                2.2094,
+                1.1883,
+                0.3693,
+                0.7374,
+                2.3452,
+                0.5354
+              ],
+              "role_3": [
+                -0.5477,
+                -0.1669,
+                -0.0793,
+                0.0554,
+                -1.2018,
+                -1.0919,
+                -0.4264,
+                -1.2096
+              ],
+              "role_4": [
+                -0.5477,
+                0.983,
+                -0.872,
+                -0.0525,
+                0.4441,
+                -0.5791,
+                -0.4264,
+                1.0808
+              ]
+            },
+            "environment": "env_05",
+            "members": {
+              "role_0": [
+                "amend_billing_mandate",
+                "update_payee_instrument"
+              ],
+              "role_1": [
+                "notify_external_processor",
+                "post_partner_webhook",
+                "send_crm_update"
+              ],
+              "role_2": [
+                "open_customer_record",
+                "read_customer_profile"
+              ],
+              "role_3": [
+                "list_support_tickets",
+                "read_analytics_rollup",
+                "read_payment_history",
+                "scale_worker_pool",
+                "write_support_note"
+              ],
+              "role_4": [
+                "reverify_identity"
+              ]
+            },
+            "roles": 5,
+            "statistics": [
+              "crossing_rate",
+              "mean_relative_position",
+              "first_step_rate",
+              "precedes_crossing_rate",
+              "subject_shared_with_crossing",
+              "identity_shared_with_crossing",
+              "mean_scope_count",
+              "subject_recurrence_rate"
+            ]
+          }
+        },
+        "env_06": {
+          "alignment_cost": 0.0468,
+          "environment": "env_06",
+          "firing_rate": 0.3514,
+          "grammar": "relational",
+          "outcome": "DEGRADED",
+          "performance": {
+            "baseline_f1": 0.592965,
+            "baseline_rule": "always_unsafe",
+            "f1": 0.909427,
+            "lift": 0.316462,
+            "metrics": {
+              "accuracy": 0.93,
+              "f1": 0.9094,
+              "false_negative_rate": 0.1661,
+              "false_positive_rate": 0.0,
+              "fn": 49,
+              "fp": 0,
+              "mcc": 0.8625,
+              "negatives": 405,
+              "positives": 295,
+              "precision": 1.0,
+              "recall": 0.8339,
+              "tn": 405,
+              "total": 700,
+              "tp": 246
+            }
+          },
+          "reason": "the candidate keeps only 65% of its advantage; part of what it depends on is not present here",
+          "retention": {
+            "defined": true,
+            "discovery_lift": 0.4842,
+            "environment": "env_06",
+            "reason": "",
+            "retention": 0.6535,
+            "retention_clipped": 0.6535,
+            "transfer_lift": 0.3165
+          },
+          "role_model": {
+            "centroids": {
+              "role_0": [
+                -0.5222,
+                -0.5612,
+                -0.3212,
+                1.146,
+                0.5461,
+                0.3794,
+                -0.4082,
+                1.0718
+              ],
+              "role_1": [
+                1.9147,
+                1.3516,
+                -0.7852,
+                -1.6688,
+                1.1533,
+                1.3591,
+                -0.4082,
+                0.3075
+              ],
+              "role_2": [
+                -0.5222,
+                -1.7691,
+                2.3117,
+                1.1988,
+                0.3683,
+                0.8314,
+                2.4495,
+                0.5362
+              ],
+              "role_3": [
+                -0.5222,
+                -0.2092,
+                -0.011,
+                0.006,
+                -1.2965,
+                -1.1295,
+                -0.4082,
+                -1.2564
+              ],
+              "role_4": [
+                -0.5222,
+                0.8259,
+                -0.7852,
+                0.1433,
+                0.597,
+                -0.4255,
+                -0.4082,
+                1.0718
+              ]
+            },
+            "environment": "env_06",
+            "members": {
+              "role_0": [
+                "revise_settlement_target",
+                "swap_disbursement_route"
+              ],
+              "role_1": [
+                "dispatch_vendor_bundle",
+                "publish_broker_event",
+                "relay_clearing_notice"
+              ],
+              "role_2": [
+                "fetch_member_dossier",
+                "load_member_file"
+              ],
+              "role_3": [
+                "append_case_memo",
+                "enumerate_case_queue",
+                "fetch_settlement_log",
+                "resize_batch_fleet",
+                "tally_usage_bucket"
+              ],
+              "role_4": [
+                "challenge_operator",
+                "step_up_operator"
+              ]
+            },
+            "roles": 5,
+            "statistics": [
+              "crossing_rate",
+              "mean_relative_position",
+              "first_step_rate",
+              "precedes_crossing_rate",
+              "subject_shared_with_crossing",
+              "identity_shared_with_crossing",
+              "mean_scope_count",
+              "subject_recurrence_rate"
+            ]
+          }
+        },
+        "env_07": {
+          "alignment_cost": 0.0274,
+          "environment": "env_07",
+          "firing_rate": 0.3429,
+          "grammar": "relational",
+          "outcome": "COLLAPSED",
+          "performance": {
+            "baseline_f1": 0.216561,
+            "baseline_rule": "always_unsafe",
+            "f1": 0.301538,
+            "lift": 0.084977,
+            "metrics": {
+              "accuracy": 0.6757,
+              "f1": 0.3015,
+              "false_negative_rate": 0.4235,
+              "false_positive_rate": 0.3106,
+              "fn": 36,
+              "fp": 191,
+              "mcc": 0.183,
+              "negatives": 615,
+              "positives": 85,
+              "precision": 0.2042,
+              "recall": 0.5765,
+              "tn": 424,
+              "total": 700,
+              "tp": 49
+            }
+          },
+          "reason": "the candidate retains 0.18 of its advantage \u2014 it is worth no more than a trivial predictor in this environment (it fires on 34.3% of trajectories)",
+          "retention": {
+            "defined": true,
+            "discovery_lift": 0.4842,
+            "environment": "env_07",
+            "reason": "",
+            "retention": 0.1755,
+            "retention_clipped": 0.1755,
+            "transfer_lift": 0.085
+          },
+          "role_model": {
+            "centroids": {
+              "role_0": [
+                -0.5476,
+                -0.4582,
+                -0.4345,
+                1.1289,
+                0.5868,
+                0.3266,
+                -0.4264,
+                1.1347
+              ],
+              "role_1": [
+                1.8252,
+                1.4094,
+                -0.8367,
+                -1.5949,
+                1.1531,
+                1.3048,
+                -0.4264,
+                0.5259
+              ],
+              "role_2": [
+                -0.5476,
+                -1.6866,
+                2.2104,
+                1.1507,
+                0.3581,
+                0.7503,
+                2.3452,
+                0.4444
+              ],
+              "role_3": [
+                -0.5476,
+                -0.1627,
+                -0.041,
+                -0.0197,
+                -1.2155,
+                -1.1026,
+                -0.4264,
+                -1.1741
+              ],
+              "role_4": [
+                -0.5476,
+                0.8748,
+                -0.8367,
+                0.3245,
+                0.7285,
+                -0.5551,
+                -0.4264,
+                1.1347
+              ]
+            },
+            "environment": "env_07",
+            "members": {
+              "role_0": [
+                "amend_direct_debit",
+                "update_beneficiary_instrument"
+              ],
+              "role_1": [
+                "notify_downstream_processor",
+                "post_partner_callback",
+                "send_crm_delta"
+              ],
+              "role_2": [
+                "open_client_record",
+                "read_client_profile"
+              ],
+              "role_3": [
+                "list_case_tickets",
+                "read_ledger_history",
+                "read_usage_rollup",
+                "scale_task_pool",
+                "write_case_note"
+              ],
+              "role_4": [
+                "recheck_identity"
+              ]
+            },
+            "roles": 5,
+            "statistics": [
+              "crossing_rate",
+              "mean_relative_position",
+              "first_step_rate",
+              "precedes_crossing_rate",
+              "subject_shared_with_crossing",
+              "identity_shared_with_crossing",
+              "mean_scope_count",
+              "subject_recurrence_rate"
+            ]
+          }
+        },
+        "env_08": {
+          "alignment_cost": 3.4799,
+          "environment": "env_08",
+          "firing_rate": 0.0,
+          "grammar": "relational",
+          "outcome": "COLLAPSED",
+          "performance": {
+            "baseline_f1": 0.502674,
+            "baseline_rule": "always_unsafe",
+            "f1": 0.0,
+            "lift": -0.502674,
+            "metrics": {
+              "accuracy": 0.6643,
+              "f1": 0.0,
+              "false_negative_rate": 1.0,
+              "false_positive_rate": 0.0,
+              "fn": 235,
+              "fp": 0,
+              "mcc": 0.0,
+              "negatives": 465,
+              "positives": 235,
+              "precision": 0.0,
+              "recall": 0.0,
+              "tn": 465,
+              "total": 700,
+              "tp": 0
+            }
+          },
+          "reason": "the candidate retains -1.04 of its advantage \u2014 it is worth no more than a trivial predictor in this environment (it fires on 0.0% of trajectories)",
+          "retention": {
+            "defined": true,
+            "discovery_lift": 0.4842,
+            "environment": "env_08",
+            "reason": "",
+            "retention": -1.0381,
+            "retention_clipped": 0.0,
+            "transfer_lift": -0.5027
+          },
+          "role_model": {
+            "centroids": {
+              "role_0": [
+                0.0,
+                -0.5599,
+                -0.2879,
+                0.0,
+                0.0,
+                0.0,
+                -0.4082,
+                1.1004
+              ],
+              "role_1": [
+                0.0,
+                1.3367,
+                -0.8339,
+                0.0,
+                0.0,
+                0.0,
+                -0.4082,
+                0.311
+              ],
+              "role_2": [
+                0.0,
+                -1.7263,
+                2.2585,
+                0.0,
+                0.0,
+                0.0,
+                2.4495,
+                0.4732
+              ],
+              "role_3": [
+                0.0,
+                -0.255,
+                0.0456,
+                0.0,
+                0.0,
+                0.0,
+                -0.4082,
+                -1.2562
+              ],
+              "role_4": [
+                0.0,
+                0.9186,
+                -0.8339,
+                0.0,
+                0.0,
+                0.0,
+                -0.4082,
+                1.1004
+              ]
+            },
+            "environment": "env_08",
+            "members": {
+              "role_0": [
+                "revise_settlement_target",
+                "swap_disbursement_route"
+              ],
+              "role_1": [
+                "dispatch_vendor_bundle",
+                "publish_broker_event",
+                "relay_clearing_notice"
+              ],
+              "role_2": [
+                "fetch_member_dossier",
+                "load_member_file"
+              ],
+              "role_3": [
+                "append_case_memo",
+                "enumerate_case_queue",
+                "fetch_settlement_log",
+                "resize_batch_fleet",
+                "tally_usage_bucket"
+              ],
+              "role_4": [
+                "challenge_operator",
+                "step_up_operator"
+              ]
+            },
+            "roles": 5,
+            "statistics": [
+              "crossing_rate",
+              "mean_relative_position",
+              "first_step_rate",
+              "precedes_crossing_rate",
+              "subject_shared_with_crossing",
+              "identity_shared_with_crossing",
+              "mean_scope_count",
+              "subject_recurrence_rate"
+            ]
+          }
+        }
+      }
+    },
+    "extension_family": "relational",
+    "grammar_mutation_authority": "none",
+    "localisation": {
+      "known_failure_modes": [
+        {
+          "condition": "E_structural_perturbation",
+          "environment": "env_05",
+          "outcome": "COLLAPSED",
+          "reason": "the candidate retains -0.22 of its advantage \u2014 it is worth no more than a trivial predictor in this environment (it fires on 33.4% of trajectories)",
+          "retention": -0.218
+        },
+        {
+          "condition": "F_partial_invariance",
+          "environment": "env_06",
+          "outcome": "DEGRADED",
+          "reason": "the candidate keeps only 65% of its advantage; part of what it depends on is not present here",
+          "retention": 0.6535
+        },
+        {
+          "condition": "G_negative_control",
+          "environment": "env_07",
+          "outcome": "COLLAPSED",
+          "reason": "the candidate retains 0.18 of its advantage \u2014 it is worth no more than a trivial predictor in this environment (it fires on 34.3% of trajectories)",
+          "retention": 0.1755
+        },
+        {
+          "condition": "H_encoding_shift",
+          "environment": "env_08",
+          "outcome": "COLLAPSED",
+          "reason": "the candidate retains -1.04 of its advantage \u2014 it is worth no more than a trivial predictor in this environment (it fires on 0.0% of trajectories)",
+          "retention": -1.0381
+        },
+        {
+          "agreement": 0.5875,
+          "kind": "preserving",
+          "reason": "the candidate moved under a transform that should not have moved it",
+          "transform": "pad_trace"
+        }
+      ]
+    },
+    "missing_observable": "",
+    "production_authority": "none",
+    "proposal_hash": "84209e7e0a812e33",
+    "proposal_id": "RP-LB3-relational",
+    "rationale": "a candidate discovered in one environment retained 1.0 of its advantage in the worst unseen environment where transfer was expected",
+    "representation": "lb3-relational-grammar-1.0",
+    "status": "REVIEW_REQUIRED",
+    "verdict": "PARTIALLY_SUPPORTED"
+  }
+}
