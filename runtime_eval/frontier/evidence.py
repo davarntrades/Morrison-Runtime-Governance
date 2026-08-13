@@ -28,7 +28,7 @@ def scrub_secrets(value):
         return [scrub_secrets(v) for v in value]
     if isinstance(value, str):
         clean = value
-        for env_name in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+        for env_name in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "HF_TOKEN"):
             secret = os.environ.get(env_name, "")
             if secret:
                 clean = clean.replace(secret, "<redacted>")

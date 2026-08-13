@@ -6,7 +6,7 @@ second policy or trajectory evaluator.
 
 ```text
 untrusted scenario content
-  -> hosted or deterministic Planner
+  -> hosted (Anthropic/OpenAI/Hugging Face) or deterministic Planner
   -> native tool calls normalized to {tool, args}
   -> existing RuntimeGovernanceMiddleware
   -> existing GovernanceKernel + GovernanceLayer
@@ -23,5 +23,9 @@ simulator. `BLOCK`, `ESCALATE`, malformed output, provider failure, and
 governance exceptions never invoke the simulator for that call.
 
 Provider code performs proposal generation only. It has no executor reference.
+The Hugging Face provider uses native Chat Completions function calls where
+available and the pre-existing strict JSON tool-call parser as a non-executable
+fallback. Model-specific syntax is normalized before Morrison; provider
+identity is not supplied to governance policy.
 The simulator imports no network, process, mail, payment, credential, or
 production-data client.

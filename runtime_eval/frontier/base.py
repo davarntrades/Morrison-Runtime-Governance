@@ -16,6 +16,7 @@ from runtime_eval.planners.base import PlannerInfo, ToolCall
 @dataclass
 class ProviderObservation:
     tool_calls: list[ToolCall] = field(default_factory=list)
+    native_tool_calls: list[dict] = field(default_factory=list)
     text: str = ""
     latency_ms: float = 0.0
     malformed: bool = False

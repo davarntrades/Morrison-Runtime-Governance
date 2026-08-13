@@ -138,6 +138,21 @@ def openai_tools() -> list[dict]:
     ]
 
 
+def chat_completion_tools() -> list[dict]:
+    """OpenAI-compatible Chat Completions function schema.
+
+    Hugging Face Inference Providers expose this standard shape.  It is kept
+    separate from the flatter OpenAI Responses API schema above.
+    """
+    return [
+        {"type": "function", "function": {
+            "name": t["name"], "description": t["description"],
+            "parameters": t["parameters"],
+        }}
+        for t in TOOLS
+    ]
+
+
 def anthropic_tools() -> list[dict]:
     return [
         {"name": t["name"], "description": t["description"],
