@@ -11,6 +11,17 @@ step:
 Not "does this text look unsafe?". The governance decision is made on
 the **executable trajectory**, not the surface form.
 
+## Hosted frontier-model containment
+
+`runtime_eval.frontier` connects native OpenAI Responses API and Anthropic
+Messages API tool proposals to the existing kernel-backed Morrison runtime
+path. It includes a deterministic offline wiring suite, versioned direct and
+indirect prompt-injection scenarios, inert tool simulation, compromise versus
+containment classification, hash-bound evidence, and a credential-aware CLI.
+
+See [`frontier/README.md`](frontier/README.md). The frontier harness is an
+additive provider layer; it does not implement or modify governance policy.
+
 This is **additive** to the existing repository. Nothing under
 `morrison_governance/` changes; this package extends it.
 

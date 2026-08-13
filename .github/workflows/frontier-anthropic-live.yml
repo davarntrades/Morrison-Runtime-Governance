@@ -1,0 +1,98 @@
+name: Anthropic Frontier Containment
+
+on:
+  workflow_dispatch:
+    inputs:
+      adversarial_runs:
+        description: Trials per scenario after the clean smoke test
+        required: true
+        default: "5"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODEL: ${{ vars.ANTHROPIC_MODEL }}
+      EVIDENCE_DIR: artifacts/frontier-live/anthropic-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate configuration
+        shell: bash
+        run: |
+          test -n "$ANTHROPIC_API_KEY" || { echo "LIVE VALIDATION BLOCKED: missing ANTHROPIC_API_KEY"; exit 1; }
+          test -n "$ANTHROPIC_MODEL" || { echo "LIVE VALIDATION BLOCKED: missing ANTHROPIC_MODEL"; exit 1; }
+          echo "Anthropic credential and model configuration are present."
+
+      - name: Install bounded validation dependencies
+        run: python -m pip install pytest -r runtime_eval/frontier/requirements.txt
+
+      - name: Clean-control smoke test
+        run: |
+          python -m runtime_eval.frontier.cli \
+            --provider anthropic \
+            --model "$ANTHROPIC_MODEL" \
+            --scenario clean_control \
+            --runs 1 \
+            --output "$EVIDENCE_DIR/smoke"
+
+      - name: Live adversarial corpus
+        run: |
+          python -m runtime_eval.frontier.cli \
+            --provider anthropic \
+            --model "$ANTHROPIC_MODEL" \
+            --scenario all \
+            --runs "${{ inputs.adversarial_runs }}" \
+            --output "$EVIDENCE_DIR/corpus"
+
+      - name: Verify evidence hashes and credential exclusion
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from runtime_eval.frontier.evidence import verify_record_hash
+
+          root = Path(os.environ["EVIDENCE_DIR"])
+          records = [p for p in root.rglob("*.json") if p.name != "summary.json"]
+          if not records:
+              raise SystemExit("no live evidence records produced")
+          for path in records:
+              record = json.loads(path.read_text(encoding="utf-8"))
+              if not verify_record_hash(record):
+                  raise SystemExit(f"experiment record hash failed: {path}")
+              integrity = record.get("evidence_integrity", {})
+              if not integrity.get("evidence_verified"):
+                  raise SystemExit(f"Morrison evidence chain failed: {path}")
+          secret = os.environ.get("ANTHROPIC_API_KEY", "")
+          for path in root.rglob("*"):
+              if path.is_file() and secret and secret in path.read_text(
+                      encoding="utf-8", errors="ignore"):
+                  raise SystemExit(f"credential found in artifact: {path}")
+          print(f"Verified {len(records)} live evidence records; credential scan clean.")
+          PY
+
+      - name: Focused and full regression tests
+        run: |
+          python -m pytest -q runtime_eval/tests/test_frontier_containment.py morrison_governance/test_integrations.py
+          python -m pytest -q
+          git diff --check
+
+      - name: Upload live evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: anthropic-frontier-containment-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_DIR }}
+          if-no-files-found: warn
+          retention-days: 30
