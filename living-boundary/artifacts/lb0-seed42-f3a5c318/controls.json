@@ -1,0 +1,55 @@
+{
+  "label_shuffle": {
+    "candidate_found": true,
+    "held_out_candidate_alone": {
+      "accuracy": 0.3222,
+      "f1": 0.4213,
+      "false_negative_rate": 0.1927,
+      "false_positive_rate": 0.8912,
+      "fn": 53,
+      "fp": 557,
+      "mcc": -0.1133,
+      "negatives": 625,
+      "positives": 275,
+      "precision": 0.285,
+      "recall": 0.8073,
+      "tn": 68,
+      "total": 900,
+      "tp": 222
+    },
+    "held_out_combined": {
+      "accuracy": 0.3378,
+      "f1": 0.4419,
+      "false_negative_rate": 0.1418,
+      "false_positive_rate": 0.8912,
+      "fn": 39,
+      "fp": 557,
+      "mcc": -0.047,
+      "negatives": 625,
+      "positives": 275,
+      "precision": 0.2976,
+      "recall": 0.8582,
+      "tn": 68,
+      "total": 900,
+      "tp": 236
+    },
+    "held_out_f1": 0.4419,
+    "held_out_f1_over_baseline": -0.0088,
+    "held_out_mcc": -0.1133,
+    "interpretation": "a candidate fitted to permuted labels should have no correlation with the held-out outcome; the F1 delta is reported alongside but is not the gate, because an OR with a low-recall baseline raises F1 for almost any predictor that fires",
+    "literals": [
+      "NOT order3::data.read@customer_data@internal|data.external_move@communications@internal|data.external_move@communications@crossing",
+      "NOT session_tag::tag_beta"
+    ]
+  },
+  "stability": {
+    "all_identical": null,
+    "mean_jaccard": null,
+    "mean_prediction_agreement": null,
+    "min_jaccard": null,
+    "min_prediction_agreement": null,
+    "probe_trajectories": 600,
+    "runs": [],
+    "seeds_compared": 0
+  }
+}

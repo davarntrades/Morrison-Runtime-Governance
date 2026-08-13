@@ -654,3 +654,158 @@ It needs to prove one thing cleanly:
 > **Can we discover an unsafe governing structure that we deliberately did not encode beforehand?**
 
 If the answer is yes under controlled, falsifiable, held-out evaluation, then the rest of the Living Boundary architecture becomes worth building.
+---
+
+# Part II — LB-0 As Built
+
+Everything above is the plan. This part records what was actually implemented,
+what it measured, where the implementation departs from the plan and why, and
+what is still weak. It is written to be read alongside
+`artifacts/<run_id>/report.md`, which carries the numbers for a specific run.
+
+## 1. Reproduce it
+
+```bash
+cd living-boundary
+python -m living_boundary.run_lb0 --seed 42
+```
+
+Standard library only — no model credentials, no network, no live connectors.
+A run takes about 15 seconds and writes a sealed evidence package to
+`living-boundary/artifacts/lb0-seed42-<dataset_hash>/`.
+
+Useful flags: `--stability-seeds N` (cross-seed replication, default 2),
+`--no-persist`, `--json`, `--require-supported` (exit non-zero unless the
+verdict is SUPPORTED — the CI-friendly form).
+
+From the repository root the package needs its parent on the import path:
+
+```bash
+PYTHONPATH=living-boundary python -m living_boundary.run_lb0 --seed 42
+python -m pytest living-boundary                       # pytest.ini handles it
+```
+
+## 2. Layout
+
+```text
+living-boundary/
+├── README.md                     this file
+├── artifacts/<run_id>/           sealed evidence packages
+└── living_boundary/
+    ├── run_lb0.py                the experiment; the acceptance gate lives here
+    ├── authority.py              the authority boundary as executable checks
+    ├── _repo_paths.py            checkout-relative path resolution
+    ├── observer/                 trace_reader, normalizer, trajectory_builder
+    ├── ontology/                 baseline, candidate_schema, versions
+    ├── discovery/                features, gap_detector, structure_discovery,
+    │                             primitive_generator
+    ├── experiments/              world, hidden_ground_truth (ORACLE),
+    │                             scenario_generator, split,
+    │                             adversarial_generator, runner
+    ├── evaluation/               metrics, evaluator
+    ├── evidence/                 provenance, report
+    └── tests/                    9 modules, 139 tests
+```
+
+`living-boundary/` contains a hyphen and therefore cannot itself be a Python
+package; the importable package is `living-boundary/living_boundary/`. Three
+one-line repository changes support that and nothing else: `pythonpath` in
+`pytest.ini`, an extra path in the `.pylintrc` init-hook, and `living_boundary`
+added to the first-party set in `morrison_governance/test_lint_gate.py`.
+
+## 3. Where it touches Morrison Runtime Governance
+
+Read-only, three modules, all pure:
+
+| Import | Used for |
+|---|---|
+| `kernel.capabilities` | the canonical capability vocabulary, so the synthetic world speaks Morrison's language |
+| `kernel.policy` | the capability→authority table, read to state what the baseline knows |
+| `kernel.evidence` | `EvidenceRecord` / `EvidenceChain`, reused to seal LB-0's own separate chain |
+| `core`, `domains` | building a throwaway `GovernanceLayer` to fingerprint production state before and after a run |
+
+The production decision path is untouched. `authority.py` enumerates the
+forbidden surfaces and `tests/test_no_production_authority.py` proves by AST
+analysis that none is imported or called outside `tests/`.
+
+## 4. Departures from the plan, and why
+
+**The validation split participates in candidate generation, not only in
+testing it.** §6 above implies search on discovery and selection on validation.
+That does not work, and the failure is instructive rather than incidental:
+`session_tag` is session metadata with no causal relationship to anything, and
+it separates the discovery split *perfectly*. Inside that split the confounder
+and the real structure are the same function, so no amount of searching it can
+prefer one over the other — the first implementation returned a one-literal
+candidate with a 0.39 held-out false-positive rate. A conjunction is therefore
+scored by the **worse** of its F1 on the two corpora. Held-out remains
+generated from disjoint surface pools and is read exactly once, after the
+candidate is frozen.
+
+**Falsification feeds back into discovery, at most three times.** The blueprint's
+loop runs `Candidate → Falsifiable Predictions → Adversarial Experiments →
+Evidence Accumulation`, and LB-0 closes it: when a round fails, the cases it
+generated are re-run in the experimental environment and their observed
+outcomes join the discovery corpus. The system constructs a trajectory, the
+environment runs it, the system observes an outcome — the same channel the
+original corpus came through. The oracle's *reasons* are never read, only its
+outcome. The loop is bounded so it cannot converge on fitting its own battery.
+
+**No LLM is used anywhere.** Candidate generation is a deterministic beam
+search over a named feature grammar. This sidesteps the failure mode the
+blueprint names first ("candidate primitives are merely linguistic
+descriptions") rather than defending against it, and it removes any dependency
+on a model credential. `evaluation/` imports nothing from `discovery/`, so if a
+model is introduced later the evaluator is already independent of it.
+
+**Cross-seed stability is measured functionally.** Literal-set identity is too
+strict: one structure has many equivalent conjunctive forms, and an earlier
+version reported a Jaccard of 0.5 for two predicates that agreed on every
+trajectory. The gate is prediction agreement on a common probe corpus; Jaccard
+is reported alongside it.
+
+**The memorisation control is gated on MCC, not on an F1 delta.** The combined
+predictor is `baseline OR candidate` and the baseline has recall 0.29 at
+precision 1.0, so nearly any predictor that fires at all raises F1 — a candidate
+fitted to *shuffled* labels improved held-out F1 by +0.05. MCC is ~0 for an
+uncorrelated predictor whatever the class balance, so the control can actually
+fail.
+
+## 5. Known weaknesses
+
+1. **The corpus is synthetic, and its author also wrote the feature grammar.**
+   The specific rule is not encoded anywhere the discovery layer can reach, and
+   the isolation is tested — but the grammar has to be *expressive enough* to
+   represent compositional structure, and that expressiveness is a prior. A
+   structure outside the grammar is undiscoverable, silently.
+2. **`order3_identity` was added mid-experiment.** It closes a real asymmetry
+   (the grammar had identity-scoped pairs and unscoped triples, nothing
+   between) and it was added because the falsification runner correctly
+   rejected the approximations available without it. It was still added after
+   seeing that the run failed, which is a weaker position than having designed
+   it in.
+3. **`SEARCH_BEAM_WIDTH` was raised from 12 to 48** in response to the
+   cross-seed stability check failing. The held-out set was not consulted, but
+   this is a search parameter tuned against a measurement.
+4. **Held-out F1 is 1.0**, which is a sign the problem is clean rather than that
+   the method is strong. Real traces will not separate like this.
+5. **One replication axis only.** Stability is across generator seeds, not
+   across models, providers, connectors or organisations. That is LB-3.
+6. **The baseline is a reimplementation**, not Morrison's production ontology.
+   It is built from Morrison's capability vocabulary and from the risk
+   categories the blueprint lists, and the strengthened variant adds the
+   kernel's real egress-after-read heuristic — but it is not the deployed Ω
+   ruleset.
+
+## 6. What is NOT claimed
+
+LB-0 shows that a deliberately hidden compositional structure can be recovered,
+under controlled conditions, from observable traces alone, and that the recovery
+survives ablation, reordering, identity fragmentation, confounder inversion,
+label shuffling and a held-out set built from disjoint surface vocabulary.
+
+It does not show that this works on production traffic, that the discovered
+primitive should be enforced, or that ontology discovery is viable in general.
+The candidate's terminal state is `VALIDATED`; `APPROVED`, `SHADOW` and
+`ENFORCED` raise `AuthorityBoundaryError` and there is no argument that unlocks
+them.

@@ -1,0 +1,83 @@
+{
+  "cases_generated": 172,
+  "criteria": {
+    "min_ablation_agreement": 0.9,
+    "min_cases_per_literal": 5,
+    "min_control_agreement": 0.95,
+    "min_surface_agreement": 0.95
+  },
+  "failures": [],
+  "passed": true,
+  "per_control": {
+    "fragment_identity": {
+      "agreement": 1.0,
+      "cases": 25,
+      "condition_necessary_cases": 25,
+      "example_disagreements": []
+    },
+    "invert_confounders": {
+      "agreement": 1.0,
+      "cases": 25,
+      "condition_necessary_cases": 0,
+      "example_disagreements": []
+    },
+    "reverse_all": {
+      "agreement": 1.0,
+      "cases": 25,
+      "condition_necessary_cases": 25,
+      "example_disagreements": []
+    },
+    "surface_rewrite": {
+      "agreement": 1.0,
+      "cases": 25,
+      "condition_necessary_cases": 0,
+      "example_disagreements": []
+    }
+  },
+  "per_literal": {
+    "NOT order3_identity::data.read@customer_data@internal|identity.reverify@identity@internal|data.external_move@communications@crossing": {
+      "agreement": 0.9167,
+      "cases": 12,
+      "condition_necessary_cases": 11,
+      "example_disagreements": [
+        {
+          "actually_unsafe": true,
+          "case_id": "abl-42d9eaf5-004",
+          "operator": "ablate",
+          "predicted_unsafe": false
+        }
+      ]
+    },
+    "order3_identity::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing": {
+      "agreement": 1.0,
+      "cases": 12,
+      "condition_necessary_cases": 12,
+      "example_disagreements": []
+    },
+    "scope::comms.send.external": {
+      "agreement": 1.0,
+      "cases": 12,
+      "condition_necessary_cases": 12,
+      "example_disagreements": []
+    },
+    "scope::customer.read.pii": {
+      "agreement": 1.0,
+      "cases": 12,
+      "condition_necessary_cases": 12,
+      "example_disagreements": []
+    },
+    "scope::payments.instrument.write": {
+      "agreement": 1.0,
+      "cases": 12,
+      "condition_necessary_cases": 12,
+      "example_disagreements": []
+    },
+    "subject_link::payment.move_funds@payments@internal|data.external_move@communications@crossing": {
+      "agreement": 1.0,
+      "cases": 12,
+      "condition_necessary_cases": 12,
+      "example_disagreements": []
+    }
+  },
+  "untestable_literals": []
+}
