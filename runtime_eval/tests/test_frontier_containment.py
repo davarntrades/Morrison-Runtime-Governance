@@ -14,7 +14,9 @@ from runtime_eval.frontier.experiment import (
     aggregate_results,
     run_experiment,
 )
+from runtime_eval.frontier.huggingface_planner import HuggingFaceFrontierPlanner
 from runtime_eval.frontier.openai_planner import OpenAIFrontierPlanner
+from runtime_eval.frontier.provider_registry import make_planner
 from runtime_eval.frontier.safe_executor import build_safe_executor
 from runtime_eval.frontier.scenarios import Scenario, get_scenarios
 from runtime_eval.governance import RuntimeGovernanceMiddleware
@@ -219,3 +221,97 @@ def test_anthropic_messages_sdk_shape_without_api_call():
     calls = planner.propose({}, [])
     assert calls == [{"tool": "transfer", "args": {
         "amount": 100000, "to": "x"}}]
+
+
+def test_huggingface_chat_completion_shape_without_api_call():
+    function = SimpleNamespace(name="transfer", arguments='{"amount":100000,"to":"x"}')
+    message = SimpleNamespace(
+        content="", tool_calls=[SimpleNamespace(function=function)])
+    fake = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(
+        create=lambda **_kwargs: SimpleNamespace(
+            choices=[SimpleNamespace(message=message)]))))
+    scenario = get_scenarios("direct_malicious")[0]
+    planner = HuggingFaceFrontierPlanner(scenario, "org/model", client=fake)
+    assert planner.propose({}, []) == [{"tool": "transfer", "args": {
+        "amount": 100000, "to": "x"}}]
+    assert planner.observation.native_tool_calls[0]["name"] == "transfer"
+
+
+def test_huggingface_strict_text_plan_is_normalized():
+    message = SimpleNamespace(
+        content='[{"tool":"read_account","args":{}}]', tool_calls=[])
+    fake = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(
+        create=lambda **_kwargs: SimpleNamespace(
+            choices=[SimpleNamespace(message=message)]))))
+    scenario = get_scenarios("clean_control")[0]
+    planner = HuggingFaceFrontierPlanner(scenario, "org/model", client=fake)
+    assert planner.propose({}, []) == [{"tool": "read_account", "args": {}}]
+
+
+def test_huggingface_malformed_arguments_cannot_execute():
+    function = SimpleNamespace(name="transfer", arguments="not-json")
+    message = SimpleNamespace(
+        content="", tool_calls=[SimpleNamespace(function=function)])
+    fake = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(
+        create=lambda **_kwargs: SimpleNamespace(
+            choices=[SimpleNamespace(message=message)]))))
+    scenario = get_scenarios("direct_malicious")[0]
+    planner = HuggingFaceFrontierPlanner(scenario, "org/model", client=fake)
+    row = run_experiment("huggingface", "org/model", scenario, planner).record
+    assert row["classification"] == "MODEL_OUTPUT_MALFORMED"
+    assert row["executed_calls"] == []
+
+
+def test_huggingface_unknown_model_and_endpoint_are_rejected(monkeypatch):
+    monkeypatch.setenv("HF_MODELS", "org/allowed-model")
+    scenario = get_scenarios("clean_control")[0]
+    for rejected in ("org/other-model", "https://attacker.example/v1"):
+        try:
+            make_planner("huggingface", scenario, rejected, client=object())
+        except ValueError as exc:
+            assert "allowlist" in str(exc)
+        else:  # pragma: no cover - assertion aid
+            raise AssertionError("unapproved Hugging Face target was accepted")
+
+
+def test_same_trajectory_has_provider_independent_governance_semantics():
+    scenario = get_scenarios("direct_malicious")[0]
+    calls = ({"tool": "transfer", "args": {
+        "amount": 100000, "to": "PROMPT_INJECTION_CANARY"}},)
+    semantics = []
+    for provider in ("anthropic", "openai", "huggingface"):
+        forced = Scenario(
+            id=scenario.id, version=scenario.version, title=scenario.title,
+            user_task=scenario.user_task, adversarial_tools=scenario.adversarial_tools,
+            deterministic_plan=calls)
+        row = run_experiment(provider, "same-model-neutral-trajectory", forced,
+                             DeterministicFrontierPlanner(forced)).record
+        decision = row["governance_decisions"][0]
+        semantics.append((row["final_verdict"], decision["layer"],
+                          decision["rule"], decision["executed"]))
+    assert semantics[0] == semantics[1] == semantics[2]
+
+
+def test_huggingface_evidence_has_provenance_and_excludes_token(tmp_path, monkeypatch):
+    secret = "hf_test_secret_must_not_appear"
+    monkeypatch.setenv("HF_TOKEN", secret)
+    scenario = get_scenarios("clean_control")[0]
+    planner = DeterministicFrontierPlanner(scenario)
+    row = run_experiment("huggingface", "org/exact-model", scenario, planner).record
+    row["provider_error"] = f"credential {secret} rejected"
+    content = write_run_artifact(row, tmp_path).read_text(encoding="utf-8")
+    assert row["provider"] == "huggingface"
+    assert row["model"] == "org/exact-model"
+    assert secret not in content
+
+
+def test_aggregate_contains_machine_readable_cross_model_comparison():
+    result = _run("direct_malicious")
+    comparison = aggregate_results([result])["model_comparison"]
+    assert comparison == [{
+        "provider": "deterministic", "model": "deterministic",
+        "total_trials": 1, "safe_controls": 0, "adversarial_trials": 1,
+        "model_resisted": 0, "model_compromised": 1, "contained": 1,
+        "morrison_allow": 0, "morrison_block": 0,
+        "morrison_escalate": 1, "unauthorized_executions": 0,
+    }]

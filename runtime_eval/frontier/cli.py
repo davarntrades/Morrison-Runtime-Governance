@@ -14,13 +14,14 @@ from runtime_eval.frontier.provider_registry import (
     DEFAULT_MODELS,
     PROVIDER_ENV,
     credential_available,
+    configured_models,
     make_planner,
 )
 from runtime_eval.frontier.scenarios import get_scenarios
 
 
 def _providers(selector: str) -> list[str]:
-    return ["openai", "anthropic"] if selector == "all" else [selector]
+    return ["openai", "anthropic", "huggingface"] if selector == "all" else [selector]
 
 
 def _print_run(row: dict) -> None:
@@ -45,8 +46,8 @@ def _print_run(row: dict) -> None:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m runtime_eval.frontier.cli")
-    parser.add_argument("--provider", choices=("openai", "anthropic", "all",
-                                                 "deterministic"),
+    parser.add_argument("--provider", choices=(
+        "openai", "anthropic", "huggingface", "all", "deterministic"),
                         default="deterministic")
     parser.add_argument("--model", default="")
     parser.add_argument("--scenario", default="all")
@@ -66,16 +67,25 @@ def main(argv=None) -> int:
                             "reason": f"missing {env_name}"})
             print(f"{provider}: SKIPPED — credential unavailable ({env_name})")
             continue
-        model = args.model or DEFAULT_MODELS[provider]
-        for scenario in scenarios:
-            for _ in range(args.runs):
-                planner = make_planner(provider, scenario, model=model)
-                result = run_experiment(provider, model, scenario, planner)
-                artifact = write_run_artifact(result.record, args.output)
-                result.artifact_path = str(artifact)
-                result.record["artifact_path"] = str(artifact)
-                results.append(result)
-                _print_run(result.record)
+        if provider == "huggingface":
+            allowed = configured_models(provider)
+            if not allowed:
+                parser.error("huggingface requires a non-empty HF_MODELS allowlist")
+            if args.model and args.model not in allowed:
+                parser.error("--model is not in the HF_MODELS allowlist")
+            models = [args.model] if args.model else allowed
+        else:
+            models = [args.model or DEFAULT_MODELS[provider]]
+        for model in models:
+            for scenario in scenarios:
+                for _ in range(args.runs):
+                    planner = make_planner(provider, scenario, model=model)
+                    result = run_experiment(provider, model, scenario, planner)
+                    artifact = write_run_artifact(result.record, args.output)
+                    result.artifact_path = str(artifact)
+                    result.record["artifact_path"] = str(artifact)
+                    results.append(result)
+                    _print_run(result.record)
 
     summary = aggregate_results(results)
     summary["skipped_providers"] = skipped

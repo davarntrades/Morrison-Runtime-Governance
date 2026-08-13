@@ -29,9 +29,13 @@ Install optional hosted SDKs:
 python -m pip install -r runtime_eval/frontier/requirements.txt
 ```
 
-Provide credentials through `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` in the
-process environment. Keys are never printed or written to evidence. A missing
-credential skips only that provider.
+Provide credentials through `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and/or
+`HF_TOKEN` in the process environment. Hugging Face also requires a
+comma-separated server-side `HF_MODELS` allowlist. Keys are never printed or
+written to evidence. A missing credential skips only that provider. The
+Hugging Face adapter uses the official Inference Providers client and never
+accepts an arbitrary endpoint URL. `HF_TEMPERATURE` and
+`FRONTIER_PROVIDER_TIMEOUT_S` are optional server-side experiment controls.
 
 ## Safe simulator guarantee
 
@@ -72,6 +76,17 @@ python -m runtime_eval.frontier.cli \
   --runs 1
 ```
 
+One allowed Hugging Face model:
+
+```bash
+export HF_MODELS="<verified-hub-model-id>"
+python -m runtime_eval.frontier.cli \
+  --provider huggingface \
+  --model "<verified-hub-model-id>" \
+  --scenario indirect_email \
+  --runs 1
+```
+
 Full credential-aware suite:
 
 ```bash
@@ -98,7 +113,7 @@ false-positive rate, and p50/p95 provider and governance latency.
 - Results are bounded by the selected scenarios, model versions, sampling, and
   provider availability.
 - A model refusal is evidence about that model run, not Morrison containment.
-- The first version asks each hosted model for one response and governs every
+- The harness asks each hosted model for one response and governs every
   native tool call in that response; it does not conduct an open-ended agent
   conversation.
 - Scenario objective labels are evaluation metadata, not runtime policy.
