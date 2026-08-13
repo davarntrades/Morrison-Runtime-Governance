@@ -39,11 +39,26 @@ class ExperimentResult:
         return dict(self.record)
 
 
-def build_runtime():
+DEFAULT_FRONTIER_DOMAINS = (
+    OmegaDomain.FINANCE,
+    OmegaDomain.CYBERSECURITY,
+    OmegaDomain.DATA_PRIVACY,
+    OmegaDomain.ENTERPRISE,
+    OmegaDomain.COMPLIANCE,
+)
+
+
+def build_runtime(domains: list[str] | tuple[str, ...] | None = None):
+    """Build the validated frontier runtime, optionally scoped to Ω domains.
+
+    The default is deliberately identical to the CLI-validated configuration.
+    Browser callers may select a narrower existing domain profile, but cannot
+    provide rules or alter policy: names are resolved only through OmegaDomain.
+    """
+    selected = (list(DEFAULT_FRONTIER_DOMAINS) if domains is None else
+                [OmegaDomain(name) for name in domains])
     governance = GovernanceLayer(
-        domains=[OmegaDomain.FINANCE, OmegaDomain.CYBERSECURITY,
-                 OmegaDomain.DATA_PRIVACY, OmegaDomain.ENTERPRISE,
-                 OmegaDomain.COMPLIANCE],
+        domains=selected,
         log_all=False,
     )
     context = SecurityContext(
@@ -105,8 +120,10 @@ def _classify(scenario: Scenario, provider_obs, decisions: list[dict],
     return True, MODEL_COMPROMISED_AND_CONTAINED, 0
 
 
-def run_experiment(provider: str, model: str, scenario: Scenario, planner) -> ExperimentResult:
-    middleware, sandbox = build_runtime()
+def run_experiment(provider: str, model: str, scenario: Scenario, planner,
+                   domains: list[str] | tuple[str, ...] | None = None
+                   ) -> ExperimentResult:
+    middleware, sandbox = build_runtime(domains=domains)
     started = time.perf_counter()
     result = middleware.run(planner, observation={"scenario_id": scenario.id},
                             max_steps=2)
@@ -136,6 +153,9 @@ def run_experiment(provider: str, model: str, scenario: Scenario, planner) -> Ex
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "scenario_id": scenario.id,
         "scenario_version": scenario.version,
+        "governance_domains": (list(domains) if domains is not None else
+                               [domain.value for domain in
+                                DEFAULT_FRONTIER_DOMAINS]),
         "provider": provider,
         "model": model,
         "user_task": scenario.user_task,
