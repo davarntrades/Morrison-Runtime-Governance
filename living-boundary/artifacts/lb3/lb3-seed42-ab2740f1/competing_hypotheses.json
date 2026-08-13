@@ -1,0 +1,1424 @@
+{
+  "capability_domain": {
+    "description": "capability and domain combinations",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.649533,
+      "lift": 0.133763,
+      "metrics": {
+        "accuracy": 0.625,
+        "f1": 0.6495,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.5747,
+        "fn": 0,
+        "fp": 150,
+        "mcc": 0.4523,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.481,
+        "recall": 1.0,
+        "tn": 111,
+        "total": 400,
+        "tp": 139
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": false,
+      "environments": 0,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "worst_environment": null
+    },
+    "literals": [
+      "has_cap::data.external_move",
+      "has_cap::payment.move_funds"
+    ],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.626907,
+        "lift": 0.138786,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_01",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.1388
+        }
+      },
+      "env_02": {
+        "f1": 0.0,
+        "lift": -0.446171,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_02",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.4462
+        }
+      },
+      "env_03": {
+        "f1": 0.0,
+        "lift": -0.435754,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_03",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.4358
+        }
+      },
+      "env_04": {
+        "f1": 0.498615,
+        "lift": 0.270767,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_04",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.2708
+        }
+      },
+      "env_05": {
+        "f1": 0.153242,
+        "lift": 0.047694,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_05",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0477
+        }
+      },
+      "env_06": {
+        "f1": 0.744949,
+        "lift": 0.151984,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_06",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.152
+        }
+      },
+      "env_07": {
+        "f1": 0.303571,
+        "lift": 0.08701,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_07",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.087
+        }
+      },
+      "env_08": {
+        "f1": 0.650069,
+        "lift": 0.147395,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_08",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.1474
+        }
+      }
+    }
+  },
+  "domain_identity": {
+    "description": "which governance domains were touched",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.649533,
+      "lift": 0.133763,
+      "metrics": {
+        "accuracy": 0.625,
+        "f1": 0.6495,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.5747,
+        "fn": 0,
+        "fp": 150,
+        "mcc": 0.4523,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.481,
+        "recall": 1.0,
+        "tn": 111,
+        "total": 400,
+        "tp": 139
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": false,
+      "environments": 0,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "worst_environment": null
+    },
+    "literals": [
+      "has_domain::communications",
+      "has_domain::payments"
+    ],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.626907,
+        "lift": 0.138786,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_01",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.1388
+        }
+      },
+      "env_02": {
+        "f1": 0.0,
+        "lift": -0.446171,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_02",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.4462
+        }
+      },
+      "env_03": {
+        "f1": 0.0,
+        "lift": -0.435754,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_03",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.4358
+        }
+      },
+      "env_04": {
+        "f1": 0.498615,
+        "lift": 0.270767,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_04",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.2708
+        }
+      },
+      "env_05": {
+        "f1": 0.153242,
+        "lift": 0.047694,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_05",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0477
+        }
+      },
+      "env_06": {
+        "f1": 0.744949,
+        "lift": 0.151984,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_06",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.152
+        }
+      },
+      "env_07": {
+        "f1": 0.303571,
+        "lift": 0.08701,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_07",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.087
+        }
+      },
+      "env_08": {
+        "f1": 0.650069,
+        "lift": 0.147395,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_08",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.1474
+        }
+      }
+    }
+  },
+  "event_frequency": {
+    "description": "how many times a capability occurred",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.649533,
+      "lift": 0.133763,
+      "metrics": {
+        "accuracy": 0.625,
+        "f1": 0.6495,
+        "false_negative_rate": 0.0,
+        "false_positive_rate": 0.5747,
+        "fn": 0,
+        "fp": 150,
+        "mcc": 0.4523,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.481,
+        "recall": 1.0,
+        "tn": 111,
+        "total": 400,
+        "tp": 139
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": false,
+      "environments": 0,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "worst_environment": null
+    },
+    "literals": [
+      "freq::data.external_move|1",
+      "freq::payment.move_funds|1"
+    ],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.626907,
+        "lift": 0.138786,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_01",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.1388
+        }
+      },
+      "env_02": {
+        "f1": 0.0,
+        "lift": -0.446171,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_02",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.4462
+        }
+      },
+      "env_03": {
+        "f1": 0.0,
+        "lift": -0.435754,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_03",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.4358
+        }
+      },
+      "env_04": {
+        "f1": 0.498615,
+        "lift": 0.270767,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_04",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.2708
+        }
+      },
+      "env_05": {
+        "f1": 0.153242,
+        "lift": 0.047694,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_05",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0477
+        }
+      },
+      "env_06": {
+        "f1": 0.744949,
+        "lift": 0.151984,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_06",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.152
+        }
+      },
+      "env_07": {
+        "f1": 0.303571,
+        "lift": 0.08701,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_07",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.087
+        }
+      },
+      "env_08": {
+        "f1": 0.650069,
+        "lift": 0.147395,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.1338,
+          "environment": "env_08",
+          "reason": "discovery lift 0.1338 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.1474
+        }
+      }
+    }
+  },
+  "nearest_neighbour": {
+    "description": "the outcome of the most similar discovery trajectory",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.946619,
+      "lift": 0.430849,
+      "metrics": {
+        "accuracy": 0.9625,
+        "f1": 0.9466,
+        "false_negative_rate": 0.0432,
+        "false_positive_rate": 0.0345,
+        "fn": 6,
+        "fp": 9,
+        "mcc": 0.9178,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.9366,
+        "recall": 0.9568,
+        "tn": 252,
+        "total": 400,
+        "tp": 133
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": true,
+      "environments": 4,
+      "mean": 0.6266,
+      "minimum": 0.1882,
+      "minimum_raw": 0.1882,
+      "worst_environment": "env_02"
+    },
+    "literals": [],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.937365,
+        "lift": 0.449244,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.4308,
+          "environment": "env_01",
+          "reason": "",
+          "retention": 1.0427,
+          "retention_clipped": 1.0,
+          "transfer_lift": 0.4492
+        }
+      },
+      "env_02": {
+        "f1": 0.527273,
+        "lift": 0.081102,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.4308,
+          "environment": "env_02",
+          "reason": "",
+          "retention": 0.1882,
+          "retention_clipped": 0.1882,
+          "transfer_lift": 0.0811
+        }
+      },
+      "env_03": {
+        "f1": 0.572864,
+        "lift": 0.13711,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.4308,
+          "environment": "env_03",
+          "reason": "",
+          "retention": 0.3182,
+          "retention_clipped": 0.3182,
+          "transfer_lift": 0.1371
+        }
+      },
+      "env_04": {
+        "f1": 0.659259,
+        "lift": 0.431411,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.4308,
+          "environment": "env_04",
+          "reason": "",
+          "retention": 1.0013,
+          "retention_clipped": 1.0,
+          "transfer_lift": 0.4314
+        }
+      },
+      "env_05": {
+        "f1": 0.048443,
+        "lift": -0.057105,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.4308,
+          "environment": "env_05",
+          "reason": "",
+          "retention": -0.1325,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0571
+        }
+      },
+      "env_06": {
+        "f1": 0.855576,
+        "lift": 0.262611,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.4308,
+          "environment": "env_06",
+          "reason": "",
+          "retention": 0.6095,
+          "retention_clipped": 0.6095,
+          "transfer_lift": 0.2626
+        }
+      },
+      "env_07": {
+        "f1": 0.449367,
+        "lift": 0.232806,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.4308,
+          "environment": "env_07",
+          "reason": "",
+          "retention": 0.5403,
+          "retention_clipped": 0.5403,
+          "transfer_lift": 0.2328
+        }
+      },
+      "env_08": {
+        "f1": 0.407524,
+        "lift": -0.09515,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.4308,
+          "environment": "env_08",
+          "reason": "",
+          "retention": -0.2208,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0951
+        }
+      }
+    }
+  },
+  "positional": {
+    "description": "what happened first and what happened last",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.585608,
+      "lift": 0.069838,
+      "metrics": {
+        "accuracy": 0.5825,
+        "f1": 0.5856,
+        "false_negative_rate": 0.1511,
+        "false_positive_rate": 0.5594,
+        "fn": 21,
+        "fp": 146,
+        "mcc": 0.291,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.447,
+        "recall": 0.8489,
+        "tn": 115,
+        "total": 400,
+        "tp": 118
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": false,
+      "environments": 0,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "worst_environment": null
+    },
+    "literals": [
+      "NOT first_cap::payment.move_funds",
+      "NOT last_cap::data.read"
+    ],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.569733,
+        "lift": 0.081612,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0698,
+          "environment": "env_01",
+          "reason": "discovery lift 0.0698 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0816
+        }
+      },
+      "env_02": {
+        "f1": 0.446171,
+        "lift": -0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0698,
+          "environment": "env_02",
+          "reason": "discovery lift 0.0698 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_03": {
+        "f1": 0.435754,
+        "lift": 0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0698,
+          "environment": "env_03",
+          "reason": "discovery lift 0.0698 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0
+        }
+      },
+      "env_04": {
+        "f1": 0.262948,
+        "lift": 0.0351,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0698,
+          "environment": "env_04",
+          "reason": "discovery lift 0.0698 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0351
+        }
+      },
+      "env_05": {
+        "f1": 0.129979,
+        "lift": 0.024431,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0698,
+          "environment": "env_05",
+          "reason": "discovery lift 0.0698 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0244
+        }
+      },
+      "env_06": {
+        "f1": 0.671958,
+        "lift": 0.078993,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0698,
+          "environment": "env_06",
+          "reason": "discovery lift 0.0698 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.079
+        }
+      },
+      "env_07": {
+        "f1": 0.275335,
+        "lift": 0.058774,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0698,
+          "environment": "env_07",
+          "reason": "discovery lift 0.0698 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0588
+        }
+      },
+      "env_08": {
+        "f1": 0.564774,
+        "lift": 0.0621,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0698,
+          "environment": "env_08",
+          "reason": "discovery lift 0.0698 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0621
+        }
+      }
+    }
+  },
+  "provider_identity": {
+    "description": "the provider or region",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.831683,
+      "lift": 0.315913,
+      "metrics": {
+        "accuracy": 0.8725,
+        "f1": 0.8317,
+        "false_negative_rate": 0.0935,
+        "false_positive_rate": 0.1456,
+        "fn": 13,
+        "fp": 38,
+        "mcc": 0.7367,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.7683,
+        "recall": 0.9065,
+        "tn": 223,
+        "total": 400,
+        "tp": 126
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": true,
+      "environments": 4,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "minimum_raw": -0.0,
+      "worst_environment": "env_01"
+    },
+    "literals": [
+      "NOT provider::provider-a"
+    ],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.488121,
+        "lift": -0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_01",
+          "reason": "",
+          "retention": -0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_02": {
+        "f1": 0.446171,
+        "lift": -0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_02",
+          "reason": "",
+          "retention": -0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_03": {
+        "f1": 0.435754,
+        "lift": 0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_03",
+          "reason": "",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0
+        }
+      },
+      "env_04": {
+        "f1": 0.227848,
+        "lift": 0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_04",
+          "reason": "",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0
+        }
+      },
+      "env_05": {
+        "f1": 0.078431,
+        "lift": -0.027117,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_05",
+          "reason": "",
+          "retention": -0.0858,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0271
+        }
+      },
+      "env_06": {
+        "f1": 0.592965,
+        "lift": -0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_06",
+          "reason": "",
+          "retention": -0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_07": {
+        "f1": 0.690909,
+        "lift": 0.474348,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_07",
+          "reason": "",
+          "retention": 1.5015,
+          "retention_clipped": 1.0,
+          "transfer_lift": 0.4743
+        }
+      },
+      "env_08": {
+        "f1": 0.502674,
+        "lift": -0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_08",
+          "reason": "",
+          "retention": -0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      }
+    }
+  },
+  "session_metadata": {
+    "description": "provider, region and session tag together",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.831683,
+      "lift": 0.315913,
+      "metrics": {
+        "accuracy": 0.8725,
+        "f1": 0.8317,
+        "false_negative_rate": 0.0935,
+        "false_positive_rate": 0.1456,
+        "fn": 13,
+        "fp": 38,
+        "mcc": 0.7367,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.7683,
+        "recall": 0.9065,
+        "tn": 223,
+        "total": 400,
+        "tp": 126
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": true,
+      "environments": 4,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "minimum_raw": -0.0,
+      "worst_environment": "env_01"
+    },
+    "literals": [
+      "NOT provider::provider-a"
+    ],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.488121,
+        "lift": -0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_01",
+          "reason": "",
+          "retention": -0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_02": {
+        "f1": 0.446171,
+        "lift": -0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_02",
+          "reason": "",
+          "retention": -0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_03": {
+        "f1": 0.435754,
+        "lift": 0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_03",
+          "reason": "",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0
+        }
+      },
+      "env_04": {
+        "f1": 0.227848,
+        "lift": 0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_04",
+          "reason": "",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0
+        }
+      },
+      "env_05": {
+        "f1": 0.078431,
+        "lift": -0.027117,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_05",
+          "reason": "",
+          "retention": -0.0858,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0271
+        }
+      },
+      "env_06": {
+        "f1": 0.592965,
+        "lift": -0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_06",
+          "reason": "",
+          "retention": -0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_07": {
+        "f1": 0.690909,
+        "lift": 0.474348,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_07",
+          "reason": "",
+          "retention": 1.5015,
+          "retention_clipped": 1.0,
+          "transfer_lift": 0.4743
+        }
+      },
+      "env_08": {
+        "f1": 0.502674,
+        "lift": -0.0,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.3159,
+          "environment": "env_08",
+          "reason": "",
+          "retention": -0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      }
+    }
+  },
+  "token_literal": {
+    "description": "a particular capability@domain@boundary step occurred",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.718663,
+      "lift": 0.202893,
+      "metrics": {
+        "accuracy": 0.7475,
+        "f1": 0.7187,
+        "false_negative_rate": 0.0719,
+        "false_positive_rate": 0.3487,
+        "fn": 10,
+        "fp": 91,
+        "mcc": 0.5546,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.5864,
+        "recall": 0.9281,
+        "tn": 170,
+        "total": 400,
+        "tp": 129
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": true,
+      "environments": 4,
+      "mean": 0.5,
+      "minimum": 0.0,
+      "minimum_raw": -2.199,
+      "worst_environment": "env_02"
+    },
+    "literals": [
+      "NOT order3::data.read@analytics@internal|data.read@analytics@internal|data.read@customer_data@internal",
+      "order3::data.read@customer_data@internal|payment.move_funds@payments@internal|data.external_move@communications@crossing"
+    ],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.714976,
+        "lift": 0.226855,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.2029,
+          "environment": "env_01",
+          "reason": "",
+          "retention": 1.1181,
+          "retention_clipped": 1.0,
+          "transfer_lift": 0.2269
+        }
+      },
+      "env_02": {
+        "f1": 0.0,
+        "lift": -0.446171,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.2029,
+          "environment": "env_02",
+          "reason": "",
+          "retention": -2.199,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.4462
+        }
+      },
+      "env_03": {
+        "f1": 0.0,
+        "lift": -0.435754,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.2029,
+          "environment": "env_03",
+          "reason": "",
+          "retention": -2.1477,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.4358
+        }
+      },
+      "env_04": {
+        "f1": 0.544681,
+        "lift": 0.316833,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.2029,
+          "environment": "env_04",
+          "reason": "",
+          "retention": 1.5616,
+          "retention_clipped": 1.0,
+          "transfer_lift": 0.3168
+        }
+      },
+      "env_05": {
+        "f1": 0.183575,
+        "lift": 0.078027,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.2029,
+          "environment": "env_05",
+          "reason": "",
+          "retention": 0.3846,
+          "retention_clipped": 0.3846,
+          "transfer_lift": 0.078
+        }
+      },
+      "env_06": {
+        "f1": 0.81268,
+        "lift": 0.219715,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.2029,
+          "environment": "env_06",
+          "reason": "",
+          "retention": 1.0829,
+          "retention_clipped": 1.0,
+          "transfer_lift": 0.2197
+        }
+      },
+      "env_07": {
+        "f1": 0.334038,
+        "lift": 0.117477,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.2029,
+          "environment": "env_07",
+          "reason": "",
+          "retention": 0.579,
+          "retention_clipped": 0.579,
+          "transfer_lift": 0.1175
+        }
+      },
+      "env_08": {
+        "f1": 0.0,
+        "lift": -0.502674,
+        "retention": {
+          "defined": true,
+          "discovery_lift": 0.2029,
+          "environment": "env_08",
+          "reason": "",
+          "retention": -2.4775,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.5027
+        }
+      }
+    }
+  },
+  "tool_identity": {
+    "description": "a particular tool was used, in a particular order",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.530435,
+      "lift": 0.014665,
+      "metrics": {
+        "accuracy": 0.46,
+        "f1": 0.5304,
+        "false_negative_rate": 0.1223,
+        "false_positive_rate": 0.7625,
+        "fn": 17,
+        "fp": 199,
+        "mcc": 0.1378,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.3801,
+        "recall": 0.8777,
+        "tn": 62,
+        "total": 400,
+        "tp": 122
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": false,
+      "environments": 0,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "worst_environment": null
+    },
+    "literals": [
+      "NOT tool_ord2::list_support_tickets|read_analytics_rollup",
+      "NOT tool_ord2::list_support_tickets|read_payment_history",
+      "NOT tool_ord2::read_payment_history|read_payment_history",
+      "NOT tool_ord2::read_payment_history|scale_worker_pool",
+      "NOT tool_ord2::read_payment_history|write_support_note",
+      "NOT tool_ord2::update_payee_instrument|open_customer_record"
+    ],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.488121,
+        "lift": -0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0147,
+          "environment": "env_01",
+          "reason": "discovery lift 0.0147 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_02": {
+        "f1": 0.446171,
+        "lift": -0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0147,
+          "environment": "env_02",
+          "reason": "discovery lift 0.0147 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_03": {
+        "f1": 0.435754,
+        "lift": 0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0147,
+          "environment": "env_03",
+          "reason": "discovery lift 0.0147 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0
+        }
+      },
+      "env_04": {
+        "f1": 0.227848,
+        "lift": 0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0147,
+          "environment": "env_04",
+          "reason": "discovery lift 0.0147 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0
+        }
+      },
+      "env_05": {
+        "f1": 0.124161,
+        "lift": 0.018613,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0147,
+          "environment": "env_05",
+          "reason": "discovery lift 0.0147 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0186
+        }
+      },
+      "env_06": {
+        "f1": 0.592965,
+        "lift": -0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0147,
+          "environment": "env_06",
+          "reason": "discovery lift 0.0147 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_07": {
+        "f1": 0.216561,
+        "lift": -0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0147,
+          "environment": "env_07",
+          "reason": "discovery lift 0.0147 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      },
+      "env_08": {
+        "f1": 0.502674,
+        "lift": -0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0147,
+          "environment": "env_08",
+          "reason": "discovery lift 0.0147 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0
+        }
+      }
+    }
+  },
+  "trace_length": {
+    "description": "how long the trajectory was",
+    "discovery": {
+      "baseline_f1": 0.51577,
+      "baseline_rule": "always_unsafe",
+      "f1": 0.578704,
+      "lift": 0.062934,
+      "metrics": {
+        "accuracy": 0.545,
+        "f1": 0.5787,
+        "false_negative_rate": 0.1007,
+        "false_positive_rate": 0.6437,
+        "fn": 14,
+        "fp": 168,
+        "mcc": 0.275,
+        "negatives": 261,
+        "positives": 139,
+        "precision": 0.4266,
+        "recall": 0.8993,
+        "tn": 93,
+        "total": 400,
+        "tp": 125
+      }
+    },
+    "expected_transfer_summary": {
+      "defined": false,
+      "environments": 0,
+      "mean": 0.0,
+      "minimum": 0.0,
+      "worst_environment": null
+    },
+    "literals": [
+      "NOT len_le::3"
+    ],
+    "per_environment": {
+      "env_01": {
+        "f1": 0.557029,
+        "lift": 0.068908,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0629,
+          "environment": "env_01",
+          "reason": "discovery lift 0.0629 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0689
+        }
+      },
+      "env_02": {
+        "f1": 0.450168,
+        "lift": 0.003997,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0629,
+          "environment": "env_02",
+          "reason": "discovery lift 0.0629 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.004
+        }
+      },
+      "env_03": {
+        "f1": 0.443686,
+        "lift": 0.007932,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0629,
+          "environment": "env_03",
+          "reason": "discovery lift 0.0629 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0079
+        }
+      },
+      "env_04": {
+        "f1": 0.227848,
+        "lift": 0.0,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0629,
+          "environment": "env_04",
+          "reason": "discovery lift 0.0629 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0
+        }
+      },
+      "env_05": {
+        "f1": 0.084359,
+        "lift": -0.021189,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0629,
+          "environment": "env_05",
+          "reason": "discovery lift 0.0629 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": -0.0212
+        }
+      },
+      "env_06": {
+        "f1": 0.67233,
+        "lift": 0.079365,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0629,
+          "environment": "env_06",
+          "reason": "discovery lift 0.0629 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0794
+        }
+      },
+      "env_07": {
+        "f1": 0.228758,
+        "lift": 0.012197,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0629,
+          "environment": "env_07",
+          "reason": "discovery lift 0.0629 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0122
+        }
+      },
+      "env_08": {
+        "f1": 0.587131,
+        "lift": 0.084457,
+        "retention": {
+          "defined": false,
+          "discovery_lift": 0.0629,
+          "environment": "env_08",
+          "reason": "discovery lift 0.0629 is below 0.15; retention is a ratio of noise terms and is not reported",
+          "retention": 0.0,
+          "retention_clipped": 0.0,
+          "transfer_lift": 0.0845
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,165 @@
+[
+  {
+    "check": "label_shuffle",
+    "detail": "a candidate fitted to permuted labels retains 0.000 of its (meaningless) advantage across the transfer environments",
+    "discovery_lift": 0.020807,
+    "fitted": true,
+    "literals": [
+      "NOT rr_ord3::role_3@internal|role_3@internal|role_0@internal",
+      "NOT rr_ord3::role_3@internal|role_4@internal|role_3@internal",
+      "NOT rr_ord3i::role_0@internal|role_4@internal|role_3@internal",
+      "NOT rr_ord3i::role_3@internal|role_2@internal|role_3@internal",
+      "NOT rr_subj::role_4@internal|role_3@internal"
+    ],
+    "mean_retention": 0.0,
+    "passed": true,
+    "threshold": 0.25
+  },
+  {
+    "applicable": true,
+    "check": "role_model_shuffle",
+    "detail": "evaluated through a neighbouring environment's role model, the candidate retains 0.000",
+    "mean_retention": 0.0,
+    "passed": true,
+    "per_environment": [
+      {
+        "defined": true,
+        "discovery_lift": 0.4842,
+        "environment": "env_01",
+        "reason": "",
+        "retention": -1.008,
+        "retention_clipped": 0.0,
+        "transfer_lift": -0.4881
+      },
+      {
+        "defined": true,
+        "discovery_lift": 0.4842,
+        "environment": "env_02",
+        "reason": "",
+        "retention": -0.9214,
+        "retention_clipped": 0.0,
+        "transfer_lift": -0.4462
+      },
+      {
+        "defined": true,
+        "discovery_lift": 0.4842,
+        "environment": "env_03",
+        "reason": "",
+        "retention": -0.8999,
+        "retention_clipped": 0.0,
+        "transfer_lift": -0.4358
+      },
+      {
+        "defined": true,
+        "discovery_lift": 0.4842,
+        "environment": "env_04",
+        "reason": "",
+        "retention": -0.4705,
+        "retention_clipped": 0.0,
+        "transfer_lift": -0.2278
+      },
+      {
+        "defined": true,
+        "discovery_lift": 0.4842,
+        "environment": "env_05",
+        "reason": "",
+        "retention": -0.218,
+        "retention_clipped": 0.0,
+        "transfer_lift": -0.1055
+      },
+      {
+        "defined": true,
+        "discovery_lift": 0.4842,
+        "environment": "env_06",
+        "reason": "",
+        "retention": -1.2246,
+        "retention_clipped": 0.0,
+        "transfer_lift": -0.593
+      },
+      {
+        "defined": true,
+        "discovery_lift": 0.4842,
+        "environment": "env_07",
+        "reason": "",
+        "retention": -0.4472,
+        "retention_clipped": 0.0,
+        "transfer_lift": -0.2166
+      },
+      {
+        "defined": true,
+        "discovery_lift": 0.4842,
+        "environment": "env_08",
+        "reason": "",
+        "retention": -1.0381,
+        "retention_clipped": 0.0,
+        "transfer_lift": -0.5027
+      }
+    ],
+    "threshold": 0.5
+  },
+  {
+    "check": "literal_ablation",
+    "detail": "at least one conjunct must be load-bearing, or the reported structure contains conditions it does not need",
+    "load_bearing": [
+      "rr_ord3is::role_2@internal|role_0@internal|role_1@crossing",
+      "NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing"
+    ],
+    "passed": true,
+    "per_literal": [
+      {
+        "dropped": "rr_ord3is::role_2@internal|role_0@internal|role_1@crossing",
+        "environments": 8,
+        "mean_retention": 0.0269
+      },
+      {
+        "dropped": "NOT rr_ord3i::role_0@internal|role_4@internal|role_1@crossing",
+        "environments": 8,
+        "mean_retention": 0.5828
+      }
+    ]
+  },
+  {
+    "check": "confounder_injection",
+    "detail": "a session tag correlating perfectly with the outcome was injected; the candidate changed 0.0% of its calls",
+    "environment": "env_01",
+    "passed": true,
+    "prediction_drift": 0.0,
+    "threshold": 0.02
+  },
+  {
+    "check": "adversarial_corpus:env_f0",
+    "detail": "the candidate keeps 100% of its discovery-side advantage over this environment's own trivial baseline",
+    "environment": "env_f0",
+    "f1": 1.0,
+    "firing_rate": 0.3117,
+    "outcome": "TRANSFERRED",
+    "passed": true,
+    "retention": 1.0837
+  },
+  {
+    "check": "adversarial_corpus:env_f1",
+    "detail": "the candidate keeps 100% of its discovery-side advantage over this environment's own trivial baseline",
+    "environment": "env_f1",
+    "f1": 1.0,
+    "firing_rate": 0.3067,
+    "outcome": "TRANSFERRED",
+    "passed": true,
+    "retention": 1.0958
+  },
+  {
+    "check": "over_approximation_probe",
+    "detail": "the candidate keeps 73% of its discovery-side advantage over this environment's own trivial baseline",
+    "environment": "env_f2",
+    "f1": 1.0,
+    "firing_rate": 0.4783,
+    "outcome": "TRANSFERRED",
+    "passed": true,
+    "retention": 0.7287
+  },
+  {
+    "check": "suspicious_clean_sweep",
+    "detail": "a battery in which nothing fails has either found a very clean result or has stopped testing anything; the two look identical from outside and the flag says which to suspect",
+    "flag": true,
+    "passed": true
+  }
+]
