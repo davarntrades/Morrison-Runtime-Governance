@@ -809,3 +809,181 @@ primitive should be enforced, or that ontology discovery is viable in general.
 The candidate's terminal state is `VALIDATED`; `APPROVED`, `SHADOW` and
 `ENFORCED` raise `AuthorityBoundaryError` and there is no argument that unlocks
 them.
+
+---
+
+# Part III — LB-1 As Built
+
+## 1. The question
+
+LB-0 asked whether Morrison's Ω was missing a concept, and answered yes. Its
+first documented weakness was that the same argument applies one level up:
+
+> A structure outside the grammar is undiscoverable, **silently**.
+
+LB-1 attacks that word. Not "is the representation complete?" — no
+representation is — but:
+
+> Can the discovery layer detect when its OWN representation is inadequate, and
+> tell that apart from ordinary model error or noise?
+
+That second clause is the blueprint's stated LB-1 acceptance question, and it is
+where the difficulty lives.
+
+## 2. Reproduce it
+
+```bash
+cd living-boundary
+python -m living_boundary.run_lb1 --seed 42
+```
+
+Standard library only. ~2 seconds. Writes evidence to
+`living-boundary/artifacts/lb1-seed42-<corpus_hash>/`.
+
+## 3. Mechanism
+
+**Feature-space collisions.** Every candidate LB-0 can produce is a predicate
+over a trajectory's feature set. So two trajectories with the *same feature set*
+and *different outcomes* prove that **no** predicate expressible in that grammar
+separates them — not the one we found, not a better one, not one found next year
+with a wider beam. The grammar's achievable error is bounded below, and the bound
+is computable. This is LB-0's signature-collision argument turned on the
+discovery layer itself.
+
+**The probe.** Collisions prove insufficiency but not its cause. Three worlds
+produce the identical signature — a missing observable, a wrong record, a
+genuinely stochastic world — and they demand three different responses. Nothing
+in the corpus separates them. What does is *running a trajectory again*:
+
+| | re-run vs record | re-run vs itself |
+|---|---|---|
+| missing observable | agrees | agrees |
+| label noise | **disagrees** | agrees |
+| stochastic world | disagrees | **disagrees** |
+
+So LB-1 turns on an active experiment and reaches its verdict **by elimination**,
+in a fixed order: stochasticity first (it invalidates every other reading), then
+record fidelity, then — only when both are clean — the representation.
+
+## 4. The experiment
+
+One corpus, generated once, labelled by six environments. The traces handed to
+the analysis layer are byte-identical across all six, so any difference in
+verdict is caused by the environment alone.
+
+| environment | constructed as | verdict | collision rate | mean minority | re-run vs record | re-run vs self |
+|---|---|---|---|---|---|---|
+| `adequate` | ADEQUATE | **ADEQUATE** | 0.000 | 0.00 | 0.000 | 0.000 |
+| `inadequate_timing` | INADEQUATE | **INADEQUATE** | 0.176 | 0.48 | 0.000 | 0.000 |
+| `inadequate_delegation` | INADEQUATE | **INADEQUATE** | 0.180 | 0.45 | 0.000 | 0.000 |
+| `inadequate_unlocalised` | INADEQUATE | **INADEQUATE** | 0.136 | 0.45 | 0.000 | 0.000 |
+| `noise_limited` | NOISE_LIMITED | **NOISE_LIMITED** | 0.714 | 0.20 | 0.121 | 0.000 |
+| `stochastic` | STOCHASTIC | **STOCHASTIC** | 0.180 | 0.40 | 0.183 | 0.167 |
+
+Six of six. Note that `inadequate_timing` and `stochastic` collide at
+essentially the same rate and receive different verdicts — the collision column
+is not doing the work, the probe columns are. The end-to-end test asserts that
+property directly, so it cannot quietly stop being true.
+
+The withheld observables are real holes in the LB-0 grammar, not inventions:
+`timestamp` and `actor_id` are carried in every normalised event and read by no
+feature.
+
+## 5. Localisation, and the control that keeps it honest
+
+Once an inadequacy is *established*, LB-1 nominates what is missing by trying
+nine generic candidate observables and measuring how much of the
+proven-unsplittable disagreement each resolves. Detection never touches this
+pool — otherwise "inadequate" would degenerate into "one of my spare features
+helps".
+
+- `inadequate_timing` → nominates **`timestamp`**, resolves 100%, held-out F1
+  0.704 → 0.994 (**+0.290**)
+- `inadequate_delegation` → nominates **`actor_id`**, resolves 100%, held-out F1
+  0.636 → 1.000 (**+0.364**)
+
+`inadequate_unlocalised` is the control. Its rule keys on *which specific tool*
+performed the egress, among three that share a capability, domain and boundary
+— outside the grammar **and** outside every family in the pool. LB-1 reports
+INADEQUATE, ranks the pool, finds its best family resolves only 50%, and
+declines: **UNLOCALISED**, no proposal emitted. Without that case, every
+localisation above would be indistinguishable from "we put the answer in the
+multiple choice".
+
+## 6. The new authority invariant
+
+LB-0's invariants all still hold, verified on every LB-1 run by the same
+`authority.py` scan. LB-1 adds one:
+
+> **LB-1 may propose a representation extension. It may not adopt one.**
+
+`FEATURE_FAMILIES` is a source constant, asserted byte-identical before and
+after a full run, and `RepresentationProposal.advance(ADOPTED)` raises. The
+reasoning is in `representation/proposal.py`: a discovery layer that rewrites
+its own hypothesis space in response to data is one whose future findings are
+conditioned on its past ones with no external record of when the space changed.
+The cost of the restriction is one review step; the cost of removing it is that
+no later finding can be audited against a fixed representation.
+
+## 7. Known weaknesses
+
+1. **The pool contains the answer for two of the three inadequacies.** Mitigated
+   by `inadequate_unlocalised`, not eliminated. Localisation is only ever as good
+   as the observables someone thought to offer, and LB-1 cannot tell you what it
+   has never heard of.
+2. **Two families tie at 100% on the delegation corpus** (`actor_count` and
+   `actor_divergence`); the winner is chosen alphabetically. Both name the same
+   observable, so the reported answer is right, but the tie-break is arbitrary.
+3. **The base rule is defined as LB-0 literals.** That makes "the grammar is
+   adequate here" provable rather than hopeful, but it also means the adequate
+   control is adequate *by construction* rather than by luck.
+4. **The probe assumes trajectories can be re-run.** Real governance traces
+   often cannot be replayed against the real world, which is precisely the
+   mechanism LB-1 depends on. In production this becomes a shadow-execution
+   problem, and it is the hardest thing standing between LB-1 and LB-3.
+5. **Thresholds are sharp.** A world that is *slightly* stochastic (say 1%)
+   would pass the reproducibility margin and be reported INADEQUATE. The
+   residual-beyond-noise figure is reported in every verdict to make that
+   visible, but the verdict itself is a hard classification.
+6. **Six environments, one corpus, two seeds checked.** Not a general result.
+
+## 8. What is NOT claimed
+
+That LB-1 finds all representational gaps, that the extension pool is anything
+like exhaustive, or that a proposal should be adopted. The strongest honest
+statement is the negative one: **an inadequacy that would previously have been
+silent is now reported, with a computable bound on what it costs, and separated
+from noise by an experiment rather than by assertion.**
+
+## 9. Why replayability is the blocker, and what it costs
+
+LB-1's verdict rests entirely on one operation: **run the trajectory again,
+twice**. Every discrimination it makes comes from that probe, not from the
+collision statistics — `inadequate_timing` and `stochastic` collide at
+essentially the same rate and are separated only by what re-running reveals.
+
+That operation is unavailable for most real governance evidence, and not for
+engineering reasons. The trajectories a governance system most needs to learn
+from are exactly the ones that must never be repeated:
+
+- an email that has already been sent
+- a payment that has already been initiated
+- a healthcare record that has already been accessed
+- a cloud resource that has already been mutated
+- a permission state that has since changed underneath the trace
+
+Re-running any of those to test an ontology hypothesis would cause the harm a
+second time in order to study it. No experimental value justifies that, so the
+probe cannot simply be pointed at production evidence.
+
+**What is lost with it is specific, and worth naming before attempting a
+replacement.** Replay is what lets LB-1 separate *the world is random* from
+*something real drove this and we did not record it*. Both produce identical
+observational signatures: trajectories that agree on every field the telemetry
+carries and disagree in outcome. Only re-execution distinguishes them, because
+only re-execution can ask the world the same question twice.
+
+LB-2 therefore removes the probe and asks whether defensible evidence of
+representational inadequacy can still be assembled from **sealed, irreversible,
+observational** traces alone — and reports honestly which of LB-1's
+discriminations survive the loss and which do not.

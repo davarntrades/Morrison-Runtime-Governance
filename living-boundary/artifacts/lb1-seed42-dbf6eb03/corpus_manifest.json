@@ -1,0 +1,49 @@
+{
+  "corpus_hash": "dbf6eb03dd23d4795ba1a15a69484af8ebd85cabe7c8713eb15e4ca39e63220a",
+  "dataset_version": "lb1-dataset-1.0",
+  "note": "one corpus, labelled independently by every environment; the traces handed to the analysis layer are identical across environments",
+  "partitions": {
+    "discovery": {
+      "burst_fraction": 0.54,
+      "delegated_fraction": 0.456,
+      "family_counts": {
+        "chain": 82,
+        "chain_padded": 80,
+        "domain_swapped": 25,
+        "identity_split": 52,
+        "internal_egress": 29,
+        "no_egress": 13,
+        "no_payment": 29,
+        "ordinary": 15,
+        "reordered": 45,
+        "scope_reduced_egress": 24,
+        "scope_reduced_payment": 34,
+        "scope_reduced_read": 42,
+        "subject_mismatch": 30
+      },
+      "trajectories": 500
+    },
+    "held_out": {
+      "burst_fraction": 0.546,
+      "delegated_fraction": 0.478,
+      "family_counts": {
+        "chain": 73,
+        "chain_padded": 70,
+        "domain_swapped": 31,
+        "identity_split": 49,
+        "internal_egress": 39,
+        "no_egress": 18,
+        "no_payment": 28,
+        "ordinary": 13,
+        "reordered": 43,
+        "scope_reduced_egress": 30,
+        "scope_reduced_payment": 44,
+        "scope_reduced_read": 35,
+        "subject_mismatch": 27
+      },
+      "trajectories": 500
+    }
+  },
+  "seed": 42,
+  "world_version": "lb0-world-1.0"
+}

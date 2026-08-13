@@ -5,11 +5,11 @@
 | field | value |
 |---|---|
 | seed | 42 |
-| generated at | 2026-08-10T00:21:10Z |
+| generated at | 2026-08-10T12:29:02Z |
 | dataset | lb0-dataset-1.0 (`f3a5c318196c604a`) |
 | baseline ontology | morrison-ontology-lb0-v1.0 |
-| commit | `a9ad6236c96c8514c95c9c017cf79a449e100c03` |
-| branch | claude/living-boundary-lb0-1m9itj |
+| commit | `5d130cb33be18133c2d3e4887a2af3b4cc743c41` |
+| branch | claude/living-boundary-lb1-representation |
 | working tree clean | False |
 | python | 3.11.15 |
 | evidence chain head | `e0fd0cd6e9adcc9630ca33d828caa112c4f6c4a32431851673459327cc9015ee` |
