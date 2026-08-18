@@ -468,6 +468,84 @@ Do not mutate canonical evidence fields. The causal analysis should reference ca
 
 ---
 
+# Latency architecture and benchmark requirements
+
+Latency is an acceptance criterion for this prototype, not a later optimisation.
+
+The initial deployment posture should keep Morrison's canonical authorization path unchanged:
+
+```text
+Planner
+  -> Morrison governance
+  -> ALLOW / BLOCK / ESCALATE
+  -> tool execution or denial
+
+Canonical evidence
+  -> causal overlay
+  -> counterfactual report
+```
+
+The overlay therefore runs in **shadow / post-decision mode by default**. If it is slow or fails, the original Morrison decision still returns immediately.
+
+A naive sequential implementation with `n` interventions has approximate latency:
+
+\[
+L_{total} \approx L_G + L_{extract} + nL_G + L_{report}
+\]
+
+where \(L_G\) is one Morrison evaluation.
+
+The prototype should therefore benchmark **parallel counterfactual replay**:
+
+\[
+L_{causal} \approx L_{extract} + \max_i L_{do(X_i)} + L_{report}
+\]
+
+rather than summing every intervention serially.
+
+Benchmark at least:
+
+\[
+n \in \{1,2,4,8,16\}
+\]
+
+interventions.
+
+Measure and emit p50 / p95 / p99 where practical for:
+
+| Stage | Required measurement |
+|---|---|
+| Canonical Morrison evaluation | milliseconds |
+| Causal-variable extraction | milliseconds |
+| SCM template construction | milliseconds |
+| Intervention generation | milliseconds |
+| Each counterfactual replay | milliseconds |
+| Parallel replay wall time | milliseconds |
+| Contribution-trace construction | milliseconds |
+| Causal evidence sealing / serialization | milliseconds |
+| Total causal-overlay latency | milliseconds |
+| Synchronous end-to-end latency | milliseconds |
+| Async canonical-governance latency | milliseconds |
+
+The benchmark must distinguish three candidate operating modes:
+
+1. **Fast inline explanation** — only the highest-value 1–2 interventions.
+2. **Bounded interactive analysis** — approximately 4–8 independent interventions, preferably concurrent.
+3. **Full forensic analysis** — broader intervention sets, multi-variable interventions, minimal-cut-set search, and representation-ablation work; always post-decision / asynchronous unless measurement proves otherwise.
+
+The implementation should also compare:
+
+- **full counterfactual replay** — rerun the relevant Morrison evaluation for each intervention;
+- **incremental causal replay** — recompute only affected descendants / derived state when this can be proven equivalent.
+
+Incremental replay is acceptable only if tests show it produces the same counterfactual verdict, Ω reachability, and evidence attribution as full replay.
+
+The core performance invariant is:
+
+> **The causal overlay must never materially degrade the canonical governance decision path. Its incremental latency must be measured per stage, per intervention count, and under sequential vs parallel execution.**
+
+---
+
 # Acceptance criteria
 
 The first prototype is successful when:
@@ -482,6 +560,10 @@ The first prototype is successful when:
 8. Repeated runs on the same trace produce identical causal reports.
 9. Failure of the causal overlay cannot turn BLOCK into PERMIT.
 10. The entire causal artifact can be disabled without changing governance behaviour.
+11. Stage-level latency metrics are emitted for canonical governance and causal analysis.
+12. Sequential and parallel replay are benchmarked for 1, 2, 4, 8, and 16 interventions.
+13. Shadow/async mode adds no blocking dependency to the canonical verdict path.
+14. If incremental replay is implemented, it must match full replay on verdict, Ω reachability, and evidence attribution.
 
 ---
 
@@ -503,6 +585,12 @@ test_causal_report_is_deterministic
 test_causal_report_links_to_source_evidence_hash
 
 test_overlay_failure_is_non_authoritative
+
+test_shadow_overlay_does_not_block_canonical_response
+
+test_parallel_replay_matches_sequential_results
+
+test_latency_metrics_are_emitted
 ```
 
 Later:
@@ -515,6 +603,8 @@ test_multi_variable_intervention
 test_causal_resolution_under_compression
 
 test_hybrid_vs_scm_only_vs_dynamics_only
+
+test_incremental_replay_matches_full_replay
 ```
 
 ---
@@ -531,10 +621,12 @@ runtime_eval/
     intervention_engine.py
     counterfactual_replay.py
     contribution_trace.py
+    latency.py
     report.py
 
 runtime_eval/tests/
   test_causal_overlay.py
+  test_causal_overlay_latency.py
 ```
 
 The implementation should import/reuse existing Morrison trajectory/evaluator functions rather than duplicating them.
@@ -551,8 +643,10 @@ The implementation should import/reuse existing Morrison trajectory/evaluator fu
 6. Replay interventions through existing evaluator.
 7. Produce deterministic JSON causal report.
 8. Add tests proving verdict non-interference.
-9. Add unauthorized-transfer template.
-10. Add UI panel only after backend evidence is stable.
+9. Add latency instrumentation and sequential/parallel benchmark harness.
+10. Add unauthorized-transfer template.
+11. Compare full replay with incremental replay only after the baseline is correct.
+12. Add UI panel only after backend evidence and latency behaviour are stable.
 
 ---
 
@@ -560,7 +654,7 @@ The implementation should import/reuse existing Morrison trajectory/evaluator fu
 
 Use this as the implementation instruction:
 
-> Work inside the existing Morrison Runtime Governance repository. Do not rebuild or modify the Morrison governance kernel, Ω rules, policy hierarchy, execution semantics, or existing allow/block/escalate decisions. Implement an additive `runtime_eval/causal_overlay/` research prototype that consumes existing governed trajectory/evidence objects after evaluation. The prototype must deterministically extract causal variables, build explicit scenario-specific SCM templates, generate bounded one-variable interventions, replay those interventions through the existing Morrison evaluation path, and emit a separate immutable causal-analysis artifact containing factual vs counterfactual reachability, preventive interventions, contribution traces, and provenance links to canonical evidence. Start with secret exfiltration and unauthorized transfer. The overlay must be non-authoritative: failures cannot change the original verdict. Add tests proving verdict invariance, deterministic reports, correct counterfactual prevention, irrelevant-intervention stability, and evidence-hash linkage. Do not use an LLM to invent causal graphs in v0.1.
+> Work inside the existing Morrison Runtime Governance repository. Do not rebuild or modify the Morrison governance kernel, Ω rules, policy hierarchy, execution semantics, or existing allow/block/escalate decisions. Implement an additive `runtime_eval/causal_overlay/` research prototype that consumes existing governed trajectory/evidence objects after evaluation. The prototype must deterministically extract causal variables, build explicit scenario-specific SCM templates, generate bounded one-variable interventions, replay those interventions through the existing Morrison evaluation path, and emit a separate immutable causal-analysis artifact containing factual vs counterfactual reachability, preventive interventions, contribution traces, and provenance links to canonical evidence. Start with secret exfiltration and unauthorized transfer. The overlay must be non-authoritative and shadow/post-decision by default: failures or latency in the overlay can never change or delay the original Morrison verdict. Do not use an LLM to invent causal graphs in v0.1. Instrument stage-level latency for canonical Morrison evaluation, variable extraction, SCM construction, intervention generation, each replay, parallel replay wall time, contribution trace, evidence sealing, total overlay time, synchronous end-to-end time, and async canonical-governance time. Benchmark sequential and parallel replay for 1, 2, 4, 8, and 16 interventions and report p50/p95/p99 where practical. Add a bounded parallel executor for independent one-variable interventions and prove its results are identical to sequential replay. Treat full replay through existing Morrison evaluation as the correctness baseline. Optionally add incremental descendant-only replay only after correctness is established, and require equivalence tests against full replay. Add tests proving verdict invariance, deterministic reports, correct counterfactual prevention, irrelevant-intervention stability, evidence-hash linkage, shadow-mode non-blocking behaviour, latency metric emission, and parallel/sequential result equivalence. Produce a concise benchmark report showing whether 1–2 interventions are viable inline, 4–8 are viable interactively, and larger analyses should remain asynchronous/forensic. Do not optimise by weakening evidence, skipping Morrison checks, or changing Ω semantics.
 
 ---
 
