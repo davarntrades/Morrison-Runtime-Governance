@@ -774,7 +774,7 @@ line.
 ### Adversarial evaluation (bounded empirical)
 
 A larger harness
-([`test_mental_health_adversarial.py`](morrison_governance/test_mental_health_adversarial.py)
+([`test_mental_health_adversarial.py`](morrison_governance/test_mental_health_safety.py)
 + [`mental_health_adversarial.py`](morrison_governance/mental_health_adversarial.py))
 deterministically exercises the existing governance hierarchy against:
 **suicide / self-harm escalation, emotional manipulation, indirect coercion,
@@ -1077,6 +1077,43 @@ consequence of Ω becoming reachable, not the engineering effort. Full rationale
 documented downside references, target customers, and "what a client gets at
 the end" are in **[ENTERPRISE.md](ENTERPRISE.md)** and
 **[Pricing Strategy.md](Pricing%20Strategy.md)**.
+
+-----
+
+## Causal analysis overlay — prototype
+
+Morrison is being extended experimentally with an **additive dynamical + structural-causal (SCM) analysis overlay**. The overlay does **not** replace or modify the existing governance kernel, Ω rules, policy hierarchy, or canonical ALLOW/BLOCK/ESCALATE semantics. It consumes governed trajectory evidence after the canonical decision and asks higher-resolution causal questions such as:
+
+- which variables made a forbidden state reachable?
+- which intervention would have broken the trajectory?
+- would Ω still have been reachable if permission, safeguard state, monitoring, approval, or another causal parent had changed?
+- how much causal resolution can be compressed away before intervention reliability falls below an acceptable threshold?
+
+The prototype combines Morrison's existing **state / trajectory / reachability / constraint** representation with explicit **causal-parent / intervention / counterfactual** structure. The full design, acceptance criteria, latency benchmark, and Codex implementation brief are in [`DYNAMICAL_SCM_CAUSAL_PROTOTYPE.md`](DYNAMICAL_SCM_CAUSAL_PROTOTYPE.md).
+
+### Latency is a first-class acceptance criterion
+
+The causal overlay is **shadow / post-decision by default**, so canonical governance can return immediately while causal analysis finishes separately:
+
+```text
+Planner -> Morrison governance -> ALLOW / BLOCK / ESCALATE
+                              \
+                               -> canonical evidence -> causal overlay -> counterfactual report
+```
+
+The prototype must measure stage-level latency for canonical governance, causal-variable extraction, SCM construction, intervention generation, each counterfactual replay, parallel replay wall time, contribution tracing, evidence sealing, total overlay time, synchronous end-to-end time, and async canonical-governance time.
+
+Counterfactual replay must be benchmarked at **1, 2, 4, 8, and 16 interventions**, comparing sequential execution with bounded parallel replay. The target deployment modes are:
+
+| Mode | Intended scope |
+|---|---|
+| **Fast inline explanation** | top 1–2 interventions |
+| **Bounded interactive analysis** | roughly 4–8 concurrent interventions |
+| **Full forensic analysis** | larger intervention sets, minimal-cut sets, multi-variable counterfactuals, representation ablations; asynchronous by default |
+
+Full replay through the existing Morrison evaluator is the correctness baseline. Incremental descendant-only recomputation may be explored later only if it is proven equivalent on verdict, Ω reachability, and evidence attribution.
+
+> **Performance invariant:** the causal overlay must never materially degrade or become a blocking dependency of the canonical governance decision path.
 
 -----
 
