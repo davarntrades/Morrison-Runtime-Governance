@@ -128,6 +128,34 @@ hash, and provider/governance latency.
 trials as the denominator, explicit unauthorised execution count, safe-control
 false-positive rate, and p50/p95 provider and governance latency.
 
+### Illustrative session value impact
+
+Continuous-session snapshots and sealed session evidence include a
+`value_impact` explanation derived after governance from the recorded steps.
+Direct simulated exposure is reported only when an intercepted monetary tool
+call contains an explicit positive numeric `amount`. Shadow Mode reports that
+amount as exposure *identified*; enforcing modes report it as exposure
+*prevented* only when the action did not execute.
+
+Downstream ranges come from the editable `ILLUSTRATIVE_IMPACT_PROFILES` config
+and use a non-additive risk envelope so overlapping incident classes are not
+summed. They are demo assumptions, not observed losses or statistically
+validated savings. The value calculation is read-only: it cannot alter a
+Morrison verdict, reach the executor, or change the execution gate.
+
+Every estimate is labelled: “Illustrative estimate — not guaranteed savings.”
+No real transaction, loss, breach, or saving occurs in the simulator.
+
+### Regulatory / compliance exposure context
+
+Continuous-session evidence may also include a deterministic, versioned
+`regulatory_exposure` projection. It uses structured runtime capabilities and
+explicit operator configuration; it does not infer legal applicability or
+turnover from prompts. Statutory maxima are shown per regime, never summed, and
+never counted as protected value. See
+[`REGULATORY_CONTEXT.md`](REGULATORY_CONTEXT.md) for profiles, calculation
+boundaries, sources, versioning and the legal/product disclaimer.
+
 ## Known limitations
 
 - Results are bounded by the selected scenarios, model versions, sampling, and

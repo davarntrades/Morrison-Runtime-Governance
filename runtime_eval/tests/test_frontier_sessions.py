@@ -177,6 +177,8 @@ def test_step_and_session_hash_chains_verify():
     assert verify_session_evidence(snapshot)
     assert snapshot["session_evidence_hash"]
     assert snapshot["morrison_evidence_integrity"]["evidence_verified"]
+    assert snapshot["session_evidence_record"]["value_impact"] == (
+        snapshot["value_impact"])
 
 
 def test_tampered_step_hash_chain_fails():
