@@ -362,13 +362,17 @@ def bounded_assurance_html(projection: dict) -> str:
         for row in counterfactual)
     unsupported_items = "".join(
         f"<li>{escape(str(item))}</li>" for item in unsupported)
+    empty_interventions = (
+        '<tr><td colspan="4">No causal intervention evidence supplied.'
+        '</td></tr>'
+    )
     return f"""<!doctype html><html><head><meta charset=\"utf-8\"><title>Safety Envelope — Bounded Assurance</title><style>
 @page{{size:A4;margin:18mm}}body{{font:11pt/1.5 system-ui,sans-serif;color:#17202a;max-width:900px;margin:32px auto;padding:0 24px}}h1,h2{{letter-spacing:-.02em}}.k{{font-size:9pt;letter-spacing:.14em;text-transform:uppercase;color:#667085}}.status{{padding:14px;border:2px solid #344054}}table{{border-collapse:collapse;width:100%;font-size:9.5pt}}th,td{{padding:7px;border-bottom:1px solid #d0d5dd;text-align:left;vertical-align:top}}.warning{{padding:14px;background:#fff8e6;border:1px solid #d5a72e;font-weight:650}}code{{overflow-wrap:anywhere}}@media print{{body{{margin:0;max-width:none}}}}
 </style></head><body><div class=\"k\">Morrison Runtime Governance · Evidence report</div><h1>SAFETY ENVELOPE — BOUNDED ASSURANCE</h1>
 <p class=\"status\"><b>{escape(str(safety.get('status') or 'UNAVAILABLE'))}</b><br>{escape(str(safety.get('claim') or 'No bounded safety claim is available.'))}</p>
 <h2>Canonical governance</h2><table><tr><th>Verdict</th><td>{escape(str(canonical.get('verdict') or 'UNKNOWN'))}</td></tr><tr><th>Ω</th><td>{escape(', '.join(canonical.get('omega') or ()) or 'not recorded')}</td></tr><tr><th>Source evidence</th><td><code>{escape(str(projection.get('source_evidence_hash') or 'not recorded'))}</code></td></tr></table>
 <h2>Tested operating conditions</h2><table>{condition_rows or '<tr><td>Not supplied</td></tr>'}</table>
-<h2>Causal analysis evidence</h2><p>Resolution: {escape(str(causal.get('causal_resolution') if causal.get('causal_resolution') is not None else 'not measured'))}</p><table><tr><th>Intervention question</th><th>Outcome</th><th>Verdict</th><th>Ω reachable</th></tr>{intervention_rows or '<tr><td colspan=\"4\">No causal intervention evidence supplied.</td></tr>'}</table>
+<h2>Causal analysis evidence</h2><p>Resolution: {escape(str(causal.get('causal_resolution') if causal.get('causal_resolution') is not None else 'not measured'))}</p><table><tr><th>Intervention question</th><th>Outcome</th><th>Verdict</th><th>Ω reachable</th></tr>{intervention_rows or empty_interventions}</table>
 <h2>Unsupported / unvalidated region</h2><ul>{unsupported_items or '<li>No additional region recorded.</li>'}</ul>
 <p class=\"warning\">{escape(str(safety.get('warning') or BOUNDARY_WARNING))}<br>This result does not constitute a global or universal safety claim. Conditions outside the declared envelope are unvalidated unless separately tested.</p>
 </body></html>"""
