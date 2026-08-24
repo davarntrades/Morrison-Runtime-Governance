@@ -25,6 +25,41 @@ additive provider layer; it does not implement or modify governance policy.
 This is **additive** to the existing repository. Nothing under
 `morrison_governance/` changes; this package extends it.
 
+## Dynamical + SCM causal overlay (prototype)
+
+`runtime_eval.causal_overlay` consumes an already-governed trajectory or a
+sealed Frontier experiment record after Morrison has returned its canonical
+verdict. It deterministically extracts provenance-linked variables, applies
+explicit secret-exfiltration and financial-transfer SCM templates, and replays
+bounded one-variable counterfactuals through fresh instances of the existing
+Morrison kernel and reachability evaluator.
+
+The overlay is non-authoritative. `run_shadow(...)` catches every overlay
+failure and returns the original canonical outcome; `submit_shadow(...)`
+returns that outcome immediately while analysis runs separately. Counterfactual
+reports are separate semantic-hash-sealed artifacts and never mutate Morrison
+evidence.
+
+```python
+from runtime_eval.causal_overlay import (
+    analyze, case_from_frontier_record, causal_view,
+)
+
+case = case_from_frontier_record(
+    experiment_record, scenario_hint="unauthorized_transfer")
+report = analyze(case, replay_mode="parallel")
+view = causal_view(report)  # OBSERVED / DERIVED / COUNTERFACTUAL / canonical verdict
+```
+
+Benchmark the full-replay baseline at 1/2/4/8/16 interventions with:
+
+```bash
+python -m runtime_eval.causal_overlay.benchmark --repetitions 40
+```
+
+Measured results and deployment guidance are checked in at
+[`results/CAUSAL_OVERLAY_BENCHMARK.md`](results/CAUSAL_OVERLAY_BENCHMARK.md).
+
 ```
 ┌────────────────┐   tool calls   ┌────────────────────┐   PERMIT   ┌──────────┐
 │  HF planner    │ ─────────────▶ │ Governance         │ ─────────▶ │ Sandbox  │
@@ -247,3 +282,39 @@ planner-agreement scores, latency percentiles — is bounded to the
 **tested suite on the configured planners**. None of it is a universal
 safety guarantee. The harness is an empirical reachability-evaluation
 surface, not a certification.
+
+## Safety Envelope (additive prototype)
+
+`runtime_eval.safety_envelope` turns already-governed Morrison evidence,
+causal-analysis evidence, and an explicit evaluation manifest into a bounded
+assurance artifact. It is downstream and non-authoritative: it cannot alter a
+Morrison verdict, execute or block an action, change policy, or redefine Ω.
+Disabling it or encountering an envelope exception leaves canonical behavior
+unchanged.
+
+The immutable status is one of:
+
+- `OBSERVED_LOCAL_SAFETY` — the tested property held at an operating point
+  covered by the declared envelope;
+- `LOCAL_SAFETY_VIOLATION` — the forbidden state was actually reached inside
+  that envelope;
+- `UNVALIDATED` — a material operating condition is outside coverage;
+- `INSUFFICIENT_EVIDENCE` — membership or the required assurance evidence
+  cannot be established.
+
+Membership conservatively checks policy and Ω hashes, model/planner, tools,
+capabilities, permissions, trust boundaries, agent count, execution mode,
+horizon, scenario and perturbation family, environment identifiers, and
+material destination classification. Missing values remain explicit; changes
+do not inherit an earlier observation.
+
+The sealed `SafetyEvidencePackage` contains the envelope and result, scenario,
+perturbation, planner, and tool/capability manifests, tests and failures,
+replay results, unsupported regions, claim wording, and provenance. Timestamps
+are caller-supplied evaluation facts rather than wall-clock values generated
+while sealing, so identical inputs produce identical identifiers and hashes.
+The UI-ready `safety_envelope_view` always displays the canonical Morrison
+verdict separately and includes this warning:
+
+> This claim applies only to the declared tested envelope. No safety claim is
+> inherited outside that envelope.
