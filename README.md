@@ -5,7 +5,7 @@
 ![Safety Envelope](https://img.shields.io/badge/Local_Safety_Envelope-Environment--Bounded-5b6cff?style=flat-square)
 ![Safety](https://img.shields.io/badge/Safety-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
 ![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
-![Tests](https://img.shields.io/badge/Tests-171%2F171_Passing-2ea44f?style=flat-square)
+![Tests](https://img.shields.io/badge/Tests-1%2C092_Passing-2ea44f?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
 
 **Local Safety Envelopes for autonomous AI — established, tested, and enforced before execution.**
@@ -13,6 +13,88 @@
 **Morrison shows what locally safe operation actually looks like inside a real environment, under its tools, permissions, policies, workflows, and reachable states.**
 
 </div>
+
+---
+
+## Try Morrison now
+
+Choose the path that matches how deeply you want to inspect the system.
+
+### 1. Browser — no install, account, agent, or API key
+
+- **[Live trajectory console](https://www.resurrection-tech.com/live-demo)** — paste your own tool-call sequence and receive the real pre-execution verdict, layer, reason, and downloadable audit trail.
+- **[Test without your own agent](https://www.resurrection-tech.com/test-without-agent)** — run prepared agent scenarios or type a task and inspect the proposed trajectory before Morrison evaluates it.
+
+The public console inspects proposed actions only. It does not execute the submitted workflow or expose a production credential in the browser.
+
+### 2. Two-minute local Quick Start — no model key required
+
+```bash
+git clone https://github.com/davarntrades/Morrison-Runtime-Governance.git
+cd Morrison-Runtime-Governance
+python3 quickstart.py
+```
+
+The Quick Start now runs the current stack end to end:
+
+1. pre-execution `PERMIT` / `BLOCK` trajectory decisions;
+2. enforcement-layer attribution;
+3. deterministic replay;
+4. the non-authoritative causal overlay and bounded counterfactual interventions;
+5. construction and evaluation of a provenance-linked local Safety Envelope;
+6. exhaustive control-versus-governed state-space comparison in a finite model.
+
+For a paced screen-recording version:
+
+```bash
+python3 quickstart.py --cinematic
+```
+
+### 3. Test the evidence surfaces directly
+
+Run a deterministic Frontier Containment experiment. The planner may propose prohibited actions, but only Morrison-permitted calls can reach the inert simulator:
+
+```bash
+python -m runtime_eval.frontier.cli \
+  --provider deterministic \
+  --scenario all
+```
+
+Exhaustively enumerate a finite secret-exfiltration environment in control and governed modes, export the graph, and inspect which transitions Morrison removed:
+
+```bash
+python -m morrison_governance.global_verification \
+  --scenario secret_exfiltration \
+  --compare-control \
+  --export-json verification-result.json \
+  --export-dot verification-graph.dot
+```
+
+Run the bounded perturbation matrix and composition experiment:
+
+```bash
+python -m morrison_governance.global_verification --perturbations
+python -m morrison_governance.global_verification --composition-experiment
+```
+
+Verify the Safety Envelope and causal overlay regression suites directly:
+
+```bash
+python -m pytest \
+  runtime_eval/tests/test_safety_envelope.py \
+  runtime_eval/tests/test_safety_envelope_evidence.py \
+  runtime_eval/tests/test_causal_overlay.py \
+  -q
+```
+
+Technical guides:
+
+- [Global Safety Verification Harness](GLOBAL_SAFETY_VERIFICATION.md)
+- [Runtime evaluation, causal overlay, and Safety Envelope](runtime_eval/README.md)
+- [Hosted Frontier Containment Harness](runtime_eval/frontier/README.md)
+- [Deployment integrations](morrison_governance/DEPLOYMENT.md)
+
+These paths test different claims. The browser and Frontier harness provide empirical trajectory evidence. The Safety Envelope produces a deployment-bounded assurance artifact. Global verification exhaustively enumerates only the declared finite model; it does not establish universal real-world AI safety.
 
 ---
 
@@ -137,7 +219,7 @@ The governance layer sits outside the model and does not require model retrainin
 | Metric | Current state |
 |---|---:|
 | Governance evaluations | **129,857** |
-| Test cases | **171 / 171 passing** |
+| Repository test suite | **1,092 passing · 7 environment-dependent skips** |
 | Runtime posture | **Fail-closed** |
 | Governance level | **Pre-execution** |
 | Model dependence | **Model-agnostic middleware** |
