@@ -1,4 +1,4 @@
-"""Deterministic, replayable Safety Envelope evidence packages."""
+"""Deterministic, replayable Admissible Operating Envelope evidence packages."""
 
 from __future__ import annotations
 

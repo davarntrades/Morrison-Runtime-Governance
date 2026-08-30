@@ -127,7 +127,7 @@ def test_bundle_is_provenance_linked_and_keeps_canonical_separate():
 
 def test_downloadable_html_contains_bounded_claim_and_warning():
     html = bounded_assurance_html(_project())
-    assert "SAFETY ENVELOPE — BOUNDED ASSURANCE" in html
+    assert "ADMISSIBLE OPERATING ENVELOPE — BOUNDED ASSURANCE" in html
     assert "OBSERVED_LOCAL_SAFETY" in html
     assert "does not constitute a global or universal safety claim" in html
     assert BOUNDARY_WARNING in html

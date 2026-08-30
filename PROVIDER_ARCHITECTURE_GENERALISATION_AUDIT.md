@@ -25,7 +25,7 @@ What is **not yet established** is universal cross-provider or cross-architectur
 | Governance kernel is downstream of provider syntax | Architecture boundary documented in code/docs | **Demonstrated by design** |
 | Morrison can wrap multiple agent/tool architectures | Direct integration adapters | **Implemented** |
 | All supported adapters have equivalent production semantics | No complete external deployment matrix | **Not established** |
-| Safety Envelope claim transfers automatically between providers/architectures | Explicitly contrary to bounded-claim discipline | **No** |
+| Admissible Operating Envelope claim transfers automatically between providers/architectures | Explicitly contrary to bounded-claim discipline | **No** |
 | Generalisation to unseen providers with compatible structured action boundary | Architectural inference | **Plausible, not proven** |
 | Generalisation to arbitrary autonomous systems without observable tool/action boundary | Violates documented assumptions | **Out of scope** |
 
@@ -149,7 +149,7 @@ That separation is important because the governance kernel does not need to know
 
 ### 4.3 Bounded safety claims
 
-The Safety Envelope should **not** be said to “generalise” merely because the middleware does. A Safety Envelope is configuration-specific. Changing model/provider/planner/tooling may move the deployment outside the tested envelope and therefore require revalidation.
+The Admissible Operating Envelope should **not** be said to “generalise” merely because the middleware does. An Admissible Operating Envelope is configuration-specific. Changing model/provider/planner/tooling may move the deployment outside the tested envelope and therefore require revalidation.
 
 This is a feature of the claim discipline, not a weakness:
 
@@ -227,7 +227,7 @@ Provider adapters should never possess a direct reference to the real executor o
 
 ### G4 — No assurance inheritance across changed configuration
 
-Changing provider/model/planner outside the validated configuration should cause revalidation / UNVALIDATED status rather than silently inheriting the prior Safety Envelope claim.
+Changing provider/model/planner outside the validated configuration should cause revalidation / UNVALIDATED status rather than silently inheriting the prior Admissible Operating Envelope claim.
 
 **Falsifier:** a materially changed configuration receives validated status solely because a previous provider/configuration was validated.
 
@@ -272,7 +272,7 @@ The exact false-positive threshold should be agreed before testing rather than c
 
 ### What cannot be said yet
 
-> Morrison is universally architecture-agnostic, works unchanged across every provider, or that a Safety Envelope validated under one provider/configuration automatically transfers to another.
+> Morrison is universally architecture-agnostic, works unchanged across every provider, or that an Admissible Operating Envelope validated under one provider/configuration automatically transfers to another.
 
 ### Current grade
 

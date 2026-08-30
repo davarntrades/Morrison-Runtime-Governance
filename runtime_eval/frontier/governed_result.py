@@ -1,7 +1,7 @@
 """Post-governance projection for product, audit, and report surfaces.
 
 This module composes already-sealed Morrison evidence with the existing causal
-overlay and Safety Envelope.  It is deliberately downstream of governance:
+overlay and Admissible Operating Envelope. It is deliberately downstream of governance:
 errors are returned as evidence availability metadata and never affect the
 canonical verdict or execution decision.
 """
@@ -173,13 +173,13 @@ def project_frontier_record(
         canonical_verdicts, result, envelope_error = envelope_evaluator(
             envelope, current, evidence, enabled=envelope_enabled)
         if tuple(canonical_verdicts) != (case.factual.verdict,):
-            raise AssertionError("Safety Envelope changed canonical verdict evidence")
+            raise AssertionError("Admissible Operating Envelope projection changed canonical verdict evidence")
         if result is None:
             safety = {
-                "title": "Safety Envelope", "status": "UNAVAILABLE",
+                "title": "Admissible Operating Envelope", "status": "UNAVAILABLE",
                 "envelope": envelope.envelope_id,
                 "warning": BOUNDARY_WARNING,
-                "error": envelope_error or "Safety Envelope disabled",
+                "error": envelope_error or "Admissible Operating Envelope evaluation disabled",
                 "canonical_morrison_verdict": canonical,
             }
             package = None
@@ -201,7 +201,7 @@ def project_frontier_record(
             )
     except Exception as exc:  # evidence layer must never alter governance
         safety = {
-            "title": "Safety Envelope", "status": "UNAVAILABLE",
+            "title": "Admissible Operating Envelope", "status": "UNAVAILABLE",
             "envelope": None, "warning": BOUNDARY_WARNING,
             "error": f"{type(exc).__name__}: {exc}",
             "canonical_morrison_verdict": canonical,
@@ -366,9 +366,9 @@ def bounded_assurance_html(projection: dict) -> str:
         '<tr><td colspan="4">No causal intervention evidence supplied.'
         '</td></tr>'
     )
-    return f"""<!doctype html><html><head><meta charset=\"utf-8\"><title>Safety Envelope — Bounded Assurance</title><style>
+    return f"""<!doctype html><html><head><meta charset=\"utf-8\"><title>Admissible Operating Envelope — Bounded Assurance</title><style>
 @page{{size:A4;margin:18mm}}body{{font:11pt/1.5 system-ui,sans-serif;color:#17202a;max-width:900px;margin:32px auto;padding:0 24px}}h1,h2{{letter-spacing:-.02em}}.k{{font-size:9pt;letter-spacing:.14em;text-transform:uppercase;color:#667085}}.status{{padding:14px;border:2px solid #344054}}table{{border-collapse:collapse;width:100%;font-size:9.5pt}}th,td{{padding:7px;border-bottom:1px solid #d0d5dd;text-align:left;vertical-align:top}}.warning{{padding:14px;background:#fff8e6;border:1px solid #d5a72e;font-weight:650}}code{{overflow-wrap:anywhere}}@media print{{body{{margin:0;max-width:none}}}}
-</style></head><body><div class=\"k\">Morrison Runtime Governance · Evidence report</div><h1>SAFETY ENVELOPE — BOUNDED ASSURANCE</h1>
+</style></head><body><div class=\"k\">Morrison Runtime Governance · Evidence report</div><h1>ADMISSIBLE OPERATING ENVELOPE — BOUNDED ASSURANCE</h1>
 <p class=\"status\"><b>{escape(str(safety.get('status') or 'UNAVAILABLE'))}</b><br>{escape(str(safety.get('claim') or 'No bounded safety claim is available.'))}</p>
 <h2>Canonical governance</h2><table><tr><th>Verdict</th><td>{escape(str(canonical.get('verdict') or 'UNKNOWN'))}</td></tr><tr><th>Ω</th><td>{escape(', '.join(canonical.get('omega') or ()) or 'not recorded')}</td></tr><tr><th>Source evidence</th><td><code>{escape(str(projection.get('source_evidence_hash') or 'not recorded'))}</code></td></tr></table>
 <h2>Tested operating conditions</h2><table>{condition_rows or '<tr><td>Not supplied</td></tr>'}</table>
