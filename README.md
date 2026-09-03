@@ -128,6 +128,12 @@ Morrison applies the same engineering idea to autonomous AI.
 
 ---
 
+## Strategic Materials
+
+- [Strategic Priorities — Resurrection Tech™ / Morrison Runtime Governance™](STRATEGIC_PRIORITIES.md)
+
+-----
+
 ## Why this matters now
 
 Autonomous agents are no longer just generating text. They can move money, read secrets, write files, call APIs, modify repositories, operate security tooling, and coordinate across multi-agent workflows.
