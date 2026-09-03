@@ -397,3 +397,15 @@ Detailed implementation and evaluation artefacts live throughout this repository
 [Website](https://resurrection-tech.com) · [GitHub](https://github.com/davarntrades) · [LinkedIn](https://www.linkedin.com/in/davarn-morrison-14b93b263) · [Email](mailto:davarn@resurrection-tech.com)
 
 </div>
+
+## Technical Presentation Website
+
+A Gamma-style single-page technical presentation site is available in [`presentation-site/`](presentation-site/).
+
+```bash
+cd presentation-site
+npm install
+npm run dev
+```
+
+For export/screenshot instructions and environment-specific validation notes (including restricted-registry install failure context), see [`presentation-site/README.md`](presentation-site/README.md).
