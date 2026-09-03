@@ -7,6 +7,8 @@
 ![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
 ![Tests](https://img.shields.io/badge/Tests-1%2C092_Passing-2ea44f?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
+![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)
+![Reproducibility](https://github.com/OWNER/REPO/actions/workflows/reproducibility.yml/badge.svg)
 
 **Local Safety Envelopes for autonomous AI — established, tested, and enforced before execution.**
 
