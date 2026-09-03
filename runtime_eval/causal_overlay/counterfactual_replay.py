@@ -236,14 +236,20 @@ def case_from_frontier_record(
             rule=rule,
             omega_domain=domain,
             executed=bool(row.get("executed")),
-            action_hash=str(row.get("trajectory_hash", "")),
-            evidence_hash=str(metadata.get("evidence_hash") or ""),
-            capabilities=tuple(sorted(metadata.get("capabilities") or ())),
-            requirement=str(metadata.get("requirement", "")),
+            action_hash=str(row.get("trajectory_hash") or
+                            row.get("action_hash") or ""),
+            evidence_hash=str(metadata.get("evidence_hash") or
+                              row.get("evidence_hash") or ""),
+            capabilities=tuple(sorted(
+                metadata.get("capabilities") or row.get("capabilities") or ())),
+            requirement=str(metadata.get("requirement") or
+                            row.get("requirement") or ""),
             destination_external=bool(
-                (metadata.get("destination") or {}).get("external")),
+                (metadata.get("destination") or row.get("destination") or {})
+                .get("external")),
             authorization_approved=bool(
-                (metadata.get("authorization") or {}).get("approved")),
+                (metadata.get("authorization") or row.get("authorization") or {})
+                .get("approved")),
             reason=str(row.get("reason", "")),
         ))
     verdict = str(record.get("final_verdict") or (
