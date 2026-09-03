@@ -212,7 +212,7 @@ def scene_determinism():
 
 
 def scene_causal_envelope_and_global_verification():
-    banner("SCENE 6  ·  Causal overlay → Safety Envelope → exhaustive graph")
+    banner("SCENE 6  ·  Causal overlay → Admissible Operating Envelope → exhaustive graph")
 
     # These imports stay local so each additive evidence layer is visibly
     # downstream of Morrison's canonical runtime decision.
@@ -277,7 +277,7 @@ def scene_causal_envelope_and_global_verification():
     envelope_result = evaluate_envelope(
         envelope, conditions_from_envelope(envelope), evidence)
 
-    print(f"  Safety Envelope status ........ {envelope_result.status.value}")
+    print(f"  Operating Envelope status ..... {envelope_result.status.value}")
     print(f"  envelope id ................... {envelope.envelope_id}")
     print("  boundary warning .............. claim does not transfer outside E")
     beat(0.9)
@@ -324,7 +324,7 @@ def main():
     print("  • hardest attack surface ...... multi_turn_chain 100%→0%")
     print(f"  • deterministic replay ........ {'VERIFIED' if ok else 'FAILED'}")
     print("  • causal overlay .............. INTERVENTIONS REPLAYED")
-    print("  • local Safety Envelope ....... OBSERVED_LOCAL_SAFETY")
+    print("  • Admissible Operating Envelope  OBSERVED_LOCAL_SAFETY")
     print("  • finite state graph .......... EXHAUSTIVELY ENUMERATED")
     print("\n  Test in a browser: https://www.resurrection-tech.com/live-demo")
     print("  No agent required:  https://www.resurrection-tech.com/test-without-agent")

@@ -12,14 +12,14 @@ Morrison should **not** claim novelty for the individual ingredients of runtime 
 
 The strongest defensible novelty position is narrower:
 
-> **Morrison is an integrated runtime-assurance architecture for tool-using autonomous systems that combines trajectory-level pre-execution governance, bounded Safety Envelope claims over declared deployment conditions, explicit non-inheritance of assurance outside the tested envelope, provider-normalised execution mediation, and evidence/provenance around each canonical decision.**
+> **Morrison is an integrated runtime-assurance architecture for tool-using autonomous systems that combines trajectory-level pre-execution governance, bounded Admissible Operating Envelope claims over declared deployment conditions, explicit non-inheritance of assurance outside the tested envelope, provider-normalised execution mediation, and evidence/provenance around each canonical decision.**
 
 That is best described today as a **distinct operational synthesis and assurance architecture** with potentially novel claim structure — not as proof that every underlying mathematical or enforcement primitive is new.
 
 The most promising candidate for genuinely distinctive intellectual contribution is not “runtime blocking” by itself. It is the combination of:
 
 1. **trajectory/reachability-based action governance at the agent-tool boundary**;
-2. a **declared local Safety Envelope** parameterised by real deployment configuration;
+2. a **declared Admissible Operating Envelope** parameterised by real deployment configuration;
 3. **OBSERVED LOCAL SAFETY vs UNVALIDATED** as an explicit epistemic state;
 4. **no assurance inheritance** after material configuration change;
 5. canonical runtime decisions kept separate from downstream causal/regulatory interpretation;
@@ -71,7 +71,7 @@ Reference:
 
 ### Difference / possible Morrison contribution
 
-Morrison's stronger current positioning is not merely “monitor a property at runtime.” It attaches runtime decisions to a **deployment-scoped Safety Envelope** over tools, permissions, policies, planners, trust boundaries, horizon, and reachable states, with explicit status when that envelope no longer applies.
+Morrison's stronger current positioning is not merely “monitor a property at runtime.” It attaches runtime decisions to a **deployment-scoped Admissible Operating Envelope** over tools, permissions, policies, planners, trust boundaries, horizon, and reachable states, with explicit status when that envelope no longer applies.
 
 **Conclusion:** runtime verification is important prior art; “runtime monitoring” is not novel.
 
@@ -127,7 +127,7 @@ OPA is domain-general policy evaluation. It does not by itself define Morrison's
 
 - agent trajectory prefix evaluation,
 - reachable forbidden regions Ω,
-- declared Safety Envelope validity,
+- declared Admissible Operating Envelope validity,
 - assurance non-inheritance after configuration change,
 - canonical agent execution evidence package.
 
@@ -157,7 +157,7 @@ References:
 
 ### Difference / possible Morrison contribution
 
-Morrison currently does not synthesise a formally verified shield from a complete reactive-system specification. Its reachability and Safety Envelope are empirical/structural and deployment-scoped.
+Morrison currently does not synthesise a formally verified shield from a complete reactive-system specification. Its reachability and Admissible Operating Envelope are empirical/structural and deployment-scoped.
 
 Where Morrison differs operationally is the application to **LLM/agent tool-use trajectories**, provider normalisation, enterprise execution surfaces, explicit tested-envelope status, and evidence/audit semantics.
 
@@ -192,9 +192,9 @@ start inside a safe set
 
 ### Difference / possible Morrison contribution
 
-Morrison's Safety Envelope is not currently a CBF proof or a continuous-time invariant set. It is an **environment-bounded empirical assurance region** for an agentic deployment whose dimensions include software/organisational variables such as tools, permissions, planner, policy, trust boundary, and horizon.
+Morrison's Admissible Operating Envelope is not currently a CBF proof or a continuous-time invariant set. It is an **environment-bounded empirical assurance region** for an agentic deployment whose dimensions include software/organisational variables such as tools, permissions, planner, policy, trust boundary, and horizon.
 
-**Conclusion:** safe-set/invariance geometry is established mathematics. Morrison's possible contribution is the translation and operationalisation of bounded safety-envelope semantics into agentic runtime governance, not invention of safe sets.
+**Conclusion:** safe-set/invariance geometry is established mathematics. Morrison's possible contribution is the translation and operationalisation of bounded admissible-operating-envelope semantics into agentic runtime governance, not invention of safe sets.
 
 ---
 
@@ -245,7 +245,7 @@ Important overlap:
 
 Important limitation relative to Morrison's stated scope:
 
-The OpenAI tool-guardrail pipeline is SDK/tool-specific and documentation focuses on validation around custom function-tool calls. It does not itself present Morrison's declared Safety Envelope / reachability / non-inheritance assurance model.
+The OpenAI tool-guardrail pipeline is SDK/tool-specific and documentation focuses on validation around custom function-tool calls. It does not itself present Morrison's declared Admissible Operating Envelope / reachability / non-inheritance assurance model.
 
 ### NVIDIA NeMo Guardrails
 
@@ -292,7 +292,7 @@ Legend:
 | Safe / admissible state region | **Known mathematics** | Invariance / viability / barrier-function traditions |
 | Provider-normalised governance boundary | **Differentiated** | Common adapter pattern, but directly applied to heterogeneous agent-tool governance |
 | Full agent trajectory prefix as governance object | **Differentiated** | Stronger than isolated tool validation; adjacent to trace/runtime verification |
-| Safety Envelope parameterised by tools + permissions + planner + trust boundaries + horizon | **Candidate novelty** | Specific assurance object may be distinctive; needs exhaustive review |
+| Admissible Operating Envelope parameterised by tools + permissions + planner + trust boundaries + horizon | **Candidate novelty** | Specific assurance object may be distinctive; needs exhaustive review |
 | OBSERVED LOCAL SAFETY vs UNVALIDATED | **Candidate novelty** | Explicit epistemic distinction around tested deployment envelope |
 | No safety-claim inheritance outside declared envelope | **Candidate novelty** | Particularly strong assurance semantics; needs prior-art search |
 | Canonical verdict separated from causal/regulatory overlays | **Differentiated** | Strong architecture/evidence discipline; individual pieces known |
@@ -344,7 +344,7 @@ A = (
     forbidden region Ω,
     canonical decision,
     execution outcome,
-    Safety Envelope status,
+    Admissible Operating Envelope status,
     provenance/evidence
 )
 ```
@@ -373,7 +373,7 @@ This integration of *what happened*, *what could be reached*, *what was allowed 
 Avoid unqualified statements such as:
 
 - “Morrison invented runtime AI safety.”
-- “Morrison invented safety envelopes.”
+- “Morrison invented operating envelopes.”
 - “Morrison invented reachability-based safety.”
 - “Morrison is the first pre-execution guardrail.”
 - “No other system blocks tool calls before execution.”
@@ -388,7 +388,7 @@ Those claims are either false, too broad, or currently unsupported.
 
 A strong current positioning is:
 
-> **Morrison Runtime Governance operationalises bounded runtime assurance for tool-using autonomous systems by governing normalised action trajectories before execution, evaluating reachable forbidden states under a declared deployment configuration, explicitly refusing to inherit safety claims outside the tested Safety Envelope, and preserving evidence around the canonical execution decision.**
+> **Morrison Runtime Governance operationalises bounded runtime assurance for tool-using autonomous systems by governing normalised action trajectories before execution, evaluating reachable forbidden states under a declared deployment configuration, explicitly refusing to inherit safety claims outside the tested Admissible Operating Envelope, and preserving evidence around the canonical execution decision.**
 
 Shorter version:
 
@@ -426,7 +426,7 @@ Search granted/pending patents for:
 - pre-execution AI-agent tool governance
 - trajectory-level policy enforcement
 - runtime reachability over agent actions
-- safety-envelope validity over AI deployment configuration
+- admissible-operating-envelope validity over AI deployment configuration
 - revalidation on tool/permission/planner changes
 - evidence-bound runtime safety claims
 
@@ -535,7 +535,7 @@ This is the key test for **assurance non-inheritance**.
 
 ### Strongest candidate novelty requiring deeper review
 
-> **A configuration-indexed local Safety Envelope for autonomous-agent runtime governance, with explicit assurance validity/non-inheritance semantics and evidence-bound pre-execution decisions.**
+> **A configuration-indexed Admissible Operating Envelope for autonomous-agent runtime governance, with explicit assurance validity/non-inheritance semantics and evidence-bound pre-execution decisions.**
 
 ### Overall grade
 

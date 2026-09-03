@@ -11,7 +11,7 @@ def safety_envelope_view(envelope: SafetyEnvelope,
                          result: SafetyEnvelopeResult) -> dict:
     coverage = asdict(envelope.evidence_coverage)
     return {
-        "title": "Safety Envelope",
+        "title": "Admissible Operating Envelope",
         "authority": "NON-AUTHORITATIVE EVIDENCE VIEW",
         "status": result.status.value,
         "envelope": envelope.envelope_id,
