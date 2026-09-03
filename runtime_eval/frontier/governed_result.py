@@ -13,8 +13,8 @@ from html import escape
 from typing import Any, Callable, Optional
 
 from runtime_eval.causal_overlay import (
-    GovernedTrajectory, analyze, case_from_frontier_record, causal_view,
-    run_shadow,
+    GovernedTrajectory, ReplayConfig, analyze, case_from_frontier_record,
+    causal_view, run_shadow,
 )
 from runtime_eval.safety_envelope import (
     BOUNDARY_WARNING, EvidenceCoverage, EvaluationManifest,
@@ -118,11 +118,62 @@ def _canonical_view(case: GovernedTrajectory, record: dict) -> dict:
     }
 
 
+def _operating_point_evidence(case: GovernedTrajectory) -> dict:
+    """Separate proposal, configuration, and execution membership evidence."""
+    declared = frozenset(case.config.manifest())
+    rows = []
+    for step in case.factual.steps:
+        registered = step.tool in declared
+        rows.append({
+            "step": step.original_step + 1,
+            "tool": step.tool,
+            "declaration_scope": (
+                "evaluated_governance_security_context_tool_manifest"),
+            "declaration_status": ("DECLARED" if registered else "UNDECLARED"),
+            "known_to_governance_manifest": registered,
+            "registered_in_governance_manifest": registered,
+            "inside_declared_aoe_tool_set": registered,
+            "classified_capabilities": list(step.capabilities),
+            "permission_requirement": step.requirement or "UNKNOWN",
+            "governance_verdict": step.verdict,
+            "permitted": step.verdict == "PERMIT",
+            "execution_occurred": step.executed,
+        })
+    proposed = tuple(dict.fromkeys(row["tool"] for row in rows))
+    outside = tuple(dict.fromkeys(
+        row["tool"] for row in rows
+        if not row["registered_in_governance_manifest"]))
+    executed = tuple(dict.fromkeys(
+        row["tool"] for row in rows if row["execution_occurred"]))
+    outside_executed = tuple(dict.fromkeys(
+        row["tool"] for row in rows
+        if row["execution_occurred"] and
+        not row["registered_in_governance_manifest"]))
+    return {
+        "tool_governance_evidence": rows,
+        "proposal_membership": {
+            "scope": "autonomous_system_proposal_against_governance_tool_manifest",
+            "proposed_tools": list(proposed),
+            "proposal_within_declared_tool_set": not outside,
+            "unregistered_proposed_tools": list(outside),
+            "proposal_is_not_execution_evidence": True,
+        },
+        "execution_membership": {
+            "scope": "recorded_execution_against_governance_tool_manifest",
+            "execution_occurred": bool(executed),
+            "executed_tools": list(executed),
+            "out_of_envelope_execution_occurred": bool(outside_executed),
+            "out_of_envelope_executed_tools": list(outside_executed),
+        },
+    }
+
+
 def project_frontier_record(
         record: dict, *, model_planner: str, execution_mode: str = "enforced",
         horizon: Optional[int] = None, scenario_family: Optional[str] = None,
         boundary_mutation: str = "none", causal_enabled: bool = True,
         envelope_enabled: bool = True,
+        replay_config: Optional[ReplayConfig] = None,
         analyzer: Callable[..., Any] = analyze,
         envelope_evaluator: Callable[..., Any] = evaluate_non_authoritative,
         ) -> dict:
@@ -132,7 +183,8 @@ def project_frontier_record(
     tested_horizon = max(1, int(horizon or len(calls) or 1))
     hint = _scenario_hint(calls)
     family = hint or case_id
-    case = case_from_frontier_record(record, scenario_hint=hint)
+    case = case_from_frontier_record(
+        record, scenario_hint=hint, config=replay_config)
     canonical = _canonical_view(case, record)
     causal_report = None
     causal_error = None
@@ -185,6 +237,13 @@ def project_frontier_record(
             package = None
         else:
             safety = safety_envelope_view(envelope, result)
+            safety["configuration_membership"] = {
+                "scope": "governance_configuration_against_declared_tested_envelope",
+                "inside_validated_configuration": result.inside_envelope,
+                "governance_configuration_within_validated_envelope":
+                    result.inside_envelope,
+            }
+            safety.update(_operating_point_evidence(case))
             safety["boundary_mutation"] = boundary_mutation
             safety["runtime_governance_active"] = True
             package = build_evidence_package(

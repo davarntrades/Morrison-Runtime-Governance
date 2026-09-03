@@ -15,6 +15,7 @@ def safety_envelope_view(envelope: SafetyEnvelope,
         "authority": "NON-AUTHORITATIVE EVIDENCE VIEW",
         "status": result.status.value,
         "envelope": envelope.envelope_id,
+        "inside_envelope": result.inside_envelope,
         "safety_property": result.safety_property,
         "validated_conditions": dict(result.tested_conditions),
         "evidence": {

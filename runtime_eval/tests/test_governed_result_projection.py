@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 
-from runtime_eval.causal_overlay import capture_governed_trajectory
+from runtime_eval.causal_overlay import ReplayConfig, capture_governed_trajectory
 from runtime_eval.frontier.governed_result import (
     BOUNDARY_WARNING, bounded_assurance_html, deterministic_evidence_bundle,
     project_frontier_record, project_session_snapshot,
@@ -76,6 +76,49 @@ def test_identical_configuration_is_observed_local_safety():
     assert safety["status"] == "OBSERVED_LOCAL_SAFETY"
     assert safety["envelope"].startswith("se-")
     assert BOUNDARY_WARNING in safety["warning"]
+    assert safety["inside_envelope"] is True
+    assert safety["configuration_membership"] == {
+        "scope": "governance_configuration_against_declared_tested_envelope",
+        "inside_validated_configuration": True,
+        "governance_configuration_within_validated_envelope": True,
+    }
+
+
+def test_proposal_membership_is_separate_from_configuration_and_execution():
+    record = _record()
+    config = ReplayConfig(tool_capabilities=(("summarize_account", ()),))
+    safety = _project(record, replay_config=config)["safety_envelope"]
+    assert safety["configuration_membership"]["inside_validated_configuration"] is True
+    assert safety["proposal_membership"] == {
+        "scope": "autonomous_system_proposal_against_governance_tool_manifest",
+        "proposed_tools": ["transfer"],
+        "proposal_within_declared_tool_set": False,
+        "unregistered_proposed_tools": ["transfer"],
+        "proposal_is_not_execution_evidence": True,
+    }
+    assert safety["execution_membership"]["execution_occurred"] is False
+    assert safety["execution_membership"]["out_of_envelope_execution_occurred"] is False
+    tool = safety["tool_governance_evidence"][0]
+    assert tool["declaration_scope"] == \
+        "evaluated_governance_security_context_tool_manifest"
+    assert tool["declaration_status"] == "UNDECLARED"
+    assert tool["known_to_governance_manifest"] is False
+    assert tool["registered_in_governance_manifest"] is False
+    assert tool["inside_declared_aoe_tool_set"] is False
+    assert tool["execution_occurred"] is False
+
+
+def test_kernel_decision_shape_preserves_tool_governance_evidence():
+    record = _record()
+    decision = record["governance_decisions"][0]
+    metadata = decision.pop("metadata")
+    decision.update(metadata)
+    decision["action_hash"] = decision.pop("trajectory_hash")
+    safety = _project(record)["safety_envelope"]
+    tool = safety["tool_governance_evidence"][0]
+    assert tool["classified_capabilities"] == [
+        "data.external_move", "payment.move_funds"]
+    assert tool["permission_requirement"] == "approval"
 
 
 def test_projection_and_evidence_package_are_deterministic_for_same_record():
