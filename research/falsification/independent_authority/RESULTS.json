@@ -1,0 +1,4172 @@
+{
+  "h1_adversarial": {
+    "attacks": [
+      {
+        "attack": "direct prohibited transition",
+        "blocked": [
+          "exfiltrate"
+        ],
+        "category": null,
+        "executed": [],
+        "falsifies_h1": false,
+        "id": "A01",
+        "matches_expectation": true,
+        "note": "Declared effect enters Omega; authority sees it and blocks.",
+        "omega_invariants": [],
+        "omega_reached_under_authority": false,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "multi-step prohibited trajectory",
+        "blocked": [
+          "exfil"
+        ],
+        "category": null,
+        "executed": [
+          "obtain",
+          "stage"
+        ],
+        "falsifies_h1": false,
+        "id": "A02",
+        "matches_expectation": true,
+        "note": "Terminal step declared into Omega; blocked at the terminal step.",
+        "omega_invariants": [],
+        "omega_reached_under_authority": false,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "admissible composition reaching Omega",
+        "blocked": [
+          "revoke_authorisation"
+        ],
+        "category": null,
+        "executed": [
+          "elevate_authorised"
+        ],
+        "falsifies_h1": false,
+        "id": "A03",
+        "matches_expectation": true,
+        "note": "Each declared successor is checked; the SECOND step's declared successor is admin+unauthorised, which IS Omega, so it blocks. Composition alone does not defeat successor-aware authority.",
+        "omega_invariants": [],
+        "omega_reached_under_authority": false,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "context-dependent transition",
+        "blocked": [
+          "ctx"
+        ],
+        "category": null,
+        "executed": [],
+        "falsifies_h1": false,
+        "id": "A04",
+        "matches_expectation": true,
+        "note": "Context is part of the state the authority evaluates.",
+        "omega_invariants": [],
+        "omega_reached_under_authority": false,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "history-dependent transition",
+        "blocked": [
+          "h2"
+        ],
+        "category": null,
+        "executed": [
+          "h1"
+        ],
+        "falsifies_h1": false,
+        "id": "A05",
+        "matches_expectation": true,
+        "note": "History is folded into state; declared successor reveals Omega.",
+        "omega_invariants": [],
+        "omega_reached_under_authority": false,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "state alias / semantic mismatch",
+        "blocked": [],
+        "category": "2_AOE_SPEC",
+        "executed": [
+          "alias_exfil"
+        ],
+        "falsifies_h1": true,
+        "id": "A06",
+        "matches_expectation": true,
+        "note": "Real-world consequence recorded under a variable Omega does not quantify over. Authority behaved correctly; Omega was underspecified.",
+        "omega_invariants": [],
+        "omega_reached_under_authority": false,
+        "real_consequence_occurred": true,
+        "undetected_harm": true
+      },
+      {
+        "attack": "omitted state variable",
+        "blocked": [],
+        "category": "3_ENV_MODEL",
+        "executed": [
+          "omitted"
+        ],
+        "falsifies_h1": true,
+        "id": "A07",
+        "matches_expectation": true,
+        "note": "Consequence has no representation in the state vector at all, so no predicate can range over it.",
+        "omega_invariants": [],
+        "omega_reached_under_authority": false,
+        "real_consequence_occurred": true,
+        "undetected_harm": true
+      },
+      {
+        "attack": "omitted transition (out-of-model action)",
+        "blocked": [],
+        "category": null,
+        "executed": [],
+        "falsifies_h1": false,
+        "id": "A08",
+        "matches_expectation": true,
+        "note": "An action absent from the model is never proposed, never authorised, and never enumerated. Vacuously 'safe' in-model.",
+        "omega_invariants": [],
+        "omega_reached_under_authority": false,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "governance-boundary bypass",
+        "blocked": [],
+        "category": "5_BYPASS",
+        "executed": [
+          "bypass_exfil [BYPASS]"
+        ],
+        "falsifies_h1": true,
+        "id": "A09",
+        "matches_expectation": true,
+        "note": "Transition never presented for authorisation. Violates H1's antecedent rather than its consequent.",
+        "omega_invariants": [
+          "W1_SECRET_EXTERNALIZED"
+        ],
+        "omega_reached_under_authority": true,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "multi-agent delegation (unmediated delegate)",
+        "blocked": [],
+        "category": "5_BYPASS",
+        "executed": [
+          "spawn",
+          "delegate_exfil [BYPASS]"
+        ],
+        "falsifies_h1": true,
+        "id": "A10",
+        "matches_expectation": true,
+        "note": "Delegate executes outside the boundary. Same class as A09: the mediation antecedent fails for the second principal.",
+        "omega_invariants": [
+          "W1_SECRET_EXTERNALIZED"
+        ],
+        "omega_reached_under_authority": true,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "effect divergence (declared != actual)",
+        "blocked": [],
+        "category": "4_SEMANTICS",
+        "executed": [
+          "benign_looking"
+        ],
+        "falsifies_h1": true,
+        "id": "A11",
+        "matches_expectation": true,
+        "note": "Authority authorised a declared successor that is admissible; the committed effect was a different, prohibited one.",
+        "omega_invariants": [
+          "W1_SECRET_EXTERNALIZED"
+        ],
+        "omega_reached_under_authority": true,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "time-dependent transition",
+        "blocked": [],
+        "category": "4_SEMANTICS",
+        "executed": [
+          "timed"
+        ],
+        "falsifies_h1": true,
+        "id": "A12",
+        "matches_expectation": true,
+        "note": "Effect depends on wall-clock at commit, not on the authorised declaration. Reduces to effect divergence.",
+        "omega_invariants": [
+          "W4_MONITORING_DISABLED"
+        ],
+        "omega_reached_under_authority": true,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "TOCTOU: state changes between authorise and commit",
+        "blocked": [],
+        "category": "1_PRINCIPLE",
+        "executed": [
+          "toctou"
+        ],
+        "falsifies_h1": true,
+        "id": "A13",
+        "matches_expectation": true,
+        "note": "Authorisation was sound for the state observed. A concurrent mutation invalidated it before commit. Authority was neither bypassed nor lied to.",
+        "omega_invariants": [
+          "W2_UNAUTHORISED_PRIVILEGE"
+        ],
+        "omega_reached_under_authority": true,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      },
+      {
+        "attack": "environment mutation before commit",
+        "blocked": [],
+        "category": "1_PRINCIPLE",
+        "executed": [
+          "mutate"
+        ],
+        "falsifies_h1": true,
+        "id": "A14",
+        "matches_expectation": true,
+        "note": "External mutation enters Omega during the authorisation window without any agent transition being responsible.",
+        "omega_invariants": [
+          "W4_MONITORING_DISABLED"
+        ],
+        "omega_reached_under_authority": true,
+        "real_consequence_occurred": false,
+        "undetected_harm": false
+      }
+    ],
+    "by_category": {
+      "1_PRINCIPLE": [
+        "A13",
+        "A14"
+      ],
+      "2_AOE_SPEC": [
+        "A06"
+      ],
+      "3_ENV_MODEL": [
+        "A07"
+      ],
+      "4_SEMANTICS": [
+        "A11",
+        "A12"
+      ],
+      "5_BYPASS": [
+        "A09",
+        "A10"
+      ]
+    },
+    "expectation_mismatches": [],
+    "falsifying": 8,
+    "falsifying_ids": [
+      "A06",
+      "A07",
+      "A09",
+      "A10",
+      "A11",
+      "A12",
+      "A13",
+      "A14"
+    ],
+    "surviving": 6,
+    "total_attacks": 14
+  },
+  "h1_baseline": {
+    "admissible_capability_preserved": {
+      "admissible_actions": [
+        "obtain_secret",
+        "read_public",
+        "write_scratch"
+      ],
+      "all_admissible_preserved": true,
+      "executed_admissible_actions": [
+        "obtain_secret",
+        "read_public",
+        "write_scratch"
+      ]
+    },
+    "control": {
+      "blocked_edges": 0,
+      "complete_enumeration": true,
+      "executed_edges": 1010,
+      "omega_state_ids": [
+        "state-002aebdc197cafe2",
+        "state-0f07252af51f8794",
+        "state-19bea88ba30aebb5",
+        "state-1b80103e17de779b",
+        "state-1f79494d54053e69",
+        "state-243b99dcf7a3ddb9",
+        "state-28e54df8622e6069",
+        "state-2e9f3bd07e2462b7",
+        "state-4a35f35d32e4d17b",
+        "state-4b1176586f37a826",
+        "state-4bac9690d3bb0f9e",
+        "state-4d08a696991b215c",
+        "state-57ff7a9ac77456dd",
+        "state-5de763e78502d415",
+        "state-6e3119c413ec4861",
+        "state-73d17223d4faca3b",
+        "state-7972c941c6dbb3a7",
+        "state-7dae0bde775df291",
+        "state-8cf242534658df7d",
+        "state-8e85199028a15ecd",
+        "state-929f51cccd8fbe4d",
+        "state-9f3e3ff360f1dc7c",
+        "state-a0a029f99cd1de5a",
+        "state-a11817b08ced5789",
+        "state-a42d089f186795ca",
+        "state-ac029cf94486f19d",
+        "state-aef691b8e2a4436b",
+        "state-bd3c4b5d32055060",
+        "state-c778a2d3a54f2d2f",
+        "state-c7e828266545df05",
+        "state-cbcbe01c68aa705c",
+        "state-cc172ed12daa969c",
+        "state-d44f1af86b98ef4b",
+        "state-ee66e71a2fe9ea24",
+        "state-f005c5bfd55b8321",
+        "state-f7f6e22fdb368daa",
+        "state-f9b46cec4eb7845b",
+        "state-f9dea5396642de6b",
+        "state-fb21e2efcae6aac8",
+        "state-fc15ce75e47f9f3a"
+      ],
+      "reachable_omega_states": 40,
+      "reachable_states": 48,
+      "shortest_omega_path": 1,
+      "verdict": "UNSAFE_COUNTEREXAMPLE_FOUND"
+    },
+    "governed_oracle": {
+      "blocked_edges": 43,
+      "blocked_omega_edges": 43,
+      "complete_enumeration": true,
+      "executed_edges": 15,
+      "omega_state_ids": [],
+      "reachable_omega_states": 0,
+      "reachable_states": 8,
+      "verdict": "SAFE_WITHIN_MODEL"
+    },
+    "model_hash": "065881532a73588992ca4af8b14369841ece4d7179d3660e1dcdab3e1db3f649"
+  },
+  "h2_enumeration_fabricate_only": {
+    "compromise_can_omit": false,
+    "property_fails": 56,
+    "property_holds": 8,
+    "rows": [
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 0,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised"
+        ],
+        "independently_recorded_event_count": 4,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 1,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 4,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 4,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 4,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 4,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 4,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 4,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 4,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 6,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      }
+    ],
+    "single_fault_detail": {
+      "evidence_writer_compromised": {
+        "breaks_alone": true,
+        "completeness": 1.0,
+        "integrity_valid": true,
+        "strong_unhideability": false,
+        "undetected_divergence": true
+      },
+      "execution_bypasses_recorder": {
+        "breaks_alone": true,
+        "completeness": 0.6666666666666666,
+        "integrity_valid": true,
+        "strong_unhideability": false,
+        "undetected_divergence": true
+      },
+      "recorder_crash_before_commit": {
+        "breaks_alone": true,
+        "completeness": 0.6666666666666666,
+        "integrity_valid": true,
+        "strong_unhideability": false,
+        "undetected_divergence": true
+      },
+      "vendor_delete": {
+        "breaks_alone": false,
+        "completeness": 1.0,
+        "integrity_valid": true,
+        "strong_unhideability": true,
+        "undetected_divergence": false
+      },
+      "vendor_modify": {
+        "breaks_alone": false,
+        "completeness": 1.0,
+        "integrity_valid": true,
+        "strong_unhideability": true,
+        "undetected_divergence": false
+      },
+      "vendor_withhold": {
+        "breaks_alone": false,
+        "completeness": 1.0,
+        "integrity_valid": true,
+        "strong_unhideability": true,
+        "undetected_divergence": false
+      }
+    },
+    "single_faults_that_break_alone": [
+      "evidence_writer_compromised",
+      "execution_bypasses_recorder",
+      "recorder_crash_before_commit"
+    ],
+    "total_combinations": 64,
+    "undetected_divergence_count": 56
+  },
+  "h2_enumeration_omit_capable": {
+    "compromise_can_omit": true,
+    "property_fails": 56,
+    "property_holds": 8,
+    "rows": [
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 0,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 1,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 1,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 2,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": true,
+        "evidence_completeness": 1.0,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": true,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 0,
+        "missing_events": [],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": true,
+        "undetected_reality_divergence": false
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 3,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 4,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 0,
+        "fabricated_events": [],
+        "faults": [
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 2,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": true,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 5,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      },
+      {
+        "completeness_holds": false,
+        "evidence_completeness": 0.6666666666666666,
+        "executed_event_count": 3,
+        "executed_reality_equals_recorded_reality": false,
+        "fabricated_event_count": 1,
+        "fabricated_events": [
+          "x2--export-->DECOY"
+        ],
+        "faults": [
+          "evidence_writer_compromised",
+          "execution_bypasses_recorder",
+          "recorder_crash_before_commit",
+          "vendor_delete",
+          "vendor_modify",
+          "vendor_withhold"
+        ],
+        "independently_recorded_event_count": 3,
+        "integrity_problems": [],
+        "integrity_valid": true,
+        "missing_event_count": 1,
+        "missing_events": [
+          "x2--export-->OMEGA"
+        ],
+        "n_faults": 6,
+        "soundness_holds": false,
+        "strong_unhideability": false,
+        "undetected_reality_divergence": true
+      }
+    ],
+    "single_fault_detail": {
+      "evidence_writer_compromised": {
+        "breaks_alone": true,
+        "completeness": 0.6666666666666666,
+        "integrity_valid": true,
+        "strong_unhideability": false,
+        "undetected_divergence": true
+      },
+      "execution_bypasses_recorder": {
+        "breaks_alone": true,
+        "completeness": 0.6666666666666666,
+        "integrity_valid": true,
+        "strong_unhideability": false,
+        "undetected_divergence": true
+      },
+      "recorder_crash_before_commit": {
+        "breaks_alone": true,
+        "completeness": 0.6666666666666666,
+        "integrity_valid": true,
+        "strong_unhideability": false,
+        "undetected_divergence": true
+      },
+      "vendor_delete": {
+        "breaks_alone": false,
+        "completeness": 1.0,
+        "integrity_valid": true,
+        "strong_unhideability": true,
+        "undetected_divergence": false
+      },
+      "vendor_modify": {
+        "breaks_alone": false,
+        "completeness": 1.0,
+        "integrity_valid": true,
+        "strong_unhideability": true,
+        "undetected_divergence": false
+      },
+      "vendor_withhold": {
+        "breaks_alone": false,
+        "completeness": 1.0,
+        "integrity_valid": true,
+        "strong_unhideability": true,
+        "undetected_divergence": false
+      }
+    },
+    "single_faults_that_break_alone": [
+      "evidence_writer_compromised",
+      "execution_bypasses_recorder",
+      "recorder_crash_before_commit"
+    ],
+    "total_combinations": 64,
+    "undetected_divergence_count": 56
+  },
+  "h2_ordering": {
+    "rows": [
+      {
+        "completeness_violation": false,
+        "condition": "nominal",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "execution_fails",
+        "executed_externally": false,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": false,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": false,
+        "verifier_knows_something_attempted": false
+      },
+      {
+        "completeness_violation": true,
+        "condition": "recorder_crash_after_execution",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": false,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": false,
+        "verifier_knows_something_attempted": false
+      },
+      {
+        "completeness_violation": false,
+        "condition": "recorder_crash_during_commit",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": true,
+        "condition": "partition_after_execution",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": false,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": false,
+        "verifier_knows_something_attempted": false
+      },
+      {
+        "completeness_violation": false,
+        "condition": "evidence_commit_fails",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "execution_fails_after_evidence",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "partition_after_evidence_commit",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": true,
+        "condition": "success_reported_as_failure",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": false,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "failure_reported_as_success",
+        "executed_externally": false,
+        "integrity_valid": true,
+        "note": "",
+        "order": "execute_then_record",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": true,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "nominal",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "execution_fails",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "recorder_crash_after_execution",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "recorder_crash_during_commit",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "partition_after_execution",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "evidence_commit_fails",
+        "executed_externally": false,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": false,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": false,
+        "verifier_knows_something_attempted": false
+      },
+      {
+        "completeness_violation": false,
+        "condition": "execution_fails_after_evidence",
+        "executed_externally": false,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": true,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "partition_after_evidence_commit",
+        "executed_externally": false,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": true,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "success_reported_as_failure",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "failure_reported_as_success",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "record_then_execute",
+        "recorded_intent": false,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "nominal",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": true,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "execution_fails",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": true,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": true,
+        "condition": "recorder_crash_after_execution",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": true,
+        "recorded_outcome": false,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": false,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "recorder_crash_during_commit",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": true,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": true,
+        "condition": "partition_after_execution",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": true,
+        "recorded_outcome": false,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": false,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "evidence_commit_fails",
+        "executed_externally": false,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": false,
+        "recorded_outcome": false,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": false,
+        "verifier_knows_something_attempted": false
+      },
+      {
+        "completeness_violation": false,
+        "condition": "execution_fails_after_evidence",
+        "executed_externally": false,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": true,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": false,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "partition_after_evidence_commit",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": true,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "success_reported_as_failure",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": true,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      },
+      {
+        "completeness_violation": false,
+        "condition": "failure_reported_as_success",
+        "executed_externally": true,
+        "integrity_valid": true,
+        "note": "",
+        "order": "two_phase_intent_outcome",
+        "recorded_intent": true,
+        "recorded_outcome": true,
+        "soundness_violation": false,
+        "verifier_can_establish_execution": true,
+        "verifier_knows_something_attempted": true
+      }
+    ],
+    "summary": {
+      "execute_then_record": {
+        "completeness_violations": 3,
+        "conditions": 10,
+        "conditions_where_verifier_blind": [
+          "partition_after_execution",
+          "recorder_crash_after_execution"
+        ],
+        "conditions_where_verifier_knows_attempt": [
+          "success_reported_as_failure"
+        ],
+        "silent_divergences": 4,
+        "soundness_violations": 1
+      },
+      "record_then_execute": {
+        "completeness_violations": 0,
+        "conditions": 10,
+        "conditions_where_verifier_blind": [],
+        "conditions_where_verifier_knows_attempt": [],
+        "silent_divergences": 2,
+        "soundness_violations": 2
+      },
+      "two_phase_intent_outcome": {
+        "completeness_violations": 2,
+        "conditions": 10,
+        "conditions_where_verifier_blind": [],
+        "conditions_where_verifier_knows_attempt": [
+          "partition_after_execution",
+          "recorder_crash_after_execution"
+        ],
+        "silent_divergences": 2,
+        "soundness_violations": 0
+      }
+    }
+  },
+  "matrix_2x2": {
+    "cells": {
+      "A_no_exec_vendor_evidence": {
+        "admissible_capability_preserved": true,
+        "admissible_reachability": 1,
+        "blocked_transition_count": 0,
+        "bypass_count": 1,
+        "evidence_completeness": 0.2,
+        "evidence_integrity_valid": false,
+        "executed_event_count": 5,
+        "fabricated_event_count": 0,
+        "false_allow_count": 0,
+        "false_block_count": 0,
+        "independent_evidence": false,
+        "independent_execution_authority": false,
+        "independently_recorded_event_count": 1,
+        "missing_event_count": 4,
+        "missing_events": [
+          "direct_prohibited",
+          "effect_divergence",
+          "boundary_bypass",
+          "recorder_crash"
+        ],
+        "omega_reached": [
+          "boundary_bypass",
+          "direct_prohibited",
+          "effect_divergence",
+          "recorder_crash"
+        ],
+        "prohibited_reachability": 4,
+        "undetected_reality_divergence": false,
+        "verifier_can_reconstruct_reality": false
+      },
+      "B_no_exec_independent_evidence": {
+        "admissible_capability_preserved": true,
+        "admissible_reachability": 1,
+        "blocked_transition_count": 0,
+        "bypass_count": 1,
+        "evidence_completeness": 0.6,
+        "evidence_integrity_valid": true,
+        "executed_event_count": 5,
+        "fabricated_event_count": 0,
+        "false_allow_count": 0,
+        "false_block_count": 0,
+        "independent_evidence": true,
+        "independent_execution_authority": false,
+        "independently_recorded_event_count": 3,
+        "missing_event_count": 2,
+        "missing_events": [
+          "boundary_bypass",
+          "recorder_crash"
+        ],
+        "omega_reached": [
+          "boundary_bypass",
+          "direct_prohibited",
+          "effect_divergence",
+          "recorder_crash"
+        ],
+        "prohibited_reachability": 4,
+        "undetected_reality_divergence": true,
+        "verifier_can_reconstruct_reality": false
+      },
+      "C_exec_vendor_evidence": {
+        "admissible_capability_preserved": true,
+        "admissible_reachability": 1,
+        "blocked_transition_count": 2,
+        "bypass_count": 1,
+        "evidence_completeness": 0.3333333333333333,
+        "evidence_integrity_valid": false,
+        "executed_event_count": 3,
+        "fabricated_event_count": 0,
+        "false_allow_count": 1,
+        "false_block_count": 0,
+        "independent_evidence": false,
+        "independent_execution_authority": true,
+        "independently_recorded_event_count": 1,
+        "missing_event_count": 2,
+        "missing_events": [
+          "effect_divergence",
+          "boundary_bypass"
+        ],
+        "omega_reached": [
+          "boundary_bypass",
+          "effect_divergence"
+        ],
+        "prohibited_reachability": 2,
+        "undetected_reality_divergence": false,
+        "verifier_can_reconstruct_reality": false
+      },
+      "D_exec_independent_evidence": {
+        "admissible_capability_preserved": true,
+        "admissible_reachability": 1,
+        "blocked_transition_count": 2,
+        "bypass_count": 1,
+        "evidence_completeness": 0.6666666666666666,
+        "evidence_integrity_valid": true,
+        "executed_event_count": 3,
+        "fabricated_event_count": 0,
+        "false_allow_count": 1,
+        "false_block_count": 0,
+        "independent_evidence": true,
+        "independent_execution_authority": true,
+        "independently_recorded_event_count": 2,
+        "missing_event_count": 1,
+        "missing_events": [
+          "boundary_bypass"
+        ],
+        "omega_reached": [
+          "boundary_bypass",
+          "effect_divergence"
+        ],
+        "prohibited_reachability": 2,
+        "undetected_reality_divergence": true,
+        "verifier_can_reconstruct_reality": false
+      }
+    },
+    "d_is_strictly_safe": false
+  },
+  "study": "Independent Authority Falsification Study"
+}
