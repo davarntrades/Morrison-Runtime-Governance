@@ -58,7 +58,7 @@ def evaluate_envelope(envelope: SafetyEnvelope,
 
     missing = []
     if not enabled:
-        missing.append("Safety Envelope disabled")
+        missing.append("Admissible Operating Envelope evaluation disabled")
     if not evidence.canonical_verdicts:
         missing.append("canonical verdict evidence")
     if not evidence.evidence_refs or not evidence.source_hashes:

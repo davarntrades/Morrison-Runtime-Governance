@@ -283,9 +283,9 @@ planner-agreement scores, latency percentiles — is bounded to the
 safety guarantee. The harness is an empirical reachability-evaluation
 surface, not a certification.
 
-## Safety Envelope (additive prototype)
+## Admissible Operating Envelope (additive prototype)
 
-`runtime_eval.safety_envelope` turns already-governed Morrison evidence,
+`runtime_eval.safety_envelope` is the legacy-compatible module path. It turns already-governed Morrison evidence,
 causal-analysis evidence, and an explicit evaluation manifest into a bounded
 assurance artifact. It is downstream and non-authoritative: it cannot alter a
 Morrison verdict, execute or block an action, change policy, or redefine Ω.
@@ -308,7 +308,7 @@ horizon, scenario and perturbation family, environment identifiers, and
 material destination classification. Missing values remain explicit; changes
 do not inherit an earlier observation.
 
-The sealed `SafetyEvidencePackage` contains the envelope and result, scenario,
+The sealed `SafetyEvidencePackage` retains its legacy compatibility name and contains the envelope and result, scenario,
 perturbation, planner, and tool/capability manifests, tests and failures,
 replay results, unsupported regions, claim wording, and provenance. Timestamps
 are caller-supplied evaluation facts rather than wall-clock values generated

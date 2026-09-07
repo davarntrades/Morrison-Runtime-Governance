@@ -2,7 +2,7 @@
 
 ## Purpose and claim boundary
 
-The Global Safety Verification Harness tests causal enforcement in a deliberately finite, deterministic model. It does not rebuild Morrison Runtime Governance and it does not replace the Safety Envelope, runtime engine, Frontier Containment Lab, governed sessions, Control Room, or evidence system. It calls the existing `GovernanceKernel.authorize` production chokepoint before every modeled transition.
+The Global Safety Verification Harness tests causal enforcement in a deliberately finite, deterministic model. It does not rebuild Morrison Runtime Governance and it does not replace the Admissible Operating Envelope, runtime engine, Frontier Containment Lab, governed sessions, Control Room, or evidence system. It calls the existing `GovernanceKernel.authorize` production chokepoint before every modeled transition.
 
 For a bounded environment (E), admissible initial-state set (X_0), prohibited state set (U), transition function (T), and governance configuration (G), the tested property is:
 

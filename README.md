@@ -2,13 +2,13 @@
 
 # Morrison Runtime Governance™
 
-![Safety Envelope](https://img.shields.io/badge/Local_Safety_Envelope-Environment--Bounded-5b6cff?style=flat-square)
+![Admissible Operating Envelope](https://img.shields.io/badge/Admissible_Operating_Envelope-Environment--Bounded-5b6cff?style=flat-square)
 ![Safety](https://img.shields.io/badge/Safety-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
 ![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
 ![Tests](https://img.shields.io/badge/Tests-1%2C092_Passing-2ea44f?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
 
-**Local Safety Envelopes for autonomous AI — established, tested, and enforced before execution.**
+**Admissible Operating Envelopes for autonomous systems — defined, tested, and enforced before execution.**
 
 **Morrison shows what locally safe operation actually looks like inside a real environment, under its tools, permissions, policies, workflows, and reachable states.**
 
@@ -41,7 +41,7 @@ The Quick Start now runs the current stack end to end:
 2. enforcement-layer attribution;
 3. deterministic replay;
 4. the non-authoritative causal overlay and bounded counterfactual interventions;
-5. construction and evaluation of a provenance-linked local Safety Envelope;
+5. construction and evaluation of a provenance-linked Admissible Operating Envelope;
 6. exhaustive control-versus-governed state-space comparison in a finite model.
 
 For a paced screen-recording version:
@@ -77,7 +77,7 @@ python -m morrison_governance.global_verification --perturbations
 python -m morrison_governance.global_verification --composition-experiment
 ```
 
-Verify the Safety Envelope and causal overlay regression suites directly:
+Verify the Admissible Operating Envelope and causal-overlay regression suites directly (legacy module paths remain stable):
 
 ```bash
 python -m pytest \
@@ -90,11 +90,11 @@ python -m pytest \
 Technical guides:
 
 - [Global Safety Verification Harness](GLOBAL_SAFETY_VERIFICATION.md)
-- [Runtime evaluation, causal overlay, and Safety Envelope](runtime_eval/README.md)
+- [Runtime evaluation, causal overlay, and Admissible Operating Envelope](runtime_eval/README.md)
 - [Hosted Frontier Containment Harness](runtime_eval/frontier/README.md)
 - [Deployment integrations](morrison_governance/DEPLOYMENT.md)
 
-These paths test different claims. The browser and Frontier harness provide empirical trajectory evidence. The Safety Envelope produces a deployment-bounded assurance artifact. Global verification exhaustively enumerates only the declared finite model; it does not establish universal real-world AI safety.
+These paths test different claims. The browser and Frontier harness provide empirical trajectory evidence. The Admissible Operating Envelope produces a deployment-bounded assurance artifact. Global verification exhaustively enumerates only the declared finite model; it does not establish universal real-world AI safety.
 
 ---
 
@@ -104,13 +104,13 @@ Morrison is not positioned as a universal claim that an AI model is “safe.”
 
 Its strongest enterprise result is narrower, testable, and deployment-specific:
 
-> **Morrison has established and validated a local Safety Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
+> **Morrison has defined and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, authority boundaries, policies, and reachable states.**
 
 That statement is intentionally bounded to the evaluated deployment configuration. It is supported by trajectory evidence, reachable-state analysis, governance decisions, environment context, and the documented limits of the evaluation.
 
 ---
 
-## What is a local Safety Envelope?
+## What is an Admissible Operating Envelope?
 
 Safety-critical engineering does not normally ask whether a complex system is simply “safe” in the abstract. It defines an operating region and the boundaries that must not be crossed.
 
@@ -122,9 +122,19 @@ The principle is familiar in:
 
 Morrison applies the same engineering idea to autonomous AI.
 
-> **A local Safety Envelope is the environment-bounded region within which an autonomous system has been evaluated as locally admissible under the tools, permissions, policies, workflows, state, and reachable consequences present in that deployment.**
+> **An Admissible Operating Envelope is the set of states, actions, transitions and operating conditions that a system is permitted to occupy or execute within a defined environment.**
 
-Ω remains the configured forbidden region. The Safety Envelope is broader: it describes the region in which operation is locally admissible, where the boundary sits, and what must happen when a proposed trajectory leaves it.
+For Morrison, that definition is deployment-bounded by the actual tools, permissions, authority boundaries, policies, workflows, state and reachable consequences under evaluation. Ω remains the configured prohibited region. The Admissible Operating Envelope is broader: it defines what is permitted, where the operating boundary sits, and which proposed transitions require independent authorization, escalation or blocking.
+
+---
+
+## Representation is not enforcement
+
+> **Representation of the operating envelope is not causal enforcement of the operating envelope.**
+
+A policy describes a boundary. Constraint awareness means a system can represent that boundary. Compliance means a trajectory happened to remain inside it. Runtime control changes which transitions can actually execute. Verification tests whether prohibited states or transitions became unreachable within the defined environment.
+
+**Constraint awareness changes information. Enforcement changes reachability.**
 
 ---
 
@@ -132,7 +142,7 @@ Morrison applies the same engineering idea to autonomous AI.
 
 Autonomous agents are no longer just generating text. They can move money, read secrets, write files, call APIs, modify repositories, operate security tooling, and coordinate across multi-agent workflows.
 
-Prompts, permissions, and policies do not enforce themselves at the moment an AI system acts.
+Prompts, permissions, and policies do not enforce themselves at the moment an AI system acts. The missing layer is not another representation of the rule. It is causal enforcement of the operating boundary.
 
 A sequence can become unsafe even when every individual step looks acceptable in isolation:
 
@@ -166,12 +176,12 @@ before side effects occur.
 
 ```mermaid
 flowchart LR
-    A[Autonomous AI / Agent] --> T[Proposed trajectory]
-    T --> M[Morrison Runtime Governance]
-    M --> E[Local Safety Envelope evaluation]
-    E -->|ALLOW| X[Execute]
-    E -->|ESCALATE| H[Human / Policy Review]
-    E -->|BLOCK| B[Prevent + Evidence]
+    E[Environment + authority define the Admissible Operating Envelope]
+    E --> A[Autonomous system proposes a transition]
+    A --> M[Morrison independently authorizes before execution]
+    M -->|ALLOW| X[Execute + evidence]
+    M -->|ESCALATE| H[Human / policy review]
+    M -->|BLOCK| B[Remove from executable path + evidence]
 ```
 
 The planner can change. The model can change. The governance invariant remains external to the model.
@@ -181,7 +191,7 @@ The planner can change. The model can change. The governance invariant remains e
 ## Safety geometry
 
 ```text
-Locally admissible trajectory ⇔ ℛ(t) remains inside the validated Safety Envelope
+Locally admissible trajectory ⇔ ℛ(t) remains inside the validated Admissible Operating Envelope
 Forbidden reachability ⇔ ℛ(t) ∩ Ω ≠ ∅
 ```
 
@@ -189,7 +199,7 @@ Where:
 
 - **ℛ(t)** is the set of reachable states from the current trajectory and environment.
 - **Ω** is the configured forbidden region.
-- the **local Safety Envelope** is the bounded operating region in which the evaluated deployment remains locally admissible.
+- the **Admissible Operating Envelope** is the bounded operating region in which the evaluated deployment remains locally admissible.
 
 This makes the claim operational rather than rhetorical: safe operation is tied to a specific environment and a specific reachable-state boundary.
 
@@ -240,7 +250,7 @@ A_safe ⊂ V₂ ⊂ V₃ ⊂ V₄ ⊂ V₄⁺ ⊂ V₅ ⊂ V₅⁺
 | Layer | Core question |
 |---|---|
 | **A_safe** | Is the current step directly forbidden? |
-| **V₂** | Is the trajectory drifting toward the Safety Envelope boundary? |
+| **V₂** | Is the trajectory drifting toward the Admissible Operating Envelope boundary? |
 | **V₃** | Is the trajectory forecast to leave the envelope or reach Ω? |
 | **V₄ / V₄⁺** | Does a locally admissible state or trajectory remain constructible? |
 | **V₅ / V₅⁺** | Does the local safety property survive perturbation and adversarial assumption attack? |
@@ -267,7 +277,7 @@ It should expose the scope of the claim:
 
 A deployment-level conclusion can then be stated clearly:
 
-> **Morrison has established and validated a local Safety Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
+> **Morrison has defined and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, authority boundaries, policies, and reachable states.**
 
 That is the assurance artifact Morrison is designed to produce and enforce.
 
@@ -306,7 +316,7 @@ The runtime layer asks:
 
 The causal overlay asks:
 
-- Why was the Safety Envelope boundary reachable?
+- Why was the Admissible Operating Envelope boundary reachable?
 - Which variables materially contributed to that reachability?
 - What intervention would have broken the trajectory?
 - Would Ω still have been reachable if permission, safeguard state, approval, or another causal parent had changed?
@@ -324,8 +334,8 @@ The commercial entry point is no longer only “find catastrophic actions.”
 
 It is to establish the deployment's local operating boundary and prove where autonomous operation remains admissible.
 
-### Safety Envelope Assessment
-A bounded assessment of the deployment's architecture, tools, permissions, policies, reachable states, and constraints.
+### Operating Envelope Assessment
+A bounded assessment of the deployment's environment, architecture, tools, permissions, authority boundaries, policies, reachable states, prohibited region Ω, and constraints.
 
 ### Shadow Mode / Limited Pilot
 Observe live or sandboxed trajectories without enforcing, and show which remain inside the envelope, approach the boundary, or would leave it.
@@ -334,11 +344,11 @@ Observe live or sandboxed trajectories without enforcing, and show which remain 
 Apply **ALLOW / ESCALATE / BLOCK** before execution and preserve evidence of every governed decision.
 
 ### Enterprise Integration
-Continuously revalidate the Safety Envelope as models, tools, permissions, workflows, and policies change.
+Continuously revalidate the Admissible Operating Envelope as models, tools, permissions, workflows, and policies change.
 
 The target proof is explicit:
 
-> **Morrison has established and validated a local Safety Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
+> **Morrison has defined and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, authority boundaries, policies, and reachable states.**
 
 ---
 
@@ -353,7 +363,7 @@ Morrison does **not** claim:
 
 Instead, Morrison makes a narrower claim that can be tested, enforced, and audited:
 
-> **For this evaluated deployment, under this specified environment and constraint set, these trajectories were established as locally admissible, these boundary violations were identified, and runtime governance enforced the resulting Safety Envelope before execution.**
+> **For this evaluated deployment, under this specified environment and constraint set, these trajectories were established as locally admissible, these boundary violations were identified, and Morrison independently enforced the resulting Admissible Operating Envelope before execution.**
 
 ---
 
@@ -384,7 +394,7 @@ Detailed implementation and evaluation artefacts live throughout this repository
 
 ## The positioning in one sentence
 
-> **See the Safety Envelope your AI can actually operate within — in your environment, before actions execute.**
+> **Define the Admissible Operating Envelope. Evaluate proposed transitions. Authorize independently. Enforce before execution. Verify what became unreachable.**
 
 ---
 
@@ -392,7 +402,7 @@ Detailed implementation and evaluation artefacts live throughout this repository
 
 ### Resurrection Tech Ltd
 
-**Local Safety Envelopes for autonomous AI · Runtime governance before execution · Evidence after every decision**
+**Admissible Operating Envelopes for autonomous systems · Runtime governance before execution · Evidence after every decision**
 
 [Website](https://resurrection-tech.com) · [GitHub](https://github.com/davarntrades) · [LinkedIn](https://www.linkedin.com/in/davarn-morrison-14b93b263) · [Email](mailto:davarn@resurrection-tech.com)
 

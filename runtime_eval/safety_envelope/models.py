@@ -1,4 +1,7 @@
-"""Immutable contracts for bounded, non-authoritative safety claims."""
+"""Immutable contracts for bounded, non-authoritative operating-envelope claims.
+
+Legacy class and field names are preserved for evidence and API compatibility.
+"""
 
 from __future__ import annotations
 
