@@ -63,7 +63,7 @@ def architecture():
             ▼          │         └────────────────────────────┘
     ┌──────────────┐   │   denied: never reaches the runtime
     │ TOOL RUNTIME │ ◀─┘
-    │ (shell/API/  │   Invariant:  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅
+    │ (shell/API/  │   Objective:  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅
     │  fs/browser) │
     └──────────────┘
 """)

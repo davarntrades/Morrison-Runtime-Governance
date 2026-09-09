@@ -580,7 +580,8 @@ than in a synthetic finite model.
 ║   veto on the TRANSITION.                                        ║
 ║                                                                  ║
 ║   Reach(s₀) ∩ Ω = ∅  holds only where the authorizer can name    ║
-║   which edge is being taken.                                     ║
+║   which edge is being taken. That binding — not reachability —   ║
+║   is the demonstrated property: Λ(a) ∉ 𝔄.                        ║
 ║                                                                  ║
 ║   Enforcement that the integration surface does not call is not  ║
 ║   enforcement.                                                   ║

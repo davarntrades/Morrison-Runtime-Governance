@@ -6,7 +6,7 @@ safe — can collectively create a forbidden reachable trajectory.
 The question is:
 
 > **Can a joint multi-agent trajectory reach Ω?**
-> `JointReach(A₁, A₂, A₃, Env, t) ∩ Ω = ∅ ?`
+> `JointReach(A₁, A₂, A₃, Env, t) ∩ Ω = ∅ ?`   *(objective under study)*
 
 Not *"does any single agent output look unsafe?"*. Every governance
 decision is delegated to the existing
@@ -135,7 +135,7 @@ deny-by-default quorum diversity matters.
 ## Governing invariant
 
 ```
-ℛ(t) ∩ Ω = ∅
+ℛ(t) ∩ Ω = ∅        [objective; see ../AUTHORITY_SEPARATION.md]
 ```
 
 preserved throughout — composed over the joint trajectory, never

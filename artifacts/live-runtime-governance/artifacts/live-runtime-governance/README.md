@@ -21,6 +21,11 @@ Framework:
 - Ω-state exclusion
 - Structural AI safety middleware
 
-Core invariant:
+Safety objective (not an unconditional guarantee):
 
 Safe  ⟺  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅
+
+Primary demonstrated property — authority separation:
+
+Propose(a) ∈ 𝔄,  Λ(a) ∉ 𝔄
+Effect(a) ⟹ ∃ Λ(a) issued by the kernel

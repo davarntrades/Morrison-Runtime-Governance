@@ -86,7 +86,7 @@ def main():
             color="#dc2626")
 
     ax.text(6.0, 7.0,
-            "Invariant:   ∀ E ∈ ℰ,   ℛ_E(t) ∩ Ω = ∅",
+            "Objective:   ∀ E ∈ ℰ,   ℛ_E(t) ∩ Ω = ∅",
             ha="center", va="center", fontsize=11, style="italic",
             color="#1e3a8a")
 

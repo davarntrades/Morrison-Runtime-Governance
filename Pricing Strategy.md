@@ -37,7 +37,7 @@ complexity of the software.
 ║  Priced against the cost of Ω becoming reachable —           ║
 ║  not the complexity of the software.                         ║
 ║                                                              ║
-║  ℛ(t) ∩ Ω = ∅                                               ║
+║  ℛ(t) ∩ Ω = ∅   [objective]                                 ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
@@ -267,7 +267,7 @@ revalidation.
 ║  Priced against the cost of Ω becoming reachable.            ║
 ║  Not the complexity of the software.                         ║
 ║                                                              ║
-║  ℛ(t) ∩ Ω = ∅                                               ║
+║  ℛ(t) ∩ Ω = ∅   [objective]                                 ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 ```

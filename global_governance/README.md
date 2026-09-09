@@ -110,14 +110,20 @@ purely additive).
 - See `CRITICAL_EVALUATION.md` (repo root) for the project-wide
   skeptical self-assessment.
 
-## Governing invariant
+## Governing objective
 
 ```
-ℛ(t) ∩ Ω = ∅
+ℛ(t) ∩ Ω = ∅        [objective, not an unconditional guarantee]
 ```
 
 preserved throughout. The meta-layer composes local reachability
 verdicts; it never weakens the underlying check.
+
+The primary demonstrated property is authority separation — the agent holds
+proposal capability and cannot mint execution authority. Ω-exclusion is derived
+inside an established governed boundary and is conditional on complete
+mediation, specification correctness and key custody. See
+[AUTHORITY_SEPARATION.md](../AUTHORITY_SEPARATION.md).
 
 -----
 
@@ -128,7 +134,7 @@ acceptance. Every condition held; the merge is additive.
 
 | # | Condition | Result |
 |--:|:----------|:------:|
-| 1 | Invariant `ℛ(t) ∩ Ω = ∅` preserved | ✅ delegated, never reimplemented |
+| 1 | Objective `ℛ(t) ∩ Ω = ∅` preserved | ✅ delegated, never reimplemented |
 | 2 | Core `A_safe → V2 → V3 → V4 → V4+ → V5 → V5+` untouched | ✅ `git diff` over `morrison_governance/` + `runtime_eval/` for the merge commit is **empty** |
 | 3 | New layers compose around the core, not replace it | ✅ every decision-bearing module imports + calls `GovernanceLayer.evaluate{,_plan}` |
 | 4 | No RLHF / semantic classifiers / moderation / non-determinism / regression | ✅ source scan: zero `random`/`time`/`datetime`/`uuid` in non-test code; zero `embedding`/`classifier`/`torch`/`moderat`/`rlhf`/`softmax` anywhere |
@@ -145,7 +151,7 @@ self-verifying, distributed trust, institutional) + `MetaGovernance`
 composition + readiness scorecard.
 
 **What stayed unchanged:** the entire runtime governance core and the
-`runtime_eval` harness — byte-for-byte. The invariant `ℛ(t) ∩ Ω = ∅`
+`runtime_eval` harness — byte-for-byte. The objective `ℛ(t) ∩ Ω = ∅`
 and deny-by-default / fail-closed semantics are inherited unchanged from
 the delegated `GovernanceLayer`.
 

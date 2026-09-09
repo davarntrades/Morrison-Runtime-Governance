@@ -25,7 +25,8 @@ def main():
     print()
     print("═" * 64)
     print("  Morrison Runtime Governance — Demo")
-    print("  ℛ(t) ∩ Ω = ∅")
+    print("  objective:     ℛ(t) ∩ Ω = ∅")
+    print("  demonstrated:  Propose(a) ∈ 𝔄,  Λ(a) ∉ 𝔄")
     print("═" * 64)
     print()
 

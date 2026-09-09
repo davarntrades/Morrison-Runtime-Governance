@@ -2,7 +2,8 @@
 
 **Repository:** `davarntrades/Morrison-Runtime-Governance`
 **Head:** `1a7abb3`
-**Companion to:** [Pre-Pilot Adversarial Evaluation](PRE_PILOT_ADVERSARIAL_EVALUATION.md)
+**Companion to:** [Pre-Pilot Adversarial Evaluation](PRE_PILOT_ADVERSARIAL_EVALUATION.md) ·
+[Authority Separation](AUTHORITY_SEPARATION.md)
 
 ---
 

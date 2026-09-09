@@ -274,7 +274,7 @@ Do not call the prototype complete until all of these hold:
 3. Causal variables are derived deterministically from real existing evidence.
 4. Secret-exfiltration and unauthorized-transfer causal templates work end-to-end.
 5. At least four bounded interventions can be replayed on a blocked case.
-6. At least one meaningful intervention demonstrably makes Ω unreachable in the appropriate known case.
+6. At least one meaningful intervention demonstrably makes Ω unreachable **within the declared model** in the appropriate known case.
 7. Irrelevant interventions do not falsely appear preventive.
 8. Causal reports are deterministic and provenance-linked.
 9. Overlay failure cannot alter a canonical verdict.

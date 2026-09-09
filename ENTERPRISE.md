@@ -4,7 +4,8 @@
 
 ## Preventing Catastrophic Executable Trajectories in Autonomous Systems
 
-![Safety](https://img.shields.io/badge/Invariant-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
+![Demonstrated](https://img.shields.io/badge/Demonstrated-Authority_Separation-0f766e?style=flat-square)
+![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
 ![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
 ![Accuracy](https://img.shields.io/badge/Accuracy-100%25-2ea44f?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
@@ -137,7 +138,14 @@ The question is:
 That is a different layer of governance entirely.
 
 ```
-Safe  ⟺  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅
+OBJECTIVE:  Safe  ⟺  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅
+
+DEMONSTRATED:  Propose(a) ∈ 𝔄,  Λ(a) ∉ 𝔄
+               Effect(a) ⟹ ∃ Λ(a) issued by the kernel
+
+Ω-exclusion is DERIVED inside an established governed boundary and is
+conditional on complete mediation, specification correctness and key
+custody. See AUTHORITY_SEPARATION.md and COMPLETE_MEDIATION_ANALYSIS.md.
 ```
 
 A system is safe if and only if, across all admissible operating environments, the reachable set of executable trajectories does not intersect the forbidden region.
@@ -150,7 +158,7 @@ Hallucinations may persist at the planner layer, but catastrophic executable tra
 
 ```mermaid
 graph LR
-    A[LLM Planner] --> B["Morrison Governance<br/>ℛ(t) ∩ Ω = ∅"]
+    A[LLM Planner] --> B["Morrison Governance<br/>Λ(a) ∉ 𝔄 — agent cannot<br/>mint execution authority"]
     B -->|PERMIT| C[Tool Execution]
     B -->|BLOCK| D[Blocked + Audit Log]
 ```

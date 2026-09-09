@@ -3,7 +3,8 @@ evaluation (RED_TEAM_CYBER_ASSESSMENT.md).
 
 Each test names the finding it locks down. These must never go green by
 weakening an assertion — they assert that a previously-executable harmful
-action is now structurally unreachable.
+action is now structurally unreachable ON THE KERNEL PATH — that is, within
+the governed boundary these tests establish, not unconditionally.
 """
 
 import time
