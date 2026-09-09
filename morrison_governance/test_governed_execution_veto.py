@@ -777,7 +777,12 @@ def test_veto_08b_forged_authority_is_refused_on_the_adapter_path():
     an authority field in the arguments is quarantined."""
     guard = _documented_guard()
 
+    # The call is DELIBERATELY invalid: proving the parameter is gone requires
+    # writing the call that used to work. Static analysis is right that it does
+    # not type-check, which is the assertion — so the finding is silenced here
+    # rather than by loosening the `fail-on = E` gate in .pylintrc.
     with pytest.raises(TypeError):
+        # pylint: disable=unexpected-keyword-arg
         guard.allow("transfer", {"amount": 4500000}, authorized=True)  # type: ignore[call-arg]
 
     executed: list[dict] = []

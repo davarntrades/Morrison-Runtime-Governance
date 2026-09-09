@@ -4,7 +4,7 @@
 **Branch:** `claude/governed-execution-veto-test-wl16tf`
 **Head at evaluation:** `1a7abb3`
 **Investigation type:** four rounds of adversarial falsification, each reproduce-first
-**Suite at head:** **884 passed · 7 skipped**
+**Suite at head:** **1283 passed · 7 skipped** whole repository (`pytest`), of which **884 passed · 7 skipped** are the governance and runtime-eval suites quoted throughout
 
 > **Round 4 update.** Rounds 1–3 were subsequently assumed wrong or incomplete
 > and the implementation was attacked again from first principles, without using
@@ -202,14 +202,16 @@ weakened, or rewritten to pass.
 | `test_integrations.py` | 45 | **passed** |
 | `global_verification/` | 36 | **passed** |
 | `runtime_eval/` | 178 | **passed** |
-| **Full suite** | **884** (+7 skipped) | **passed** |
+| `morrison_governance` + `runtime_eval` | **884** (+7 skipped) | **passed** |
+| **Whole repository** (`pytest`, what CI runs) | **1283** (+7 skipped) | **passed** |
 
 The 7 skips are environment-dependent (an absent sibling service repository).
 
 Reproduce:
 
 ```bash
-python -m pytest morrison_governance runtime_eval -q
+python -m pytest -q                                    # whole repository, as CI runs it
+python -m pytest morrison_governance runtime_eval -q   # the suites quoted above
 python -m pytest morrison_governance/test_governed_execution_veto.py -v   # round 1
 python -m pytest morrison_governance/test_authority_continuity.py -v      # round 2
 python -m pytest morrison_governance/test_adversarial_round2.py -v        # round 3
@@ -390,7 +392,11 @@ requirements: identity must be injective; fail-closed must actually fire;
 trusted state must bind the lease; the clock must be trustworthy; records must
 match reality; lost confirmations must fail safe; scope must be visible.
 
-### New counterexamples (9), all closed
+### New counterexamples (9) — eight closed, one partially closed
+
+MED-11 is **not** closed and cannot be by this library: continuity across hosts
+requires a store the deployment supplies. What was closed is the silence about
+it. The distinction is kept in the table below and in §9.
 
 | ID | Counterexample | Class | Closed by |
 |---|---|:-:|---|
