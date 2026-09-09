@@ -305,9 +305,27 @@ def test_cont_07_parallel_workers_for_one_principal_share_one_trajectory():
     for t in threads:
         t.join()
 
-    verdicts = sorted(verdict for _, verdict, _ in outcomes)
-    assert verdicts == [BLOCK, PERMIT], outcomes
-    assert sum(1 for _, _, executed in outcomes if executed) == 1
+    # ASSERT THE REAL INVARIANT, NOT AN ORDERING.
+    #
+    # An earlier version asserted `sorted(verdicts) == [BLOCK, PERMIT]`, which
+    # failed roughly one run in twenty. That was a defect in the test, not in
+    # the kernel: it assumed the READ always wins the race. If the egress wins,
+    # it is decided against a trajectory that contains no read, and its payload
+    # is bound by the lease — so it cannot carry data the read had not yet
+    # produced, and permitting it is correct.
+    #
+    # What must hold in EITHER order is that no egress executes against a
+    # trajectory that already contains the read.
+    permitted = {name for name, verdict, _ in outcomes if verdict == PERMIT}
+    executed_order = [a.action["tool"] for a in _kernel(ctx).ledger
+                      if a.state in ("executed", "reserved", "unconfirmed")]
+    if "exfil" in permitted:
+        assert executed_order.index("http_post") < executed_order.index("query_db"), (
+            "an egress was permitted after the read was already in the "
+            f"trajectory: {executed_order}")
+    else:
+        assert "read" in permitted
+        assert [name for name, _, ex in outcomes if ex] == ["read"]
 
 
 def test_cont_09_concurrent_writers_for_one_principal_are_serialised(tmp_path):

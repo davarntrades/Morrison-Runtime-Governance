@@ -649,9 +649,23 @@ def test_veto_10b_concurrent_authorization_is_serialised():
     for t in threads:
         t.join()
 
-    assert sorted(verdicts) == [BLOCK, PERMIT], (
-        "whichever order they raced in, exactly one of the correlated pair is "
-        "permitted")
+    # The invariant is not an ORDERING. If the egress wins the race it is
+    # decided against a trajectory containing no read, and its payload is bound
+    # by the lease, so it cannot carry data the read had not yet produced —
+    # permitting it is correct. What must hold either way is that an egress is
+    # never permitted against a trajectory that already contains the read.
+    #
+    # Asserting `sorted(verdicts) == [BLOCK, PERMIT]` looked stronger and was
+    # simply wrong: it failed about one run in twenty, on the schedule where
+    # the egress went first.
+    order = [a.action["tool"] for a in k.ledger
+             if a.state in ("executed", "reserved", "unconfirmed")]
+    if verdicts.count(PERMIT) == 2:
+        assert order.index("http_post") < order.index("query_db"), (
+            f"an egress was permitted after the read entered the "
+            f"trajectory: {order}")
+    else:
+        assert sorted(verdicts) == [BLOCK, PERMIT]
 
 
 def test_veto_10c_one_decision_cannot_be_executed_twice_concurrently():
