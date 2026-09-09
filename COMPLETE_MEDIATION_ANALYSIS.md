@@ -195,6 +195,11 @@ as much as before, whatever the test suite says.
 
 ---
 
+The pilot-facing form of this list, with what to attack and how to report
+it, is the [Pilot Briefing Card](PILOT_BRIEFING_CARD.md).
+
+---
+
 Morrison Runtime Governance™ · Complete Mediation Analysis
 
 GB2600765.8 · GB2602013.1 · GB2602072.7 · GB26023332.5

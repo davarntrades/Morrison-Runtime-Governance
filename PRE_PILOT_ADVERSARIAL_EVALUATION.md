@@ -501,7 +501,8 @@ GB2600765.8 · GB2602013.1 · GB2602072.7 · GB26023332.5
 
 © 2026 Davarn Morrison — Intelligence Invariant™ · All Rights Reserved
 
-**Related work:** [Governed Execution Veto Evaluation](GOVERNED_EXECUTION_VETO_EVALUATION.md) ·
+**Related work:** [Pilot Briefing Card](PILOT_BRIEFING_CARD.md) ·
+[Governed Execution Veto Evaluation](GOVERNED_EXECUTION_VETO_EVALUATION.md) ·
 [AOE Falsification Report](AOE_FALSIFICATION_REPORT.md) ·
 [Global Safety Verification](GLOBAL_SAFETY_VERIFICATION.md) ·
 [Limitations](morrison_governance/LIMITATIONS.md)
