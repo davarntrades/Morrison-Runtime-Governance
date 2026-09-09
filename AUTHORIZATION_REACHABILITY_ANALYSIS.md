@@ -5,6 +5,7 @@
 ![Verdict](https://img.shields.io/badge/Verdict-Yes_for_one_cluster_·_No_for_three-c2410c?style=flat-square)
 ![Formalism](https://img.shields.io/badge/Set_inclusion-Insufficient-b91c1c?style=flat-square)
 ![D2](https://img.shields.io/badge/D2-CONFIRMED-7f1d1d?style=flat-square)
+![D6](https://img.shields.io/badge/D6-CONFIRMED-7f1d1d?style=flat-square)
 ![Patent](https://img.shields.io/badge/Patent-GB2600765.8-0075ca?style=flat-square)
 ![©](https://img.shields.io/badge/©-Davarn_Morrison-555555?style=flat-square)
 
@@ -243,10 +244,61 @@ job. **CONT-02 is invisible under `𝓘_α`.**
 > must not be conflated** — authorization violations are not recoverable from
 > identity data.
 
-**Recommendation: do not adopt `𝓘_α` as an authorization invariant.** It may be
-retained as a *non-load-bearing descriptor* — "what kind of system does this
-authorization turn the agent into" — useful for coarse capability
-classification, and it must never enter the veto path.
+### 6.1 D6 — the argument above, tested and CONFIRMED
+
+The paper argument was tested by trying to break it: find a topological
+equivalence fine enough to separate two materially different authorizations.
+The attempt failed.
+
+| | `α₁` | `α₂` |
+| :-- | :-- | :-- |
+| Action | exfiltrate a public press release | exfiltrate 40M customer records |
+| Recipient | a newswire | an attacker-controlled dropbox |
+| V, E, components, H₁ | 7, 6, 1, 0 | 7, 6, 1, 0 |
+| Degree sequence | (1,1,2,2,2,2,2) | (1,1,2,2,2,2,2) |
+| Exact isomorphism | **yes** (brute-force permutation) | |
+| Declared Ω | `SAFE_WITHIN_MODEL`, 0 unsafe | `SAFE_WITHIN_MODEL`, 0 unsafe |
+
+**Identical topology, identical Ω relation, materially different consequence.**
+
+The labelled states *do* differ — different filenames, different hashes. That is
+the point. `[·]_∼` is a quotient that discards labels, and the consequence lives
+entirely in the labels. Sharpening `∼` until it separates these two sharpens it
+until it separates any two states differing in any respect, at which point it is
+identity rather than an equivalence — and `𝓘(x₀)` stops being a notion under
+which identity *persists through change*. **There is no setting of `∼` that is
+both coarse enough to be an identity and fine enough to authorise.**
+
+**The steelman fails too.** The obvious rescue — declare the bad payload unsafe
+— works for the pair it was written for, and a new pair evades the enriched Ω
+immediately, again isomorphic and again materially different. The construction
+is **generative**: enriching Ω relocates the boundary rather than removing it.
+Recorded as evidence, not proof — it generalised on the first attempt, which is
+enough to stop treating Ω-enrichment as a fix and not enough to claim it can
+never work.
+
+Two measurement bugs were made and caught during this construction, both of
+which would have produced a false "confirmed": adjacency built from a
+non-existent `edge["target"]` field, so every graph compared as edgeless and
+trivially isomorphic; and a first pair that tripped U7 and was never outside Ω
+at all. The test now asserts a non-empty adjacency so a vacuous comparison
+cannot pass silently.
+
+### 6.2 The narrowed role
+
+**`𝓘_α` is not adopted, and is now excluded rather than merely not-recommended.**
+D6 is confirmed, so this is a result rather than a preference.
+
+`𝓘_α` may be used **only** as a coarse, non-load-bearing descriptor — *what kind
+of system does this authorization turn the agent into* — for capability
+classification and reporting. It must never enter the veto path, be used to
+compare two authorizations for equivalence, or appear in any argument that an
+authorization is safe.
+
+**`𝓘(x₀) := [𝓡(t)]_∼` is unchanged.** D6 says nothing against it. It bounds only
+the proposed *extension* to authorization, which was never adopted. The evidence
+did not require touching the system-identity invariant and it has not been
+touched.
 
 ---
 
@@ -298,7 +350,7 @@ Stated so the formulation is falsifiable rather than decorative.
 | **D3** | Containment is violated with **no** security consequence in any deployment | Containment is not *necessary*; too strong as an invariant |
 | **D4** | An A4 violation — some history that turns a refusal into a permission | History can manufacture authority; the trajectory-dependence property is unsound |
 | **D5** | A single `α` producing two effects that the trace model records as one | The trace formulation inherits the state-abstraction gap it was meant to fix |
-| **D6** | Two authorizations with materially different consequence that are **provably** equivalent under `∼` | Confirms §6 — would close the question of whether `𝓘_α` is usable. Not yet attempted. |
+| **D6** | Two authorizations with materially different consequence that are **provably** equivalent under `∼` | **CONFIRMED** (§6.1). `𝓘_α` excluded from the veto path. |
 
 **D4 was attacked first and held** (§10b). **D2 succeeded and is preserved as
 evidence of the boundary**, not treated as a failure to hide.
@@ -421,8 +473,9 @@ Roughly **two-thirds** of the counterexample record falls inside it.
 Set inclusion over states is too weak to adopt: the implementation already
 enforces a strictly stronger trace property, demonstrated by measurement.
 
-`𝓘_α` is coherent and should not be adopted, because the quotient discards
-exactly what authorization depends on.
+`𝓘_α` is coherent and is **excluded** from the veto path: D6 is confirmed, and
+no setting of `∼` is both coarse enough to be an identity and fine enough to
+authorise. `𝓘(x₀)` itself is untouched.
 
 A4 and A6 held under adversarial probing and are now permanent tests. A4's
 statement required a scope correction that is recorded rather than quietly

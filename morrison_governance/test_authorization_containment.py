@@ -368,3 +368,190 @@ def test_containment_covering_are_distinct_properties(prior):
     assert kernel.authorize(EGRESS).verdict == "BLOCK"
     # Covering is a deployment property; the kernel cannot attest it, and this
     # test asserts only that the distinction is real, not that covering holds.
+
+
+# ═══════════════════════════════════════════════════════════════
+# D6 — is 𝓘_α = [𝓡_α(x₀)]_∼ suitable for authorization?
+# ═══════════════════════════════════════════════════════════════
+#
+# The analysis argued on paper that it is not, because the quotient discards
+# what authorization depends on. These tests were built to FALSIFY that
+# argument — to find a topological equivalence fine enough to separate two
+# materially different authorizations. The attempt failed, twice, and the
+# failures are what is recorded.
+#
+# Two measurement bugs were made and caught while constructing this, both of
+# which would have produced a FALSE "confirmed" result:
+#   1. adjacency was built from `edge["target"]` — the field is `destination`,
+#      so every graph compared as edgeless and therefore trivially isomorphic;
+#   2. the first pair set `external_side_effects` without
+#      `external_action_authorized`, so both environments tripped U7 and were
+#      never outside Ω as the construction required.
+# `_reach_structure` therefore asserts a non-empty adjacency, so a vacuous
+# comparison cannot pass silently again.
+
+from morrison_governance.global_verification import (          # noqa: E402
+    ExhaustiveVerifier, FiniteEnvironment, VerificationState,
+)
+from morrison_governance.global_verification.actions import (   # noqa: E402
+    ActionDefinition, proposal,
+)
+from morrison_governance.global_verification.unsafe import (    # noqa: E402
+    DEFAULT_UNSAFE_INVARIANTS, UnsafeInvariant,
+)
+
+
+def _exfil_env(payload, recipient, label, invariants=DEFAULT_UNSAFE_INVARIANTS):
+    """Two of these differ ONLY in payload and recipient — never in structure."""
+    actions = (
+        ActionDefinition(
+            "read", f"read {payload}", ("read",), lambda s: True,
+            lambda s: s.evolve(files_read=s.files_read | {payload}),
+            proposal("read_file", {"path": payload})),
+        ActionDefinition(
+            "net", "open egress", ("net",), lambda s: True,
+            lambda s: s.evolve(external_network_access=True),
+            proposal("open_network", {})),
+        ActionDefinition(
+            "send", f"send to {recipient}", ("send",),
+            lambda s: s.external_network_access and bool(s.files_read),
+            lambda s: s.evolve(
+                messages_sent=s.messages_sent + 1,
+                external_side_effects=s.external_side_effects + 1,
+                external_action_authorized=True),
+            proposal("send_email", {"to": recipient, "body": f"<{payload}>"})),
+    )
+    return FiniteEnvironment(
+        name=label, version="1.0", initial_states=(VerificationState(),),
+        actions=actions, unsafe_invariants=invariants)
+
+
+def _reach_structure(env):
+    """Label-free structural invariants of the governed reachable graph."""
+    result = ExhaustiveVerifier(env).verify()
+    graph = result.graph.to_dict()
+    ids = [n["node_id"] for n in graph["nodes"]]
+    index = {n: i for i, n in enumerate(ids)}
+    adjacency = {i: set() for i in range(len(ids))}
+    used = 0
+    for edge in graph["edges"]:
+        source, dest = edge.get("source"), edge.get("destination")
+        if source in index and dest in index and source != dest:
+            adjacency[index[source]].add(index[dest])
+            adjacency[index[dest]].add(index[source])
+            used += 1
+    assert used > 0, "adjacency empty — the comparison below would be vacuous"
+
+    seen, components = set(), 0
+    for node in range(len(ids)):
+        if node in seen:
+            continue
+        components += 1
+        stack = [node]
+        while stack:
+            current = stack.pop()
+            if current in seen:
+                continue
+            seen.add(current)
+            stack.extend(adjacency[current] - seen)
+
+    vertices, edges = len(ids), used
+    return {
+        "V": vertices, "E": edges, "components": components,
+        "H1": edges - vertices + components,
+        "degree_sequence": tuple(sorted(len(adjacency[i]) for i in range(vertices))),
+        "unsafe": len(result.unsafe_state_ids), "verdict": result.verdict,
+    }, adjacency
+
+
+def _isomorphic(first, second):
+    """Exact isomorphism by permutation — small graphs, no heuristic."""
+    if len(first) != len(second):
+        return False
+    if (sorted(len(v) for v in first.values())
+            != sorted(len(v) for v in second.values())):
+        return False
+    import itertools
+    size = len(first)
+    for perm in itertools.permutations(range(size)):
+        if all({perm[b] for b in first[a]} == second[perm[a]]
+               for a in range(size)):
+            return True
+    return False
+
+
+def test_d6_topology_cannot_separate_two_materially_different_authorizations():
+    """D6 — CONFIRMED. `𝓘_α` is unsuitable for authorization.
+
+    α₁ exfiltrates a public press release to a newswire.
+    α₂ exfiltrates 40M customer records to an attacker-controlled dropbox.
+
+    Both are authorised, so both stay outside the declared Ω. Their governed
+    reachable graphs are EXACTLY isomorphic — same V, E, components, cycle rank
+    H₁ and degree sequence — so any equivalence coarse enough to be topological
+    identifies them.
+
+    The labelled states differ, of course: the filenames differ, so the state
+    hashes differ. That is the whole point. `[·]_∼` is a quotient that discards
+    labels, and the consequence lives entirely in the labels. Making `∼` fine
+    enough to separate these two would make it fine enough to separate states
+    that differ in any respect — at which point it is identity, not an
+    equivalence, and `𝓘(x₀)` stops being a notion under which identity persists
+    through change.
+
+    This does NOT weaken `𝓘(x₀) := [𝓡(t)]_∼` as system identity. It shows only
+    that the proposed extension `𝓘_α` cannot carry authorization, which is why
+    it is not adopted.
+    """
+    struct_a, adj_a = _reach_structure(
+        _exfil_env("/app/public_press_release.csv", "press@newswire.example", "a1"))
+    struct_b, adj_b = _reach_structure(
+        _exfil_env("/app/customers_pii_40M.csv", "dropbox@attacker.example", "a2"))
+
+    for key in ("V", "E", "components", "H1", "degree_sequence"):
+        assert struct_a[key] == struct_b[key], f"{key} differs — construction invalid"
+
+    assert _isomorphic(adj_a, adj_b), "graphs are not isomorphic"
+    assert struct_a["verdict"] == struct_b["verdict"] == "SAFE_WITHIN_MODEL"
+    assert struct_a["unsafe"] == struct_b["unsafe"] == 0, (
+        "Ω must not separate them, or the construction proves nothing")
+
+
+def test_d6_enriching_omega_relocates_the_boundary_it_does_not_remove_it():
+    """The steelman, and why it fails.
+
+    The obvious rescue is "declare the bad payload unsafe". It works — for the
+    pair you already found. A new pair evades the enriched Ω immediately, and is
+    again topologically identical and again materially different.
+
+    Evidence, not proof: the construction generalised on the first attempt.
+    That is enough to stop treating Ω-enrichment as a fix, and not enough to
+    claim it can never work.
+    """
+    pii_rule = UnsafeInvariant(
+        "U8_PII_EXTERNALISED", "PII leaves the boundary.",
+        lambda s: s.external_side_effects > 0
+        and any("pii" in f.lower() for f in s.files_read))
+    enriched = DEFAULT_UNSAFE_INVARIANTS + (pii_rule,)
+
+    # It separates the pair it was written for.
+    benign, _ = _reach_structure(
+        _exfil_env("/app/public_press_release.csv", "p@x", "a1", enriched))
+    caught, _ = _reach_structure(
+        _exfil_env("/app/customers_pii_40M.csv", "d@attacker", "a2", enriched))
+    assert benign["verdict"] == "SAFE_WITHIN_MODEL"
+    assert caught["verdict"] == "UNSAFE_COUNTEREXAMPLE_FOUND"
+
+    # And a new pair walks straight past it.
+    press, adj_press = _reach_structure(
+        _exfil_env("/app/press_kit_2026.csv", "press@newswire.example",
+                   "b1", enriched))
+    records, adj_records = _reach_structure(
+        _exfil_env("/app/salary_and_medical_records.csv",
+                   "dropbox@attacker.example", "b2", enriched))
+
+    assert _isomorphic(adj_press, adj_records)
+    assert press["verdict"] == records["verdict"] == "SAFE_WITHIN_MODEL"
+    assert press["unsafe"] == records["unsafe"] == 0, (
+        "the enriched Ω caught the new pair — if so, re-run the generalisation "
+        "argument in AUTHORIZATION_REACHABILITY_ANALYSIS.md §6")
