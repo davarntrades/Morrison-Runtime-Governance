@@ -593,35 +593,41 @@ def test_veto_07b_an_approval_cannot_be_dodged_by_respelling_the_call():
     assert k.authorize(approved).verdict == ESCALATE
 
 
-def test_veto_10_trajectory_state_survives_a_session_split_attempt():
-    """VETO-10 — the ledger is per-session by design; splitting is contained by
-    binding decisions to their session rather than by sharing history.
+def test_veto_10_trajectory_state_survives_a_session_split():
+    """VETO-10, NOW CLOSED — governed history is keyed to the principal.
 
-    Two kernels built from one SecurityContext are two sessions and share no
-    trajectory. That is the correct model — but a decision minted in one can no
-    longer be redeemed in the other, so an agent cannot authorise in a clean
-    session and execute in a dirty one.
+    This test previously recorded a PARTIAL closure: two kernels from one
+    SecurityContext were two sessions sharing no trajectory, and only the
+    decision lease stopped the halves being recombined. The honest limitation
+    was that an agent able to open a genuinely new session per step defeated
+    trajectory analysis in any per-session design.
 
-    The residual limitation is honest and stated in the report: an agent that
-    can open a genuinely new session for each step defeats trajectory analysis
-    in any per-session design. Closing that needs an externalised ledger keyed
-    by principal, which is a deployment decision, not a kernel one.
+    Governed history is now filed under the continuity key
+    `(tenant, principal, workload)` in a store shared across sessions, so a new
+    session is a new conversation, not a new authority. See
+    `test_authority_continuity.py` for the full continuity suite.
     """
     ctx = _ctx()
     single, rt = _kernel(ctx), _Runtime()
     single.submit(READ_CUSTOMERS, rt)
     assert single.submit(EXFIL, rt)[0].verdict == BLOCK
 
-    clean, dirty = _kernel(ctx), _kernel(ctx)
-    rt2 = _Runtime()
-    assert dirty.submit(READ_CUSTOMERS, rt2)[1] is True
-    held = clean.authorize(EXFIL)
-    assert held.verdict == PERMIT
+    # A brand-new session for the same principal inherits the trajectory.
+    fresh, rt2 = _kernel(ctx), _Runtime()
+    assert fresh.session_id != single.session_id
+    assert fresh.continuity_key == single.continuity_key
+    assert fresh.submit(EXFIL, rt2)[0].verdict == BLOCK
+    assert rt2.executed == []
 
+    # And the lease still cannot be moved between sessions.
+    clean, dirty = _kernel(_ctx(principal=Principal(id="clean-agent",
+                                                    tenant="acme"))), _kernel(ctx)
+    held = clean.authorize(EXFIL)
+    assert held.verdict == PERMIT, "a different principal is unaffected"
     executed, reason = dirty.execute(held, rt2)
     assert executed is False
-    assert "session" in reason
-    assert [c["tool"] for c in rt2.executed] == ["query_db"]
+    assert "session" in reason or "principal" in reason
+    assert rt2.executed == []
 
 
 def test_veto_10b_concurrent_authorization_is_serialised():

@@ -26,6 +26,7 @@ hash and refuses anything that does not match the authorised hash.
 
 from __future__ import annotations
 
+import contextlib
 import threading
 import time
 import uuid
@@ -41,6 +42,10 @@ from morrison_governance.kernel.canonical import (
     action_hash, canonicalize, semantic_action_hash,
 )
 from morrison_governance.kernel.normalize import normalize_action
+from morrison_governance.kernel.continuity import (
+    BLOCK_POLICY, DENIED, EXECUTED, RESERVED, LedgerEntry,
+    default_store, resolve_continuity,
+)
 from morrison_governance.kernel.destinations import classify_destination
 from morrison_governance.kernel.evidence import (
     EvidenceChain, EvidenceRecord, ruleset_hash,
@@ -231,11 +236,6 @@ class Decision:
         }
 
 
-DENIED = "denied"
-RESERVED = "reserved"
-EXECUTED = "executed"
-
-
 @dataclass
 class Attempt:
     """A recorded attempt — executed, RESERVED, or denied.
@@ -284,10 +284,22 @@ class GovernanceKernel:
         self.layer = layer
         self.ctx = context
         self.chain = EvidenceChain(key=evidence_key)
-        self.ledger: list[Attempt] = []
         self.engine_version = engine_version
         self.session_id = session_id or uuid.uuid4().hex
         self.decision_ttl_s = float(decision_ttl_s)
+        # WHERE THIS SESSION'S HISTORY LIVES.
+        #
+        # Governed history used to be a list on this object, so it began empty
+        # every time a kernel was constructed and an actor could choose how
+        # many kernels it got. It is now filed under a continuity key derived
+        # from the authenticated principal, in a store shared across sessions.
+        # The session id says which conversation this is; the continuity key
+        # says whose authority it is, and only the second one governs.
+        self.store = context.continuity_store or default_store()
+        self.continuity = resolve_continuity(context.principal,
+                                             getattr(context, "workload", ""))
+        self.continuity_key = (self.continuity.key.as_str()
+                               if self.continuity.key else "")
         # ONE lock over authorize + execute. Authorization reads the trajectory
         # and then writes a reservation into it; without serialising that
         # read-modify-write, two concurrent authorizations both read the state
@@ -295,8 +307,9 @@ class GovernanceKernel:
         # place of an ordering choice. Reentrant because `submit()` holds it
         # across both halves.
         self._lock = threading.RLock()
-        self._consumed: set[str] = set()          # decision_id, single-use
-        self._revoked: dict[str, str] = {}        # semantic_hash -> why
+        # Single-use and revocation state live in the continuity store, not on
+        # this object: a decision id spent in one session must stay spent in
+        # the next, and a transition refused in one session must stay refused.
         self._ruleset_hash = ruleset_hash(
             layer.rules,
             extra={"capability_policy": P.CAPABILITY_POLICY,
@@ -305,6 +318,39 @@ class GovernanceKernel:
                    "unknown_tool_policy": context.unknown_tool_policy})
 
     # ── history ──────────────────────────────────────────────
+    @property
+    def ledger(self) -> list[Attempt]:
+        """This principal's governed attempts, across every session.
+
+        A read-through view of the continuity store, presented in the shape the
+        rest of the kernel and the existing tests already use.
+        """
+        if not self.continuity_key:
+            return []
+        window = float(getattr(self.ctx, "continuity_window_s", 0.0) or 0.0)
+        horizon = (self._clock_basis() - window) if window > 0 else None
+        return [Attempt(action=e.action, verdict=e.verdict, reason=e.reason,
+                        actor=e.actor, timestamp=e.timestamp,
+                        capabilities=frozenset(e.capabilities), state=e.state,
+                        decision_id=e.decision_id, expires_at=e.expires_at)
+                for e in self.store.entries(self.continuity_key)
+                if horizon is None or e.timestamp >= horizon]
+
+    def _file(self, action: dict, verdict: str, state: str, reason: str,
+              timestamp: float, capabilities: frozenset = frozenset(),
+              decision_id: str = "", semantic_hash: str = "",
+              expires_at: float = 0.0) -> None:
+        """Record one governed attempt against the continuity key."""
+        if not self.continuity_key:
+            return
+        self.store.append(self.continuity_key, LedgerEntry(
+            decision_id=decision_id or uuid.uuid4().hex, action=action,
+            verdict=verdict, state=state, reason=reason,
+            actor=self.ctx.principal.id, session_id=self.session_id,
+            semantic_hash=semantic_hash,
+            capabilities=tuple(sorted(capabilities)),
+            timestamp=timestamp, expires_at=expires_at))
+
     @property
     def executed_history(self) -> list[dict]:
         """Actions that have run OR hold a live reservation.
@@ -326,7 +372,8 @@ class GovernanceKernel:
         on that model's clock; wall time would lapse every reservation it holds
         immediately.
         """
-        stamps = [a.timestamp for a in self.ledger]
+        stamps = ([e.timestamp for e in self.store.entries(self.continuity_key)]
+                  if self.continuity_key else [])
         latest = max(stamps) if stamps else 0.0
         wall = time.time()
         # A model clock is small (seconds since 0); wall time is ~1.7e9. If the
@@ -358,11 +405,11 @@ class GovernanceKernel:
     # ── reservations ─────────────────────────────────────────
     def _reserve(self, decision: "Decision", now: float) -> None:
         """Take this decision's slot in the trajectory before it executes."""
-        self.ledger.append(Attempt(
-            action=decision.action, verdict=PERMIT, reason=decision.reason,
-            actor=self.ctx.principal.id, timestamp=now,
-            capabilities=decision.capabilities, state=RESERVED,
-            decision_id=decision.decision_id, expires_at=decision.expires_at))
+        self._file(decision.action, PERMIT, RESERVED, decision.reason, now,
+                   capabilities=decision.capabilities,
+                   decision_id=decision.decision_id,
+                   semantic_hash=decision.semantic_hash,
+                   expires_at=decision.expires_at)
         decision.reserved = True
 
     def _reservation(self, decision_id: str) -> Optional[Attempt]:
@@ -371,6 +418,12 @@ class GovernanceKernel:
                 return a
         return None
 
+    def _commit(self, decision_id: str, now: float,
+                action: Optional[dict] = None) -> None:
+        if self.continuity_key:
+            self.store.set_state(self.continuity_key, decision_id, EXECUTED,
+                                 now, action)
+
     def release(self, decision: "Decision") -> bool:
         """Abandon a PERMIT the caller has decided not to execute.
 
@@ -378,17 +431,18 @@ class GovernanceKernel:
         not permanently taint its own session. The decision is consumed either
         way — a released decision cannot later be executed.
         """
-        with self._lock:
-            self._consumed.add(decision.decision_id)
-            held = self._reservation(decision.decision_id)
-            if held is None:
+        with self._lock, self._critical_section():
+            if not self.continuity_key:
                 return False
-            self.ledger.remove(held)
-            decision.reserved = False
-            return True
+            self.store.consume(self.continuity_key,
+                               f"decision:{decision.decision_id}")
+            dropped = self.store.drop(self.continuity_key, decision.decision_id)
+            decision.reserved = False if dropped else decision.reserved
+            return dropped
 
     def _revoke(self, semantic_hash: str, reason: str) -> None:
-        self._revoked.setdefault(semantic_hash, reason)
+        if self.continuity_key:
+            self.store.revoke(self.continuity_key, semantic_hash, reason)
 
     def _lease_problem(self, decision: "Decision", now: float) -> Optional[str]:
         """Why this decision may not be executed, or None if it may.
@@ -397,7 +451,8 @@ class GovernanceKernel:
         """
         if decision.verdict != PERMIT:
             return f"verdict is {decision.verdict}"
-        if decision.decision_id in self._consumed:
+        if self.continuity_key and self.store.consumed(
+                self.continuity_key, f"decision:{decision.decision_id}"):
             return ("decision has already been used; a PERMIT authorises one "
                     "execution of one transition")
         if decision.session_id != self.session_id:
@@ -413,7 +468,19 @@ class GovernanceKernel:
         if decision.ruleset_hash and decision.ruleset_hash != self._ruleset_hash:
             return ("the governing ruleset changed after this decision was "
                     "issued; re-authorise under the current policy")
-        revoked = self._revoked.get(decision.semantic_hash)
+        # Revocation exists to invalidate an OUTSTANDING lease (a PERMIT held
+        # from earlier while the same transition was refused). No lease outlives
+        # `decision_ttl_s`, so neither does a revocation: making it permanent
+        # would turn "you were refused once" into "never again", which is a
+        # different policy and a denial of service, not a safety property.
+        revoked = None
+        if self.continuity_key:
+            record = self.store.revocation(self.continuity_key,
+                                           decision.semantic_hash)
+            if record is not None:
+                reason_text, revoked_at = record
+                if not revoked_at or (now - revoked_at) <= self.decision_ttl_s:
+                    revoked = reason_text
         if revoked:
             return (f"this transition was subsequently refused in the same "
                     f"session ({revoked}); the earlier PERMIT is void")
@@ -439,12 +506,30 @@ class GovernanceKernel:
         issued with `reserve=False` cannot be executed: `execute()` refuses it,
         because nothing held the trajectory steady between the two calls.
         """
-        with self._lock:
+        with self._lock, self._critical_section():
             return self._authorize_locked(call, now, reserve)
 
     def preview(self, call: dict, now: Optional[float] = None) -> Decision:
         """Non-reserving, non-executable evaluation. See `authorize`."""
         return self.authorize(call, now=now, reserve=False)
+
+    def _critical_section(self):
+        """Serialise this principal's read-modify-write across ALL writers.
+
+        `self._lock` only covers threads in this process. Two PROCESSES
+        authorising for the same principal at the same moment each read the
+        governed history before either wrote to it, and both were permitted —
+        the concurrent form of trajectory fragmentation, reachable by ordinary
+        horizontal scaling rather than by any attack. The store supplies the
+        cross-writer lock; the in-memory default degrades to a thread lock,
+        which is exactly its documented scope.
+        """
+        if not self.continuity_key:
+            return contextlib.nullcontext()
+        transaction = getattr(self.store, "transaction", None)
+        if transaction is None:
+            return contextlib.nullcontext()
+        return transaction(self.continuity_key)
 
     def _authorize_locked(self, call: dict, now: Optional[float],
                           reserve: bool) -> Decision:
@@ -495,6 +580,16 @@ class GovernanceKernel:
             # Approvals bind to the SEMANTIC hash, so an approval cannot be
             # dodged by respelling the call it was issued for.
             approval, approval_reason = self.ctx.verified_approval(shash, now)
+            # ...and their single-use state lives against the CONTINUITY KEY,
+            # not the SecurityContext. `_used_nonces` was instance state, so a
+            # new session built a new context and the same signed artifact
+            # verified again: three sessions moved $13.5M on one $4.5M
+            # approval. The nonce is now spent for the principal, once.
+            if approval is not None and approval.nonce and self.continuity_key:
+                if self.store.consumed(self.continuity_key,
+                                       f"approval:{approval.nonce}"):
+                    approval, approval_reason = None, (
+                        "approval nonce already used (replay across sessions)")
         authorization = {
             "approved": bool(approval),
             "reason": approval_reason,
@@ -721,6 +816,34 @@ class GovernanceKernel:
                 f"({denied.action.get('tool')!r}, {denied.verdict}); a denied "
                 f"attempt remains part of the trajectory", "denial_scrubbing", None))
 
+        # ── authority continuity ────────────────────────────
+        # An unidentifiable principal is not a principal with no history; it is
+        # a principal whose history cannot be looked up, and the two must not be
+        # treated the same. Likewise an unreachable store: "we cannot see what
+        # this actor did before" is never "this actor did nothing before".
+        if not self.continuity.established:
+            policy = (getattr(self.ctx, "continuity_policy", "escalate")
+                      or "escalate").lower()
+            if policy != "permit":
+                candidates.append((
+                    BLOCK if policy == BLOCK_POLICY else ESCALATE,
+                    "continuity",
+                    f"governed history cannot be attributed to a persistent "
+                    f"identity — {self.continuity.reason}; refusing to treat "
+                    f"this execution as having a clean history",
+                    "continuity_unestablished", None))
+        else:
+            try:
+                self.store.health()
+            except Exception as e:              # noqa: BLE001 — fail closed
+                candidates.append((
+                    BLOCK, "continuity",
+                    f"the governed-history store is unavailable "
+                    f"({type(e).__name__}: {e}); prior transitions for "
+                    f"{self.continuity.name!r} cannot be read, so this "
+                    f"execution cannot be shown to be admissible",
+                    "continuity_store_unavailable", None))
+
         # ── payload could not be fully read ─────────────────
         # `normalize_action` walks to exhaustion under a node budget. When the
         # budget runs out the classifiers decided on a PARTIAL reading, and a
@@ -783,16 +906,24 @@ class GovernanceKernel:
             # adversarial indicator: no forged authority claim, no external
             # destination, and no denied attempt earlier in the session. If any
             # of those is present, the BLOCK stands and says so.
+            # Only RECENT denials count. This clause controls whether a BLOCK
+            # is presented as "resolvable by authorisation", and with durable
+            # history an unbounded version would mean one refusal anywhere in a
+            # principal's past permanently removed the route forward for every
+            # later action — sticky posture with no safety benefit.
+            recent = self._clock_basis() - self.decision_ttl_s
             adversarial_indicator = bool(
                 forged or dest.external
-                or any(a.denied for a in self.ledger))
+                or any(a.denied and a.timestamp >= recent for a in self.ledger))
             if (verdict == BLOCK and not authority_established
                     and requirement != P.DENY
                     and not adversarial_indicator
                     and all(c[0] != BLOCK or c[1] == layer for c in candidates)
                     and layer not in ("fail_closed", "tenancy", "egress_policy",
                                       "trajectory_integrity", "capability_policy",
-                                      "unknown_tool", "binding")):
+                                      "unknown_tool", "binding", "continuity",
+                                      "normalization", "destination_policy",
+                                      "lease")):
                 hyp_ctx = {**trusted, "authorized": True, "approved": True,
                            "verified": True, "admin_approved": True,
                            "change_approved": True, "sanctioned": True}
@@ -859,12 +990,14 @@ class GovernanceKernel:
             # second authorization now sees the nonce already used.
             if approval is not None:
                 self.ctx.consume_nonce(approval)
+                if approval.nonce and self.continuity_key:
+                    self.store.consume(self.continuity_key,
+                                       f"approval:{approval.nonce}")
             self._reserve(decision, now)
         else:
-            self.ledger.append(Attempt(
-                action=proposed, verdict=verdict, reason=reason,
-                actor=self.ctx.principal.id, timestamp=now,
-                capabilities=caps, state=DENIED))
+            self._file(proposed, verdict, DENIED, reason, now,
+                       capabilities=caps, decision_id=decision.decision_id,
+                       semantic_hash=shash)
             # A BLOCK voids any PERMIT still outstanding for the same
             # transition: otherwise an agent could hold a decision from earlier
             # in the session and execute the very transition just refused.
@@ -937,12 +1070,13 @@ class GovernanceKernel:
             # executor that raises may still have had effects, so the lease is
             # burned and the reservation committed rather than released — a
             # failed execution is not a free retry.
-            self._consumed.add(decision.decision_id)
-            held = self._reservation(decision.decision_id)
-            if held is not None:
-                held.state = EXECUTED
-                held.action = target
-                held.timestamp = now
+            if not self.store.consume(self.continuity_key,
+                                      f"decision:{decision.decision_id}"):
+                self._record_refusal(
+                    decision, target, "lease", "decision_lease_invalid",
+                    "execution refused: decision has already been used")
+                return False, ("refused: decision has already been used")
+            self._commit(decision.decision_id, now, target)
 
         try:
             result = executor(target)
@@ -964,11 +1098,9 @@ class GovernanceKernel:
             proposed=target, decision=BLOCK, layer=layer, rule=rule,
             reason=reason, ruleset_hash=self._ruleset_hash,
             engine_version=self.engine_version))
-        self.ledger.append(Attempt(
-            action=target, verdict=BLOCK, reason=reason,
-            actor=self.ctx.principal.id, timestamp=time.time(),
-            capabilities=C.classify(target, self.ctx.tool_manifest),
-            state=DENIED))
+        self._file(target, BLOCK, DENIED, reason, time.time(),
+                   capabilities=C.classify(target, self.ctx.tool_manifest),
+                   semantic_hash=decision.semantic_hash)
 
     def record_remote_execution(self, decision: Decision,
                                 now: Optional[float] = None) -> None:
@@ -982,23 +1114,22 @@ class GovernanceKernel:
         if not decision.permitted:
             raise ValueError("only a PERMIT decision can be recorded as executed")
         stamp = time.time() if now is None else now
-        with self._lock:
+        with self._lock, self._critical_section():
             problem = self._lease_problem(decision, stamp)
             if problem is not None:
                 raise ValueError(f"decision cannot be recorded as executed: "
                                  f"{problem}")
-            self._consumed.add(decision.decision_id)
-            held = self._reservation(decision.decision_id)
-            if held is not None:
-                # Commit the slot this decision already reserved.
-                held.state = EXECUTED
-                held.timestamp = stamp
+            if not self.store.consume(self.continuity_key,
+                                      f"decision:{decision.decision_id}"):
+                raise ValueError("decision cannot be recorded as executed: "
+                                 "it has already been used")
+            if self._reservation(decision.decision_id) is not None:
+                self._commit(decision.decision_id, stamp)
             else:
-                self.ledger.append(Attempt(
-                    action=decision.action, verdict=PERMIT,
-                    reason=decision.reason, actor=self.ctx.principal.id,
-                    timestamp=stamp, capabilities=decision.capabilities,
-                    state=EXECUTED, decision_id=decision.decision_id))
+                self._file(decision.action, PERMIT, EXECUTED, decision.reason,
+                           stamp, capabilities=decision.capabilities,
+                           decision_id=decision.decision_id,
+                           semantic_hash=decision.semantic_hash)
         if decision.evidence is not None:
             self.chain.record_execution(decision.evidence, True, "remote-runtime")
 

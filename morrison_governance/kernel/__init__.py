@@ -40,6 +40,11 @@ from morrison_governance.kernel.sensitivity import (
 from morrison_governance.kernel.policy import (
     ALLOW, APPROVAL, CAPABILITY_POLICY, DENY, GRANT, requirement_for,
 )
+from morrison_governance.kernel.continuity import (
+    ContinuityKey, ContinuityStatus, ContinuityStore, FileContinuityStore,
+    InMemoryContinuityStore, LedgerEntry, default_store,
+    reset_default_store, resolve_continuity,
+)
 from morrison_governance.kernel.trust import (
     ANONYMOUS, AUTHORITY_FIELDS, ApprovalArtifact, Principal, SecurityContext,
     forged_authority_claims, issue_approval, quarantine_authority,
@@ -55,6 +60,9 @@ __all__ = [
     "ALL_CATEGORIES", "classify_sensitivity",
     "ALLOW", "APPROVAL", "CAPABILITY_POLICY", "DENY", "GRANT",
     "requirement_for",
+    "ContinuityKey", "ContinuityStatus", "ContinuityStore",
+    "FileContinuityStore", "InMemoryContinuityStore", "LedgerEntry",
+    "default_store", "reset_default_store", "resolve_continuity",
     "ANONYMOUS", "AUTHORITY_FIELDS", "ApprovalArtifact", "Principal",
     "SecurityContext", "forged_authority_claims", "issue_approval",
     "quarantine_authority",
