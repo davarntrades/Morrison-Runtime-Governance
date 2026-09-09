@@ -4,6 +4,7 @@
 ![Question](https://img.shields.io/badge/Question-Can_authority_leakage_be_reachability%3F-0f766e?style=flat-square)
 ![Verdict](https://img.shields.io/badge/Verdict-Yes_for_one_cluster_·_No_for_three-c2410c?style=flat-square)
 ![Formalism](https://img.shields.io/badge/Set_inclusion-Insufficient-b91c1c?style=flat-square)
+![D2](https://img.shields.io/badge/D2-CONFIRMED-7f1d1d?style=flat-square)
 ![Patent](https://img.shields.io/badge/Patent-GB2600765.8-0075ca?style=flat-square)
 ![©](https://img.shields.io/badge/©-Davarn_Morrison-555555?style=flat-square)
 
@@ -259,9 +260,9 @@ Two are new and were probed for this analysis. The probes are bounded searches,
 | **A1** | **Containment.** The realized trace lies in the authorized trace set. | Existing, distributed across many tests |
 | **A2** | **Covering.** Every effect is attributable to some `α`. | = T1. Deployment property, **not closable here** |
 | **A3** | **Injectivity.** `p₁ ≠ p₂ ⟹ key(p₁) ≠ key(p₂)`. | MED-01 was the counterexample; now pinned |
-| **A4** | **History antitonicity.** `h ⊆ h′ ⟹ Auth(·│h′) ⊆ Auth(·│h)`. Adding history must never turn a refusal into a permission. | **NEW.** Probed: 80 history/target combinations, **0 violations**. Not currently an explicit test. |
+| **A4** | **History antitonicity, at a fixed continuity key.** Adding history must never turn a refusal into a permission. | **Held.** 425 combinations, 0 violations. Scope correction in §10b. Now tested. |
 | **A5** | **Policy antitonicity at redemption.** Tightening `ρ` never enlarges an outstanding `α`'s authorized set. | MED-03 was the counterexample; implicitly held by the live ruleset hash, not stated as an invariant |
-| **A6** | **No amplification.** One `α` yields at most one effect, *including when the action is idempotent*. | **NEW framing.** Probed: executor invoked exactly once, replay refused. |
+| **A6** | **No amplification.** One `α` yields at most one effect, *including when the action is idempotent*. | **Held**, sequentially and under 8-way concurrency. Now tested. |
 | **A7** | **Scope honesty.** `Auth(·│h_local) ⊇ Auth(·│h_true)`; guarantees bound only against the local set. | Formal statement of **MED-11 / R4B-05**. Both remain **open**. |
 
 A4 is the highest-value new candidate: it is cheap to test, currently unstated,
@@ -297,10 +298,10 @@ Stated so the formulation is falsifiable rather than decorative.
 | **D3** | Containment is violated with **no** security consequence in any deployment | Containment is not *necessary*; too strong as an invariant |
 | **D4** | An A4 violation — some history that turns a refusal into a permission | History can manufacture authority; the trajectory-dependence property is unsound |
 | **D5** | A single `α` producing two effects that the trace model records as one | The trace formulation inherits the state-abstraction gap it was meant to fix |
-| **D6** | Two authorizations with materially different consequence that are **provably** equivalent under `∼` | Confirms §6 — would close the question of whether `𝓘_α` is usable |
+| **D6** | Two authorizations with materially different consequence that are **provably** equivalent under `∼` | Confirms §6 — would close the question of whether `𝓘_α` is usable. Not yet attempted. |
 
-**D4 is the cheapest to attack and the most informative.** D2 is expected to
-succeed, and demonstrating it would be a contribution, not a defeat.
+**D4 was attacked first and held** (§10b). **D2 succeeded and is preserved as
+evidence of the boundary**, not treated as a failure to hide.
 
 ---
 
@@ -338,6 +339,75 @@ before anything is built on it.
 
 ---
 
+## 10b · Results of executing the plan (round 5)
+
+The six-step plan in §10 was executed. Every property was probed adversarially
+before being written down, and the results are recorded whichever way they came
+out. Permanent tests: `morrison_governance/test_authorization_containment.py`.
+
+| Target | Probe | Result |
+| :-- | :-- | :-- |
+| **A4** | 425 history/target combinations at a fixed continuity key | **0 violations** — holds |
+| **A4** | re-encoded targets (percent-encoding, tool rename, arg reorder, nesting) | **0 violations** — not a syntactic rule |
+| **A4** | identity smuggled via `args[workload/principal/tenant/_ctx]` | **contained** — agent cannot reset its own history |
+| **A6** | idempotent action, sequential replay | executor invoked **exactly once**; replay refused |
+| **A6** | 8-way concurrent redemption | executor invoked **exactly once** |
+| **D2** | referent substitution between authorize and resolve | **CONFIRMED — see below** |
+| **MED-11** | two hosts, unshared stores | **reproduced, still open** |
+| **L3** | retention window | **reproduced** — time unlocks; A4 governs growth, not time |
+
+### A correction to the proposal itself
+
+**A4 as originally written was under-specified.** It said
+`h ⊆ h′ ⟹ Auth(·│h′) ⊆ Auth(·│h)` without saying *whose* history `h` is. Under
+that reading the first probe reported two "violations" — switching principal
+and switching workload each turned a refusal into a permission.
+
+Neither is a violation. A different principal has a **different** history, not a
+superset, and independent principals sharing nothing is **CONT-05**, a property
+we are required to preserve. The statement is only meaningful **at a fixed
+continuity key**, and that scoping makes the key load-bearing — which is why
+`test_a4_the_agent_cannot_reset_its_own_history_through_the_call` now pins T2 as
+an enforceable property rather than an assumption.
+
+Recorded rather than quietly amended, because it changes what A4 asserts.
+
+### D2 — CONFIRMED, and kept prominently
+
+The construction: Morrison binds an authorization to the action's
+**description**; the resource resolves that description to a **referent**,
+later. Between authorization and resolution, `report.csv` becomes a symlink to a
+credentials file.
+
+```text
+  every containment check available to the kernel PASSES
+      exactly one authorization issued          ✓
+      action hash at execute == at authorize    ✓
+      single-use honoured, replay refused       ✓
+      inside the validity window                ✓
+
+  and the effect that occurred was
+      'root:$6$REDACTED:CRITICAL'
+```
+
+**Containment holds. A prohibited disclosure happens anyway.**
+
+This is the exact boundary of the containment claim, and it is kept because it
+succeeds. It demonstrates §4.3 concretely rather than by argument: containment
+is a **relative** guarantee — actual never exceeds intended — and says nothing
+about whether *intended* referred to what the operator thought it did.
+
+It is **not a defect fixed here** and must not be reported as one. It is §9
+item 4, "effects the transition model does not represent". Closing it requires
+the resource side to bind the referent rather than the name — open by
+descriptor, or resolve-then-verify — which lies outside the governed execution
+boundary and belongs to **M1/M4** in the mediation analysis.
+
+D2 is now the sharpest single statement of why containment cannot be used to
+argue safety.
+
+---
+
 ## 11 · Verdict
 
 Containment **does** unify the binding, identity, continuity, multiplicity and
@@ -354,7 +424,13 @@ enforces a strictly stronger trace property, demonstrated by measurement.
 `𝓘_α` is coherent and should not be adopted, because the quotient discards
 exactly what authorization depends on.
 
-**No limitation is closed by this analysis. No claim is strengthened.**
+A4 and A6 held under adversarial probing and are now permanent tests. A4's
+statement required a scope correction that is recorded rather than quietly
+applied. **D2 is confirmed**: containment can hold while a prohibited effect
+occurs, which bounds the claim precisely and is preserved as evidence.
+
+**No limitation is closed. MED-11 and R4B-05 remain open and are reproduced
+as tests. No claim is strengthened.**
 
 ---
 
