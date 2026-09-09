@@ -257,6 +257,12 @@ class SecurityContext:
     # high-value workloads; the cost is more escalations, not less safety.
     continuity_window_s: float = 3600.0
 
+    # Secret shared with the resource-side enforcement points that verify
+    # execution leases. Separate from `signing_key` (approvals) because the
+    # verifier is a DIFFERENT trust domain: a gateway needs to check leases and
+    # has no business being able to mint approvals.
+    lease_signing_key: bytes = b""
+
     # How many authorisations one identity may hold reserved-but-unexecuted.
     # Beyond this, further authorisation escalates until the caller executes or
     # releases. 0 disables the limit.

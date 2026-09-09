@@ -564,6 +564,24 @@ class GovernanceKernel:
                 engine_version=self.engine_version, executed=executed))
             return True
 
+    def mint_lease(self, decision: "Decision", ttl_s: float = 60.0,
+                   key: Optional[bytes] = None) -> Any:
+        """Mint a resource-redeemable lease for a permitted decision.
+
+        The portable form of an authorisation. A resource-side enforcement
+        point verifies it WITHOUT calling Morrison, so an agent that skips the
+        kernel arrives at the resource carrying nothing and is refused there —
+        by a process that is not the agent and does not depend on its
+        cooperation.
+
+        This does not make complete mediation true. It makes it enforceable at
+        each boundary a deployment chooses to enforce, and turns the unenforced
+        set into an explicit list. See `kernel.mediation`.
+        """
+        from morrison_governance.kernel.mediation import mint_lease
+        signing = key if key is not None else self.ctx.lease_signing_key
+        return mint_lease(decision, signing, ttl_s=ttl_s)
+
     def unconfirmed(self) -> list["Attempt"]:
         """Dispatches whose outcome is unknown, for an operator to reconcile."""
         return [a for a in self.ledger if a.state == UNCONFIRMED]
