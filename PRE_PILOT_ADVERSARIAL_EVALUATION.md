@@ -2,9 +2,20 @@
 
 **Repository:** `davarntrades/Morrison-Runtime-Governance`
 **Branch:** `claude/governed-execution-veto-test-wl16tf`
-**Head at evaluation:** `39565a9`
-**Investigation type:** three rounds of adversarial falsification, each reproduce-first
-**Suite at head:** **846 passed · 7 skipped**
+**Head at evaluation:** `1a7abb3`
+**Investigation type:** four rounds of adversarial falsification, each reproduce-first
+**Suite at head:** **884 passed · 7 skipped**
+
+> **Round 4 update.** Rounds 1–3 were subsequently assumed wrong or incomplete
+> and the implementation was attacked again from first principles, without using
+> the earlier counterexample list as the attack plan. Nine new failure classes
+> were found, then five more against the round-4 remediation itself. All are
+> recorded below and in
+> [`test_adversarial_round4.py`](morrison_governance/test_adversarial_round4.py)
+> and [`test_adversarial_round4b.py`](morrison_governance/test_adversarial_round4b.py).
+> The complete-mediation assumption is now analysed separately in
+> [COMPLETE_MEDIATION_ANALYSIS.md](COMPLETE_MEDIATION_ANALYSIS.md), and part of
+> it has been converted from assumption into mechanism.
 
 ---
 
@@ -32,9 +43,9 @@ each one against its own deployment rather than inherit it.
 
 | # | Assumption | If violated |
 |---|---|---|
-| T1 | **Complete mediation.** Every consequential executor is reachable only through `GovernanceKernel.execute`. | Class B bypass. The library cannot attest this; it is a deployment fact. |
+| T1 | **Complete mediation.** Every consequential executor is reachable only through `GovernanceKernel.execute`. | Class B bypass. Partly converted to mechanism since round 4 — `ExecutionLease` / `LeaseVerifier` move the check to the resource — but the residual is still a deployment fact. See [COMPLETE_MEDIATION_ANALYSIS.md](COMPLETE_MEDIATION_ANALYSIS.md). |
 | T2 | **The SecurityContext is server-side.** Principal, tenant, workload, signing key, manifest, destination allowlists and policy come from authenticated session state, never from a tool call. | Self-authorisation returns. |
-| T3 | **The continuity store is trusted and available.** It is shared by every session for one principal and is not writable by the agent. | Fragmentation returns; an unreachable store now blocks rather than failing open. |
+| T3 | **The continuity store is trusted, available, shared and atomic.** Not writable by the agent. Its `scope()` is believed. | Fragmentation returns. An unreachable store blocks; a store that lies about its reach is trusted (R4B-05). |
 | T4 | **`now` and `SecurityContext` mutation are privileged.** `authorize(call, now=…)` exists for finite-model verifiers. | Bounded since ATK-05: a caller-supplied clock can no longer extend a lease past wall-clock TTL. |
 | T5 | **The approval signing key is secret**, and approvals are minted by a trusted service. | Approval-based PERMIT is forgeable. Absent key already fails closed. |
 | T6 | **The declared Ω, capability policy and tool manifest are correct** for the deployment. | Class C. No enforcement system blocks what its policy declares admissible. |
@@ -46,7 +57,7 @@ Everything below holds only inside T1–T7.
 
 ## 3 · Method
 
-Three rounds. Each round: **reproduce → characterization test asserting the
+Four rounds. Each round: **reproduce → characterization test asserting the
 break → commit → harden → invert the same test to acceptance.** No finding was
 fixed before it was committed in failing-claim form, so the failure history is
 inspectable in git rather than described after the fact.
@@ -59,6 +70,11 @@ inspectable in git rather than described after the fact.
 | `5ae5d75` | Round 2 remediation (authority continuity) |
 | `e322be8` | **Round 3 failures, committed broken** |
 | `39565a9` | Round 3 remediation |
+| `f97039d` | **Round 4 failures, committed broken** |
+| `08a9a4b` | Round 4 remediation |
+| `d5d7913` | **Round 4b: the remediation's own costs, committed broken** |
+| `39b030a` | Round 4b remediation |
+| `1a7abb3` | Execution leases: part of complete mediation made enforceable |
 
 Attacks are paired A/B: the same semantic transition submitted twice, once
 plainly and once under a transformation that costs an adversary nothing. Where
@@ -68,7 +84,7 @@ the pair diverges, the veto attached to the encoding rather than the transition.
 
 ## 4 · Every counterexample discovered
 
-34 findings across three rounds. Classification per the evaluation brief:
+48 findings across four rounds. Classification per the evaluation brief:
 **A** mechanism failure · **B** boundary bypass · **C** specification/model
 failure · **D** out of scope.
 
@@ -179,11 +195,14 @@ weakened, or rewritten to pass.
 | `test_governed_execution_veto.py` — round 1's 13 findings | 69 | **passed** |
 | `test_authority_continuity.py` — round 2's 12 findings | 15 | **passed** |
 | `test_adversarial_round2.py` — round 3's 9 findings | 23 | **passed** |
+| `test_adversarial_round4.py` — round 4's 9 findings | 16 | **passed** |
+| `test_adversarial_round4b.py` — round 4b's 5 findings | 8 | **passed** |
+| `test_mediation.py` — execution leases, 10 attacks | 14 | **passed** |
 | `test_kernel_redteam.py` | 218 (+7 skipped) | **passed** |
 | `test_integrations.py` | 45 | **passed** |
 | `global_verification/` | 36 | **passed** |
 | `runtime_eval/` | 178 | **passed** |
-| **Full suite** | **846** (+7 skipped) | **passed** |
+| **Full suite** | **884** (+7 skipped) | **passed** |
 
 The 7 skips are environment-dependent (an absent sibling service repository).
 
@@ -194,7 +213,10 @@ python -m pytest morrison_governance runtime_eval -q
 python -m pytest morrison_governance/test_governed_execution_veto.py -v   # round 1
 python -m pytest morrison_governance/test_authority_continuity.py -v      # round 2
 python -m pytest morrison_governance/test_adversarial_round2.py -v        # round 3
-git show 37dbdc1 && git show e322be8    # the failures, in the state they were found
+python -m pytest morrison_governance/test_adversarial_round4.py -v        # round 4
+python -m pytest morrison_governance/test_adversarial_round4b.py -v       # round 4b
+python -m pytest morrison_governance/test_mediation.py -v                 # leases
+git show 37dbdc1 e322be8 f97039d d5d7913    # the failures, as they were found
 ```
 
 ---
@@ -304,7 +326,9 @@ several are outside the claim by construction.
 
 | # | Limitation | Severity | Mitigation available |
 |---|---|---|---|
-| L1 | Complete mediation is assumed, not attested | High | Network/IAM enforcement; remove direct credentials from agents |
+| L1 | Complete mediation: partly enforceable, residually assumed | High | `LeaseVerifier` at each resource; network/IAM enforcement; remove direct credentials from agents. See COMPLETE_MEDIATION_ANALYSIS.md |
+| L10 | A `ContinuityStore` is trusted on its own `scope()` claim | Medium | Verify the backend out of band; assert scope in preflight |
+| L11 | An unconfirmed dispatch needs a human to reconcile it | Medium | Alert on ageing `unconfirmed()` entries; `reconcile()` with attestation |
 | L2 | Continuity beyond one host requires a deployment-supplied store | High for multi-host | Implement `ContinuityStore` against Redis/DB |
 | L3 | Retention window bounds trajectory analysis | Medium | Raise `continuity_window_s`; cost is more escalations |
 | L4 | `workload` isolation is an administrative judgement | Medium | Review the mapping; too fine re-opens fragmentation |
@@ -321,32 +345,131 @@ several are outside the claim by construction.
 Not the claim we started with, and not weaker than the evidence supports:
 
 > **For a deployment in which every consequential executor is reachable only
-> through `GovernanceKernel.execute`, and in which principal identity, policy
-> and the continuity store are server-side and trustworthy, Morrison refuses
-> proposed transitions that its configured Ω, capability policy and
-> identity-scoped trajectory declare inadmissible — before any side effect,
+> through `GovernanceKernel.execute` — or through a resource-side enforcement
+> point that redeems Morrison's execution leases — and in which principal
+> identity, policy and the continuity store are server-side and trustworthy,
+> Morrison refuses proposed transitions that its configured Ω, capability policy
+> and identity-scoped trajectory declare inadmissible: before any side effect,
 > once per authorization, once per approval, bound to the exact action that
 > executes, invariantly under tool renaming, argument reordering, nesting,
-> encoding and address obfuscation, and across session rotation, process
-> restart, worker migration and concurrent execution within the configured
-> retention window and continuity scope.**
+> encoding, address obfuscation and field permutation, and across session
+> rotation, process restart, worker migration and concurrent execution within
+> the configured retention window and continuity scope.**
 >
 > It refuses, rather than assumes clean, when it cannot fully read a payload,
-> cannot attribute a history to a persistent identity, or cannot reach its
-> history store.
+> cannot attribute a history to a persistent identity, cannot reach its history
+> store, or cannot complete its own checks. A dispatch whose outcome it never
+> learned stays in the trajectory until a human reconciles it with an external
+> attestation.
 >
-> It has no authority over execution paths that do not call it, over model
-> cognition, or over the correctness of the specification it is given.
+> It has no authority over execution paths that neither call it nor redeem its
+> leases, over model cognition, or over the correctness of the specification it
+> is given.
 
-The three rounds moved the claim from *falsified* to *conditionally supported*.
-Each round found real failures in the output of the previous one, which is the
-expected shape of this work rather than a sign it went badly: round 1 broke the
-original mechanism, round 2 broke round 1's session model, round 3 broke round
-2's identity and hashing. A fourth round should be assumed to find more.
+Four rounds moved the claim from *falsified* to *conditionally supported*, and
+each round found real failures in the output of the previous one — round 1 broke
+the original mechanism, round 2 broke round 1's session model, round 3 broke
+round 2's identity and hashing, round 4 broke round 3's identity encoding, clock
+handling and failure semantics, and round 4b broke round 4's own availability.
+That is the expected shape of this work, not a sign it went badly. **A fifth
+round should be assumed to find more.**
 
-**What a pilot should conclude:** the mechanism holds inside a boundary that a
-deployment must itself establish. The evidence supports enforcing it; it does not
-support treating T1 as given.
+**What a pilot should conclude:** the mechanism holds inside a boundary the
+deployment must establish, and part of that boundary — the resource-side check —
+can now be built rather than assumed. The evidence supports enforcing it. It does
+not support treating T1 as given, and §9 remains the honest list of what the
+veto does not reach.
+
+---
+
+## 11b · Round 4 — attacking the hardened implementation from first principles
+
+Rounds 1–3 were assumed wrong or incomplete. The attack plan was rebuilt by
+asking what the CURRENT implementation must be true for, then attacking those
+requirements: identity must be injective; fail-closed must actually fire;
+trusted state must bind the lease; the clock must be trustworthy; records must
+match reality; lost confirmations must fail safe; scope must be visible.
+
+### New counterexamples (9), all closed
+
+| ID | Counterexample | Class | Closed by |
+|---|---|:-:|---|
+| MED-01 | `ContinuityKey` was not injective — it replaced every character outside `[a-z0-9._:-]` with `_` and joined with `/`, and `/` is itself replaceable. `("acme","agent-x/y")` and `("acme","agent-x_y")` were one key, so distinct principals merged governed history, defeating the CONT-05 isolation property. No forgery: identity providers emit `/` routinely. | C | Digest over a length-prefixed encoding of the exact triple |
+| MED-02 | The unknown-tool check was guarded by `if self.ctx.tool_manifest`, so a deployment that had declared nothing had the fail-closed rule silently inert. The least-configured deployment got the weakest enforcement. | C | An empty manifest means nothing is declared |
+| MED-03 | `_ruleset_hash` was computed once in `__init__`. An administrator tightening policy got it applied to NEW decisions while outstanding leases stayed executable. The earlier E2 fix only appeared to cover this because a BLOCK revokes; tighten to ESCALATE and nothing revoked. | A | Live hash, memoised on its mutable inputs |
+| MED-04 | The retention window filtered on the caller-supplied `now`. An action executed with `now=0.0` was filed outside every window and vanished from the next decision. ATK-05 had bounded only the lease. | A | Entries carry a `wall_timestamp` the caller cannot choose |
+| MED-05 | An executor that acts then raises left the ledger saying EXECUTED and the evidence saying `executed=False`. An auditor reading the chain concluded nothing ran. | C | The outcome records COMMITTED with an UNKNOWN result |
+| MED-06 | A store failure inside `execute` propagated raw, with no evidence and no ledger entry, leaving the fail-open decision to the caller. | C | Sealed as `governance_dependency_failure` |
+| MED-10 | Decision-plane: a lost confirmation let the reservation lapse and a real effect left the trajectory. The lease TTL was doing two incompatible jobs. | A | Lapsed dispatches become UNCONFIRMED and stay |
+| MED-11 | Multi-host fragmentation was real and the kernel gave no signal about its reach, so the limitation could not be checked, only believed. | C | `continuity_scope` on every decision (partial — see below) |
+| MED-13 | A destination resolved internal at authorize was never resolved again; revoking the allowlist did not stop the commit. | A | Re-resolved at commit |
+
+**Held, pinned:** MED-12 (the same exfiltration proposed as a kernel call, a
+browser form submission and browser JavaScript reaches a containing verdict in
+all three) and MED-14 (release-then-retry is not a laundering primitive).
+
+### Attacking the round-4 remediation (5 more)
+
+Two of the three substantive findings are costs of MED-10's fix and one of
+MED-03's — all availability failures, which matter because a governance layer a
+deployment cannot live with gets configured away.
+
+| ID | Counterexample | Closed by |
+|---|---|---|
+| R4B-01 | MED-10 made a lapsed dispatch permanent with no way back. One crashed worker blocked every other workflow under the same service account for the retention window. | `reconcile(decision, executed, attestation)` — an operator action requiring external attestation, sealed in evidence |
+| R4B-02 | The ATK-06 reservation cap counted RESERVED only, so letting each lease lapse minted 40 entries against a cap of 8. | The cap counts RESERVED and UNCONFIRMED |
+| R4B-03 | MED-03's live hash dominated the commit path: ~1.3ms of a ~1.5ms execute. | Memoised on a fingerprint of its mutable inputs — 1.47ms → 0.192ms, and a mid-session policy change is still caught |
+
+**Held, pinned:** R4B-04 (the worst ordering available — the executor acts,
+raises, AND the evidence write fails — still retains the taint) and R4B-05
+(`continuity_scope` is the store's own claim about its reach; a store returning
+`"deployment"` while writing to a host-local file is believed. Not closable from
+inside the library, so pinned as a boundary rather than presented as a
+guarantee).
+
+### A correction we made to our own finding
+
+The R4B-01 characterization claimed `release` filed a DENIED attempt while
+refusing a lapsed dispatch, worsening the posture. That was a mis-attribution:
+the denied entry came from the blocked egress attempt earlier in the same test,
+and `release` has always been side-effect-free apart from consuming the decision
+id. The finding stands without it. The correction is recorded in the test rather
+than quietly dropped.
+
+### Regressions introduced by round-4 remediation, and fixed
+
+- The first cut of commit-time revalidation also re-derived the capability
+  requirement. That was redundant with the live ruleset hash **and wrong**: it
+  did not replay the server-side payment auto-approval, so a legitimately
+  auto-approved transfer looked like a decision whose requirement had tightened.
+  Three kernel red-team tests caught it. Revalidation is now narrowed to
+  destination resolution, which the ruleset hash genuinely does not cover.
+- MED-02's fix required test fixtures that modelled undeclared deployments to
+  declare their tools — 15 adapter and veto tests. That is the rule working, not
+  a weakening: a real deployment has to declare its tools too.
+- `execute()` turned out never to have taken the store's cross-writer critical
+  section; an earlier edit was a silent no-op. It does now.
+
+---
+
+## 11c · Complete mediation, after round 4
+
+Analysed in full in
+[COMPLETE_MEDIATION_ANALYSIS.md](COMPLETE_MEDIATION_ANALYSIS.md). In brief, T1
+no longer stands as one unqualified assumption:
+
+- **enforced by Morrison** — the decision, the binding, the trajectory, the
+  single-use properties;
+- **now enforceable at any boundary a deployment adopts** — `ExecutionLease` and
+  `LeaseVerifier` move the check from the caller to the resource, so an agent
+  that skips the kernel is refused by a process that is not the agent;
+- **attestable but not verifiable** — declared coverage (`MediationReport`) and
+  continuity reach (`continuity_scope`);
+- **irreducibly external** — credential placement, network topology, enumeration
+  maintenance, configuration custody, effect reconciliation.
+
+That is a smaller assumption than we started with. It is not complete mediation,
+and the analysis says so in those words.
 
 ---
 
