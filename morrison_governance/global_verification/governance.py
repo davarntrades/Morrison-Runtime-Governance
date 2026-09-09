@@ -140,7 +140,7 @@ class MorrisonKernelAdapter:
                     "previously executable prefix did not replay as PERMIT at "
                     f"step {index}: {replay.verdict} ({replay.reason})"
                 )
-            kernel.record_remote_execution(replay)
+            kernel.record_remote_execution(replay, now=0.0)
 
         decision = kernel.authorize(proposal, now=0.0)
         if decision.layer == "fail_closed":

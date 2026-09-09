@@ -64,30 +64,55 @@ def test_all_bounded_human_responses_after_permitted_message():
     assert sum(t[3] for t in traces) == 1
 
 
-def test_one_permitted_decision_can_execute_twice():
+def test_one_permitted_decision_executes_exactly_once():
+    """E1, CLOSED. Was: `test_one_permitted_decision_can_execute_twice`.
+
+    This test previously recorded the finding that a retained PERMIT was an
+    unbounded bearer token — two uses of one decision produced two effects on a
+    non-idempotent executor. `Decision` now carries a `decision_id` that
+    `execute()` consumes atomically, so the finite protocol 0, 1, 2 uses of one
+    decision yields exactly one effect and an explicit refusal.
+    """
     kernel = default_kernel_factory()()
     decision = kernel.authorize({"tool": "write_file", "args": {
         "path": "/workspace/counter", "content": "one"}})
     effects = []
-    # Exhaust the finite protocol 0, 1, 2 uses of one decision; executor here
-    # models a non-idempotent watcher rather than a plain idempotent file write.
     assert decision.permitted and len(effects) == 0
-    for _ in range(2):
-        ok, _ = kernel.execute(decision, lambda call: effects.append("effect"))
-        assert ok
-    assert len(effects) == 2
+
+    first_ok, _ = kernel.execute(decision, lambda call: effects.append("effect"))
+    assert first_ok
+    second_ok, reason = kernel.execute(
+        decision, lambda call: effects.append("effect"))
+    assert not second_ok
+    assert "already been used" in reason
+    assert len(effects) == 1
 
 
-def test_policy_change_between_authorize_and_execute_is_not_rechecked():
+def test_policy_change_between_authorize_and_execute_is_rechecked():
+    """E2, CLOSED. Was: `..._is_not_rechecked`.
+
+    This test previously recorded that a retained PERMIT survived a change to
+    the policy that justified it: a fresh authorization of the identical action
+    was refused while the held decision still executed. The decision now
+    carries the `ruleset_hash` in force when it was issued, and `execute()`
+    refuses a decision whose governing ruleset has since changed.
+
+    Changing policy here is a trusted administrator action, as before.
+    """
     kernel = default_kernel_factory()()
     call = {"tool": "write_file", "args": {"path": "/workspace/note", "content": "ok"}}
     decision = kernel.authorize(call)
     assert decision.permitted
+
     kernel.ctx.policy_values["capability_policy"] = {"data.read": "deny"}
+    kernel.refresh_ruleset()
     assert not kernel.authorize(call).permitted
+
     effects = []
-    ok, _ = kernel.execute(decision, lambda value: effects.append(value))
-    assert ok and len(effects) == 1
+    ok, reason = kernel.execute(decision, lambda value: effects.append(value))
+    assert not ok
+    assert "ruleset changed" in reason
+    assert effects == []
 
 
 def test_mutated_action_is_refused_before_executor():

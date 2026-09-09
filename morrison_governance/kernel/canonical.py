@@ -75,3 +75,45 @@ def action_hash(call: dict) -> str:
     """Stable sha256 over the canonical action. This is the identity that a
     governance decision, an approval artifact, and an execution all refer to."""
     return hashlib.sha256(canonical_json(call).encode("utf-8")).hexdigest()
+
+
+# ─────────────────────────────────────────────────────────────
+# Semantic identity
+# ─────────────────────────────────────────────────────────────
+# `action_hash` above binds the BYTES of a proposal, which is what execution
+# binding needs: `authorize A -> mutate -> execute B` must fail. It is the
+# wrong identity for POLICY, because two spellings of one transition hash
+# differently — `shell` and `run_shell` carrying the same command, or a
+# collector written as `attacker.example` and as its percent-encoded form.
+#
+# `semantic_action_hash` binds the TRANSITION instead: the canonical tool
+# family and the normalised, fully-traversed argument content. Approvals and
+# revocations bind to this, so an approval cannot be dodged by respelling the
+# call, and a BLOCK on one spelling revokes every other spelling of the same
+# transition.
+
+
+def semantic_canonical(call: dict) -> dict:
+    """The canonical SEMANTIC form of a call: tool family + normalised text."""
+    from morrison_governance.kernel.normalize import normalize_action
+
+    norm = normalize_action(call)
+    return {
+        "tool_family": norm.tool,
+        "text": norm.semantic_text,
+        "hosts": sorted(norm.hosts),
+        "truncated": norm.truncated,
+    }
+
+
+def semantic_action_hash(call: dict) -> str:
+    """Stable sha256 over the canonical semantic action.
+
+    Two proposals that denote the same transition share this hash even when
+    their bytes differ. A payload that could not be fully traversed is marked
+    `truncated`, which changes the hash — a partially-read action is not the
+    same action as a fully-read one, and must not inherit its authorisations.
+    """
+    payload = json.dumps(semantic_canonical(call), sort_keys=True,
+                         separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()

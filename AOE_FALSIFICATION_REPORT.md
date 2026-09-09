@@ -347,8 +347,15 @@ The opaque-disclosure case is especially informative. The initial state says the
 8. **Complete mediation is assumed, not established.** The harness states that no transition exists outside declared actions; the library cannot attest this deployment fact by itself.
 9. **Nondeterministic, concurrent, continuous, and open-world dynamics are outside the current deterministic finite harness.** This is documented, but it constrains any broader claim.
 10. **Initial-state admissibility is not enforced by reachability control.** An unsafe (x_0) correctly remains unsafe at distance zero; upstream admission/recovery control is required.
-11. **A permitted Decision is not single-use at `GovernanceKernel.execute`.** Two sequential uses invoked a non-idempotent test executor twice. This requires the caller to retain and reuse the Decision and assumes no external idempotency control.
-12. **Execution does not revalidate changed policy.** A retained Decision executed after trusted in-memory policy changed, although fresh authorization of identical action bytes refused it. The applicable revocation/lease semantics are not currently encoded in the Decision.
+11. **[CLOSED]** **A permitted Decision is not single-use at `GovernanceKernel.execute`.** Two sequential uses invoked a non-idempotent test executor twice. This requires the caller to retain and reuse the Decision and assumes no external idempotency control.
+12. **[CLOSED]** **Execution does not revalidate changed policy.** A retained Decision executed after trusted in-memory policy changed, although fresh authorization of identical action bytes refused it. The applicable revocation/lease semantics are not currently encoded in the Decision.
+
+> **Update.** Gaps 11 and 12 above are now closed, along with gaps 1-9 of the
+> separate veto evaluation. `Decision` carries a decision id, semantic action
+> hash, session, principal, ruleset hash and expiry, and `execute()` consumes it
+> atomically; the continuation tests `test_one_permitted_decision_executes_exactly_once`
+> and `test_policy_change_between_authorize_and_execute_is_rechecked` were
+> inverted accordingly. See `GOVERNED_EXECUTION_VETO_EVALUATION.md`.
 
 ## Minimal hardening design, documented only
 

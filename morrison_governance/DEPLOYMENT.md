@@ -4,12 +4,29 @@
 adapters. None of these imports pull in the host framework — they duck-type
 the framework's native shapes — so the module is safe to import anywhere.
 
-Common setup:
+## Two objects, one authority
+
+| | `GovernanceLayer` | `GovernanceKernel` |
+|---|---|---|
+| Role | reasoning / policy evaluation | **the veto authority** |
+| Answers | "does this trajectory reach Ω?" | "may this transition execute, now, here?" |
+| Holds | rules | trust boundary, capability policy, trusted destinations, approvals, session trajectory, evidence chain |
+| Use for | planning, shadow mode, analysis | **everything that can execute** |
+
+Nothing in this module dispatches on a `GovernanceLayer` verdict.
+`GovernanceGuard` requires a `SecurityContext`, builds a kernel from it, and
+every adapter executes inside `kernel.execute()`. A guard constructed without
+one raises `GovernanceConfigurationError` rather than becoming a silently
+weaker guard — that configuration is what let eight of ten catastrophic actions
+reach the executor before it was fixed, and it is now an error at the
+integration point.
+
+## Common setup
 
 ```python
-from morrison_governance import (
-    GovernanceLayer, OmegaDomain, GovernanceGuard,
-)
+import os
+from morrison_governance import GovernanceLayer, OmegaDomain, GovernanceGuard
+from morrison_governance.kernel import Principal, SecurityContext
 
 gov = GovernanceLayer(
     domains=[OmegaDomain.CYBERSECURITY, OmegaDomain.FINANCE,
@@ -19,12 +36,52 @@ gov = GovernanceLayer(
     internal_url_hosts=("intranet.yourco.com",),
     log_all=True,
 )
-guard = GovernanceGuard(gov, on_block="raise") # or "deny" to branch yourself
+
+# The trust boundary. Built from AUTHENTICATED SESSION STATE and deployment
+# configuration — never from anything a tool call can write.
+ctx = SecurityContext(
+    principal=Principal(id=session.agent_id, tenant=session.tenant),
+    signing_key=os.environb[b"GOVERNANCE_APPROVAL_KEY"],
+    trusted_issuers=frozenset({"security-review"}),
+    internal_url_hosts=("intranet.yourco.com",),
+    internal_email_domains=("yourco.com",),
+    internal_cidrs=("10.0.0.0/8",),            # see "Destinations" below
+    tool_manifest=TOOL_MANIFEST,               # tool -> [capability, ...]
+    unknown_tool_policy="escalate",            # or "block"
+)
+
+guard = GovernanceGuard(gov, security_context=ctx, on_block="raise")
 ```
 
 `on_block="raise"` throws `GovernanceError` (recommended for middleware).
-`on_block="deny"` returns the `GovernanceResult` so you can answer the model
+`on_block="deny"` returns the `Decision` so you can answer the model
 with a tool error instead of aborting the turn.
+
+**One guard is one session.** The kernel holds that session's trajectory, so
+build a guard per agent session, not one per process. A decision minted in one
+session cannot be redeemed in another.
+
+### Analysis without enforcement
+
+```python
+advisory = GovernanceGuard.advisory(gov)     # no SecurityContext, cannot execute
+advisory.check_plan(steps)                   # reasoning: fine
+advisory.dispatch(...)                       # raises GovernanceConfigurationError
+```
+
+Use this for shadow mode, dashboards and offline scoring. It cannot be wired in
+front of a real executor by accident.
+
+### Destinations
+
+`internal` is a trust fact, not a network fact. Loopback and RFC1918 addresses
+are **not** internal unless you declare them in `internal_cidrs` /
+`internal_url_hosts`, because an attacker-controlled collector on the agent's
+own VPC is the ordinary shape of a real exfiltration. Set
+`trust_private_networks=True` only if you cannot enumerate your ranges yet.
+Link-local addresses and cloud instance-metadata endpoints
+(`169.254.169.254`, `metadata.google.internal`, …) are refused under every
+configuration.
 
 ---
 
@@ -43,8 +100,21 @@ tool_messages = openai_guarded_dispatch(
 msgs += tool_messages   # blocked calls become an error tool message
 ```
 
-Use `openai_partition_tool_calls(guard, tool_calls)` if you want
-`(allowed, denied)` and to handle them separately.
+A parallel batch is ONE trajectory. Each call is authorised in order and a
+PERMIT reserves its place in the session before the next call is decided, so a
+read and its exfiltration issued together are not both dispatched. Independent
+parallel calls are unaffected.
+
+Use `openai_partition_tool_calls(guard, tool_calls)` for
+`(authorized, denied)`. `authorized` holds `AuthorizedCall` objects carrying a
+single-use lease — redeem each with `guard.execute_authorized(ac, executor)`
+rather than dispatching it yourself:
+
+```python
+authorized, denied = openai_partition_tool_calls(guard, tool_calls)
+for ac in authorized:
+    ok, out = guard.execute_authorized(ac, lambda call: TOOLS[call["tool"]](**call["args"]))
+```
 
 ## Claude tool-use chains
 
@@ -52,10 +122,16 @@ Use `openai_partition_tool_calls(guard, tool_calls)` if you want
 from morrison_governance import claude_filter_tool_use
 
 msg = client.messages.create(model=..., tools=..., messages=history)
-allowed, denied_results = claude_filter_tool_use(guard, msg.content)
 
-# execute `allowed`, then send denied_results straight back as tool_result
-history.append({"role": "user", "content": denied_results + executed_results})
+# One call does both halves:
+results = claude_guarded_dispatch(
+    guard, msg.content, dispatch=lambda name, args: TOOLS[name](**args))
+history.append({"role": "user", "content": results})
+
+# Or split them, then redeem each authorisation through the kernel:
+authorized, denied_results = claude_filter_tool_use(guard, msg.content)
+for ac in authorized:
+    ok, out = guard.execute_authorized(ac, lambda call: TOOLS[call["tool"]](**call["args"]))
 ```
 
 ## LangChain
@@ -91,8 +167,11 @@ Or gate manually inside an execution hook with
 from morrison_governance import browser_action_guard
 
 def step(action, target="", value=None):
-    browser_action_guard(guard, action, target, value)  # raises if unsafe
-    return driver.perform(action, target, value)
+    # The kernel performs the action as the executor of its own decision.
+    _, performed, out = browser_guarded_action(
+        guard, action, lambda call: driver.perform(action, target, value),
+        target=target, value=value)
+    return out
 ```
 
 Browser actions are mapped onto governable tools (`download`→source,
@@ -131,14 +210,13 @@ from morrison_governance import WorkflowGovernor
 
 wg = WorkflowGovernor(guard)
 
-# whole-plan gate up front — the V2 taint analysis sees the full DAG
+# REASONING: whole-plan analysis up front — the V2 taint analysis sees the full
+# DAG. This authorises nothing.
 wg.submit(workflow_steps)
 
-# or stream with history so a late exfil step is caught vs early reads
-history = []
-for step in workflow_steps:
-    wg.step_gate(step, history=history)   # raises if unsafe in context
-    run(step); history.append(step)
+# VETO: authorise and execute each step through the kernel, in order. The
+# kernel holds the trajectory, so you no longer pass history yourself.
+outcomes = wg.run(workflow_steps, executor=run)
 ```
 
 ---
@@ -154,14 +232,27 @@ for step in workflow_steps:
 - **Pre-execution only.** Governance gates *before* a tool runs; it does
   not sandbox a tool that has already executed.
 - **Determinism.** Adapters add no randomness; identical inputs → identical
-  verdicts (CI-stable). See `LIMITATIONS.md` for residual gaps
-  (tool-name spoofing, keyword obfuscation).
-- **Audit hook.** Pass `GovernanceGuard(gov, audit=fn)` to receive every
-  `GovernanceResult` for logging/SIEM regardless of verdict.
+  verdicts (CI-stable). Tool-name synonyms and argument encodings are folded to
+  one canonical semantic form before policy runs, so `run_shell` cannot execute
+  what `shell` is refused. See `LIMITATIONS.md` for residual gaps.
+- **Decisions are single-use leases.** A PERMIT carries a decision id, semantic
+  action hash, session, principal, ruleset hash and expiry. `execute()` consumes
+  it atomically; reuse, expiry, a changed ruleset, a foreign session, or a
+  subsequent BLOCK on the same transition all refuse it. Release what you do
+  not execute with `guard.release(decision)`.
+- **Approvals are single-use and bound to the transition.** The nonce is
+  consumed at authorisation, so one approval cannot mint two PERMITs, and the
+  binding is to the semantic hash, so respelling the call does not dodge it.
+- **Policy changes take effect.** After mutating `ctx.policy_values`, call
+  `kernel.refresh_ruleset()`; outstanding decisions issued under the old
+  ruleset are then refused at execute.
+- **Audit hook.** Pass `GovernanceGuard(gov, security_context=ctx, audit=fn)`
+  to receive every `Decision` for logging/SIEM regardless of verdict.
 
 ## Reproduction
 
 ```
-python3 morrison_governance/test_integrations.py     # 13 adapter tests
-python3 morrison_governance/demo_integrations.py      # runnable walk-through
+python3 -m pytest morrison_governance/test_integrations.py -q          # adapter suite
+python3 -m pytest morrison_governance/test_governed_execution_veto.py -q  # adversarial acceptance suite
+python3 morrison_governance/demo_integrations.py                      # runnable walk-through
 ```

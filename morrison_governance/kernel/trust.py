@@ -28,7 +28,9 @@ import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Optional
 
-from morrison_governance.kernel.canonical import action_hash, canonicalize
+from morrison_governance.kernel.canonical import (
+    action_hash, canonicalize, semantic_action_hash,
+)
 
 # ─────────────────────────────────────────────────────────────
 # Quarantined authority fields
@@ -226,6 +228,18 @@ class SecurityContext:
     # Policy-owned comparison values a caller must not choose.
     policy_values: dict = field(default_factory=dict)
 
+    # Whether loopback / RFC1918 addresses count as inside the trust boundary
+    # WITHOUT being named in `internal_url_hosts` or `internal_cidrs`.
+    #
+    # Defaults to False, which is a behaviour change: any private or loopback
+    # literal used to resolve as internal automatically, so a collector on the
+    # agent's own VPC was "internal" and every external-egress rule was skipped
+    # for it. Deployments that genuinely trust their private ranges should list
+    # them in `internal_cidrs`; this flag exists for the ones that cannot
+    # enumerate them yet. Link-local and cloud metadata endpoints are never
+    # internal, whatever this is set to.
+    trust_private_networks: bool = False
+
     _used_nonces: set = field(default_factory=set)
 
     # ── approvals ────────────────────────────────────────────
@@ -277,12 +291,19 @@ def issue_approval(call: dict, issuer: str, key: bytes, ttl_s: float = 300.0,
                    scope: str = "", nonce: str = "",
                    now: Optional[float] = None) -> ApprovalArtifact:
     """Helper for trusted approval services (and tests): mint a signed approval
-    bound to the canonical hash of `call`.
+    bound to the SEMANTIC hash of `call`.
+
+    Semantic rather than byte-canonical, so an approval is bound to the
+    TRANSITION it was granted for. A reviewer who approves
+    `shell {"cmd": "..."}` has approved that command; re-proposing it as
+    `run_shell` is the same transition and consumes the same approval, rather
+    than presenting as a new unapproved action or — worse — letting a second
+    spelling escape the approval requirement entirely.
 
     Raises if `key` is empty — see `ApprovalArtifact.sign`.
     """
     now = time.time() if now is None else now
     return ApprovalArtifact(
-        action_hash=action_hash(call), issuer=issuer, scope=scope,
+        action_hash=semantic_action_hash(call), issuer=issuer, scope=scope,
         issued_at=now, expires_at=now + ttl_s, nonce=nonce,
     ).sign(key)

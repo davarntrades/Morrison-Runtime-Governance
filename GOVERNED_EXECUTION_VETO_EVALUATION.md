@@ -1,10 +1,103 @@
 # Adversarial Evaluation of the Pre-Execution Veto Claim
 
+**Status: all thirteen findings closed. See [Remediation status](#remediation-status--all-thirteen-findings-closed).**
+
 **Repository revision evaluated:** `1589a65` (branch `claude/governed-execution-veto-test-wl16tf`)
 **Investigation type:** read-first, non-production, executable counterexample construction
 **Production behavior modified:** no
 **Tests added:** `morrison_governance/test_governed_execution_veto.py` (37 characterization tests, all passing)
 **Baseline after addition:** 746 passed · 7 skipped
+
+---
+
+## Remediation status — all thirteen findings closed
+
+The findings below were reported against `1589a65`. They have since been fixed.
+This section records what changed; the evaluation itself is left intact as the
+record of what was found, so the two can be read against each other.
+
+**Suite after remediation: 804 passed · 7 skipped.** The thirteen counterexamples
+are retained permanently in `morrison_governance/test_governed_execution_veto.py`,
+inverted from characterization to acceptance: the attacks are identical, the
+expected outcomes are not. Nothing was deleted and no assertion was weakened.
+
+| ID | Finding | Closed by | Verification |
+|---|---|---|:-:|
+| VETO-01 | Batch pre-authorization evaluates against an empty prefix | `authorize()` RESERVES the transition in the ledger; `executed_history` counts live reservations | VETO-01, 01b, 01c |
+| VETO-02 | Stale PERMIT executes after the same hash is BLOCKed | `Decision` is a lease: decision id, semantic hash, session, principal, ruleset hash, expiry; a BLOCK revokes outstanding permits for that transition | VETO-02, 02b, 02c |
+| VETO-03 | Quarantined argument names delete the destination | Quarantined fields are passed to destination and sensitivity classification as evidence; a destination-shaped value in one is an adversarial indicator; `decision.action` is the full proposed action | VETO-03, 03b |
+| VETO-04 | RFC1918 / link-local collectors resolve as internal | Private ranges are internal only when declared; metadata endpoints are forbidden under every configuration; address literals are normalised first | VETO-04, 04b, 04c, 04d |
+| VETO-05 | Regulated markers split across list elements are invisible | Sibling scalars are reassembled before matching, in the form the connector transmits | VETO-05, 05b |
+| VETO-06 | Nesting past depth 6 blinds all three classifiers | One shared traversal (`normalize.iter_pairs`) with no depth limit, a node budget, and fail-closed escalation on exhaustion | VETO-06, 06b |
+| VETO-07 | One approval authorizes two executions | The approval nonce is consumed at AUTHORIZE, under the kernel lock; approvals bind to the semantic hash | VETO-07, 07b |
+| VETO-08 | Documented adapters permit 8/10 actions the kernel refuses | `GovernanceGuard` requires a `SecurityContext` and builds a kernel; every adapter dispatches inside `kernel.execute()` | VETO-08, 08c |
+| VETO-08b | Forged `authorized: true` honoured on the adapter path | The `**context` splice is gone; there is no parameter through which a caller can supply authority | VETO-08b |
+| VETO-09 | Parallel-tool-call adapters dispatch a complete exfiltration | Batch adapters authorise through the kernel in order; the permitted half returns as `AuthorizedCall` leases, not bare calls | VETO-09 |
+| VETO-10 | Trajectory state does not survive a session split | Decisions are bound to their issuing session and principal, so an agent cannot authorise clean and execute dirty. **Partially closed — see below.** | VETO-10, 10b, 10c |
+| VETO-11 | Embedded capability payloads lose their capability when nested | Same shared traversal as VETO-06 | VETO-11 |
+| VETO-12 | Tool renaming defeats the adapter path | Tool names resolve to a canonical family before classification and hashing; synonyms share a semantic hash | VETO-12, 12b |
+
+### What is only partially closed
+
+**VETO-10 (session splitting).** An agent that can open a genuinely new session
+per step still defeats trajectory analysis, because the ledger is per-session by
+design. What is closed is the useful half of the attack: a decision minted in a
+clean session can no longer be redeemed in a dirty one, so the two halves cannot
+be recombined. Fully closing it needs an externalised ledger keyed by principal
+rather than by kernel instance — a deployment decision about shared state, not a
+kernel one. The limitation is asserted explicitly in the test rather than
+papered over.
+
+**The evaluation harness.** `RuntimeGovernanceMiddleware` retains a pre-kernel
+path that dispatches on a `GovernanceLayer` verdict, because the benchmarks need
+that contract to measure against. It now refuses to construct against anything
+but the inert `SandboxExecutor`, so it cannot become a second ungoverned
+execution surface, but it is not the same thing as having removed it.
+
+### Behaviour changes a deployment will notice
+
+These are correctness improvements, and they are also breaking changes:
+
+1. `GovernanceGuard(gov)` without a `SecurityContext` raises. Use
+   `GovernanceGuard.advisory(gov)` for non-enforcing analysis.
+2. Loopback and RFC1918 destinations are external unless declared in
+   `internal_cidrs` / `internal_url_hosts`, or `trust_private_networks=True`.
+3. `openai_partition_tool_calls` and `claude_filter_tool_use` return
+   `AuthorizedCall` / `DeniedCall` objects rather than bare framework calls.
+4. A `Decision` expires (120s default), is single-use, and is refused after a
+   policy change; call `kernel.refresh_ruleset()` after mutating policy.
+5. Approvals are minted against the semantic hash, so approvals issued by an
+   older version do not verify.
+6. Scalar reassembly raises sensitivity: fields that concatenate into
+   something matching a regulated format now classify as regulated. Numeric-only
+   fragments are excluded from cross-container windows, because a batch of
+   record ids otherwise concatenated into a card-number match; a numeric split
+   inside ONE container is still caught, so sixteen digits across four sibling
+   fields classifies as financial by design. `test_veto_05b` pins the benign
+   cases, but a deployment with unusual payload shapes should expect some
+   additional escalations.
+
+### Attacking the fixes
+
+The remediation was itself attacked before being committed, and three of the
+four probes held immediately: reordering a batch so the egress is authorised
+before the read, releasing an executed decision to scrub a taint, and spamming
+previews to cancel another caller's outstanding decision. The fourth found a
+real gap and a real regression, both now closed and pinned by
+`test_veto_05c` and `test_veto_05b`:
+
+* per-container joining alone missed a secret split across DIFFERENT nesting
+  levels (`{"a": <chunk>, "b": {<chunk>}}`);
+* adding cross-container windows introduced a false-positive class (batches of
+  numeric record ids), and canonicalisation's key sort then placed the
+  collector URL between the two halves, breaking the adjacency the window
+  depended on.
+
+Content classification remains heuristic. A sufficiently creative encoding —
+compression, a custom alphabet, paraphrase — is not detectable by pattern
+matching. That is why the structural controls (trajectory reservation,
+destination resolution, capability policy, single-use leases) are the primary
+defence: none of them depends on recognising the content.
 
 ---
 
