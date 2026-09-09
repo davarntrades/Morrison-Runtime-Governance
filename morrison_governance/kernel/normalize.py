@@ -96,10 +96,18 @@ _TOOL_FAMILIES: dict[str, tuple[str, ...]] = {
         "https_request", "request", "fetch", "curl", "wget", "web_request",
         "api_call", "call_api", "rest_call", "post", "put", "webhook_send",
     ),
-    "send_message": (
+    # ATK-07. Families collapse names that denote the SAME transition, which is
+    # what stops `run_shell` executing what `shell` is refused. It also means one
+    # approval covers every member with the same arguments — so a family must
+    # not span names whose EFFECT differs in a way the arguments do not record.
+    # Email and push/SMS/chat differ by delivery channel, and a recipient
+    # argument does not say which; they are separate families.
+    "send_email": (
         "send_email", "sendmail", "email", "mail", "send_mail", "smtp_send",
-        "send_message", "send_sms", "notify", "post_message", "slack_post",
-        "send_notification",
+    ),
+    "send_notification": (
+        "notify", "send_sms", "send_message", "post_message", "slack_post",
+        "send_notification", "push_notification",
     ),
     "file_write": (
         "write_file", "writefile", "put_file", "save_file", "create_file",
@@ -260,6 +268,44 @@ class BudgetExhausted(Exception):
     """The traversal could not finish inside NODE_BUDGET nodes."""
 
 
+def iter_paths(value: Any, *, budget: int = NODE_BUDGET, prefix: str = ""
+               ) -> Iterator[tuple[str, Any]]:
+    """Yield `(path, scalar)` for every scalar, with its full path.
+
+    Used for SEMANTIC IDENTITY only. `iter_pairs` yields the immediate key,
+    which is what the classifiers match on; identity needs to know WHICH field a
+    value sat in, because a flat token multiset does not distinguish
+    `{"run": "noop", "note": "drop database prod"}` from
+    `{"run": "drop database prod", "note": "noop"}` — the collision that let an
+    approval for the first authorise the second.
+    """
+    stack: list[tuple[str, Any]] = [(prefix, value)]
+    visited = 0
+    seen: set[int] = set()
+    while stack:
+        path, node = stack.pop()
+        visited += 1
+        if visited > budget:
+            raise BudgetExhausted(
+                f"payload exceeds {budget} nodes; identity is incomplete")
+        if isinstance(node, dict):
+            if id(node) in seen:
+                continue
+            seen.add(id(node))
+            for k, v in node.items():
+                stack.append((f"{path}.{k}" if path else str(k), v))
+        elif isinstance(node, (list, tuple, set, frozenset)):
+            if id(node) in seen:
+                continue
+            seen.add(id(node))
+            # Index-free: reordering a list is not a different transition, but
+            # moving a value to a different FIELD is.
+            for v in node:
+                stack.append((f"{path}[]", v))
+        else:
+            yield path, node
+
+
 def iter_pairs(value: Any, *, budget: int = NODE_BUDGET
                ) -> Iterator[tuple[str, Any]]:
     """Yield every `(key, value)` pair reachable in a nested structure.
@@ -397,7 +443,15 @@ class NormalizedAction:
                 "hosts": list(self.hosts)}
 
 
-_URL_IN_TEXT = re.compile(r"[a-z][a-z0-9+.\-]*://[^\s\"'<>)]+", re.I)
+# ATK-08. The previous pattern was `[a-z][a-z0-9+.\-]*://…`, whose unbounded
+# scheme run backtracks quadratically: on a 20,000-character argument it tried a
+# greedy run from every offset and cost 1.6 SECONDS in one `findall`, against
+# ~3ms for the reachability engine itself. A slow chokepoint is an availability
+# problem that becomes a safety problem the moment a deployment puts a timeout
+# in front of it. Bounding the scheme to 32 characters — longer than every
+# registered URI scheme — makes the scan linear without narrowing what it finds.
+_URL_IN_TEXT = re.compile(
+    r"(?<![A-Za-z0-9+.\-])[a-z][a-z0-9+.\-]{0,31}://[^\s\"'<>)]+", re.I)
 
 
 def normalize_action(call: dict, *, budget: int = NODE_BUDGET) -> NormalizedAction:
@@ -417,7 +471,7 @@ def normalize_action(call: dict, *, budget: int = NODE_BUDGET) -> NormalizedActi
     # feeds `semantic_text`, which identity binds to and which must NOT: two
     # spellings of one transition have to hash alike.
     parts: list[str] = [family, raw_tool.lower()]
-    semantic: list[str] = [family]
+    semantic: list[str] = [f"tool={family}"]
     pairs: list[tuple[str, Any]] = []
     hosts: list[str] = []
     truncated = False
@@ -428,7 +482,6 @@ def normalize_action(call: dict, *, budget: int = NODE_BUDGET) -> NormalizedActi
             pairs.append((key, value))
             if key:
                 parts.append(key)
-                semantic.append(key)
             if _scalar(value) and value is not None:
                 raw = str(value)
                 parts.append(raw)
@@ -438,19 +491,32 @@ def normalize_action(call: dict, *, budget: int = NODE_BUDGET) -> NormalizedActi
                 command = normalize_command(raw)
                 if command != folded:
                     parts.append(command)
-                semantic.append(command or folded)
                 for url in _URL_IN_TEXT.findall(folded):
                     host = normalize_host(urlparse(url).hostname or "")
                     if host:
                         hosts.append(host)
                         parts.append(host)
-                        semantic.append(host)
     except BudgetExhausted as exc:
         truncated, reason = True, str(exc)
 
     if not truncated:
         try:
             parts.extend(_concatenations(args, budget=budget))
+        except BudgetExhausted as exc:
+            truncated, reason = True, str(exc)
+
+    # Semantic identity: one `path=value` token per scalar, so a value cannot
+    # change which FIELD it sits in without changing the hash. Sorted, so
+    # argument order still does not matter.
+    if not truncated:
+        try:
+            for path, scalar in iter_paths(args, budget=budget):
+                if scalar is None:
+                    semantic.append(f"{path}=\u0000none")
+                    continue
+                raw = str(scalar)
+                semantic.append(
+                    f"{path}=\u0000{normalize_command(raw) or normalize_text(raw)}")
         except BudgetExhausted as exc:
             truncated, reason = True, str(exc)
 

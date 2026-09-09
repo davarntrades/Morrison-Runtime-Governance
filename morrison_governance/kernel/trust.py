@@ -257,6 +257,11 @@ class SecurityContext:
     # high-value workloads; the cost is more escalations, not less safety.
     continuity_window_s: float = 3600.0
 
+    # How many authorisations one identity may hold reserved-but-unexecuted.
+    # Beyond this, further authorisation escalates until the caller executes or
+    # releases. 0 disables the limit.
+    max_outstanding_reservations: int = 64
+
     # What to do when the persistent identity cannot be established:
     # "escalate" (default) | "block" | "permit". "permit" is an explicit,
     # auditable opt-out, not a silent one.

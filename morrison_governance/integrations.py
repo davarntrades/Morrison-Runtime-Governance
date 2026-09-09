@@ -488,8 +488,7 @@ def govern_langchain_tool(guard: GovernanceGuard, tool: Any) -> Any:
             continue
 
         def gated(*args, __orig=original, **kwargs):
-            payload = kwargs if kwargs else (args[0] if args else {})
-            return _govern_callable(guard, name, payload, __orig, args, kwargs)
+            return _govern_callable(guard, name, __orig, args, kwargs)
 
         try:
             setattr(tool, attr, gated)
@@ -501,12 +500,30 @@ def govern_langchain_tool(guard: GovernanceGuard, tool: Any) -> Any:
     return tool
 
 
-def _govern_callable(guard: GovernanceGuard, name: str, payload: Any,
+def _govern_callable(guard: GovernanceGuard, name: str,
                      original: Callable, args: tuple, kwargs: dict) -> Any:
-    """Run `original` only as the executor of a kernel-authorised decision."""
+    """Run `original` only as the executor of a kernel-authorised decision.
+
+    ATK-09. The proposal used to be `kwargs if kwargs else args[0]`, and the
+    original was then called with the FULL `*args, **kwargs`. Everything after
+    the first positional argument was invisible to governance and arrived at the
+    tool intact — `{"sql": "DROP DATABASE prod"}` and `"rm -rf /"` both did.
+
+    The proposal is now everything the tool will receive. A single dict
+    positional keeps its natural shape, because that is how these tools are
+    normally called and flattening it would change every capability rule that
+    reads argument key names.
+    """
+    proposal: dict = {}
+    if len(args) == 1 and not kwargs and isinstance(args[0], dict):
+        proposal = _governable(args[0])
+    else:
+        if args:
+            proposal["_positional"] = _governable(list(args))
+        proposal.update(_governable(kwargs))
+
     decision, executed, out = guard.dispatch(
-        name, payload if isinstance(payload, dict) else {"_positional": payload},
-        lambda _governed: original(*args, **kwargs))
+        name, proposal, lambda _governed: original(*args, **kwargs))
     if not executed:
         raise GovernanceError(decision)
     return out
@@ -520,11 +537,7 @@ class _CallableToolProxy:
             tool, name, guard, original)
 
     def __call__(self, *a, **kw):
-        payload = kw or (a[0] if a else {})
-        return _govern_callable(
-            self._guard, self.name,
-            payload if isinstance(payload, dict) else {"_positional": payload},
-            self._orig, a, kw)
+        return _govern_callable(self._guard, self.name, self._orig, a, kw)
 
     def __getattr__(self, item):
         return getattr(self._tool, item)
@@ -584,11 +597,7 @@ def register_autogen_guard(agent: Any, guard: GovernanceGuard) -> Any:
         return agent
     for fname, fn in list(fmap.items()):
         def wrapped(*args, __fn=fn, __n=fname, **kwargs):
-            payload = kwargs or (args[0] if args else {})
-            return _govern_callable(
-                guard, __n,
-                payload if isinstance(payload, dict) else {"_positional": payload},
-                __fn, args, kwargs)
+            return _govern_callable(guard, __n, __fn, args, kwargs)
         fmap[fname] = wrapped
     return agent
 
@@ -683,7 +692,18 @@ def wrap_mcp_call_tool(guard: GovernanceGuard, call_tool: Callable) -> Callable:
             try:
                 result = await call_tool(name, arguments, *a, **kw)
             except Exception:
-                kernel.release(decision)
+                # ATK-04. This used to `release(decision)`, freeing the
+                # trajectory slot. A handler can raise AFTER it has acted: the
+                # read happened, the exception scrubbed it from the trajectory,
+                # and the follow-up exfiltration was then decided against a
+                # history that no longer showed the read.
+                #
+                # `release` is correct for a decision the caller CHOSE not to
+                # execute. It is wrong for one whose executor may already have
+                # acted, and this wrapper cannot tell the difference — so it
+                # commits, matching `kernel.execute`, where a failed execution
+                # is not a free retry.
+                kernel.record_remote_execution(decision)
                 raise
             kernel.record_remote_execution(decision)
             return result
@@ -703,6 +723,25 @@ def wrap_mcp_call_tool(guard: GovernanceGuard, call_tool: Callable) -> Callable:
 # ─────────────────────────────────────────────────────────────
 # Shell execution
 # ─────────────────────────────────────────────────────────────
+
+def _governable(value: Any, _depth: int = 0) -> Any:
+    """Render an arbitrary argument into something the kernel can classify.
+
+    Containers are walked; anything else degrades to its `repr`, which keeps a
+    non-JSON argument visible to classification instead of silently dropping it.
+    Deliberately total: an argument the kernel cannot read is an argument the
+    kernel cannot veto.
+    """
+    if _depth > 8:
+        return repr(value)
+    if isinstance(value, dict):
+        return {str(k): _governable(v, _depth + 1) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [_governable(v, _depth + 1) for v in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return repr(value)
+
 
 def governed_run(
     guard: GovernanceGuard, command: Any,
@@ -724,7 +763,13 @@ def governed_run(
             run = subprocess.run
         return run(command, **kwargs)
 
-    decision, executed, out = guard.dispatch(tool, {"cmd": text}, _spawn)
+    # ATK-03. The command text used to be the only thing governed, and `cwd`,
+    # `env` and `shell` went straight to the runner. An `LD_PRELOAD` in `env`
+    # changes what a command does more than most edits to the command would, and
+    # the kernel never saw it. Everything that shapes the invocation is part of
+    # the proposal.
+    decision, executed, out = guard.dispatch(
+        tool, {"cmd": text, "options": _governable(kwargs)}, _spawn)
     if not executed:
         raise GovernanceError(decision)
     return out

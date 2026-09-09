@@ -30,6 +30,7 @@ import contextlib
 import threading
 import time
 import uuid
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
@@ -147,6 +148,11 @@ class Decision:
     destination: dict = field(default_factory=dict)
     trajectory_hash: str = ""
     evidence: Optional[EvidenceRecord] = None
+    # The canonical tool family this proposal resolved to. Aliasing is what
+    # stops `run_shell` executing what `shell` is refused, and it also means an
+    # approval covers every member of the family with the same arguments. That
+    # widening is a real consequence, so it is surfaced rather than implied.
+    tool_family: str = ""
 
     # ── single-use + freshness binding ───────────────────────
     # A PERMIT used to be an unbounded bearer token: it carried an action hash
@@ -161,6 +167,12 @@ class Decision:
     ruleset_hash: str = ""
     issued_at: float = 0.0
     expires_at: float = 0.0
+    # Wall-clock instant this decision was minted, independent of the `now` the
+    # caller passed. `now` exists so a finite-model verifier can drive the
+    # kernel on its own clock; it is a public parameter, so a far-future value
+    # produced a lease that would not expire for a year. Freshness is checked
+    # against BOTH clocks and the stricter one wins.
+    issued_wall: float = 0.0
     reserved: bool = False             # holds a slot in the trajectory
 
     def binding(self) -> dict:
@@ -217,6 +229,7 @@ class Decision:
             "verdict": self.verdict, "reason": self.reason, "layer": self.layer,
             "action_hash": self.action_hash,
             "capabilities": sorted(self.capabilities),
+            "tool_family": self.tool_family,
             "requirement": self.requirement, "rule": self.rule,
             "omega_domain": self.omega_domain,
             "authorization": self.authorization,
@@ -465,6 +478,11 @@ class GovernanceKernel:
         if decision.expires_at and now > decision.expires_at:
             return (f"decision expired {now - decision.expires_at:.1f}s ago; "
                     f"re-authorise against the current trajectory")
+        wall_age = time.time() - (decision.issued_wall or time.time())
+        if decision.issued_wall and wall_age > self.decision_ttl_s:
+            return (f"decision was minted {wall_age:.1f}s ago in wall-clock "
+                    f"terms, beyond the {self.decision_ttl_s:.0f}s lease; a "
+                    f"caller-supplied clock cannot extend a lease")
         if decision.ruleset_hash and decision.ruleset_hash != self._ruleset_hash:
             return ("the governing ruleset changed after this decision was "
                     "issued; re-authorise under the current policy")
@@ -844,6 +862,24 @@ class GovernanceKernel:
                     f"execution cannot be shown to be admissible",
                     "continuity_store_unavailable", None))
 
+        # ── outstanding reservations ────────────────────────
+        # ATK-06. Every authorization reserves, and nothing bounded how many
+        # reservations one actor could hold. An agent that authorizes and never
+        # executes grew its own prefix without limit, raising the cost of every
+        # later decision — an actor-controlled denial of service against the
+        # chokepoint. Holding many un-redeemed permits is also not a shape any
+        # legitimate agent needs.
+        if reserve:
+            outstanding = sum(1 for a in self.ledger if a.state == RESERVED)
+            cap = int(getattr(self.ctx, "max_outstanding_reservations", 0) or 0)
+            if cap and outstanding >= cap:
+                candidates.append((
+                    ESCALATE, "reservation_limit",
+                    f"{outstanding} authorisations are already reserved and "
+                    f"unexecuted for {self.continuity.name!r} (limit {cap}); "
+                    f"execute or release them before authorising more",
+                    "too_many_outstanding_reservations", None))
+
         # ── payload could not be fully read ─────────────────
         # `normalize_action` walks to exhaustion under a node budget. When the
         # budget runs out the classifiers decided on a PARTIAL reading, and a
@@ -954,10 +990,12 @@ class GovernanceKernel:
             trajectory_hash=traj_hash,
             engine_time_ms=engine_ms,
             decision_time_ms=(time.perf_counter() - _t0) * 1000.0,
+            tool_family=norm.tool,
             decision_id=uuid.uuid4().hex, semantic_hash=shash,
             session_id=self.session_id, principal_id=self.ctx.principal.id,
             ruleset_hash=self._ruleset_hash, issued_at=now,
-            expires_at=now + self.decision_ttl_s)
+            expires_at=now + self.decision_ttl_s,
+            issued_wall=time.time())
 
         with _sw("evidence_sealing"):
             decision.evidence = self.chain.append(EvidenceRecord(
@@ -1056,7 +1094,18 @@ class GovernanceKernel:
                 return False, ("refused: decision was issued without a "
                                "trajectory reservation")
 
-            target = decision.action if call is None else canonicalize(call)
+            # ATK-02. `decision.action` is a mutable dict the CALLER holds a
+            # reference to. Hashing it and then handing the same object to the
+            # executor proves only that it matched at the moment it was checked:
+            # a concurrent thread mutated `value=info` into `value=disabled,
+            # mfa_required=false` in the window, and the executor ran the
+            # mutation under a PERMIT for the original.
+            #
+            # The executor now receives a private deep copy taken BEFORE the
+            # hash, so what is hashed and what runs are the same bytes and
+            # nothing outside this frame can reach them.
+            target = deepcopy(decision.action if call is None
+                              else canonicalize(call))
             actual = action_hash(target)
             if actual != decision.action_hash:
                 self._record_refusal(
