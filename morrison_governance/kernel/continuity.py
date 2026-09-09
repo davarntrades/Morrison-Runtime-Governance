@@ -55,6 +55,7 @@ further, and should say so. See LIMITATIONS.md.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -67,6 +68,12 @@ from typing import Any, Iterable, Optional, Protocol
 DENIED = "denied"
 RESERVED = "reserved"
 EXECUTED = "executed"
+# A reservation whose lease lapsed without ever being released or confirmed.
+# It is NOT an abandoned plan: the caller held a PERMIT and may have run it —
+# a decision-plane runtime that crashes after acting looks exactly like this.
+# Treated as history, because "we do not know" must not read as "it did not
+# happen".
+UNCONFIRMED = "unconfirmed"
 
 # How the kernel behaves when continuity cannot be established.
 ESCALATE_POLICY = "escalate"
@@ -82,6 +89,7 @@ _SAFE = re.compile(r"[^a-z0-9._:-]+")
 
 
 def _slug(value: str) -> str:
+    """A READABLE label. Lossy by design; never used alone as an identity."""
     return _SAFE.sub("_", str(value or "").strip().lower())
 
 
@@ -93,8 +101,33 @@ class ContinuityKey:
     principal: str
     workload: str = ""
 
+    def fingerprint(self) -> str:
+        """A collision-free digest of the exact identity triple.
+
+        The readable slug is NOT an identity. It replaces every character
+        outside `[a-z0-9._:-]` with `_` and joins the three fields with `/`,
+        and since `/` is itself replaceable the mapping is many-to-one:
+        `("acme", "agent-x/y")` and `("acme", "agent-x_y")` produced the same
+        string, so two distinct principals shared one governed history. That
+        defeats the isolation property (CONT-05) which is what makes continuity
+        safe rather than blunt, and it needs no forgery — identity providers
+        emit names containing `/` routinely.
+
+        The digest is taken over a length-prefixed encoding, so no arrangement
+        of separators inside a field can imitate a field boundary.
+        """
+        parts = [self.tenant, self.principal, self.workload]
+        encoded = "\x1f".join(f"{len(p)}:{p}" for p in parts)
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:32]
+
     def as_str(self) -> str:
-        return f"{_slug(self.tenant)}/{_slug(self.principal)}/{_slug(self.workload)}"
+        """The storage key: a readable prefix plus the collision-free digest.
+
+        The prefix is for operators reading a store by eye; the digest is what
+        makes the key an identity.
+        """
+        return (f"{_slug(self.tenant)}/{_slug(self.principal)}/"
+                f"{_slug(self.workload)}#{self.fingerprint()}")
 
     def __str__(self) -> str:            # pragma: no cover - convenience
         return self.as_str()
@@ -159,7 +192,16 @@ class LedgerEntry:
     semantic_hash: str = ""
     capabilities: tuple = ()
     timestamp: float = 0.0
+    # The wall-clock instant this entry was filed, independent of the `now` the
+    # caller passed. `timestamp` may be an evaluation clock — a finite-model
+    # verifier legitimately drives the kernel from t=0 — and the retention
+    # window used to filter on it, so an action executed with `now=0.0` was
+    # filed outside every realistic window and vanished from the very next
+    # decision. Retention filters on THIS field.
+    wall_timestamp: float = 0.0
     expires_at: float = 0.0
+    # Wall-clock deadline for a reservation, for the same reason.
+    wall_expires_at: float = 0.0
     seq: int = 0
 
     def to_json(self) -> str:
@@ -201,6 +243,15 @@ class ContinuityStore(Protocol):
     def revoke(self, key: str, semantic_hash: str, reason: str) -> None: ...
     def revocation(self, key: str, semantic_hash: str): ...
     def health(self) -> None: ...
+
+    def scope(self) -> str:
+        """How far this store's continuity reaches.
+
+        One of "process", "host", "deployment". Surfaced on every decision so a
+        deployment can ASSERT the scope of the guarantee it is relying on
+        instead of believing it. A store shared across a fleet returns
+        "deployment"; the built-in stores do not, and say so.
+        """
 
 
 class InMemoryContinuityStore:
@@ -279,6 +330,9 @@ class InMemoryContinuityStore:
 
     def health(self) -> None:
         return None
+
+    def scope(self) -> str:
+        return "process"
 
     def reset(self) -> None:
         """Drop all history. For tests and for an operator wiping a deployment."""
@@ -439,6 +493,9 @@ class FileContinuityStore:
                 return (str(record.get("reason") or "revoked"),
                         float(record.get("timestamp") or 0.0))
         return None
+
+    def scope(self) -> str:
+        return "host"
 
     def health(self) -> None:
         """Raise if the store cannot be written. The kernel fails closed on it."""

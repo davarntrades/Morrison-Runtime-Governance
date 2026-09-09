@@ -42,6 +42,7 @@ from morrison_governance.integrations import (
     governed_run, WorkflowGovernor,
 )
 from morrison_governance.kernel import Principal, SecurityContext
+from morrison_governance.kernel import capabilities as C
 
 KEY = b"adapter-test-approval-key"
 
@@ -52,7 +53,21 @@ def _ctx(**kw):
         signing_key=KEY, trusted_issuers=frozenset({"security-review"}),
         internal_url_hosts=("intranet.corp", "docs.internal"),
         internal_email_domains=("acme.com",),
-        tool_manifest={}, unknown_tool_policy="escalate",
+        # MED-02: an empty manifest now means NOTHING is declared, so every
+        # tool is undeclared and the fail-closed policy fires. That is the
+        # point of the rule, so these fixtures declare what they use — which is
+        # what a real deployment has to do.
+        tool_manifest={
+            "read_file": [C.CAP_DATA_READ], "query_db": [C.CAP_DATA_READ],
+            "summarize": [], "analyze": [], "apply_config": [],
+            "http_request": [C.CAP_EXTERNAL_DATA_MOVE],
+            "http_post": [C.CAP_EXTERNAL_DATA_MOVE],
+            "shell": [C.CAP_CODE_EXEC], "exec": [C.CAP_CODE_EXEC],
+            "browser_navigate": [], "browser_click": [], "browser_type": [],
+            "download": [C.CAP_DATA_READ], "upload": [C.CAP_EXTERNAL_DATA_MOVE],
+            "get_data": [C.CAP_DATA_READ],
+        },
+        unknown_tool_policy="escalate",
     )
     base.update(kw)
     return SecurityContext(**base)

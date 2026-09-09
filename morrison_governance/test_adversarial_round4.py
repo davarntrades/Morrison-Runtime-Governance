@@ -1,9 +1,10 @@
-"""Round-four adversarial evaluation — CHARACTERIZATION.
+"""Round-four adversarial evaluation — ACCEPTANCE.
 
-STATUS AT THE TIME THIS FILE WAS WRITTEN: these tests assert the BROKEN
-behaviour. Committed in that form deliberately, so an external evaluator can see
-the failures we found ourselves before seeing the fix. They are inverted to
-acceptance tests in the commit that closes them; the attacks do not change.
+HISTORY OF THIS FILE. It was committed first as a CHARACTERIZATION suite whose
+tests asserted the BROKEN behaviour, deliberately, so an external evaluator can
+see the failures we found ourselves in the state we found them (commit
+`f97039d`). Every test below is now inverted to assert containment. The attacks
+are unchanged; the expected outcomes are not.
 
 Claim under test — UNCHANGED
 ----------------------------
@@ -171,9 +172,9 @@ COLLIDING_IDENTITIES = [
 
 @pytest.mark.parametrize("label,first,second", COLLIDING_IDENTITIES,
                          ids=[c[0] for c in COLLIDING_IDENTITIES])
-def test_med_01_distinct_identities_collide_into_one_continuity_key(
+def test_med_01_distinct_identities_get_distinct_continuity_keys(
         label, first, second):
-    """MED-01 — `ContinuityKey.as_str` is not injective.
+    """MED-01, CLOSED — `ContinuityKey.as_str` was not injective.
 
     It slugs each field by replacing every character outside
     `[a-z0-9._:-]` with `_`, then joins with `/`. Replacement is
@@ -185,42 +186,53 @@ def test_med_01_distinct_identities_collide_into_one_continuity_key(
     defeats it — without forging anything, because a tenant or principal name
     containing `/` is an ordinary thing for an identity provider to emit.
 
-    Classification: C, specification failure — the identity relationship is
-    incorrectly represented.
+    The key is now a readable prefix plus a digest over a LENGTH-PREFIXED
+    encoding of the exact triple, so no arrangement of separators inside a
+    field can imitate a field boundary.
+
+    Was: C, specification failure — the identity relationship was incorrectly
+    represented.
     """
     first_key = resolve_continuity(
         Principal(id=first[1], tenant=first[0])).key.as_str()
     second_key = resolve_continuity(
         Principal(id=second[1], tenant=second[0])).key.as_str()
-    assert first_key == second_key
+    assert first_key != second_key
 
 
-def test_med_01b_the_collision_merges_governed_history():
-    """MED-01b — the consequence: one principal inherits another's taint."""
+def test_med_01b_the_collision_no_longer_merges_governed_history():
+    """MED-01b, CLOSED — the consequence: one principal inherited another's
+    taint. Isolation (CONT-05) is restored for these identities."""
     reader = _ctx(principal=Principal(id="agent-x/y", tenant="acme"))
     other = _ctx(principal=Principal(id="agent-x_y", tenant="acme"))
     rt = _Runtime()
 
     assert _kernel(reader).submit(READ, rt)[1] is True
     decision, executed, _ = _kernel(other).submit(EXFIL, rt)
-    assert decision.verdict == BLOCK
-    assert executed is False
+    assert decision.verdict == PERMIT
+    assert executed is True
+
+    # ...and the SAME principal is still governed by its own history.
+    same, rt_same = _kernel(reader), _Runtime()
+    assert same.submit(EXFIL, rt_same)[0].verdict == BLOCK
 
 
 # ═══════════════════════════════════════════════════════════════
 # MED-02 — fail-closed must actually fire
 # ═══════════════════════════════════════════════════════════════
 
-def test_med_02_an_empty_manifest_disables_the_unknown_tool_rule():
-    """MED-02 — the unknown-tool check is guarded by `if self.ctx.tool_manifest`.
+def test_med_02_an_empty_manifest_does_not_disable_the_unknown_tool_rule():
+    """MED-02, CLOSED — the check was guarded by `if self.ctx.tool_manifest`.
 
     A deployment that has declared nothing yet therefore has the fail-closed
     rule silently inert: every tool is undeclared, and none of them escalate.
     The least-configured deployment gets the weakest enforcement, which is the
     wrong direction for a default.
 
-    Classification: C, specification failure — fail-open on absent
-    configuration.
+    An empty manifest now means NOTHING is declared, so everything is
+    undeclared and the configured policy fires.
+
+    Was: C, specification failure — fail-open on absent configuration.
     """
     declared = _kernel(_ctx(tool_manifest=MANIFEST, unknown_tool_policy="block"))
     assert declared.authorize(
@@ -228,14 +240,20 @@ def test_med_02_an_empty_manifest_disables_the_unknown_tool_rule():
 
     undeclared = _kernel(_ctx(tool_manifest={}, unknown_tool_policy="block"))
     decision = undeclared.authorize({"tool": "zx_undeclared_op", "args": {"x": 1}})
-    assert decision.verdict == PERMIT
+    assert decision.verdict == BLOCK
+    assert decision.layer == "unknown_tool"
+
+    # A declared tool in a declared manifest is unaffected.
+    assert _kernel(_ctx()).authorize(
+        {"tool": "read_file", "args": {"path": "/app/README.md"}}
+    ).verdict == PERMIT
 
 
 # ═══════════════════════════════════════════════════════════════
 # MED-03 / MED-13 — trusted state must bind the lease
 # ═══════════════════════════════════════════════════════════════
 
-def test_med_03_a_stale_lease_executes_under_a_superseded_policy():
+def test_med_03_a_stale_lease_is_refused_under_a_superseded_policy():
     """MED-03 — `_ruleset_hash` is computed once in `__init__` and only
     refreshed by an explicit `refresh_ruleset()` call.
 
@@ -246,9 +264,12 @@ def test_med_03_a_stale_lease_executes_under_a_superseded_policy():
 
     The earlier E2 fix appeared to cover this because the tightened policy
     produced a BLOCK, and a BLOCK revokes the transition. Tighten to ESCALATE
-    instead and nothing revokes: the lease executes.
+    instead and nothing revoked: the lease executed.
 
-    Classification: A, mechanism failure.
+    The ruleset hash is now computed LIVE at every lease check, so there is no
+    cached state to forget to refresh.
+
+    Was: A, mechanism failure.
     """
     ctx = _ctx()
     kernel, rt = _kernel(ctx), _Runtime()
@@ -258,21 +279,25 @@ def test_med_03_a_stale_lease_executes_under_a_superseded_policy():
     ctx.policy_values["capability_policy"] = {"data.read": "approval"}
     assert kernel.authorize(READ).verdict == ESCALATE
 
-    executed, _ = kernel.execute(decision, rt)
-    assert executed is True
-    assert rt.executed == ["query_db"]
+    executed, reason = kernel.execute(decision, rt)
+    assert executed is False
+    assert "ruleset changed" in reason
+    assert rt.executed == []
 
 
-def test_med_13_the_destination_is_not_re_resolved_at_commit():
-    """MED-13 — the same defect for destination configuration.
+def test_med_13_the_destination_is_re_resolved_at_commit():
+    """MED-13, CLOSED — the same defect for destination configuration.
 
     A destination resolved internal at authorize is never resolved again. If
     the allowlist is revoked between authorize and execute — a config change, a
     rebinding, a rotated boundary — the lease still commits against the old
     resolution.
 
-    Classification: A, mechanism failure (TOCTOU between semantic
-    authorization and actual execution).
+    Destination configuration is not part of the ruleset hash — it is not a
+    policy value — so it is re-resolved explicitly at commit.
+
+    Was: A, mechanism failure (TOCTOU between semantic authorization and
+    actual execution).
     """
     ctx = _ctx(internal_url_hosts=("acme.internal",))
     kernel, rt = _kernel(ctx), _Runtime()
@@ -283,15 +308,17 @@ def test_med_13_the_destination_is_not_re_resolved_at_commit():
     assert decision.destination["external"] is False
 
     ctx.internal_url_hosts = ()
-    executed, _ = kernel.execute(decision, rt)
-    assert executed is True
+    executed, reason = kernel.execute(decision, rt)
+    assert executed is False
+    assert "resolves as EXTERNAL now" in reason
+    assert rt.executed == []
 
 
 # ═══════════════════════════════════════════════════════════════
 # MED-04 — the clock must be trustworthy
 # ═══════════════════════════════════════════════════════════════
 
-def test_med_04_the_now_parameter_launders_taint_out_of_the_window():
+def test_med_04_the_now_parameter_cannot_launder_taint_out_of_the_window():
     """MED-04 — `continuity_window_s` filters history by the entry timestamp,
     and the entry timestamp is the caller-supplied `now`.
 
@@ -301,9 +328,10 @@ def test_med_04_the_now_parameter_launders_taint_out_of_the_window():
 
     `now` is already recorded as privileged (T4), but ATK-05 bounded only the
     LEASE against it. The retention window was left reading the same untrusted
-    value.
+    value. Entries now carry a `wall_timestamp` the caller cannot choose, and
+    retention filters on that.
 
-    Classification: A, mechanism failure.
+    Was: A, mechanism failure.
     """
     ctx = _ctx()
     rt = _Runtime()
@@ -314,18 +342,19 @@ def test_med_04_the_now_parameter_launders_taint_out_of_the_window():
     assert rt.executed == ["query_db"]
 
     later = _kernel(ctx)
-    assert later.executed_history == []
+    assert [a["tool"] for a in later.executed_history] == ["query_db"]
     exfil, executed, _ = later.submit(EXFIL, rt)
-    assert exfil.verdict == PERMIT
-    assert executed is True
+    assert exfil.verdict == BLOCK
+    assert executed is False
+    assert rt.executed == ["query_db"]
 
 
 # ═══════════════════════════════════════════════════════════════
 # MED-05 / MED-06 — records must match reality
 # ═══════════════════════════════════════════════════════════════
 
-def test_med_05_evidence_contradicts_the_ledger_on_a_partial_failure():
-    """MED-05 — an executor that acts and then raises.
+def test_med_05_evidence_agrees_with_the_ledger_on_a_partial_failure():
+    """MED-05, CLOSED — an executor that acts and then raises.
 
     The reservation is committed as EXECUTED before the executor runs, which is
     the safe direction: the taint is retained. But the evidence record is then
@@ -333,10 +362,14 @@ def test_med_05_evidence_contradicts_the_ledger_on_a_partial_failure():
     disagree — the ledger says it happened, the evidence says it did not, and
     the effect really did happen.
 
-    An auditor reading the evidence chain concludes no execution occurred.
+    An auditor reading the evidence chain concluded no execution occurred.
 
-    Classification: C, specification failure — the evidence model has no way to
-    say "committed, outcome unknown", so it says something false.
+    The outcome record now says the action was COMMITTED with an outcome that
+    is UNKNOWN, which is both true and consistent with the ledger. "We do not
+    know whether it landed" is a different statement from "it did not land",
+    and only one of them is safe to record.
+
+    Was: C, specification failure.
     """
     kernel = _kernel()
     effects: list[str] = []
@@ -351,52 +384,68 @@ def test_med_05_evidence_contradicts_the_ledger_on_a_partial_failure():
     assert executed is False
     assert effects == ["query_db"], "the effect really happened"
     assert [a.state for a in kernel.ledger] == ["executed"]
-    assert decision.evidence.executed is False, "and the evidence denies it"
+
+    outcome = [r for r in kernel.chain.records if r.layer == "execution"]
+    assert outcome, "an execution outcome was sealed"
+    assert outcome[-1].executed is True, "the evidence agrees the effect committed"
+    assert "UNKNOWN" in (outcome[-1].execution_result or ""), \
+        "and is honest that the result is not known"
+    assert kernel.integrity()["evidence_verified"] is True
 
 
-def test_med_06_a_governance_dependency_failure_leaves_no_record():
-    """MED-06 — a store failure inside `execute` propagates as a raw exception.
+def test_med_06_a_governance_dependency_failure_is_a_recorded_refusal():
+    """MED-06, CLOSED — a store failure inside `execute` propagated raw.
 
     Nothing is written to the evidence chain and nothing is added to the
     ledger, so a governance-dependency outage is invisible in the audit trail.
-    Whether it fails open depends entirely on what the CALLER does with the
+    Whether it failed open depended entirely on what the CALLER did with the
     exception, which is exactly the decision the governance layer exists to
-    take away from the caller.
+    take away from the caller. It is now a refusal, sealed in evidence.
 
-    Classification: C, specification failure — an unavailable dependency is a
-    governance event and is not modelled as one.
+    Was: C, specification failure — an unavailable dependency is a governance
+    event and was not modelled as one.
     """
     store = _FlakyStore()
     kernel = _kernel(_ctx(continuity_store=store))
     decision = kernel.authorize(READ)
     records_before = len(kernel.chain.records)
+    rt = _Runtime()
 
     store.arm("consume")
-    with pytest.raises(OSError):
-        kernel.execute(decision, _Runtime())
+    executed, reason = kernel.execute(decision, rt)
+    assert executed is False
+    assert "could not complete its checks" in reason
+    assert rt.executed == []
 
     store.fail = set()
-    assert len(kernel.chain.records) == records_before
-    assert [a.state for a in kernel.ledger] == ["reserved"]
+    assert len(kernel.chain.records) > records_before
+    sealed = kernel.chain.records[-1]
+    assert sealed.decision == BLOCK
+    assert sealed.rule == "governance_dependency_failure"
 
 
 # ═══════════════════════════════════════════════════════════════
 # MED-10 — lost confirmations must fail safe
 # ═══════════════════════════════════════════════════════════════
 
-def test_med_10_a_lost_remote_confirmation_erases_a_real_effect():
-    """MED-10 — the decision-plane deployment.
+def test_med_10_a_lost_remote_confirmation_does_not_erase_a_real_effect():
+    """MED-10, CLOSED — the decision-plane deployment.
 
     `authorize` reserves, a remote runtime executes, and
     `record_remote_execution` confirms. If the confirmation is lost — the
     worker crashed, the network dropped it, the queue lost it — the reservation
     simply lapses at its lease deadline and disappears from history.
 
-    The lease TTL is doing two incompatible jobs: freeing a plan the caller
+    The lease TTL was doing two incompatible jobs: freeing a plan the caller
     abandoned, and expiring a dispatch whose outcome is unknown. The first
     should vanish. The second must not: it may have executed.
 
-    Classification: A, mechanism failure.
+    A lapsed reservation is now UNCONFIRMED and stays in the trajectory.
+    Nothing that was permitted leaves the trajectory by the passage of time; it
+    leaves only by an explicit `release`, which the caller can only do while
+    the lease is still live, or by ageing past the retention window.
+
+    Was: A, mechanism failure.
     """
     # The kernel's own egress rule consults the LEDGER, which retains a lapsed
     # reservation, so it masks this finding. Turning that rule off isolates the
@@ -416,21 +465,43 @@ def test_med_10_a_lost_remote_confirmation_erases_a_real_effect():
     store = dispatcher.store
     key = dispatcher.continuity_key
     bucket = store._entries[key]
-    bucket[0] = dataclasses.replace(bucket[0], expires_at=time.time() - 1_000)
+    bucket[0] = dataclasses.replace(
+        bucket[0], expires_at=time.time() - 1_000,
+        wall_expires_at=time.time() - 1_000)
 
     lapsed = _kernel(ctx)
-    assert lapsed.executed_history == []
-    decision_after, executed, _ = lapsed.submit(EXFIL, _Runtime())
-    assert decision_after.verdict == PERMIT
-    assert executed is True
+    assert [a["tool"] for a in lapsed.executed_history] == ["query_db"]
+    assert [a.state for a in lapsed.ledger] == ["unconfirmed"]
+    rt = _Runtime()
+    decision_after, executed, _ = lapsed.submit(EXFIL, rt)
+    assert decision_after.verdict == BLOCK
+    assert executed is False
+    assert rt.executed == []
+
+
+def test_med_10b_an_explicitly_released_plan_still_leaves_no_trace():
+    """The other half: withdrawal must still work, or a planner that authorises
+    more than it runs poisons its own session.
+
+    Release is only possible while the lease is LIVE — once it has lapsed the
+    outcome is unknown and withdrawal would be a way to erase a step that may
+    have executed.
+    """
+    ctx = _ctx()
+    kernel = _kernel(ctx)
+    held = kernel.authorize(READ)
+    assert held.verdict == PERMIT
+    assert kernel.release(held) is True
+    assert kernel.executed_history == []
+    assert _kernel(ctx).authorize(EXFIL).verdict == PERMIT
 
 
 # ═══════════════════════════════════════════════════════════════
 # MED-11 — scope must be visible
 # ═══════════════════════════════════════════════════════════════
 
-def test_med_11_multi_host_continuity_is_fragmented_and_unannounced():
-    """MED-11 — two hosts, two file stores, no shared backend.
+def test_med_11_multi_host_continuity_is_fragmented_and_announced():
+    """MED-11, PARTIALLY CLOSED — two hosts, two file stores, no shared backend.
 
     The fragmentation itself is a documented limitation (L2). What is not
     documented, and what this asserts, is that the kernel gives the caller NO
@@ -438,8 +509,14 @@ def test_med_11_multi_host_continuity_is_fragmented_and_unannounced():
     assert "my continuity is deployment-wide" from anything Morrison reports,
     so the limitation cannot be checked, only believed.
 
-    Classification: C, specification failure — the scope of the guarantee is
-    not part of the guarantee's output.
+    The fragmentation is NOT closed and cannot be by this library: continuity
+    across hosts requires a store the deployment supplies. What is closed is
+    the silence. Every decision now carries `continuity_scope`, so a deployment
+    can ASSERT the reach of the guarantee it relies on instead of believing it,
+    and the built-in stores are honest about being process- and host-local.
+
+    Was: C, specification failure — the scope of the guarantee was not part of
+    the guarantee's output.
     """
     first_host = tempfile.mkdtemp()
     second_host = tempfile.mkdtemp()
@@ -455,7 +532,14 @@ def test_med_11_multi_host_continuity_is_fragmented_and_unannounced():
     assert decision.verdict == PERMIT
     assert executed is True
 
-    assert not hasattr(_kernel(host_b), "continuity_scope")
+    # The limitation is real and now checkable rather than merely believed.
+    assert _kernel(host_b).continuity_scope == "host"
+    assert decision.continuity_scope == "host"
+    assert decision.binding()["continuity_scope"] == "host"
+
+    # A deployment that requires fleet-wide continuity can assert it and fail
+    # its own preflight instead of discovering the gap in production.
+    assert _kernel(_ctx()).continuity_scope == "process"
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -699,7 +699,11 @@ def _documented_guard(on_block="deny") -> GovernanceGuard:
         signing_key=KEY, trusted_issuers=ISSUERS,
         internal_url_hosts=("intranet.yourco.com",),
         internal_email_domains=("yourco.com",),
-        tool_manifest={}, unknown_tool_policy="escalate")
+        # MED-02: an undeclared tool now escalates even when the manifest is
+        # empty, so a deployment fixture has to declare what it uses.
+        tool_manifest={"query_db": [C.CAP_DATA_READ],
+                       "http_post": [C.CAP_EXTERNAL_DATA_MOVE]},
+        unknown_tool_policy="escalate")
     return GovernanceGuard(gov, security_context=ctx, on_block=on_block)
 
 
