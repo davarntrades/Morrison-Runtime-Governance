@@ -127,8 +127,12 @@ def test_projection_and_evidence_package_are_deterministic_for_same_record():
     second = _project(record)
     assert first["safety_envelope"]["envelope"] == \
         second["safety_envelope"]["envelope"]
-    assert first["evidence_package"]["package_hash"] == \
-        second["evidence_package"]["package_hash"]
+    # `evidence_package` is None when no package was built, so determinism of
+    # its hash is only meaningful once both projections actually produced one.
+    first_package = first["evidence_package"]
+    second_package = second["evidence_package"]
+    assert first_package is not None and second_package is not None
+    assert first_package["package_hash"] == second_package["package_hash"]
     assert deterministic_evidence_bundle(record, first)["bundle_hash"] == \
         deterministic_evidence_bundle(record, second)["bundle_hash"]
 
