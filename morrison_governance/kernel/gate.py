@@ -338,6 +338,12 @@ class GovernanceKernel:
         # Single-use and revocation state live in the continuity store, not on
         # this object: a decision id spent in one session must stay spent in
         # the next, and a transition refused in one session must stay refused.
+        #
+        # The ruleset digest is memoised on a fingerprint of its mutable inputs
+        # rather than computed once: computing it once was a footgun (a policy
+        # change silently did not invalidate outstanding leases) and computing
+        # it every time dominated the commit path.
+        self._ruleset_cache: Optional[tuple] = None
         self._ruleset_hash = ruleset_hash(
             layer.rules,
             extra={"capability_policy": P.CAPABILITY_POLICY,
@@ -490,13 +496,77 @@ class GovernanceKernel:
                                f"decision:{decision.decision_id}")
             # Only a live reservation may be withdrawn. Once the lease has
             # lapsed the outcome is unknown, and withdrawing it would be a way
-            # to erase a step that may have executed.
+            # to erase a step that may have executed — `reconcile` is the route
+            # for that, and it demands an external attestation.
+            #
+            # Refusing must leave the principal's posture UNCHANGED. Consuming
+            # the decision id above already prevents the release being retried
+            # as an execution; filing a denied attempt as well would make an
+            # ordinary crash look adversarial to every later decision.
             held = self._reservation(decision.decision_id)
             if held is None:
                 return False
             dropped = self.store.drop(self.continuity_key, decision.decision_id)
             decision.reserved = False if dropped else decision.reserved
             return dropped
+
+    def reconcile(self, decision: "Decision", executed: bool,
+                  attestation: str) -> bool:
+        """Resolve a dispatch whose outcome was never confirmed.
+
+        A lapsed reservation is UNCONFIRMED and stays in the trajectory, which
+        is correct — it may have run. Without a way back, a single crashed
+        worker refused egress to every other workflow under the same service
+        account for the whole retention window, and `release` was rightly
+        unable to help. Safety with no reconciliation path is an availability
+        failure, and an availability failure is how a control gets configured
+        away.
+
+        This is an OPERATOR action, not an agent action. It requires an
+        `attestation` — what was checked in the target system, and by whom —
+        which is recorded in evidence, because the whole point is that the
+        answer comes from OUTSIDE Morrison. Morrison cannot determine whether
+        the effect landed; it can only record who says it did not, and stand
+        behind that record.
+
+        `executed=True` settles the entry as EXECUTED and keeps the taint.
+        `executed=False` withdraws it, on the attester's authority.
+        Only an UNCONFIRMED entry can be reconciled: a live reservation should
+        be executed or released, and a settled one is already settled.
+        """
+        if not attestation or not str(attestation).strip():
+            raise ValueError(
+                "reconciliation requires an attestation naming what was "
+                "checked outside Morrison and by whom; the outcome of an "
+                "unconfirmed dispatch is not something the kernel can know")
+        with self._lock, self._critical_section():
+            entry = next((a for a in self.ledger
+                          if a.decision_id == decision.decision_id
+                          and a.state == UNCONFIRMED), None)
+            if entry is None:
+                return False
+            now = time.time()
+            if executed:
+                self.store.set_state(self.continuity_key,
+                                     decision.decision_id, EXECUTED, now)
+            else:
+                self.store.drop(self.continuity_key, decision.decision_id)
+            self.chain.append(EvidenceRecord(
+                seq=0, timestamp=now, actor=self.ctx.principal.id,
+                tenant=self.ctx.principal.tenant,
+                action_hash=decision.action_hash, proposed=decision.action,
+                decision=PERMIT if executed else BLOCK, layer="reconciliation",
+                rule="unconfirmed_dispatch_reconciled",
+                reason=(f"unconfirmed dispatch settled as "
+                        f"{'EXECUTED' if executed else 'NOT EXECUTED'} on "
+                        f"external attestation: {attestation}"),
+                ruleset_hash=self._live_ruleset_hash(),
+                engine_version=self.engine_version, executed=executed))
+            return True
+
+    def unconfirmed(self) -> list["Attempt"]:
+        """Dispatches whose outcome is unknown, for an operator to reconcile."""
+        return [a for a in self.ledger if a.state == UNCONFIRMED]
 
     def _revoke(self, semantic_hash: str, reason: str) -> None:
         if self.continuity_key:
@@ -924,14 +994,20 @@ class GovernanceKernel:
         # chokepoint. Holding many un-redeemed permits is also not a shape any
         # legitimate agent needs.
         if reserve:
-            outstanding = sum(1 for a in self.ledger if a.state == RESERVED)
+            # RESERVED *and* UNCONFIRMED. The cap exists to stop an actor
+            # growing its own prefix without limit, and a lease that lapses
+            # into UNCONFIRMED still occupies the trajectory — counting only
+            # live reservations let 40 entries through a cap of 8 simply by
+            # letting each one lapse.
+            outstanding = sum(1 for a in self.ledger
+                              if a.state in (RESERVED, UNCONFIRMED))
             cap = int(getattr(self.ctx, "max_outstanding_reservations", 0) or 0)
             if cap and outstanding >= cap:
                 candidates.append((
                     ESCALATE, "reservation_limit",
-                    f"{outstanding} authorisations are already reserved and "
-                    f"unexecuted for {self.continuity.name!r} (limit {cap}); "
-                    f"execute or release them before authorising more",
+                    f"{outstanding} authorisations are reserved or unconfirmed "
+                    f"for {self.continuity.name!r} (limit {cap}); execute, "
+                    f"release, or reconcile them before authorising more",
                     "too_many_outstanding_reservations", None))
 
         # ── payload could not be fully read ─────────────────
@@ -1284,6 +1360,20 @@ class GovernanceKernel:
             ok, out = self.execute(d, executor)
         return d, ok, out
 
+    def _ruleset_fingerprint(self) -> tuple:
+        """A cheap key over everything the ruleset hash depends on.
+
+        Re-serialising the whole ruleset on every lease check dominated the
+        commit path (~1.3ms of a ~1.5ms execute), and the commit path is the one
+        an agent drives at full rate. Only the MUTABLE inputs need watching: the
+        rule set object itself, the policy values an administrator can change,
+        and the unknown-tool policy.
+        """
+        values = self.ctx.policy_values or {}
+        return (id(self.layer.rules), len(self.layer.rules),
+                repr(sorted(values.items(), key=lambda kv: str(kv[0]))),
+                self.ctx.unknown_tool_policy)
+
     def _live_ruleset_hash(self) -> str:
         """The hash of the ruleset IN FORCE RIGHT NOW.
 
@@ -1294,12 +1384,18 @@ class GovernanceKernel:
         under the policy it was minted under. Computing it live removes the
         footgun: there is no state to forget to refresh.
         """
-        return ruleset_hash(
+        fingerprint = self._ruleset_fingerprint()
+        cached = self._ruleset_cache
+        if cached is not None and cached[0] == fingerprint:
+            return cached[1]
+        digest = ruleset_hash(
             self.layer.rules,
             extra={"capability_policy": P.CAPABILITY_POLICY,
                    "policy_values": {**P.DEFAULT_POLICY_VALUES,
                                      **(self.ctx.policy_values or {})},
                    "unknown_tool_policy": self.ctx.unknown_tool_policy})
+        self._ruleset_cache = (fingerprint, digest)
+        return digest
 
     def _revalidate_at_commit(self, decision: "Decision") -> Optional[str]:
         """Re-derive the trusted facts the PERMIT rested on, at commit time.

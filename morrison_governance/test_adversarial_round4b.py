@@ -1,8 +1,8 @@
-"""Round four, part B — attacking the round-four remediation.
+"""Round four, part B — attacking the round-four remediation. ACCEPTANCE.
 
-STATUS AT THE TIME THIS FILE WAS WRITTEN: these tests assert the BROKEN
-behaviour. Committed in that form deliberately. They are inverted in the commit
-that closes them; the attacks do not change.
+HISTORY OF THIS FILE. Committed first as CHARACTERIZATION, asserting the BROKEN
+behaviour (commit `d5d7913`). Every test below is now inverted to assert
+containment. The attacks are unchanged.
 
 Claim under test — UNCHANGED
 ----------------------------
@@ -109,8 +109,8 @@ def _lapse(kernel: GovernanceKernel) -> None:
 # R4B-01 — the cost of never forgetting
 # ═══════════════════════════════════════════════════════════════
 
-def test_r4b_01_an_abandoned_dispatch_blocks_a_shared_principal_indefinitely():
-    """R4B-01 — MED-10's fix has no way back.
+def test_r4b_01_an_abandoned_dispatch_can_be_reconciled():
+    """R4B-01, CLOSED — MED-10's fix had no way back.
 
     A lapsed reservation is UNCONFIRMED and stays in the trajectory, which is
     right: it may have executed. But there is no path to resolve it either way.
@@ -119,17 +119,27 @@ def test_r4b_01_an_abandoned_dispatch_blocks_a_shared_principal_indefinitely():
     the whole retention window.
 
     `release` correctly refuses to withdraw a lapsed dispatch — that would be a
-    way to erase a step that may have run — but it also files a DENIED attempt
-    while refusing, which makes the principal's posture worse rather than
-    leaving it unchanged.
+    way to erase a step that may have run — and there was no other route.
 
-    Nothing in the deployment can say "we checked the target system; that read
-    never happened" or "it did happen, here is the evidence". Safety without a
-    reconciliation path is an availability failure, and an availability failure
-    is how a control gets configured away.
+    CORRECTION TO THE ORIGINAL CHARACTERIZATION: it claimed `release` also
+    filed a DENIED attempt while refusing, worsening the posture. That was a
+    mis-attribution. The denied entry in the original run came from the blocked
+    egress attempt earlier in the same test, not from `release`, which has
+    always been side-effect-free apart from consuming the decision id. The
+    finding stands on its own without that embellishment: the problem was the
+    absence of a way back, not a side effect of refusing.
 
-    Classification: C, specification failure — the model has no representation
-    for resolving an unknown outcome.
+    Nothing in the deployment could say "we checked the target system; that
+    read never happened". Safety without a reconciliation path is an
+    availability failure, and an availability failure is how a control gets
+    configured away.
+
+    `reconcile()` is that path. It is an OPERATOR action requiring an external
+    attestation, because the answer comes from outside Morrison: the kernel
+    cannot determine whether the effect landed, only record who says it did not
+    and stand behind that record.
+
+    Was: C, specification failure.
     """
     ctx = _ctx()
     dispatcher = _kernel(ctx)
@@ -142,22 +152,69 @@ def test_r4b_01_an_abandoned_dispatch_blocks_a_shared_principal_indefinitely():
     other_workflow = _kernel(ctx)
     assert other_workflow.authorize(EXFIL).verdict == BLOCK
 
-    # There is no way to resolve it, and trying makes it worse.
+    # Refusing to withdraw a lapsed dispatch changes nothing by itself.
+    before = [a.state for a in dispatcher.ledger]
     assert dispatcher.release(abandoned) is False
-    assert [a.state for a in dispatcher.ledger] == ["unconfirmed", "denied"]
-    assert not hasattr(dispatcher, "reconcile")
+    assert [a.state for a in dispatcher.ledger] == before
+
+    # The operator finds it, checks the target system, and attests.
+    assert [a.decision_id for a in dispatcher.unconfirmed()] == \
+        [abandoned.decision_id]
+    with pytest.raises(ValueError):
+        dispatcher.reconcile(abandoned, executed=False, attestation="")
+    assert dispatcher.reconcile(
+        abandoned, executed=False,
+        attestation="ops-oncall: audited the warehouse query log for the "
+                    "window; no matching read was issued") is True
+
+    assert dispatcher.unconfirmed() == []
+    assert not any(a.state == "unconfirmed" for a in dispatcher.ledger)
+
+    sealed = dispatcher.chain.records[-1]
+    assert sealed.layer == "reconciliation"
+    assert "ops-oncall" in sealed.reason
+    assert dispatcher.integrity()["evidence_verified"] is True
 
 
-def test_r4b_02_unconfirmed_entries_evade_the_reservation_cap():
-    """R4B-02 — the cap counts RESERVED only.
+def test_r4b_01b_reconciling_as_executed_keeps_the_taint():
+    """The other direction: an operator who confirms the effect DID land
+    settles it as executed, and the trajectory keeps it."""
+    ctx = _ctx()
+    dispatcher = _kernel(ctx)
+    abandoned = dispatcher.authorize(READ)
+    _lapse(dispatcher)
+
+    assert dispatcher.reconcile(
+        abandoned, executed=True,
+        attestation="ops-oncall: the read is present in the warehouse log") is True
+    assert [a.state for a in dispatcher.ledger] == ["executed"]
+    assert _kernel(ctx).authorize(EXFIL).verdict == BLOCK
+
+
+def test_r4b_01c_only_an_unconfirmed_dispatch_can_be_reconciled():
+    """Reconciliation is not a general override: a live reservation should be
+    executed or released, and a settled entry is already settled."""
+    ctx = _ctx()
+    kernel = _kernel(ctx)
+    live = kernel.authorize(READ)
+    assert kernel.reconcile(live, executed=False, attestation="ops: nope") is False
+    assert [a.state for a in kernel.ledger] == ["reserved"]
+
+    assert kernel.execute(live, _Runtime())[0] is True
+    assert kernel.reconcile(live, executed=False, attestation="ops: nope") is False
+    assert [a.state for a in kernel.ledger] == ["executed"]
+
+
+def test_r4b_02_unconfirmed_entries_count_against_the_reservation_cap():
+    """R4B-02, CLOSED — the cap counted RESERVED only.
 
     ATK-06 bounded outstanding reservations so an actor could not grow its own
     prefix without limit. MED-10 then introduced a state the cap does not
     count, so letting each lease lapse mints unlimited entries: 40 against a
     cap of 8.
 
-    Classification: C, specification failure — the bound does not cover the
-    states the bound exists for.
+    Was: C, specification failure — the bound did not cover the states the
+    bound exists for.
     """
     kernel = _kernel(_ctx(max_outstanding_reservations=8))
     permitted = 0
@@ -168,13 +225,18 @@ def test_r4b_02_unconfirmed_entries_evade_the_reservation_cap():
             permitted += 1
         _lapse(kernel)
 
-    assert permitted == 40
-    assert len(kernel.ledger) == 40
-    assert sum(1 for a in kernel.ledger if a.state == "reserved") == 0
+    assert permitted == 8, "the cap holds against lapsed leases"
+    assert sum(1 for a in kernel.ledger if a.state == "unconfirmed") == 8
+
+    # Reconciling them away restores the budget.
+    for attempt in list(kernel.unconfirmed()):
+        kernel.store.drop(kernel.continuity_key, attempt.decision_id)
+    assert kernel.authorize(
+        {"tool": "read_file", "args": {"path": "/app/after"}}).verdict == PERMIT
 
 
-def test_r4b_03_the_live_ruleset_hash_dominates_the_commit_path():
-    """R4B-03 — MED-03's fix made every lease check re-serialise the ruleset.
+def test_r4b_03_the_live_ruleset_hash_does_not_dominate_the_commit_path():
+    """R4B-03, CLOSED — MED-03's fix re-serialised the ruleset on every check.
 
     Removing the cached `_ruleset_hash` removed a footgun and replaced it with
     a cost: the hash is recomputed on every `execute`, and it dominates. The
@@ -182,8 +244,13 @@ def test_r4b_03_the_live_ruleset_hash_dominates_the_commit_path():
     established that a slow chokepoint is an availability problem that becomes
     a safety problem the moment someone puts a fail-open timeout in front of it.
 
-    Classification: C, specification failure — correctness bought with an
-    unbounded per-commit cost.
+    The digest is now memoised on a cheap fingerprint of its MUTABLE inputs —
+    the rule set object, the policy values an administrator can change, and the
+    unknown-tool policy — so a policy change still invalidates outstanding
+    leases while an unchanged policy costs a tuple comparison.
+
+    Was: C, specification failure — correctness bought with an unbounded
+    per-commit cost.
     """
     kernel = _kernel()
     decisions = [kernel.authorize({"tool": "read_file",
@@ -200,9 +267,17 @@ def test_r4b_03_the_live_ruleset_hash_dominates_the_commit_path():
         kernel._live_ruleset_hash()
     hash_ms = (time.perf_counter() - start) * 1000.0 / 20
 
-    assert hash_ms > 0.3, f"the hash alone costs {hash_ms:.3f}ms"
-    assert hash_ms / per_commit_ms > 0.5, (
-        f"the hash is {hash_ms:.3f}ms of a {per_commit_ms:.3f}ms commit")
+    assert hash_ms < 0.05, f"the memoised hash costs {hash_ms:.4f}ms"
+    assert per_commit_ms < 0.5, f"a commit costs {per_commit_ms:.3f}ms"
+
+    # ...and a policy change is still picked up, which is what MED-03 bought.
+    ctx = _ctx()
+    live_kernel = _kernel(ctx)
+    held = live_kernel.authorize(READ)
+    ctx.policy_values["capability_policy"] = {"data.read": "approval"}
+    executed, reason = live_kernel.execute(held, _Runtime())
+    assert executed is False
+    assert "ruleset changed" in reason
 
 
 # ═══════════════════════════════════════════════════════════════
