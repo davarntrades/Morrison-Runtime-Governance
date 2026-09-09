@@ -127,8 +127,14 @@ def test_projection_and_evidence_package_are_deterministic_for_same_record():
     second = _project(record)
     assert first["safety_envelope"]["envelope"] == \
         second["safety_envelope"]["envelope"]
-    assert first["evidence_package"]["package_hash"] == \
-        second["evidence_package"]["package_hash"]
+    # `evidence_package` is None when no package was built. Narrow it to a dict
+    # the way the production reader in frontier/governed_result.py does, then
+    # require it to be non-empty: determinism of the hash is only meaningful
+    # once both projections actually produced a package.
+    first_package = first["evidence_package"] or {}
+    second_package = second["evidence_package"] or {}
+    assert first_package and second_package
+    assert first_package["package_hash"] == second_package["package_hash"]
     assert deterministic_evidence_bundle(record, first)["bundle_hash"] == \
         deterministic_evidence_bundle(record, second)["bundle_hash"]
 

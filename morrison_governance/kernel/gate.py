@@ -26,7 +26,11 @@ hash and refuses anything that does not match the authorised hash.
 
 from __future__ import annotations
 
+import contextlib
+import threading
 import time
+import uuid
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
@@ -35,7 +39,14 @@ from morrison_governance.result import GovernanceVerdict
 from morrison_governance.kernel import capabilities as C
 from morrison_governance.kernel import policy as P
 from morrison_governance.kernel import sensitivity as S
-from morrison_governance.kernel.canonical import action_hash, canonicalize
+from morrison_governance.kernel.canonical import (
+    action_hash, canonicalize, semantic_action_hash,
+)
+from morrison_governance.kernel.normalize import normalize_action
+from morrison_governance.kernel.continuity import (
+    BLOCK_POLICY, DENIED, EXECUTED, RESERVED, UNCONFIRMED,
+    LedgerEntry, default_store, resolve_continuity,
+)
 from morrison_governance.kernel.destinations import classify_destination
 from morrison_governance.kernel.evidence import (
     EvidenceChain, EvidenceRecord, ruleset_hash,
@@ -49,6 +60,10 @@ ESCALATE = "ESCALATE"
 PERMIT = "PERMIT"
 
 _STRICTNESS = {PERMIT: 0, ESCALATE: 1, BLOCK: 2}
+
+# A value that names somewhere to send data.
+_DEST_IN_VALUE = __import__("re").compile(
+    r"[a-z][a-z0-9+.\-]*://|\b\d{1,3}(\.\d{1,3}){3}\b", __import__("re").I)
 
 # Quarantined claims split by what would corroborate them.
 _APPROVAL_CLAIMS = frozenset({
@@ -109,13 +124,21 @@ class _Stopwatch:
         return False
 
 
+DECISION_TTL_S = 120.0
+"""How long a PERMIT stays executable. A decision is a lease on a trajectory
+state, not a permanent fact: the longer it is held, the more of the session it
+has not seen. Two minutes is long enough for any synchronous dispatch and short
+enough that a held decision cannot outlive the trajectory it was evaluated
+against."""
+
+
 @dataclass
 class Decision:
     verdict: str
     reason: str
     layer: str
     action_hash: str
-    action: dict                       # the canonical, clean action
+    action: dict                       # the canonical action, as proposed
     capabilities: frozenset = frozenset()
     requirement: str = P.ALLOW
     rule: Optional[str] = None
@@ -125,6 +148,48 @@ class Decision:
     destination: dict = field(default_factory=dict)
     trajectory_hash: str = ""
     evidence: Optional[EvidenceRecord] = None
+    # The canonical tool family this proposal resolved to. Aliasing is what
+    # stops `run_shell` executing what `shell` is refused, and it also means an
+    # approval covers every member of the family with the same arguments. That
+    # widening is a real consequence, so it is surfaced rather than implied.
+    tool_family: str = ""
+
+    # ── single-use + freshness binding ───────────────────────
+    # A PERMIT used to be an unbounded bearer token: it carried an action hash
+    # and nothing else, so it could be executed twice, executed after the same
+    # action was BLOCKed, and executed after the policy that justified it had
+    # changed. These fields make a decision a LEASE — bound to one transition,
+    # one session, one principal, one ruleset, one moment, and one use.
+    decision_id: str = ""
+    semantic_hash: str = ""            # identity of the TRANSITION
+    session_id: str = ""
+    principal_id: str = ""
+    ruleset_hash: str = ""
+    issued_at: float = 0.0
+    expires_at: float = 0.0
+    # Wall-clock instant this decision was minted, independent of the `now` the
+    # caller passed. `now` exists so a finite-model verifier can drive the
+    # kernel on its own clock; it is a public parameter, so a far-future value
+    # produced a lease that would not expire for a year. Freshness is checked
+    # against BOTH clocks and the stricter one wins.
+    issued_wall: float = 0.0
+    reserved: bool = False             # holds a slot in the trajectory
+    # How far the governed history behind this decision reaches: "process",
+    # "host", "deployment", or "unknown".
+    continuity_scope: str = "unknown"
+
+    def binding(self) -> dict:
+        """Everything this decision is bound to, for evidence and debugging."""
+        return {"decision_id": self.decision_id,
+                "action_hash": self.action_hash,
+                "semantic_hash": self.semantic_hash,
+                "session_id": self.session_id,
+                "principal": self.principal_id,
+                "continuity_scope": self.continuity_scope,
+                "ruleset_hash": self.ruleset_hash,
+                "issued_at": self.issued_at,
+                "expires_at": self.expires_at,
+                "reserved": self.reserved}
 
     # ── measured latency ─────────────────────────────────────
     # `decision_time_ms` is the END-TO-END cost of producing this decision:
@@ -168,12 +233,14 @@ class Decision:
             "verdict": self.verdict, "reason": self.reason, "layer": self.layer,
             "action_hash": self.action_hash,
             "capabilities": sorted(self.capabilities),
+            "tool_family": self.tool_family,
             "requirement": self.requirement, "rule": self.rule,
             "omega_domain": self.omega_domain,
             "authorization": self.authorization,
             "forged_authority_claims": self.forged_claims,
             "destination": self.destination,
             "evidence_hash": self.evidence.record_hash if self.evidence else None,
+            "binding": self.binding(),
             # 4 decimal places = 0.1µs. Several stages cost single-digit
             # microseconds, so rounding to 3 (1µs) would collapse them to a
             # value that no longer reconciles with the total in a published
@@ -188,8 +255,17 @@ class Decision:
 
 @dataclass
 class Attempt:
-    """A recorded attempt — executed OR denied. Denied attempts stay in the
-    ledger so a blocked step cannot scrub itself out of the trajectory."""
+    """A recorded attempt — executed, RESERVED, or denied.
+
+    Denied attempts stay in the ledger so a blocked step cannot scrub itself out
+    of the trajectory. `RESERVED` is the state that closes the batching bypass:
+    a PERMIT used to enter the ledger only when `execute()` ran, so a batch
+    authorized before any of it executed had every step evaluated against an
+    empty prefix — the read that made the egress an exfiltration was invisible
+    because it had not run *yet*. A reservation takes the trajectory slot at
+    AUTHORIZE time and holds it until the decision is executed or its lease
+    expires.
+    """
 
     action: dict
     verdict: str
@@ -197,19 +273,77 @@ class Attempt:
     actor: str
     timestamp: float
     capabilities: frozenset = frozenset()
-    executed: bool = False
+    state: str = DENIED
+    decision_id: str = ""
+    expires_at: float = 0.0
+
+    @property
+    def executed(self) -> bool:
+        return self.state == EXECUTED
+
+    @property
+    def denied(self) -> bool:
+        return self.state == DENIED
+
+    def live(self, now: float) -> bool:
+        """Part of the trajectory: anything that was permitted.
+
+        A lapsed reservation used to drop out here, which made a lost
+        confirmation indistinguishable from a step that never ran. Nothing that
+        was permitted now leaves the trajectory by the passage of time; it
+        leaves only by an explicit `release`, which deletes the entry, or by
+        ageing past the retention window. `now` is retained for callers.
+        """
+        return self.state in (EXECUTED, RESERVED, UNCONFIRMED)
 
 
 class GovernanceKernel:
     """Pre-execution governance with a real trust boundary."""
 
     def __init__(self, layer: GovernanceLayer, context: SecurityContext,
-                 evidence_key: bytes = b"", engine_version: str = ""):
+                 evidence_key: bytes = b"", engine_version: str = "",
+                 session_id: str = "", decision_ttl_s: float = DECISION_TTL_S):
         self.layer = layer
         self.ctx = context
         self.chain = EvidenceChain(key=evidence_key)
-        self.ledger: list[Attempt] = []
         self.engine_version = engine_version
+        self.session_id = session_id or uuid.uuid4().hex
+        self.decision_ttl_s = float(decision_ttl_s)
+        # WHERE THIS SESSION'S HISTORY LIVES.
+        #
+        # Governed history used to be a list on this object, so it began empty
+        # every time a kernel was constructed and an actor could choose how
+        # many kernels it got. It is now filed under a continuity key derived
+        # from the authenticated principal, in a store shared across sessions.
+        # The session id says which conversation this is; the continuity key
+        # says whose authority it is, and only the second one governs.
+        self.store = context.continuity_store or default_store()
+        self.continuity = resolve_continuity(context.principal,
+                                             getattr(context, "workload", ""))
+        self.continuity_key = (self.continuity.key.as_str()
+                               if self.continuity.key else "")
+        # How far this deployment's governed history actually reaches. A
+        # deployment could previously only BELIEVE its continuity was
+        # fleet-wide; now it can assert it. The built-in stores are honest
+        # about being process- and host-local.
+        scope = getattr(self.store, "scope", None)
+        self.continuity_scope = scope() if callable(scope) else "unknown"
+        # ONE lock over authorize + execute. Authorization reads the trajectory
+        # and then writes a reservation into it; without serialising that
+        # read-modify-write, two concurrent authorizations both read the state
+        # before either wrote, which is the batching bypass with a race in
+        # place of an ordering choice. Reentrant because `submit()` holds it
+        # across both halves.
+        self._lock = threading.RLock()
+        # Single-use and revocation state live in the continuity store, not on
+        # this object: a decision id spent in one session must stay spent in
+        # the next, and a transition refused in one session must stay refused.
+        #
+        # The ruleset digest is memoised on a fingerprint of its mutable inputs
+        # rather than computed once: computing it once was a footgun (a policy
+        # change silently did not invalidate outstanding leases) and computing
+        # it every time dominated the commit path.
+        self._ruleset_cache: Optional[tuple] = None
         self._ruleset_hash = ruleset_hash(
             layer.rules,
             extra={"capability_policy": P.CAPABILITY_POLICY,
@@ -219,20 +353,292 @@ class GovernanceKernel:
 
     # ── history ──────────────────────────────────────────────
     @property
+    def ledger(self) -> list[Attempt]:
+        """This principal's governed attempts, across every session.
+
+        A read-through view of the continuity store, presented in the shape the
+        rest of the kernel and the existing tests already use.
+        """
+        if not self.continuity_key:
+            return []
+        window = float(getattr(self.ctx, "continuity_window_s", 0.0) or 0.0)
+        # Retention is measured on the WALL clock, never on the evaluation
+        # clock. `timestamp` is whatever `now` the caller passed, so filtering
+        # on it let an action executed with `now=0.0` be filed outside every
+        # realistic window and disappear from the next decision.
+        horizon = (time.time() - window) if window > 0 else None
+        return [Attempt(action=e.action, verdict=e.verdict, reason=e.reason,
+                        actor=e.actor, timestamp=e.timestamp,
+                        capabilities=frozenset(e.capabilities),
+                        state=self._effective_state(e), decision_id=e.decision_id,
+                        expires_at=e.expires_at)
+                for e in self.store.entries(self.continuity_key)
+                if horizon is None or (e.wall_timestamp or e.timestamp) >= horizon]
+
+    @staticmethod
+    def _effective_state(entry) -> str:
+        """A reservation whose lease lapsed is UNCONFIRMED, not gone.
+
+        Nothing released it, so the caller held a PERMIT for it and may have
+        run it — a decision-plane runtime that crashes after acting looks
+        exactly like this. Treating the lapse as an abandoned plan let a real
+        effect leave the trajectory. "We do not know" must not read as "it did
+        not happen".
+        """
+        if entry.state != RESERVED:
+            return entry.state
+        deadline = entry.wall_expires_at or 0.0
+        if deadline and time.time() > deadline:
+            return UNCONFIRMED
+        return RESERVED
+
+    def _file(self, action: dict, verdict: str, state: str, reason: str,
+              timestamp: float, capabilities: frozenset = frozenset(),
+              decision_id: str = "", semantic_hash: str = "",
+              expires_at: float = 0.0) -> None:
+        """Record one governed attempt against the continuity key."""
+        if not self.continuity_key:
+            return
+        wall = time.time()
+        self.store.append(self.continuity_key, LedgerEntry(
+            decision_id=decision_id or uuid.uuid4().hex, action=action,
+            verdict=verdict, state=state, reason=reason,
+            actor=self.ctx.principal.id, session_id=self.session_id,
+            semantic_hash=semantic_hash,
+            capabilities=tuple(sorted(capabilities)),
+            timestamp=timestamp, expires_at=expires_at,
+            wall_timestamp=wall, wall_expires_at=wall + self.decision_ttl_s))
+
+    @property
     def executed_history(self) -> list[dict]:
-        return [a.action for a in self.ledger if a.executed]
+        """Actions that have run OR hold a live reservation.
+
+        A reservation is included because it is going to run: the caller holds
+        a PERMIT for it. Excluding it is what let a batch launder its own
+        trajectory.
+        """
+        # `live` prunes lapsed reservations. Reservations issued on an
+        # explicit model clock carry an expiry on that clock, so compare
+        # against the clock this session is actually driven on rather than
+        # wall time — otherwise a model-clock session prunes everything.
+        return [a.action for a in self.ledger if a.live(self._clock_basis())]
+
+    def _clock_basis(self) -> float:
+        """The clock this session is actually being driven on.
+
+        A kernel driven with `authorize(call, now=...)` for a finite model runs
+        on that model's clock; wall time would lapse every reservation it holds
+        immediately.
+        """
+        stamps = ([e.timestamp for e in self.store.entries(self.continuity_key)]
+                  if self.continuity_key else [])
+        latest = max(stamps) if stamps else 0.0
+        wall = time.time()
+        # A model clock is small (seconds since 0); wall time is ~1.7e9. If the
+        # session's own stamps are nowhere near wall time, it is not on it.
+        return latest if latest and wall - latest > 86400.0 * 365 else wall
+
+    @property
+    def committed_history(self) -> list[dict]:
+        """Actions that have actually executed. Evidence, not evaluation."""
+        return [a.action for a in self.ledger if a.state == EXECUTED]
 
     def _denied_read_occurred(self) -> Optional[Attempt]:
         for a in self.ledger:
-            if not a.executed and (C.CAP_DATA_READ in a.capabilities
-                                   or C.CAP_CREDENTIAL_READ in a.capabilities):
+            if a.denied and (C.CAP_DATA_READ in a.capabilities
+                             or C.CAP_CREDENTIAL_READ in a.capabilities):
                 return a
         return None
 
     def _any_read_occurred(self) -> bool:
+        """Any read in the trajectory — executed, reserved, or denied.
+
+        A reserved read counts. The agent holds a PERMIT for it, so by the time
+        the egress runs the data is in hand.
+        """
         return any(C.CAP_DATA_READ in a.capabilities
                    or C.CAP_CREDENTIAL_READ in a.capabilities
                    for a in self.ledger)
+
+    # ── reservations ─────────────────────────────────────────
+    def _reserve(self, decision: "Decision", now: float) -> None:
+        """Take this decision's slot in the trajectory before it executes."""
+        self._file(decision.action, PERMIT, RESERVED, decision.reason, now,
+                   capabilities=decision.capabilities,
+                   decision_id=decision.decision_id,
+                   semantic_hash=decision.semantic_hash,
+                   expires_at=decision.expires_at)
+        decision.reserved = True
+
+    def _reservation(self, decision_id: str) -> Optional[Attempt]:
+        for a in self.ledger:
+            if a.decision_id == decision_id and a.state == RESERVED:
+                return a
+        return None
+
+    def _commit(self, decision_id: str, now: float,
+                action: Optional[dict] = None) -> None:
+        if self.continuity_key:
+            self.store.set_state(self.continuity_key, decision_id, EXECUTED,
+                                 now, action)
+
+    def release(self, decision: "Decision") -> bool:
+        """Abandon a PERMIT the caller has decided not to execute.
+
+        Frees the trajectory slot so an agent that plans more than it runs does
+        not permanently taint its own session. The decision is consumed either
+        way — a released decision cannot later be executed.
+        """
+        with self._lock, self._critical_section():
+            if not self.continuity_key:
+                return False
+            self.store.consume(self.continuity_key,
+                               f"decision:{decision.decision_id}")
+            # Only a live reservation may be withdrawn. Once the lease has
+            # lapsed the outcome is unknown, and withdrawing it would be a way
+            # to erase a step that may have executed — `reconcile` is the route
+            # for that, and it demands an external attestation.
+            #
+            # Refusing must leave the principal's posture UNCHANGED. Consuming
+            # the decision id above already prevents the release being retried
+            # as an execution; filing a denied attempt as well would make an
+            # ordinary crash look adversarial to every later decision.
+            held = self._reservation(decision.decision_id)
+            if held is None:
+                return False
+            dropped = self.store.drop(self.continuity_key, decision.decision_id)
+            decision.reserved = False if dropped else decision.reserved
+            return dropped
+
+    def reconcile(self, decision: "Decision", executed: bool,
+                  attestation: str) -> bool:
+        """Resolve a dispatch whose outcome was never confirmed.
+
+        A lapsed reservation is UNCONFIRMED and stays in the trajectory, which
+        is correct — it may have run. Without a way back, a single crashed
+        worker refused egress to every other workflow under the same service
+        account for the whole retention window, and `release` was rightly
+        unable to help. Safety with no reconciliation path is an availability
+        failure, and an availability failure is how a control gets configured
+        away.
+
+        This is an OPERATOR action, not an agent action. It requires an
+        `attestation` — what was checked in the target system, and by whom —
+        which is recorded in evidence, because the whole point is that the
+        answer comes from OUTSIDE Morrison. Morrison cannot determine whether
+        the effect landed; it can only record who says it did not, and stand
+        behind that record.
+
+        `executed=True` settles the entry as EXECUTED and keeps the taint.
+        `executed=False` withdraws it, on the attester's authority.
+        Only an UNCONFIRMED entry can be reconciled: a live reservation should
+        be executed or released, and a settled one is already settled.
+        """
+        if not attestation or not str(attestation).strip():
+            raise ValueError(
+                "reconciliation requires an attestation naming what was "
+                "checked outside Morrison and by whom; the outcome of an "
+                "unconfirmed dispatch is not something the kernel can know")
+        with self._lock, self._critical_section():
+            entry = next((a for a in self.ledger
+                          if a.decision_id == decision.decision_id
+                          and a.state == UNCONFIRMED), None)
+            if entry is None:
+                return False
+            now = time.time()
+            if executed:
+                self.store.set_state(self.continuity_key,
+                                     decision.decision_id, EXECUTED, now)
+            else:
+                self.store.drop(self.continuity_key, decision.decision_id)
+            self.chain.append(EvidenceRecord(
+                seq=0, timestamp=now, actor=self.ctx.principal.id,
+                tenant=self.ctx.principal.tenant,
+                action_hash=decision.action_hash, proposed=decision.action,
+                decision=PERMIT if executed else BLOCK, layer="reconciliation",
+                rule="unconfirmed_dispatch_reconciled",
+                reason=(f"unconfirmed dispatch settled as "
+                        f"{'EXECUTED' if executed else 'NOT EXECUTED'} on "
+                        f"external attestation: {attestation}"),
+                ruleset_hash=self._live_ruleset_hash(),
+                engine_version=self.engine_version, executed=executed))
+            return True
+
+    def mint_lease(self, decision: "Decision", ttl_s: float = 60.0,
+                   key: Optional[bytes] = None) -> Any:
+        """Mint a resource-redeemable lease for a permitted decision.
+
+        The portable form of an authorisation. A resource-side enforcement
+        point verifies it WITHOUT calling Morrison, so an agent that skips the
+        kernel arrives at the resource carrying nothing and is refused there —
+        by a process that is not the agent and does not depend on its
+        cooperation.
+
+        This does not make complete mediation true. It makes it enforceable at
+        each boundary a deployment chooses to enforce, and turns the unenforced
+        set into an explicit list. See `kernel.mediation`.
+        """
+        from morrison_governance.kernel.mediation import mint_lease
+        signing = key if key is not None else self.ctx.lease_signing_key
+        return mint_lease(decision, signing, ttl_s=ttl_s)
+
+    def unconfirmed(self) -> list["Attempt"]:
+        """Dispatches whose outcome is unknown, for an operator to reconcile."""
+        return [a for a in self.ledger if a.state == UNCONFIRMED]
+
+    def _revoke(self, semantic_hash: str, reason: str) -> None:
+        if self.continuity_key:
+            self.store.revoke(self.continuity_key, semantic_hash, reason)
+
+    def _lease_problem(self, decision: "Decision", now: float) -> Optional[str]:
+        """Why this decision may not be executed, or None if it may.
+
+        Every clause here is a counterexample that used to execute.
+        """
+        if decision.verdict != PERMIT:
+            return f"verdict is {decision.verdict}"
+        if self.continuity_key and self.store.consumed(
+                self.continuity_key, f"decision:{decision.decision_id}"):
+            return ("decision has already been used; a PERMIT authorises one "
+                    "execution of one transition")
+        if decision.session_id != self.session_id:
+            return (f"decision was issued for session "
+                    f"{decision.session_id[:12]}… and this kernel is "
+                    f"{self.session_id[:12]}…")
+        if decision.principal_id != self.ctx.principal.id:
+            return (f"decision was issued to principal "
+                    f"{decision.principal_id!r}, not {self.ctx.principal.id!r}")
+        if decision.expires_at and now > decision.expires_at:
+            return (f"decision expired {now - decision.expires_at:.1f}s ago; "
+                    f"re-authorise against the current trajectory")
+        wall_age = time.time() - (decision.issued_wall or time.time())
+        if decision.issued_wall and wall_age > self.decision_ttl_s:
+            return (f"decision was minted {wall_age:.1f}s ago in wall-clock "
+                    f"terms, beyond the {self.decision_ttl_s:.0f}s lease; a "
+                    f"caller-supplied clock cannot extend a lease")
+        if decision.ruleset_hash and decision.ruleset_hash != self._live_ruleset_hash():
+            return ("the governing ruleset changed after this decision was "
+                    "issued; re-authorise under the current policy")
+        stale = self._revalidate_at_commit(decision)
+        if stale is not None:
+            return f"trusted state changed after authorisation: {stale}"
+        # Revocation exists to invalidate an OUTSTANDING lease (a PERMIT held
+        # from earlier while the same transition was refused). No lease outlives
+        # `decision_ttl_s`, so neither does a revocation: making it permanent
+        # would turn "you were refused once" into "never again", which is a
+        # different policy and a denial of service, not a safety property.
+        revoked = None
+        if self.continuity_key:
+            record = self.store.revocation(self.continuity_key,
+                                           decision.semantic_hash)
+            if record is not None:
+                reason_text, revoked_at = record
+                if not revoked_at or (now - revoked_at) <= self.decision_ttl_s:
+                    revoked = reason_text
+        if revoked:
+            return (f"this transition was subsequently refused in the same "
+                    f"session ({revoked}); the earlier PERMIT is void")
+        return None
 
     def _evaluate_with_context(self, prefix: list, trusted: dict):
         """Run the unchanged engine over `prefix` with `trusted` supplied as
@@ -244,24 +650,100 @@ class GovernanceKernel:
         return self.layer.evaluate_trajectory(traj)
 
     # ── the gate ─────────────────────────────────────────────
-    def authorize(self, call: dict, now: Optional[float] = None) -> Decision:
+    def authorize(self, call: dict, now: Optional[float] = None,
+                  reserve: bool = True) -> Decision:
+        """Decide one proposed transition, and reserve its place in the session.
+
+        `reserve=False` evaluates without taking a trajectory slot. It exists
+        for speculative analysis — exhaustive verification, counterfactual
+        replay — that inspects a decision it will never execute. A decision
+        issued with `reserve=False` cannot be executed: `execute()` refuses it,
+        because nothing held the trajectory steady between the two calls.
+        """
+        with self._lock, self._critical_section():
+            return self._authorize_locked(call, now, reserve)
+
+    def preview(self, call: dict, now: Optional[float] = None) -> Decision:
+        """Non-reserving, non-executable evaluation. See `authorize`."""
+        return self.authorize(call, now=now, reserve=False)
+
+    def _critical_section(self):
+        """Serialise this principal's read-modify-write across ALL writers.
+
+        `self._lock` only covers threads in this process. Two PROCESSES
+        authorising for the same principal at the same moment each read the
+        governed history before either wrote to it, and both were permitted —
+        the concurrent form of trajectory fragmentation, reachable by ordinary
+        horizontal scaling rather than by any attack. The store supplies the
+        cross-writer lock; the in-memory default degrades to a thread lock,
+        which is exactly its documented scope.
+        """
+        if not self.continuity_key:
+            return contextlib.nullcontext()
+        transaction = getattr(self.store, "transaction", None)
+        if transaction is None:
+            return contextlib.nullcontext()
+        return transaction(self.continuity_key)
+
+    def _authorize_locked(self, call: dict, now: Optional[float],
+                          reserve: bool) -> Decision:
         _t0 = time.perf_counter()
         _sw = _Stopwatch()
         now = time.time() if now is None else now
         with _sw("trust_boundary"):
+            # THREE representations of one proposal, and the distinction is
+            # load-bearing:
+            #
+            #   proposed  what the caller asked for, canonicalised. This is
+            #             what executes and what execution binding hashes, so
+            #             the authorised action is the proposed action.
+            #   clean     proposed minus the authority namespace. This is what
+            #             the Ω engine evaluates, because the engine reads its
+            #             control flags out of that namespace and a caller must
+            #             not be able to write them.
+            #   view      proposed as the CLASSIFIERS see it. Quarantine
+            #             removes a field's power to authorise; it must not
+            #             remove the fact that the field names a destination or
+            #             carries regulated content. Naming a collector
+            #             argument `policy` used to delete it from destination
+            #             resolution entirely, so the call resolved as having
+            #             no destination and every external-egress rule was
+            #             skipped.
+            proposed = canonicalize(call)
             clean, quarantined = quarantine_authority(call)
             forged = forged_authority_claims(quarantined)
         with _sw("canonicalization"):
-            ahash = action_hash(clean)
+            ahash = action_hash(proposed)
+            shash = semantic_action_hash(proposed)
+            norm = normalize_action(proposed)
         with _sw("capability_classification"):
+            # Capabilities are classified on `clean`: authority field NAMES
+            # collide with control-surface morphology (`admin_approved` reads
+            # as a privilege key, `destination_external` as an external
+            # destination), and feeding them in produces false positives on
+            # ordinary traffic. Their content is still classified below.
             caps = C.classify(clean, self.ctx.tool_manifest)
         with _sw("destination_resolution"):
             dest = classify_destination(
                 clean, self.ctx.internal_url_hosts,
-                self.ctx.internal_email_domains, self.ctx.internal_cidrs)
+                self.ctx.internal_email_domains, self.ctx.internal_cidrs,
+                trust_private_networks=self.ctx.trust_private_networks,
+                extra_args=quarantined)
 
         with _sw("approval_verification"):
-            approval, approval_reason = self.ctx.verified_approval(ahash, now)
+            # Approvals bind to the SEMANTIC hash, so an approval cannot be
+            # dodged by respelling the call it was issued for.
+            approval, approval_reason = self.ctx.verified_approval(shash, now)
+            # ...and their single-use state lives against the CONTINUITY KEY,
+            # not the SecurityContext. `_used_nonces` was instance state, so a
+            # new session built a new context and the same signed artifact
+            # verified again: three sessions moved $13.5M on one $4.5M
+            # approval. The nonce is now spent for the principal, once.
+            if approval is not None and approval.nonce and self.continuity_key:
+                if self.store.consumed(self.continuity_key,
+                                       f"approval:{approval.nonce}"):
+                    approval, approval_reason = None, (
+                        "approval nonce already used (replay across sessions)")
         authorization = {
             "approved": bool(approval),
             "reason": approval_reason,
@@ -330,6 +812,18 @@ class GovernanceKernel:
                 f"are not corroborated by trusted state and carry no authority; "
                 f"asserting unheld authority is refused outright",
                 "forged_authority_claim", None))
+
+        # ── destinations that are never inside any boundary ────
+        # Link-local and cloud instance-metadata endpoints vend live role
+        # credentials to anything that can issue a plain GET. No deployment
+        # configuration makes one of them an ordinary internal destination, so
+        # this fires regardless of allowlists and private-network settings.
+        if dest.forbidden:
+            candidates.append((
+                BLOCK, "destination_policy",
+                f"destination is a link-local or instance-metadata endpoint "
+                f"that vends credentials and is outside every trust boundary "
+                f"— {dest.reason}", "forbidden_destination", None))
 
         # ── privileged action aimed at an external destination ──
         # A credential change, payment, or IAM change whose destination resolves
@@ -423,7 +917,13 @@ class GovernanceKernel:
                 f"grant {gov_cap!r}", gov_cap, None))
 
         # ── unknown / unmodelled tools fail closed ──────────
-        if self.ctx.tool_manifest and clean["tool"] not in self.ctx.tool_manifest:
+        # This used to be guarded by `if self.ctx.tool_manifest`, so a
+        # deployment that had declared nothing had the fail-closed rule silently
+        # inert: every tool was undeclared and none of them escalated. The
+        # least-configured deployment got the weakest enforcement, which is the
+        # wrong direction for a default. An empty manifest now means nothing is
+        # declared, so everything is undeclared.
+        if clean["tool"] not in (self.ctx.tool_manifest or {}):
             pol = (self.ctx.unknown_tool_policy or "escalate").lower()
             if pol == "block":
                 candidates.append((BLOCK, "unknown_tool",
@@ -443,7 +943,11 @@ class GovernanceKernel:
         # message — so a one-shot send of regulated material would otherwise
         # pass simply because nothing was read first. Classify the content of
         # the call itself and fail closed.
-        sensitive = S.classify_sensitivity(clean)
+        # Content is classified on the full proposed action and its
+        # normal form: regulated material hidden under a quarantined field
+        # name, nested past the old depth limit, or split across sibling
+        # list elements is still regulated material.
+        sensitive = S.classify_sensitivity(proposed, normalized=norm)
         if dest.external and C.CAP_EXTERNAL_DATA_MOVE in caps and sensitive \
                 and not approval:
             candidates.append((
@@ -471,6 +975,84 @@ class GovernanceKernel:
                 f"external egress follows a DENIED data acquisition "
                 f"({denied.action.get('tool')!r}, {denied.verdict}); a denied "
                 f"attempt remains part of the trajectory", "denial_scrubbing", None))
+
+        # ── authority continuity ────────────────────────────
+        # An unidentifiable principal is not a principal with no history; it is
+        # a principal whose history cannot be looked up, and the two must not be
+        # treated the same. Likewise an unreachable store: "we cannot see what
+        # this actor did before" is never "this actor did nothing before".
+        if not self.continuity.established:
+            policy = (getattr(self.ctx, "continuity_policy", "escalate")
+                      or "escalate").lower()
+            if policy != "permit":
+                candidates.append((
+                    BLOCK if policy == BLOCK_POLICY else ESCALATE,
+                    "continuity",
+                    f"governed history cannot be attributed to a persistent "
+                    f"identity — {self.continuity.reason}; refusing to treat "
+                    f"this execution as having a clean history",
+                    "continuity_unestablished", None))
+        else:
+            try:
+                self.store.health()
+            except Exception as e:              # noqa: BLE001 — fail closed
+                candidates.append((
+                    BLOCK, "continuity",
+                    f"the governed-history store is unavailable "
+                    f"({type(e).__name__}: {e}); prior transitions for "
+                    f"{self.continuity.name!r} cannot be read, so this "
+                    f"execution cannot be shown to be admissible",
+                    "continuity_store_unavailable", None))
+
+        # ── outstanding reservations ────────────────────────
+        # ATK-06. Every authorization reserves, and nothing bounded how many
+        # reservations one actor could hold. An agent that authorizes and never
+        # executes grew its own prefix without limit, raising the cost of every
+        # later decision — an actor-controlled denial of service against the
+        # chokepoint. Holding many un-redeemed permits is also not a shape any
+        # legitimate agent needs.
+        if reserve:
+            # RESERVED *and* UNCONFIRMED. The cap exists to stop an actor
+            # growing its own prefix without limit, and a lease that lapses
+            # into UNCONFIRMED still occupies the trajectory — counting only
+            # live reservations let 40 entries through a cap of 8 simply by
+            # letting each one lapse.
+            outstanding = sum(1 for a in self.ledger
+                              if a.state in (RESERVED, UNCONFIRMED))
+            cap = int(getattr(self.ctx, "max_outstanding_reservations", 0) or 0)
+            if cap and outstanding >= cap:
+                candidates.append((
+                    ESCALATE, "reservation_limit",
+                    f"{outstanding} authorisations are reserved or unconfirmed "
+                    f"for {self.continuity.name!r} (limit {cap}); execute, "
+                    f"release, or reconcile them before authorising more",
+                    "too_many_outstanding_reservations", None))
+
+        # ── payload could not be fully read ─────────────────
+        # `normalize_action` walks to exhaustion under a node budget. When the
+        # budget runs out the classifiers decided on a PARTIAL reading, and a
+        # partial reading is not a clearance. Escalate rather than permit.
+        if norm.truncated:
+            candidates.append((
+                ESCALATE, "normalization",
+                f"payload could not be fully classified: "
+                f"{norm.truncation_reason}", "incomplete_normalization", None))
+
+        # ── quarantined field carrying a destination ────────
+        # A quarantined name confers no authority, but a URL or address written
+        # into one is still evidence about where the data goes — and choosing
+        # that name is a deliberate act. Recorded loudly.
+        if quarantined:
+            hidden = [k for k, v in quarantined.items()
+                      if isinstance(v, str)
+                      and (_DEST_IN_VALUE.search(v) or "@" in v)]
+            if hidden:
+                candidates.append((
+                    ESCALATE, "trust_boundary",
+                    f"destination-shaped value(s) supplied under quarantined "
+                    f"authority field(s) {sorted(hidden)}; a field that cannot "
+                    f"carry authority cannot carry a destination either",
+                    "destination_in_quarantined_field", None))
 
         # ── cross-tenant access ─────────────────────────────
         # Quarantined identity fields are passed in deliberately: a caller-
@@ -508,16 +1090,24 @@ class GovernanceKernel:
             # adversarial indicator: no forged authority claim, no external
             # destination, and no denied attempt earlier in the session. If any
             # of those is present, the BLOCK stands and says so.
+            # Only RECENT denials count. This clause controls whether a BLOCK
+            # is presented as "resolvable by authorisation", and with durable
+            # history an unbounded version would mean one refusal anywhere in a
+            # principal's past permanently removed the route forward for every
+            # later action — sticky posture with no safety benefit.
+            recent = self._clock_basis() - self.decision_ttl_s
             adversarial_indicator = bool(
                 forged or dest.external
-                or any(not a.executed for a in self.ledger))
+                or any(a.denied and a.timestamp >= recent for a in self.ledger))
             if (verdict == BLOCK and not authority_established
                     and requirement != P.DENY
                     and not adversarial_indicator
                     and all(c[0] != BLOCK or c[1] == layer for c in candidates)
                     and layer not in ("fail_closed", "tenancy", "egress_policy",
                                       "trajectory_integrity", "capability_policy",
-                                      "unknown_tool", "binding")):
+                                      "unknown_tool", "binding", "continuity",
+                                      "normalization", "destination_policy",
+                                      "lease")):
                 hyp_ctx = {**trusted, "authorized": True, "approved": True,
                            "verified": True, "admin_approved": True,
                            "change_approved": True, "sanctioned": True}
@@ -542,12 +1132,19 @@ class GovernanceKernel:
 
         decision = Decision(
             verdict=verdict, reason=reason, layer=layer, action_hash=ahash,
-            action=clean, capabilities=caps, requirement=requirement,
+            action=proposed, capabilities=caps, requirement=requirement,
             rule=rule, omega_domain=domain, authorization=authorization,
             forged_claims=forged, destination=dest.as_dict(),
             trajectory_hash=traj_hash,
             engine_time_ms=engine_ms,
-            decision_time_ms=(time.perf_counter() - _t0) * 1000.0)
+            decision_time_ms=(time.perf_counter() - _t0) * 1000.0,
+            tool_family=norm.tool,
+            decision_id=uuid.uuid4().hex, semantic_hash=shash,
+            session_id=self.session_id, principal_id=self.ctx.principal.id,
+            ruleset_hash=self._ruleset_hash, issued_at=now,
+            expires_at=now + self.decision_ttl_s,
+            issued_wall=time.time(),
+            continuity_scope=self.continuity_scope)
 
         with _sw("evidence_sealing"):
             decision.evidence = self.chain.append(EvidenceRecord(
@@ -564,66 +1161,184 @@ class GovernanceKernel:
         decision.stage_timings_ms = dict(_sw.totals)
         decision.decision_time_ms = (time.perf_counter() - _t0) * 1000.0
 
-        if verdict != PERMIT:
-            self.ledger.append(Attempt(
-                action=clean, verdict=verdict, reason=reason,
-                actor=self.ctx.principal.id, timestamp=now,
-                capabilities=caps, executed=False))
+        if not reserve:
+            # A preview must not move the session. It takes no trajectory slot,
+            # spends no approval, records no denied attempt and revokes nothing
+            # — otherwise "evaluate this speculatively" would itself be a way to
+            # taint a session or cancel another caller's outstanding decision.
+            # The evidence record above still stands: the preview happened.
+            return decision
+
+        if verdict == PERMIT:
+            # The approval that unlocked this is spent HERE, not at execute.
+            # Consuming at execute let two authorizations verify the same
+            # single-use artifact before either ran, so one signed approval
+            # minted two independent PERMITs. Under the kernel lock, the
+            # second authorization now sees the nonce already used.
+            if approval is not None:
+                self.ctx.consume_nonce(approval)
+                if approval.nonce and self.continuity_key:
+                    self.store.consume(self.continuity_key,
+                                       f"approval:{approval.nonce}")
+            self._reserve(decision, now)
+        else:
+            self._file(proposed, verdict, DENIED, reason, now,
+                       capabilities=caps, decision_id=decision.decision_id,
+                       semantic_hash=shash)
+            # A BLOCK voids any PERMIT still outstanding for the same
+            # transition: otherwise an agent could hold a decision from earlier
+            # in the session and execute the very transition just refused.
+            #
+            # ESCALATE deliberately does NOT revoke. An escalation says THIS
+            # request lacked authority, not that the transition is forbidden —
+            # and a duplicate request that escalates (because the approval it
+            # would need has already been spent by the first) must not cancel
+            # the legitimate decision that spent it. Revoking on escalation
+            # turns every retry into a denial of service against the caller's
+            # own in-flight work.
+            if verdict == BLOCK:
+                self._revoke(shash, f"BLOCK at {layer}: {reason[:80]}")
         return decision
 
     # ── execution ────────────────────────────────────────────
     def execute(self, decision: Decision, executor: Callable[[dict], Any],
-                call: Optional[dict] = None) -> tuple[bool, Any]:
-        """Run the action ONLY if it is the exact action that was authorised.
+                call: Optional[dict] = None,
+                now: Optional[float] = None) -> tuple[bool, Any]:
+        """Run the action ONLY if it is the exact action that was authorised,
+        under a lease that is still valid, exactly once.
 
-        Re-derives the canonical hash of what is about to run and compares it
-        to the hash the decision was issued for. `evaluate A -> mutate ->
-        execute B` fails here even when the decision itself said PERMIT.
+        Two independent checks, and both are necessary:
+
+          * IDENTITY — re-derive the canonical hash of what is about to run and
+            compare it to the hash the decision was issued for, so
+            `authorize A -> mutate -> execute B` fails.
+          * LEASE — the decision must be unused, unexpired, unrevoked, issued
+            to this principal in this session, and under the ruleset still in
+            force. Identity alone permitted every one of those: the hash of a
+            replayed, stale, or since-refused action is of course unchanged.
+
+        The consume-and-commit is atomic under the kernel lock, so two threads
+        racing on one decision cannot both pass the used check.
         """
-        if decision.verdict != PERMIT:
-            return False, f"refused: verdict is {decision.verdict}"
+        try:
+            return self._execute_guarded(decision, executor, call, now)
+        except Exception as e:                       # noqa: BLE001 — fail closed
+            # A governance DEPENDENCY failure — an unreachable continuity store,
+            # a broken lease check — used to propagate as a raw exception with
+            # no evidence record and no ledger entry, so an outage was invisible
+            # in the audit trail and whether it failed open was left to the
+            # caller. That is exactly the decision governance exists to take
+            # away from the caller.
+            reason = (f"the governance layer could not complete its checks "
+                      f"({type(e).__name__}: {e})")
+            try:
+                self._record_refusal(decision, decision.action, "fail_closed",
+                                     "governance_dependency_failure",
+                                     f"execution refused: {reason}")
+            except Exception:                        # noqa: BLE001
+                pass                                 # the store IS the failure
+            return False, f"refused: {reason}"
 
-        target = decision.action if call is None else quarantine_authority(call)[0]
-        actual = action_hash(target)
-        if actual != decision.action_hash:
-            self.chain.append(EvidenceRecord(
-                seq=0, timestamp=time.time(), actor=self.ctx.principal.id,
-                tenant=self.ctx.principal.tenant, action_hash=actual,
-                proposed=target, decision=BLOCK, layer="binding",
-                rule="action_mutation_after_authorization",
-                reason=(f"execution refused: action hash {actual[:12]}… does not "
-                        f"match authorised {decision.action_hash[:12]}…"),
-                ruleset_hash=self._ruleset_hash,
-                engine_version=self.engine_version))
-            self.ledger.append(Attempt(
-                action=target, verdict=BLOCK,
-                reason="action mutated after authorisation",
-                actor=self.ctx.principal.id, timestamp=time.time(),
-                capabilities=C.classify(target, self.ctx.tool_manifest),
-                executed=False))
-            return False, "refused: action mutated after authorisation"
+    def _execute_guarded(self, decision: Decision,
+                         executor: Callable[[dict], Any],
+                         call: Optional[dict], now: Optional[float]
+                         ) -> tuple[bool, Any]:
+        # The critical section is the store's, not just this process's: two
+        # workers committing for one principal must serialise against each
+        # other, not merely against their own threads.
+        with self._lock, self._critical_section():
+            # The lease must be checked on the SAME clock the decision was
+            # issued against. A caller that authorises with an explicit model
+            # clock (`authorize(call, now=0.0)`) must pass the same basis here,
+            # or every such decision reads as expired.
+            now = time.time() if now is None else now
+            problem = self._lease_problem(decision, now)
+            if problem is not None:
+                self._record_refusal(decision, decision.action,
+                                     "lease", "decision_lease_invalid",
+                                     f"execution refused: {problem}")
+                return False, f"refused: {problem}"
+            if not decision.reserved:
+                # A decision issued with reserve=False never held the
+                # trajectory steady; the session may have moved under it.
+                self._record_refusal(
+                    decision, decision.action, "lease",
+                    "unreserved_decision",
+                    "execution refused: decision was issued for analysis "
+                    "without a trajectory reservation")
+                return False, ("refused: decision was issued without a "
+                               "trajectory reservation")
+
+            # ATK-02. `decision.action` is a mutable dict the CALLER holds a
+            # reference to. Hashing it and then handing the same object to the
+            # executor proves only that it matched at the moment it was checked:
+            # a concurrent thread mutated `value=info` into `value=disabled,
+            # mfa_required=false` in the window, and the executor ran the
+            # mutation under a PERMIT for the original.
+            #
+            # The executor now receives a private deep copy taken BEFORE the
+            # hash, so what is hashed and what runs are the same bytes and
+            # nothing outside this frame can reach them.
+            target = deepcopy(decision.action if call is None
+                              else canonicalize(call))
+            actual = action_hash(target)
+            if actual != decision.action_hash:
+                self._record_refusal(
+                    decision, target, "binding",
+                    "action_mutation_after_authorization",
+                    f"execution refused: action hash {actual[:12]}… does not "
+                    f"match authorised {decision.action_hash[:12]}…")
+                return False, "refused: action mutated after authorisation"
+
+            # Past this point the decision is spent whatever happens next. An
+            # executor that raises may still have had effects, so the lease is
+            # burned and the reservation committed rather than released — a
+            # failed execution is not a free retry.
+            if not self.store.consume(self.continuity_key,
+                                      f"decision:{decision.decision_id}"):
+                self._record_refusal(
+                    decision, target, "lease", "decision_lease_invalid",
+                    "execution refused: decision has already been used")
+                return False, ("refused: decision has already been used")
+            self._commit(decision.decision_id, now, target)
 
         try:
             result = executor(target)
         except Exception as e:                       # noqa: BLE001
-            self.chain.record_execution(decision.evidence, False,
-                                        f"{type(e).__name__}: {e}")
+            # The executor may have acted before it raised — a write that landed
+            # before the connection reset looks exactly like this. The ledger
+            # already records the transition as committed, which is the safe
+            # direction. The evidence used to record `executed=False`, so the
+            # two authoritative records of one event disagreed and an auditor
+            # reading the chain concluded nothing ran. It now records that the
+            # action was committed with an UNKNOWN outcome, which is both true
+            # and consistent with the ledger.
+            self.chain.record_execution(
+                decision.evidence, True,
+                f"committed; outcome UNKNOWN — executor raised "
+                f"{type(e).__name__}: {e}. The effect may or may not have "
+                f"landed and is treated as having landed.")
             return False, f"runtime error: {type(e).__name__}: {e}"
 
         if decision.evidence is not None:
             self.chain.record_execution(decision.evidence, True, "ok")
-        # Consume the approval nonce so it cannot be replayed.
-        if decision.authorization.get("approved"):
-            for art in self.ctx.approvals:
-                if art.action_hash == decision.action_hash:
-                    self.ctx.consume_nonce(art)
-        self.ledger.append(Attempt(
-            action=target, verdict=PERMIT, reason=decision.reason,
-            actor=self.ctx.principal.id, timestamp=time.time(),
-            capabilities=decision.capabilities, executed=True))
         return True, result
 
-    def record_remote_execution(self, decision: Decision) -> None:
+    def _record_refusal(self, decision: Decision, target: dict, layer: str,
+                        rule: str, reason: str) -> None:
+        """Seal a refused execution into evidence and the trajectory."""
+        self.chain.append(EvidenceRecord(
+            seq=0, timestamp=time.time(), actor=self.ctx.principal.id,
+            tenant=self.ctx.principal.tenant, action_hash=action_hash(target),
+            proposed=target, decision=BLOCK, layer=layer, rule=rule,
+            reason=reason, ruleset_hash=self._ruleset_hash,
+            engine_version=self.engine_version))
+        self._file(target, BLOCK, DENIED, reason, time.time(),
+                   capabilities=C.classify(target, self.ctx.tool_manifest),
+                   semantic_hash=decision.semantic_hash)
+
+    def record_remote_execution(self, decision: Decision,
+                                now: Optional[float] = None) -> None:
         """Record that a PERMITted action was executed by a REMOTE runtime.
 
         The decision-plane deployment (the HTTP service) does not execute
@@ -633,21 +1348,123 @@ class GovernanceKernel:
         """
         if not decision.permitted:
             raise ValueError("only a PERMIT decision can be recorded as executed")
-        self.ledger.append(Attempt(
-            action=decision.action, verdict=PERMIT, reason=decision.reason,
-            actor=self.ctx.principal.id, timestamp=time.time(),
-            capabilities=decision.capabilities, executed=True))
+        stamp = time.time() if now is None else now
+        with self._lock, self._critical_section():
+            problem = self._lease_problem(decision, stamp)
+            if problem is not None:
+                raise ValueError(f"decision cannot be recorded as executed: "
+                                 f"{problem}")
+            if not self.store.consume(self.continuity_key,
+                                      f"decision:{decision.decision_id}"):
+                raise ValueError("decision cannot be recorded as executed: "
+                                 "it has already been used")
+            if self._reservation(decision.decision_id) is not None:
+                self._commit(decision.decision_id, stamp)
+            else:
+                self._file(decision.action, PERMIT, EXECUTED, decision.reason,
+                           stamp, capabilities=decision.capabilities,
+                           decision_id=decision.decision_id,
+                           semantic_hash=decision.semantic_hash)
         if decision.evidence is not None:
             self.chain.record_execution(decision.evidence, True, "remote-runtime")
 
     def submit(self, call: dict, executor: Callable[[dict], Any]
                ) -> tuple[Decision, bool, Any]:
         """authorize + execute in one call — the normal integration point."""
-        d = self.authorize(call)
-        if not d.permitted:
-            return d, False, None
-        ok, out = self.execute(d, executor)
+        with self._lock:
+            d = self.authorize(call)
+            if not d.permitted:
+                return d, False, None
+            ok, out = self.execute(d, executor)
         return d, ok, out
+
+    def _ruleset_fingerprint(self) -> tuple:
+        """A cheap key over everything the ruleset hash depends on.
+
+        Re-serialising the whole ruleset on every lease check dominated the
+        commit path (~1.3ms of a ~1.5ms execute), and the commit path is the one
+        an agent drives at full rate. Only the MUTABLE inputs need watching: the
+        rule set object itself, the policy values an administrator can change,
+        and the unknown-tool policy.
+        """
+        values = self.ctx.policy_values or {}
+        return (id(self.layer.rules), len(self.layer.rules),
+                repr(sorted(values.items(), key=lambda kv: str(kv[0]))),
+                self.ctx.unknown_tool_policy)
+
+    def _live_ruleset_hash(self) -> str:
+        """The hash of the ruleset IN FORCE RIGHT NOW.
+
+        This used to be computed once in `__init__` and refreshed only by an
+        explicit `refresh_ruleset()` call, so an administrator who tightened
+        `ctx.policy_values` got the new policy applied to NEW decisions — those
+        read policy fresh — while every outstanding lease stayed executable
+        under the policy it was minted under. Computing it live removes the
+        footgun: there is no state to forget to refresh.
+        """
+        fingerprint = self._ruleset_fingerprint()
+        cached = self._ruleset_cache
+        if cached is not None and cached[0] == fingerprint:
+            return cached[1]
+        digest = ruleset_hash(
+            self.layer.rules,
+            extra={"capability_policy": P.CAPABILITY_POLICY,
+                   "policy_values": {**P.DEFAULT_POLICY_VALUES,
+                                     **(self.ctx.policy_values or {})},
+                   "unknown_tool_policy": self.ctx.unknown_tool_policy})
+        self._ruleset_cache = (fingerprint, digest)
+        return digest
+
+    def _revalidate_at_commit(self, decision: "Decision") -> Optional[str]:
+        """Re-derive the trusted facts the PERMIT rested on, at commit time.
+
+        Authorization is a decision about a moment. Between that moment and the
+        commit, trusted configuration can change: a destination allowlist is
+        revoked, a boundary is rotated. The action hash proves the ACTION did
+        not change; it says nothing about whether the world it was judged
+        against still holds.
+
+        Deliberately narrow, and narrower than it first was. Capability policy
+        is ALREADY covered — `_live_ruleset_hash` includes the capability table
+        and policy values, so a policy change invalidates every outstanding
+        lease on its own. Re-deriving the capability requirement here as well
+        was redundant AND wrong: it did not replay the server-side payment
+        auto-approval, so a legitimately auto-approved transfer looked like a
+        decision whose requirement had tightened.
+
+        What the ruleset hash does NOT cover is destination configuration —
+        `internal_url_hosts`, `internal_cidrs`, `trust_private_networks` are
+        not policy values — so that is what is re-resolved.
+        """
+        clean, quarantined = quarantine_authority(decision.action)
+        dest = classify_destination(
+            clean, self.ctx.internal_url_hosts, self.ctx.internal_email_domains,
+            self.ctx.internal_cidrs,
+            trust_private_networks=self.ctx.trust_private_networks,
+            extra_args=quarantined)
+        if dest.external and not decision.destination.get("external"):
+            return (f"the destination resolved as internal at authorisation "
+                    f"and resolves as EXTERNAL now — {dest.reason}")
+        if dest.forbidden and not decision.destination.get("forbidden"):
+            return f"the destination is now forbidden — {dest.reason}"
+        return None
+
+    def refresh_ruleset(self) -> str:
+        """Recompute the governing ruleset hash after a policy change.
+
+        Policy is trusted state, so an administrator may change it mid-session.
+        Doing so invalidates every outstanding decision: each carries the hash
+        of the ruleset it was decided under, and `execute()` refuses a decision
+        whose ruleset no longer matches. Call this after mutating
+        `ctx.policy_values` so the change actually takes effect.
+        """
+        self._ruleset_hash = ruleset_hash(
+            self.layer.rules,
+            extra={"capability_policy": P.CAPABILITY_POLICY,
+                   "policy_values": {**P.DEFAULT_POLICY_VALUES,
+                                     **(self.ctx.policy_values or {})},
+                   "unknown_tool_policy": self.ctx.unknown_tool_policy})
+        return self._ruleset_hash
 
     # ── reporting ────────────────────────────────────────────
     def integrity(self) -> dict:

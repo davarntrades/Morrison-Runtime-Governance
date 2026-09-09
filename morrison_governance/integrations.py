@@ -1,8 +1,7 @@
 """
 Real-agent deployment adapters.
 
-Drop-in governance for the surfaces that actually execute tools in
-production:
+Governance for the surfaces that actually execute tools in production:
 
     · OpenAI tool calling
     · Claude tool-use chains
@@ -13,14 +12,41 @@ production:
     · Shell execution
     · Enterprise workflows (multi-step DAGs)
 
+THE DISTINCTION THIS MODULE ENFORCES
+────────────────────────────────────
+`GovernanceLayer` is reasoning and policy evaluation. It answers "does this
+trajectory reach Ω?" and it is the right object to ask that question of.
+
+`GovernanceKernel` is the VETO AUTHORITY. It is the only component that
+quarantines caller-supplied authority, classifies capabilities semantically,
+resolves destinations from trusted configuration, verifies approval artifacts,
+holds the session trajectory, reserves a transition before it runs, binds
+execution to the authorised action, and seals hash-chained evidence.
+
+Every adapter in this module previously called `GovernanceLayer.evaluate()` and
+dispatched on `if result.permitted:`. That made the layer the de-facto veto
+authority, which it is not:
+
+  * caller-supplied `authorized: true` was honoured, because nothing
+    quarantined it;
+  * `shell` was refused and `run_shell` carrying the same command was not,
+    because nothing classified capabilities;
+  * a read and its exfiltration issued as one parallel batch were both
+    dispatched, because a single-call evaluation has no trajectory;
+  * eight of ten catastrophic actions the kernel refuses were permitted.
+
+So there is no longer an execution path through this module that does not pass
+through the kernel. `GovernanceGuard` requires a `SecurityContext`, dispatch
+happens inside `kernel.execute()`, and the advisory-only construction cannot
+dispatch at all.
+
 Design principles:
-  - **No hard dependencies.** Every adapter uses duck typing; importing
-    this module never imports langchain/openai/autogen/mcp.
-  - **Fail closed.** The default on a BLOCK / NO_VALID_SOLUTION /
-    ENVIRONMENT_SENSITIVE verdict is to *stop execution* (raise), never to
-    silently continue.
+  - **No hard dependencies.** Every adapter uses duck typing; importing this
+    module never imports langchain/openai/autogen/mcp.
+  - **Fail closed.** A non-PERMIT verdict stops execution (raise by default).
+    A guard that cannot enforce refuses to be used for execution.
   - **Deterministic.** Adapters only normalise inputs and delegate to the
-    GovernanceLayer; they add no randomness.
+    kernel; they add no randomness.
 """
 
 # Builtin generic annotations (dict[...], list[...]) below are evaluated
@@ -28,7 +54,7 @@ Design principles:
 # syntax while restoring importability on older interpreters.
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Optional
 
 from morrison_governance.core import GovernanceLayer
@@ -38,47 +64,231 @@ from morrison_governance.result import GovernanceResult, GovernanceVerdict
 class GovernanceError(RuntimeError):
     """Raised by fail-closed adapters when a call is not permitted."""
 
-    def __init__(self, result: GovernanceResult):
-        self.result = result
+    def __init__(self, decision: Any):
+        self.decision = decision
+        # `result` kept for callers written against the pre-kernel adapters.
+        self.result = decision
+        verdict = getattr(decision, "verdict", "BLOCK")
+        verdict = getattr(verdict, "value", verdict)
         super().__init__(
-            f"governance blocked [{result.layer}] "
-            f"{result.verdict.value}: {result.reason}"
+            f"governance blocked [{getattr(decision, 'layer', '?')}] "
+            f"{verdict}: {getattr(decision, 'reason', '')}"
         )
+
+
+class GovernanceConfigurationError(RuntimeError):
+    """Raised when a guard is asked to gate execution it cannot actually veto.
+
+    This is deliberately a hard failure at the integration point rather than a
+    warning. A guard with no `SecurityContext` has no trust boundary, no
+    capability policy, no trusted destinations, no session trajectory and no
+    evidence chain — it can produce an opinion, not a veto. Letting it sit in
+    front of a live executor is the exact configuration that permitted eight of
+    ten catastrophic actions.
+    """
+
+
+@dataclass
+class AuthorizedCall:
+    """A permitted call plus the kernel decision that authorises it.
+
+    Returned by the batch adapters instead of a bare tool call. The decision is
+    a single-use lease bound to this transition, this session and this
+    principal; it is redeemed by `GovernanceGuard.execute_authorized`, which is
+    the only thing that can turn it into an execution.
+    """
+
+    call: dict
+    decision: Any
+    original: Any = None            # the framework's own object, for replies
+
+    @property
+    def tool(self) -> str:
+        return str(self.call.get("tool", ""))
+
+    @property
+    def args(self) -> dict:
+        return self.call.get("args") or {}
+
+
+@dataclass
+class DeniedCall:
+    """A refused call plus the decision explaining the refusal."""
+
+    call: dict
+    decision: Any
+    original: Any = None
+
+    @property
+    def tool(self) -> str:
+        return str(self.call.get("tool", ""))
+
+    @property
+    def args(self) -> dict:
+        return self.call.get("args") or {}
+
+    @property
+    def reason(self) -> str:
+        return getattr(self.decision, "reason", "")
 
 
 @dataclass
 class GovernanceGuard:
-    """Reusable fail-closed wrapper around a GovernanceLayer.
+    """Fail-closed wrapper around the KERNEL.
 
-    on_block:
+    Construct with the deployment's `SecurityContext`:
+
+        guard = GovernanceGuard(gov, security_context=ctx)
+
+    `on_block`:
         "raise"  → raise GovernanceError (default; safest for middleware)
-        "deny"   → return the GovernanceResult, let the caller branch
+        "deny"   → return the Decision, let the caller branch
+
+    For non-enforcing analysis — shadow mode, offline scoring, dashboards —
+    use `GovernanceGuard.advisory(gov)`. That guard answers questions and
+    raises `GovernanceConfigurationError` from every execution-capable entry
+    point, so an advisory object cannot be wired in front of a real executor by
+    accident.
     """
 
     governance: GovernanceLayer
+    security_context: Any = None
     on_block: str = "raise"
-    audit: Optional[Callable[[GovernanceResult], None]] = None
+    audit: Optional[Callable[[Any], None]] = None
+    session_id: str = ""
+    _advisory: bool = field(default=False, repr=False)
+    kernel: Any = field(default=None, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        if self._advisory:
+            if self.security_context is not None:
+                raise GovernanceConfigurationError(
+                    "an advisory guard must not carry a SecurityContext; use "
+                    "GovernanceGuard(gov, security_context=ctx) to enforce")
+            return
+        if self.security_context is None:
+            raise GovernanceConfigurationError(
+                "GovernanceGuard requires a SecurityContext: without one there "
+                "is no trust boundary, no capability policy, no trusted "
+                "destination resolution, no session trajectory and no evidence "
+                "chain, so the guard can produce an opinion but cannot veto "
+                "anything. Pass security_context=..., or construct "
+                "GovernanceGuard.advisory(gov) for non-enforcing analysis.")
+        from morrison_governance.kernel import GovernanceKernel
+        self.kernel = GovernanceKernel(self.governance, self.security_context,
+                                       session_id=self.session_id)
+
+    # ---- construction -------------------------------------------------
+    @classmethod
+    def advisory(cls, governance: GovernanceLayer,
+                 audit: Optional[Callable[[Any], None]] = None
+                 ) -> "GovernanceGuard":
+        """A guard for ANALYSIS ONLY. It cannot gate execution."""
+        return cls(governance=governance, on_block="deny", audit=audit,
+                   _advisory=True)
+
+    @property
+    def enforcing(self) -> bool:
+        return self.kernel is not None
+
+    def _require_kernel(self, what: str) -> Any:
+        if self.kernel is None:
+            raise GovernanceConfigurationError(
+                f"{what} needs the veto authority: this guard was constructed "
+                f"for advisory analysis and cannot authorise or execute "
+                f"anything. Build it with security_context=... to enforce.")
+        return self.kernel
 
     # ---- core ---------------------------------------------------------
-    def check_call(self, tool: str, args: Any = None, **context) -> GovernanceResult:
-        call = {"tool": tool, "args": args if args is not None else {}}
-        call.update(context)
-        return self._gate(self.governance.evaluate(call))
+    @staticmethod
+    def _call(tool: str, args: Any = None) -> dict:
+        """Build the canonical call shape.
+
+        NOTE what is absent: the pre-kernel adapters took `**context` and
+        merged it into the call, so `guard.allow(tool, args, authorized=True)`
+        wrote an authority flag straight into the namespace the Ω rules read
+        their control flags from — the agent authorised itself. Authority comes
+        from the SecurityContext and nowhere else, so there is no longer a
+        parameter through which a caller can supply any.
+        """
+        return {"tool": tool, "args": args if args is not None else {}}
+
+    def authorize(self, tool: str, args: Any = None) -> Any:
+        """Get a kernel Decision for one call. Reserves a trajectory slot."""
+        decision = self._require_kernel("authorize").authorize(
+            self._call(tool, args))
+        return self._gate(decision)
+
+    def execute_authorized(self, authorized: AuthorizedCall,
+                           executor: Callable[[dict], Any]) -> tuple[bool, Any]:
+        """Redeem an `AuthorizedCall`. Single-use, and refused if stale."""
+        kernel = self._require_kernel("execute_authorized")
+        return kernel.execute(authorized.decision, executor)
+
+    def dispatch(self, tool: str, args: Any, executor: Callable[[dict], Any]
+                 ) -> tuple[Any, bool, Any]:
+        """Authorize and execute in one step, through the kernel.
+
+        Returns `(decision, executed, output)`. This is the only path in this
+        module from a proposed call to a real side effect.
+        """
+        kernel = self._require_kernel("dispatch")
+        decision, executed, out = kernel.submit(self._call(tool, args), executor)
+        self._gate(decision)
+        return decision, executed, out
+
+    def check_call(self, tool: str, args: Any = None) -> Any:
+        """Authorize one call without executing it.
+
+        Kept for callers written against the previous adapters, but it now
+        returns a kernel `Decision` and reserves a trajectory slot. If you are
+        not going to execute the result, call `guard.release(decision)` or use
+        `preview` so the session is not left holding the reservation.
+        """
+        return self.authorize(tool, args)
+
+    def preview(self, tool: str, args: Any = None) -> Any:
+        """Non-reserving, NON-EXECUTABLE evaluation of one call."""
+        kernel = self._require_kernel("preview")
+        decision = kernel.preview(self._call(tool, args))
+        if self.audit is not None:
+            self.audit(decision)
+        return decision
+
+    def release(self, decision: Any) -> bool:
+        """Abandon a decision the caller will not execute."""
+        return self._require_kernel("release").release(decision)
 
     def check_plan(self, steps: list[dict]) -> GovernanceResult:
-        return self._gate(self.governance.evaluate_plan(steps))
+        """Whole-plan reasoning. ADVISORY BY CONSTRUCTION.
 
-    def allow(self, tool: str, args: Any = None, **context) -> bool:
-        call = {"tool": tool, "args": args if args is not None else {}}
-        call.update(context)
-        return self.governance.evaluate(call).permitted
-
-    def _gate(self, result: GovernanceResult) -> GovernanceResult:
+        This is `GovernanceLayer` doing what it is for — evaluating a proposed
+        trajectory — and it is genuinely useful before committing to a plan.
+        It is NOT a veto: it authorises nothing, reserves nothing, and returns
+        a `GovernanceResult` rather than a Decision. Steps must still be
+        authorised individually as they run.
+        """
+        result = self.governance.evaluate_plan(steps)
         if self.audit is not None:
             self.audit(result)
         if not result.permitted and self.on_block == "raise":
             raise GovernanceError(result)
         return result
+
+    def allow(self, tool: str, args: Any = None) -> bool:
+        """Advisory boolean. Does not authorise execution.
+
+        Uses the non-reserving preview path, so calling it does not silently
+        consume trajectory slots.
+        """
+        return bool(self.preview(tool, args).permitted)
+
+    def _gate(self, decision: Any) -> Any:
+        if self.audit is not None:
+            self.audit(decision)
+        if not getattr(decision, "permitted", False) and self.on_block == "raise":
+            raise GovernanceError(decision)
+        return decision
 
 
 # ─────────────────────────────────────────────────────────────
@@ -88,67 +298,88 @@ class GovernanceGuard:
 def _openai_call_to_dict(tc: Any) -> dict:
     """Normalise an OpenAI tool_call (object or dict) to {tool, args}."""
     import json
-    if hasattr(tc, "function"):
-        name = tc.function.name
-        raw = tc.function.arguments
-    elif isinstance(tc, dict):
-        fn = tc.get("function", tc)
-        name = fn.get("name", tc.get("name", "unknown"))
+
+    if isinstance(tc, dict):
+        fn = tc.get("function") or {}
+        name = fn.get("name") or tc.get("name") or "unknown"
         raw = fn.get("arguments", tc.get("arguments", {}))
-    else:  # pragma: no cover - defensive
-        name, raw = "unknown", {}
+    else:
+        fn = getattr(tc, "function", None)
+        name = getattr(fn, "name", None) or getattr(tc, "name", "unknown")
+        raw = getattr(fn, "arguments", getattr(tc, "arguments", {}))
     if isinstance(raw, str):
         try:
-            raw = json.loads(raw)
-        except (json.JSONDecodeError, TypeError):
-            raw = {"raw": raw}
-    return {"tool": name, "args": raw}
+            raw = json.loads(raw or "{}")
+        except (ValueError, TypeError):
+            raw = {"_raw": raw}
+    return {"tool": str(name), "args": raw if isinstance(raw, dict) else {"_positional": raw}}
+
+
+def _tc_id(tc: Any) -> Any:
+    return getattr(tc, "id", None) or (tc.get("id") if isinstance(tc, dict) else None)
 
 
 def openai_partition_tool_calls(
-    guard: GovernanceGuard, tool_calls: Iterable[Any], **context
-) -> tuple[list[Any], list[tuple[Any, GovernanceResult]]]:
-    """Split a response's tool_calls into (allowed, [(denied, result), ...]).
-    Never raises — use this when you want to answer the model with
-    tool_result errors instead of aborting the turn."""
-    allowed, denied = [], []
+    guard: GovernanceGuard, tool_calls: Iterable[Any]
+) -> tuple[list[AuthorizedCall], list[DeniedCall]]:
+    """Split a response's tool_calls into (authorized, denied). Never raises.
+
+    Two changes from the pre-kernel version, both load-bearing:
+
+    * The batch is authorised THROUGH THE KERNEL, in order. Each PERMIT
+      reserves its place in the session trajectory, so the second call in a
+      batch is evaluated against the first. A read and its exfiltration issued
+      as one parallel batch are no longer both permitted — which is what
+      happened when each call was evaluated standalone.
+    * `authorized` contains `AuthorizedCall` objects, not bare tool calls. The
+      caller cannot dispatch one without redeeming its decision through
+      `guard.execute_authorized`, so "partition then execute the allowed list
+      yourself" is no longer an ungoverned path.
+
+    Parallel calls that are genuinely independent are unaffected: reserving a
+    read does not refuse another read.
+    """
+    kernel = guard._require_kernel("openai_partition_tool_calls")
+    authorized: list[AuthorizedCall] = []
+    denied: list[DeniedCall] = []
     for tc in tool_calls:
         call = _openai_call_to_dict(tc)
-        call.update(context)
-        r = guard.governance.evaluate(call)
+        decision = kernel.authorize(call)
         if guard.audit:
-            guard.audit(r)
-        (allowed if r.permitted else denied).append(
-            tc if r.permitted else (tc, r))
-    return allowed, denied
+            guard.audit(decision)
+        if decision.permitted:
+            authorized.append(AuthorizedCall(call, decision, tc))
+        else:
+            denied.append(DeniedCall(call, decision, tc))
+    return authorized, denied
 
 
 def openai_guarded_dispatch(
     guard: GovernanceGuard,
     tool_calls: Iterable[Any],
     dispatch: Callable[[str, dict], Any],
-    **context,
 ) -> list[dict]:
-    """Evaluate then dispatch each permitted call; return OpenAI-style
-    tool result messages. Denied calls yield an error tool message rather
-    than executing."""
+    """Authorize then execute each permitted call; return OpenAI-style tool
+    result messages. Denied calls yield an error tool message.
+
+    Execution happens inside `kernel.execute`, so the action that runs is the
+    action that was authorised and the trajectory advances as it goes.
+    """
+    kernel = guard._require_kernel("openai_guarded_dispatch")
     results = []
     for tc in tool_calls:
         call = _openai_call_to_dict(tc)
-        call.update(context)
-        r = guard.governance.evaluate(call)
+        decision, executed, out = kernel.submit(
+            call, lambda governed: dispatch(governed["tool"], governed["args"]))
         if guard.audit:
-            guard.audit(r)
-        tc_id = getattr(tc, "id", None) or (
-            tc.get("id") if isinstance(tc, dict) else None)
-        if r.permitted:
-            out = dispatch(call["tool"], call["args"])
-            results.append({"role": "tool", "tool_call_id": tc_id,
-                            "content": str(out)})
+            guard.audit(decision)
+        if executed:
+            content = str(out)
         else:
-            results.append({"role": "tool", "tool_call_id": tc_id,
-                            "content": f"BLOCKED by governance "
-                                       f"[{r.layer}]: {r.reason}"})
+            content = (f"BLOCKED by governance [{decision.layer}] "
+                       f"{decision.verdict}: {decision.reason}")
+        results.append({"role": "tool", "tool_call_id": _tc_id(tc),
+                        "content": content})
     return results
 
 
@@ -165,25 +396,33 @@ def _claude_block_to_dict(block: Any) -> dict:
 
 
 def claude_filter_tool_use(
-    guard: GovernanceGuard, content: Iterable[Any], **context
-) -> tuple[list[Any], list[dict]]:
+    guard: GovernanceGuard, content: Iterable[Any]
+) -> tuple[list[AuthorizedCall], list[dict]]:
     """Given the content blocks of a Claude assistant message, return
-    (allowed_tool_use_blocks, tool_result_blocks_for_denied). The denied
-    list is ready to send back to the API as `tool_result` content with
-    is_error=True."""
-    allowed, denied_results = [], []
+    (authorized_calls, tool_result_blocks_for_denied).
+
+    As with the OpenAI batch adapter, blocks are authorised through the kernel
+    in order so the batch is one trajectory, and the permitted half comes back
+    as `AuthorizedCall` objects that must be redeemed through
+    `guard.execute_authorized` rather than dispatched directly.
+
+    The denied list is ready to send back to the API as `tool_result` content
+    with `is_error=True`.
+    """
+    kernel = guard._require_kernel("claude_filter_tool_use")
+    authorized: list[AuthorizedCall] = []
+    denied_results: list[dict] = []
     for block in content:
         btype = block.get("type") if isinstance(block, dict) else getattr(
             block, "type", None)
         if btype != "tool_use":
             continue
         call = _claude_block_to_dict(block)
-        call.update(context)
-        r = guard.governance.evaluate(call)
+        decision = kernel.authorize(call)
         if guard.audit:
-            guard.audit(r)
-        if r.permitted:
-            allowed.append(block)
+            guard.audit(decision)
+        if decision.permitted:
+            authorized.append(AuthorizedCall(call, decision, block))
         else:
             tu_id = block.get("id") if isinstance(block, dict) else getattr(
                 block, "id", None)
@@ -192,9 +431,40 @@ def claude_filter_tool_use(
                 "tool_use_id": tu_id,
                 "is_error": True,
                 "content": f"Blocked by Morrison governance "
-                           f"[{r.layer}] {r.verdict.value}: {r.reason}",
+                           f"[{decision.layer}] {decision.verdict}: "
+                           f"{decision.reason}",
             })
-    return allowed, denied_results
+    return authorized, denied_results
+
+
+def claude_guarded_dispatch(
+    guard: GovernanceGuard, content: Iterable[Any],
+    dispatch: Callable[[str, dict], Any],
+) -> list[dict]:
+    """Authorize and execute a Claude tool-use message, returning tool_result
+    blocks for both halves. The direct analogue of `openai_guarded_dispatch`."""
+    kernel = guard._require_kernel("claude_guarded_dispatch")
+    blocks: list[dict] = []
+    for block in content:
+        btype = block.get("type") if isinstance(block, dict) else getattr(
+            block, "type", None)
+        if btype != "tool_use":
+            continue
+        call = _claude_block_to_dict(block)
+        tu_id = block.get("id") if isinstance(block, dict) else getattr(
+            block, "id", None)
+        decision, executed, out = kernel.submit(
+            call, lambda governed: dispatch(governed["tool"], governed["args"]))
+        if guard.audit:
+            guard.audit(decision)
+        blocks.append({
+            "type": "tool_result", "tool_use_id": tu_id,
+            "is_error": not executed,
+            "content": str(out) if executed else (
+                f"Blocked by Morrison governance [{decision.layer}] "
+                f"{decision.verdict}: {decision.reason}"),
+        })
+    return blocks
 
 
 # ─────────────────────────────────────────────────────────────
@@ -202,9 +472,15 @@ def claude_filter_tool_use(
 # ─────────────────────────────────────────────────────────────
 
 def govern_langchain_tool(guard: GovernanceGuard, tool: Any) -> Any:
-    """Wrap a LangChain tool so every invocation is gated. Works with
-    objects exposing `.name` and one of `func` / `_run` / `run` / `invoke`."""
+    """Wrap a LangChain tool so every invocation runs through the kernel.
+
+    Works with objects exposing `.name` and one of `func` / `_run` / `run` /
+    `invoke`. The wrapped callable does not run the original and then record a
+    verdict: the original is invoked BY the kernel, as the executor of an
+    authorised decision, so a refusal means it was never called.
+    """
     name = getattr(tool, "name", getattr(tool, "__name__", "unknown"))
+    guard._require_kernel("govern_langchain_tool")
 
     for attr in ("func", "_run", "run", "invoke"):
         original = getattr(tool, attr, None)
@@ -212,9 +488,7 @@ def govern_langchain_tool(guard: GovernanceGuard, tool: Any) -> Any:
             continue
 
         def gated(*args, __orig=original, **kwargs):
-            payload = kwargs if kwargs else (args[0] if args else {})
-            guard.check_call(name, payload)
-            return __orig(*args, **kwargs)
+            return _govern_callable(guard, name, __orig, args, kwargs)
 
         try:
             setattr(tool, attr, gated)
@@ -226,6 +500,35 @@ def govern_langchain_tool(guard: GovernanceGuard, tool: Any) -> Any:
     return tool
 
 
+def _govern_callable(guard: GovernanceGuard, name: str,
+                     original: Callable, args: tuple, kwargs: dict) -> Any:
+    """Run `original` only as the executor of a kernel-authorised decision.
+
+    ATK-09. The proposal used to be `kwargs if kwargs else args[0]`, and the
+    original was then called with the FULL `*args, **kwargs`. Everything after
+    the first positional argument was invisible to governance and arrived at the
+    tool intact — `{"sql": "DROP DATABASE prod"}` and `"rm -rf /"` both did.
+
+    The proposal is now everything the tool will receive. A single dict
+    positional keeps its natural shape, because that is how these tools are
+    normally called and flattening it would change every capability rule that
+    reads argument key names.
+    """
+    proposal: dict = {}
+    if len(args) == 1 and not kwargs and isinstance(args[0], dict):
+        proposal = _governable(args[0])
+    else:
+        if args:
+            proposal["_positional"] = _governable(list(args))
+        proposal.update(_governable(kwargs))
+
+    decision, executed, out = guard.dispatch(
+        name, proposal, lambda _governed: original(*args, **kwargs))
+    if not executed:
+        raise GovernanceError(decision)
+    return out
+
+
 class _CallableToolProxy:
     """Last-resort wrapper for immutable tool objects."""
 
@@ -234,8 +537,7 @@ class _CallableToolProxy:
             tool, name, guard, original)
 
     def __call__(self, *a, **kw):
-        self._guard.check_call(self.name, kw or (a[0] if a else {}))
-        return self._orig(*a, **kw)
+        return _govern_callable(self._guard, self.name, self._orig, a, kw)
 
     def __getattr__(self, item):
         return getattr(self._tool, item)
@@ -243,14 +545,23 @@ class _CallableToolProxy:
 
 class GovernanceCallbackHandler:
     """LangChain-style callback handler. Plug into callbacks=[...]; raises
-    GovernanceError from on_tool_start for a blocked tool."""
+    GovernanceError from on_tool_start for a blocked tool.
+
+    A callback fires alongside the framework's own execution rather than in
+    place of it, so this handler cannot be the veto — it can only raise early
+    enough to stop the chain. Use `govern_langchain_tool` for the real gate and
+    treat this as defence in depth.
+    """
 
     def __init__(self, guard: GovernanceGuard):
         self.guard = guard
 
     def on_tool_start(self, serialized: dict, input_str: str, **kwargs):
         name = (serialized or {}).get("name", "unknown")
-        self.guard.check_call(name, {"input": input_str})
+        decision = self.guard.preview(name, {"input": input_str})
+        if not decision.permitted:
+            raise GovernanceError(decision)
+        return decision
 
     # no-ops so the handler satisfies the callback protocol duck-test
     def on_tool_end(self, *a, **k): pass
@@ -264,23 +575,29 @@ class GovernanceCallbackHandler:
 # ─────────────────────────────────────────────────────────────
 
 def autogen_guard_function_call(
-    guard: GovernanceGuard, name: str, arguments: dict, **context
-) -> GovernanceResult:
-    """Call from an AutoGen function-execution hook. Raises (fail closed)
-    on a blocked call when guard.on_block == 'raise'."""
-    return guard.check_call(name, arguments, **context)
+    guard: GovernanceGuard, name: str, arguments: dict
+) -> Any:
+    """Call from an AutoGen function-execution hook. Raises (fail closed) on a
+    non-PERMIT verdict when guard.on_block == 'raise'.
+
+    Returns the reserving Decision, which the caller must redeem through
+    `guard.execute_authorized`; a hook that only inspects the verdict and then
+    calls the function itself is an ungoverned path. Prefer
+    `register_autogen_guard`, which wires the kernel in as the executor.
+    """
+    return guard.authorize(name, arguments)
 
 
 def register_autogen_guard(agent: Any, guard: GovernanceGuard) -> Any:
     """Wrap every function registered on an AutoGen ConversableAgent's
-    `function_map` with a governance gate."""
+    `function_map` so the kernel executes it."""
+    guard._require_kernel("register_autogen_guard")
     fmap = getattr(agent, "function_map", None)
     if not isinstance(fmap, dict):
         return agent
     for fname, fn in list(fmap.items()):
         def wrapped(*args, __fn=fn, __n=fname, **kwargs):
-            guard.check_call(__n, kwargs or (args[0] if args else {}))
-            return __fn(*args, **kwargs)
+            return _govern_callable(guard, __n, __fn, args, kwargs)
         fmap[fname] = wrapped
     return agent
 
@@ -306,19 +623,35 @@ BROWSER_ACTION_TOOL = {
 }
 
 
-def browser_action_guard(
-    guard: GovernanceGuard, action: str, target: str = "",
-    value: Any = None, **context
-) -> GovernanceResult:
-    """Gate a single browser-agent action. `action` is navigate/click/
-    type/download/upload/submit/execute_js/extract/..."""
+def _browser_call(action: str, target: str = "", value: Any = None) -> tuple[str, dict]:
     tool = BROWSER_ACTION_TOOL.get(action, f"browser_{action}")
-    args = {"target": target}
+    args: dict = {"target": target}
     if value is not None:
         args["value"] = value
     if action in ("submit", "upload", "download"):
         args["url"] = target
-    return guard.check_call(tool, args, **context)
+    return tool, args
+
+
+def browser_action_guard(
+    guard: GovernanceGuard, action: str, target: str = "", value: Any = None
+) -> Any:
+    """Authorize a single browser-agent action through the kernel.
+
+    Returns the reserving Decision. Use `browser_guarded_action` when the
+    adapter should also perform the action.
+    """
+    tool, args = _browser_call(action, target, value)
+    return guard.authorize(tool, args)
+
+
+def browser_guarded_action(
+    guard: GovernanceGuard, action: str, performer: Callable[[dict], Any],
+    target: str = "", value: Any = None,
+) -> tuple[Any, bool, Any]:
+    """Authorize and perform one browser action through the kernel."""
+    tool, args = _browser_call(action, target, value)
+    return guard.dispatch(tool, args, performer)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -326,29 +659,64 @@ def browser_action_guard(
 # ─────────────────────────────────────────────────────────────
 
 def mcp_guard_call_tool(
-    guard: GovernanceGuard, name: str, arguments: dict, **context
-) -> GovernanceResult:
-    """Call at the top of an MCP server's call_tool handler."""
-    return guard.check_call(name, arguments, **context)
+    guard: GovernanceGuard, name: str, arguments: dict
+) -> Any:
+    """Authorize at the top of an MCP server's call_tool handler.
+
+    Prefer `wrap_mcp_call_tool`, which makes the kernel the caller of the
+    handler rather than trusting the handler to honour a verdict.
+    """
+    return guard.authorize(name, arguments or {})
 
 
 def wrap_mcp_call_tool(guard: GovernanceGuard, call_tool: Callable) -> Callable:
-    """Decorate an MCP `call_tool(name, arguments)` coroutine/function so
-    every invocation is governed. Supports both sync and async handlers."""
+    """Decorate an MCP `call_tool(name, arguments)` coroutine/function so the
+    kernel executes it. Supports both sync and async handlers.
+
+    The async wrapper authorises, then awaits the handler, then commits the
+    reservation — `kernel.execute` takes a synchronous executor, so the commit
+    is explicit here rather than implicit. A refusal returns before the handler
+    is awaited.
+    """
     import asyncio
     import functools
+
+    kernel = guard._require_kernel("wrap_mcp_call_tool")
 
     if asyncio.iscoroutinefunction(call_tool):
         @functools.wraps(call_tool)
         async def _aw(name, arguments=None, *a, **kw):
-            guard.check_call(name, arguments or {})
-            return await call_tool(name, arguments, *a, **kw)
+            decision = guard.authorize(name, arguments or {})
+            if not decision.permitted:
+                raise GovernanceError(decision)
+            try:
+                result = await call_tool(name, arguments, *a, **kw)
+            except Exception:
+                # ATK-04. This used to `release(decision)`, freeing the
+                # trajectory slot. A handler can raise AFTER it has acted: the
+                # read happened, the exception scrubbed it from the trajectory,
+                # and the follow-up exfiltration was then decided against a
+                # history that no longer showed the read.
+                #
+                # `release` is correct for a decision the caller CHOSE not to
+                # execute. It is wrong for one whose executor may already have
+                # acted, and this wrapper cannot tell the difference — so it
+                # commits, matching `kernel.execute`, where a failed execution
+                # is not a free retry.
+                kernel.record_remote_execution(decision)
+                raise
+            kernel.record_remote_execution(decision)
+            return result
         return _aw
 
     @functools.wraps(call_tool)
     def _sw(name, arguments=None, *a, **kw):
-        guard.check_call(name, arguments or {})
-        return call_tool(name, arguments, *a, **kw)
+        decision, executed, out = guard.dispatch(
+            name, arguments or {},
+            lambda _governed: call_tool(name, arguments, *a, **kw))
+        if not executed:
+            raise GovernanceError(decision)
+        return out
     return _sw
 
 
@@ -356,18 +724,55 @@ def wrap_mcp_call_tool(guard: GovernanceGuard, call_tool: Callable) -> Callable:
 # Shell execution
 # ─────────────────────────────────────────────────────────────
 
+def _governable(value: Any, _depth: int = 0) -> Any:
+    """Render an arbitrary argument into something the kernel can classify.
+
+    Containers are walked; anything else degrades to its `repr`, which keeps a
+    non-JSON argument visible to classification instead of silently dropping it.
+    Deliberately total: an argument the kernel cannot read is an argument the
+    kernel cannot veto.
+    """
+    if _depth > 8:
+        return repr(value)
+    if isinstance(value, dict):
+        return {str(k): _governable(v, _depth + 1) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return [_governable(v, _depth + 1) for v in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return repr(value)
+
+
 def governed_run(
     guard: GovernanceGuard, command: Any,
     runner: Optional[Callable] = None, tool: str = "shell", **kwargs
 ):
-    """Gate a shell command, then execute it with `runner` (defaults to
-    subprocess.run). The command never spawns if governance blocks it."""
-    guard.check_call(tool, command if isinstance(command, str)
-                     else " ".join(map(str, command)))
-    if runner is None:
-        import subprocess
-        runner = subprocess.run
-    return runner(command, **kwargs)
+    """Authorize a shell command, then execute it as the kernel's executor.
+
+    The command never spawns if governance refuses it, and the spawn happens
+    inside `kernel.execute` rather than after a verdict the caller could ignore.
+    Tool-name synonyms are resolved to one family before classification, so
+    passing `tool="run_shell"` does not change the decision.
+    """
+    text = command if isinstance(command, str) else " ".join(map(str, command))
+
+    def _spawn(_governed: dict):
+        run = runner
+        if run is None:
+            import subprocess
+            run = subprocess.run
+        return run(command, **kwargs)
+
+    # ATK-03. The command text used to be the only thing governed, and `cwd`,
+    # `env` and `shell` went straight to the runner. An `LD_PRELOAD` in `env`
+    # changes what a command does more than most edits to the command would, and
+    # the kernel never saw it. Everything that shapes the invocation is part of
+    # the proposal.
+    decision, executed, out = guard.dispatch(
+        tool, {"cmd": text, "options": _governable(kwargs)}, _spawn)
+    if not executed:
+        raise GovernanceError(decision)
+    return out
 
 
 # ─────────────────────────────────────────────────────────────
@@ -376,22 +781,41 @@ def governed_run(
 
 @dataclass
 class WorkflowGovernor:
-    """Governs a whole multi-step workflow as one trajectory (so the V2
-    taint / escalation analysis sees the full plan), plus per-step gating
-    for streaming executors."""
+    """Governs a multi-step workflow.
+
+    `submit` is REASONING: it asks the layer whether the plan as a whole is
+    admissible, before anything is authorised. `run` is the VETO: it authorises
+    and executes each step through the kernel, in order, so every step is
+    decided against what the previous steps actually did.
+
+    Planning ahead does not authorise anything, and a plan that passes `submit`
+    is still refused step by step if it turns out unsafe in execution.
+    """
 
     guard: GovernanceGuard
 
     def submit(self, steps: list[dict]) -> GovernanceResult:
-        """Evaluate the entire workflow up-front. Raises (fail closed) if
-        the plan as a whole is unsafe."""
+        """Evaluate the entire workflow up-front. Advisory; authorises nothing."""
         return self.guard.check_plan(steps)
 
     def step_gate(self, step: dict, history: Optional[list[dict]] = None
-                  ) -> GovernanceResult:
-        """Gate one step in the context of everything executed so far,
-        so a late exfiltration step is still caught against earlier reads."""
-        plan = list(history or []) + [step]
-        if len(plan) == 1:
-            return self.guard.check_call(step["tool"], step.get("args", {}))
-        return self.guard.check_plan(plan)
+                  ) -> Any:
+        """Authorize one step through the kernel.
+
+        `history` is accepted for call-site compatibility and ignored: the
+        kernel holds the real session trajectory, including reserved-but-not-
+        yet-executed steps, which a caller-supplied history cannot know about.
+        """
+        return self.guard.authorize(step["tool"], step.get("args", {}))
+
+    def run(self, steps: list[dict], executor: Callable[[dict], Any],
+            stop_on_block: bool = True) -> list[tuple[Any, bool, Any]]:
+        """Authorize and execute each step in order through the kernel."""
+        outcomes: list[tuple[Any, bool, Any]] = []
+        for step in steps:
+            decision, executed, out = self.guard.dispatch(
+                step["tool"], step.get("args", {}), executor)
+            outcomes.append((decision, executed, out))
+            if not executed and stop_on_block:
+                break
+        return outcomes

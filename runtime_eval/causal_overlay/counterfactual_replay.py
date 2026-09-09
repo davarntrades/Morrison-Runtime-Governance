@@ -11,6 +11,7 @@ from typing import Optional
 
 from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.kernel import GovernanceKernel
+from morrison_governance.kernel.continuity import InMemoryContinuityStore
 from morrison_governance.kernel.policy import CAPABILITY_POLICY
 from morrison_governance.kernel.trust import Principal, SecurityContext
 from runtime_eval.frontier.tool_schema import tool_manifest
@@ -80,6 +81,14 @@ def _build_kernel(config: ReplayConfig) -> tuple[GovernanceLayer, GovernanceKern
         principal=Principal(
             id="causal-replay", tenant="synthetic",
             granted_capabilities=frozenset(config.principal_grants)),
+        # EVERY COUNTERFACTUAL IS AN INDEPENDENT HYPOTHETICAL, so each replay
+        # gets its own governed history. Sharing the process-wide continuity
+        # store — correct for a real principal, whose sessions must not be able
+        # to launder a trajectory between them — would let one branch's
+        # transitions taint the next branch's, and the overlay would stop
+        # measuring what it claims to measure. This is isolation by semantics,
+        # not an opt-out from continuity: nothing here executes.
+        continuity_store=InMemoryContinuityStore(),
         tool_manifest=config.manifest(),
         internal_email_domains=config.internal_email_domains,
         internal_url_hosts=config.internal_url_hosts,

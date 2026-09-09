@@ -28,7 +28,9 @@ import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Optional
 
-from morrison_governance.kernel.canonical import action_hash, canonicalize
+from morrison_governance.kernel.canonical import (
+    action_hash, canonicalize, semantic_action_hash,
+)
 
 # ─────────────────────────────────────────────────────────────
 # Quarantined authority fields
@@ -226,6 +228,63 @@ class SecurityContext:
     # Policy-owned comparison values a caller must not choose.
     policy_values: dict = field(default_factory=dict)
 
+    # ── authority continuity ─────────────────────────────────
+    # Where this principal's governed history lives. `None` uses the
+    # process-wide default store, which gives continuity across the sessions,
+    # threads and workers inside one process. Configure a durable store
+    # (FileContinuityStore, or your own ContinuityStore) for continuity across
+    # restarts, hosts, and a distributed fleet.
+    continuity_store: Any = None
+
+    # Optional finer isolation WITHIN one principal, for genuinely independent
+    # jobs. Part of the continuity key, so it must come from deployment
+    # configuration — an agent that could set its own workload could rotate it
+    # and re-open trajectory fragmentation.
+    workload: str = ""
+
+    # How far back governed history is considered, in seconds.
+    #
+    # Trajectory analysis over an UNBOUNDED past is neither safe nor useful: an
+    # agent that once read customer data would have every future egress refused
+    # for the life of the principal, so operators would widen the allowlists
+    # until the control meant nothing. One hour is long enough that an attacker
+    # cannot rotate sessions to escape it — session rotation is instant, waiting
+    # is not — and short enough that yesterday's work does not govern today's.
+    #
+    # The trade-off is explicit and is the main residual limitation of the
+    # continuity design: an attacker patient enough to spread one prohibited
+    # trajectory across a window longer than this defeats it. Raise it for
+    # high-value workloads; the cost is more escalations, not less safety.
+    continuity_window_s: float = 3600.0
+
+    # Secret shared with the resource-side enforcement points that verify
+    # execution leases. Separate from `signing_key` (approvals) because the
+    # verifier is a DIFFERENT trust domain: a gateway needs to check leases and
+    # has no business being able to mint approvals.
+    lease_signing_key: bytes = b""
+
+    # How many authorisations one identity may hold reserved-but-unexecuted.
+    # Beyond this, further authorisation escalates until the caller executes or
+    # releases. 0 disables the limit.
+    max_outstanding_reservations: int = 64
+
+    # What to do when the persistent identity cannot be established:
+    # "escalate" (default) | "block" | "permit". "permit" is an explicit,
+    # auditable opt-out, not a silent one.
+    continuity_policy: str = "escalate"
+
+    # Whether loopback / RFC1918 addresses count as inside the trust boundary
+    # WITHOUT being named in `internal_url_hosts` or `internal_cidrs`.
+    #
+    # Defaults to False, which is a behaviour change: any private or loopback
+    # literal used to resolve as internal automatically, so a collector on the
+    # agent's own VPC was "internal" and every external-egress rule was skipped
+    # for it. Deployments that genuinely trust their private ranges should list
+    # them in `internal_cidrs`; this flag exists for the ones that cannot
+    # enumerate them yet. Link-local and cloud metadata endpoints are never
+    # internal, whatever this is set to.
+    trust_private_networks: bool = False
+
     _used_nonces: set = field(default_factory=set)
 
     # ── approvals ────────────────────────────────────────────
@@ -277,12 +336,19 @@ def issue_approval(call: dict, issuer: str, key: bytes, ttl_s: float = 300.0,
                    scope: str = "", nonce: str = "",
                    now: Optional[float] = None) -> ApprovalArtifact:
     """Helper for trusted approval services (and tests): mint a signed approval
-    bound to the canonical hash of `call`.
+    bound to the SEMANTIC hash of `call`.
+
+    Semantic rather than byte-canonical, so an approval is bound to the
+    TRANSITION it was granted for. A reviewer who approves
+    `shell {"cmd": "..."}` has approved that command; re-proposing it as
+    `run_shell` is the same transition and consumes the same approval, rather
+    than presenting as a new unapproved action or — worse — letting a second
+    spelling escape the approval requirement entirely.
 
     Raises if `key` is empty — see `ApprovalArtifact.sign`.
     """
     now = time.time() if now is None else now
     return ApprovalArtifact(
-        action_hash=action_hash(call), issuer=issuer, scope=scope,
+        action_hash=semantic_action_hash(call), issuer=issuer, scope=scope,
         issued_at=now, expires_at=now + ttl_s, nonce=nonce,
     ).sign(key)

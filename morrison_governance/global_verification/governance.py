@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Protocol
 
 from morrison_governance import GovernanceLayer, OmegaDomain
+from morrison_governance.kernel.continuity import InMemoryContinuityStore
 from morrison_governance.kernel import (
     PERMIT,
     GovernanceKernel,
@@ -99,6 +100,11 @@ def default_kernel_factory(
             tool_manifest=manifest,
             unknown_tool_policy=unknown_tool_policy,
             policy_values=values,
+            # Each verification BRANCH is an independent hypothetical and the
+            # verifier reconstructs a kernel per branch, replaying the prefix
+            # itself. Branches must not inherit one another's governed history,
+            # so each gets its own store. Nothing here executes.
+            continuity_store=InMemoryContinuityStore(),
         )
         return GovernanceKernel(
             layer=layer,
@@ -140,7 +146,7 @@ class MorrisonKernelAdapter:
                     "previously executable prefix did not replay as PERMIT at "
                     f"step {index}: {replay.verdict} ({replay.reason})"
                 )
-            kernel.record_remote_execution(replay)
+            kernel.record_remote_execution(replay, now=0.0)
 
         decision = kernel.authorize(proposal, now=0.0)
         if decision.layer == "fail_closed":
