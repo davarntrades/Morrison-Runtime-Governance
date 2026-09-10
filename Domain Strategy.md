@@ -4,7 +4,7 @@
 
 ![Framework](https://img.shields.io/badge/Framework-Morrison_Framework™-0075ca?style=flat-square)
 ![Architecture](https://img.shields.io/badge/Architecture-One_Middleware_·_Ten_Sectors-0075ca?style=flat-square)
-![Invariant](https://img.shields.io/badge/Invariant-ℛ(t)_∩_Ω_=_∅-555555?style=flat-square)
+![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-555555?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
 
 *The geometry doesn’t change. Only Ω changes.*
@@ -17,7 +17,9 @@
 
 ## Thesis
 
-Once safety is defined structurally as ℛ(t) ∩ Ω = ∅, the framework stops being “AI safety” and becomes a general governance architecture for executable systems. Every domain below uses the same middleware, the same enforcement hierarchy, the same invariant. The only variable is the forbidden region.
+Once safety is defined structurally as ℛ(t) ∩ Ω = ∅ — the safety *objective*, not an unconditional guarantee — the framework stops being “AI safety” and becomes a general governance architecture for executable systems. Every domain below uses the same middleware, the same enforcement hierarchy, the same objective. The only variable is the forbidden region.
+
+What the governed-execution implementation *demonstrates* is narrower and stronger: **authority separation** — the agent holds proposal capability and cannot mint execution authority. Ω-exclusion is derived inside an established governed boundary. See [AUTHORITY_SEPARATION.md](AUTHORITY_SEPARATION.md).
 
 -----
 
@@ -253,7 +255,7 @@ The full framework covers:
 
 |Invariant                 |Equation                      |
 |:-------------------------|:-----------------------------|
-|Safety Invariant          |ℛ(t) ∩ Ω = ∅ — this middleware|
+|Safety Invariant          |ℛ(t) ∩ Ω = ∅ — objective of this middleware|
 |Intelligence Invariant    |I(t) = d/dt μ(ℛ(t))           |
 |Identity Invariant        |𝒥(x₀) := [ℛ(t)]_∼             |
 |Consciousness Invariant   |C(t) = τ(⋃ᵢ 𝒩_t(X, Iᵢ))       |
@@ -272,12 +274,13 @@ Every domain above uses the same deployment:
 ║                                                              ║
 ║   Same middleware.                                           ║
 ║   Same enforcement hierarchy.                                ║
-║   Same invariant.                                            ║
+║   Same objective.                                            ║
 ║   Same patent.                                               ║
 ║                                                              ║
 ║   Different Ω.                                               ║
 ║                                                              ║
-║   ℛ(t) ∩ Ω = ∅                                              ║
+║   OBJECTIVE     ℛ(t) ∩ Ω = ∅                                ║
+║   DEMONSTRATED  Λ(a) ∉ 𝔄                                    ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 ```

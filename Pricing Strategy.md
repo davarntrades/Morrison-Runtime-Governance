@@ -37,7 +37,7 @@ complexity of the software.
 ║  Priced against the cost of Ω becoming reachable —           ║
 ║  not the complexity of the software.                         ║
 ║                                                              ║
-║  ℛ(t) ∩ Ω = ∅                                               ║
+║  ℛ(t) ∩ Ω = ∅   [objective]                                 ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
@@ -267,7 +267,7 @@ revalidation.
 ║  Priced against the cost of Ω becoming reachable.            ║
 ║  Not the complexity of the software.                         ║
 ║                                                              ║
-║  ℛ(t) ∩ Ω = ∅                                               ║
+║  ℛ(t) ∩ Ω = ∅   [objective]                                 ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
@@ -297,7 +297,7 @@ terms: [`License.md`](License.md).
 
 *The price of prevention is a fraction of the cost of Ω.*
 
-GB2600765.8 · GB2602013.1 · GB2602072.7 · GB2602332.5
+GB2600765.8
 
 © 2026 Davarn Morrison — Intelligence Invariant™ · All Rights Reserved
 

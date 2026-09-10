@@ -19,10 +19,13 @@ mechanism, not to global safety. See the repo-root
 
 ## 1. The milestone in one paragraph
 
-Morrison Runtime Governance guarantees, per the reachability invariant,
-that an admitted trajectory `t` satisfies `ℛ(t) ∩ Ω = ∅` — its reachable
-set does not intersect the forbidden region. That guarantee is computed
-over the trajectory the governance layer is *handed*. Reasoning models
+Morrison Runtime Governance evaluates, against the reachability objective,
+whether an admitted trajectory `t` satisfies `ℛ(t) ∩ Ω = ∅` — its reachable
+set does not intersect the forbidden region. That result is computed
+over the trajectory the governance layer is *handed*, and holds only inside an
+established governed boundary; it is not an unconditional guarantee. The
+primary demonstrated property is authority separation
+([AUTHORITY_SEPARATION.md](../../AUTHORITY_SEPARATION.md)). Reasoning models
 (R1 distills, o-style planners) interleave long natural-language
 reasoning with their final action and emit multi-call plans wrapped in
 markdown/JSON. The previous planner layer could not faithfully recover

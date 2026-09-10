@@ -39,7 +39,10 @@ asking a pilot to attack. Full evidence in
 ```
 
 The claim was never broadened during evaluation. It was narrowed to what
-survived. The narrowest justified form is §11 of the evaluation report.
+survived. The narrowest justified form is §11 of the evaluation report, and the
+mathematical framing is [AUTHORITY_SEPARATION.md](AUTHORITY_SEPARATION.md):
+**authority separation is the demonstrated property; forbidden-state exclusion
+is derived and boundary-conditional.**
 
 **Not claimed, by construction:** control of model cognition · prevention of all
 AI safety failures · governance of activity outside the mediated execution
@@ -282,15 +285,22 @@ assumed.
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║  Reach(s₀, A, t) ∩ Ω = ∅                                         ║
+║  DEMONSTRATED — authority separation                             ║
 ║                                                                  ║
-║  Safety is state-space exclusion, not output filtering.          ║
+║      Propose(a) ∈ 𝔄        Λ(a) ∉ 𝔄                             ║
+║      Effect(a) ⟹ ∃ Λ(a) issued by the kernel                    ║
+║                                                                  ║
 ║  The agent cannot MANUFACTURE the authority to act.              ║
+║                                                                  ║
+║  DERIVED, boundary-conditional — forbidden-state exclusion       ║
+║                                                                  ║
+║      Reach_B(X₀) ∩ Ω = ∅   inside an established boundary B,     ║
+║      conditional on T1–T7, M1–M7, MED-11 and R4B-05              ║
 ║                                                                  ║
 ║  The assumption did not disappear.                               ║
 ║  It got smaller, and it got auditable.                           ║
 ║                                                                  ║
-║  Morrison Safety Invariant™ · I4        GB2600765.8              ║
+║  Morrison Runtime Governance™           GB2600765.8              ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
@@ -301,11 +311,12 @@ complete mediation as **given**.
 
 Morrison Runtime Governance™ · Morrison Framework™ · Pilot Briefing Card
 
-GB2600765.8 · GB2602013.1 · GB2602072.7 · GB26023332.5
+GB2600765.8
 
 © 2026 Davarn Morrison — Intelligence Invariant™ · All Rights Reserved
 
 **Related work:**
+[Authority Separation](AUTHORITY_SEPARATION.md) ·
 [Pre-Pilot Adversarial Evaluation](PRE_PILOT_ADVERSARIAL_EVALUATION.md) ·
 [Complete Mediation Analysis](COMPLETE_MEDIATION_ANALYSIS.md) ·
 [Governed Execution Veto Evaluation](GOVERNED_EXECUTION_VETO_EVALUATION.md) ·

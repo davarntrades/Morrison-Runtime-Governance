@@ -80,7 +80,7 @@ For bounded environment (E), admissible initial states (X_0), transition functio
 \forall x_0 \in X_0,\quad \operatorname{Reach}_G(x_0) \cap \Omega = \varnothing
 \]
 
-The property has a precise conditional meaning. It establishes exclusion of the **declared** Ω under the **declared** (T), state abstraction, initial set, and mediation assumptions. It does not establish that the declaration matches the real environment.
+This is the property **under study in a declared finite model**, not the primary demonstrated property of the governed-execution implementation; that is authority separation ([AUTHORITY_SEPARATION.md](AUTHORITY_SEPARATION.md)). The property has a precise conditional meaning. It establishes exclusion of the **declared** Ω under the **declared** (T), state abstraction, initial set, and mediation assumptions. It does not establish that the declaration matches the real environment.
 
 ## Current architecture observed
 

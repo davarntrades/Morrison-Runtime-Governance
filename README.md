@@ -3,7 +3,8 @@
 # Morrison Runtime Governance™
 
 ![Safety Envelope](https://img.shields.io/badge/Local_Safety_Envelope-Environment--Bounded-5b6cff?style=flat-square)
-![Safety](https://img.shields.io/badge/Safety-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
+![Primary Property](https://img.shields.io/badge/Demonstrated-Authority_Separation-0f766e?style=flat-square)
+![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
 ![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
 ![Tests](https://img.shields.io/badge/Tests-1%2C092_Passing-2ea44f?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
@@ -180,9 +181,29 @@ The planner can change. The model can change. The governance invariant remains e
 
 ## Safety geometry
 
+**The primary demonstrated property is authority separation**, not reachability
+exclusion. The agent can propose an action; it cannot manufacture the authority
+to execute one:
+
 ```text
-Locally admissible trajectory ⇔ ℛ(t) remains inside the validated Safety Envelope
-Forbidden reachability ⇔ ℛ(t) ∩ Ω ≠ ∅
+Propose(a) ∈ 𝔄        the agent always retains proposal capability
+Λ(a)       ∉ 𝔄        the agent cannot mint execution authority
+──────────────────────────────────────────────────────────────
+Effect(a)  ⟹  ∃ Λ(a) issued by the kernel and valid at redemption
+```
+
+`Λ(a)` is an authorization artifact bound to the exact action, single-use,
+expiring, and — where a `LeaseVerifier` is deployed — verified by the resource
+rather than by the caller. Full notation and the tests pinning each property:
+[AUTHORITY_SEPARATION.md](AUTHORITY_SEPARATION.md).
+
+**Reachability exclusion is the safety *objective*, and a derived property**
+inside an established governed boundary:
+
+```text
+OBJECTIVE (not an unconditional guarantee):
+  Locally admissible trajectory ⇔ ℛ(t) remains inside the validated Safety Envelope
+  Forbidden reachability        ⇔ ℛ(t) ∩ Ω ≠ ∅
 ```
 
 Where:
@@ -191,7 +212,11 @@ Where:
 - **Ω** is the configured forbidden region.
 - the **local Safety Envelope** is the bounded operating region in which the evaluated deployment remains locally admissible.
 
-This makes the claim operational rather than rhetorical: safe operation is tied to a specific environment and a specific reachable-state boundary.
+Exclusion of Ω holds only inside a boundary the deployment establishes, and is
+conditional on complete mediation, specification correctness, key custody, and
+the documented open limitations (MED-11, R4B-05). Morrison does not claim
+complete mediation; see
+[COMPLETE_MEDIATION_ANALYSIS.md](COMPLETE_MEDIATION_ANALYSIS.md).
 
 ---
 

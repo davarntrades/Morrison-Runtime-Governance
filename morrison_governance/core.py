@@ -59,7 +59,14 @@ class GovernanceLayer:
     Sits between LLM planner and tool execution.
     Evaluates reachability into Ω before any action occurs.
 
-    Core invariant: Safe ⟺ ∀ E ∈ ℰ, ℛ_E(t) ∩ Ω = ∅
+    Safety OBJECTIVE: Safe ⟺ ∀ E ∈ ℰ, ℛ_E(t) ∩ Ω = ∅
+
+    This is the objective, not an unconditional guarantee. The primary
+    DEMONSTRATED property is authority separation: the agent can propose an
+    action but cannot mint the authority to execute one. Ω-exclusion is
+    derived inside an established governed boundary and is conditional on
+    complete mediation, specification correctness and key custody.
+    See AUTHORITY_SEPARATION.md.
     """
 
     def __init__(

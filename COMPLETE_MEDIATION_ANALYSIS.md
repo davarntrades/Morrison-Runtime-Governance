@@ -2,7 +2,8 @@
 
 **Repository:** `davarntrades/Morrison-Runtime-Governance`
 **Head:** `1a7abb3`
-**Companion to:** [Pre-Pilot Adversarial Evaluation](PRE_PILOT_ADVERSARIAL_EVALUATION.md)
+**Companion to:** [Pre-Pilot Adversarial Evaluation](PRE_PILOT_ADVERSARIAL_EVALUATION.md) ·
+[Authority Separation](AUTHORITY_SEPARATION.md)
 
 ---
 
@@ -202,6 +203,6 @@ it, is the [Pilot Briefing Card](PILOT_BRIEFING_CARD.md).
 
 Morrison Runtime Governance™ · Complete Mediation Analysis
 
-GB2600765.8 · GB2602013.1 · GB2602072.7 · GB26023332.5
+GB2600765.8
 
 © 2026 Davarn Morrison — Intelligence Invariant™ · All Rights Reserved

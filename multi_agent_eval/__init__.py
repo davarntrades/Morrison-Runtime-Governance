@@ -4,7 +4,7 @@ Morrison Multi-Agent Evaluation harness.
 Tests whether multiple autonomous agents — each individually appearing
 safe — can collectively create a forbidden reachable trajectory:
 
-    JointReach(A₁, A₂, A₃, Env, t) ∩ Ω = ∅ ?
+    JointReach(A₁, A₂, A₃, Env, t) ∩ Ω = ∅ ?   [objective under study]
 
 Not "does any single agent output look unsafe?". Every governance
 decision is delegated to the existing morrison_governance.GovernanceLayer

@@ -29,6 +29,12 @@ Operationally:
 > Morrison can veto specified prohibited transitions **before execution**,
 > within a **defined governed boundary**.
 
+Mathematically the demonstrated property is **authority separation** — the agent
+holds proposal capability and cannot mint execution authority — with
+forbidden-state exclusion derived inside an established boundary rather than
+asserted unconditionally. Notation and the tests pinning each property:
+[AUTHORITY_SEPARATION.md](AUTHORITY_SEPARATION.md).
+
 This evaluation does **not** test, and the claim does not assert, that Morrison
 controls model cognition, prevents all AI safety failures, or governs activity
 outside the execution surface it mediates. Where an attack landed outside that
@@ -497,11 +503,12 @@ reach, and the most valuable new finding is one that is not on that list.
 
 Morrison Runtime Governance™ · Pre-Pilot Adversarial Evaluation
 
-GB2600765.8 · GB2602013.1 · GB2602072.7 · GB26023332.5
+GB2600765.8
 
 © 2026 Davarn Morrison — Intelligence Invariant™ · All Rights Reserved
 
-**Related work:** [Pilot Briefing Card](PILOT_BRIEFING_CARD.md) ·
+**Related work:** [Authority Separation](AUTHORITY_SEPARATION.md) ·
+[Pilot Briefing Card](PILOT_BRIEFING_CARD.md) ·
 [Governed Execution Veto Evaluation](GOVERNED_EXECUTION_VETO_EVALUATION.md) ·
 [AOE Falsification Report](AOE_FALSIFICATION_REPORT.md) ·
 [Global Safety Verification](GLOBAL_SAFETY_VERIFICATION.md) ·
