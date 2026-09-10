@@ -371,7 +371,7 @@ def test_containment_covering_are_distinct_properties(prior):
 
 
 # ═══════════════════════════════════════════════════════════════
-# D6 — is 𝓘_α = [𝓡_α(x₀)]_∼ suitable for authorization?
+# D6 — is 𝒥_α = [ℛ_α(x₀)]_∼ suitable for authorization?
 # ═══════════════════════════════════════════════════════════════
 #
 # The analysis argued on paper that it is not, because the quotient discards
@@ -481,7 +481,7 @@ def _isomorphic(first, second):
 
 
 def test_d6_topology_cannot_separate_two_materially_different_authorizations():
-    """D6 — CONFIRMED. `𝓘_α` is unsuitable for authorization.
+    """D6 — CONFIRMED. `𝒥_α` is unsuitable for authorization.
 
     α₁ exfiltrates a public press release to a newswire.
     α₂ exfiltrates 40M customer records to an attacker-controlled dropbox.
@@ -496,11 +496,11 @@ def test_d6_topology_cannot_separate_two_materially_different_authorizations():
     labels, and the consequence lives entirely in the labels. Making `∼` fine
     enough to separate these two would make it fine enough to separate states
     that differ in any respect — at which point it is identity, not an
-    equivalence, and `𝓘(x₀)` stops being a notion under which identity persists
+    equivalence, and `𝒥(x₀)` stops being a notion under which identity persists
     through change.
 
-    This does NOT weaken `𝓘(x₀) := [𝓡(t)]_∼` as system identity. It shows only
-    that the proposed extension `𝓘_α` cannot carry authorization, which is why
+    This does NOT weaken `𝒥(x₀) := [ℛ(t)]_∼` as system identity. It shows only
+    that the proposed extension `𝒥_α` cannot carry authorization, which is why
     it is not adopted.
     """
     struct_a, adj_a = _reach_structure(

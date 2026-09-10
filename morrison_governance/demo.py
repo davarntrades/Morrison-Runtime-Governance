@@ -149,7 +149,7 @@ def main():
     print()
     print("═" * 64)
     print("  © 2026 Davarn Morrison — Resurrection Tech Ltd")
-    print("  GB2600765.8 · GB2602013.1 · GB2602072.7 · GB2602332.5")
+    print("  GB2600765.8")
     print("═" * 64)
     print()
 

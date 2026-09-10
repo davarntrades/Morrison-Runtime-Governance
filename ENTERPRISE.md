@@ -133,7 +133,8 @@ The question is not:
 
 The question is:
 
-> *“Can catastrophic executable states be made structurally unreachable?”*
+> *“Can catastrophic executable states be made structurally unreachable
+> **within an established governed boundary**?”*
 
 That is a different layer of governance entirely.
 

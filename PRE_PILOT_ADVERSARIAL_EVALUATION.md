@@ -503,7 +503,7 @@ reach, and the most valuable new finding is one that is not on that list.
 
 Morrison Runtime Governance™ · Pre-Pilot Adversarial Evaluation
 
-GB2600765.8 · GB2602013.1 · GB2602072.7 · GB26023332.5
+GB2600765.8
 
 © 2026 Davarn Morrison — Intelligence Invariant™ · All Rights Reserved
 

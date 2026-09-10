@@ -29,13 +29,19 @@ test plan. Companion to
 
 ---
 
+> **Notation correction (recorded, not silently applied).** Round 5 was first
+> written using `𝓘` for system identity and `𝓡` for the reachable set. The
+> repository's canonical symbols are **`𝒥`** and **`ℛ`** — `𝒥(x₀) := [ℛ(t)]_∼`.
+> All Round 5 material has been aligned to those. The symbols changed; no
+> definition, result or claim did.
+
 ## 1 · The two meanings of identity, kept apart
 
 Two distinct concepts are in play and the analysis depends on not merging them.
 
 | | **System identity** | **Execution identity** |
 | :-- | :-- | :-- |
-| Definition | `𝓘(x₀) := [𝓡(t)]_∼` | the continuity key `(tenant, principal, workload)` |
+| Definition | `𝒥(x₀) := [ℛ(t)]_∼` | the continuity key `(tenant, principal, workload)` |
 | Type | equivalence class of reachable futures | an index / label |
 | Answers | *what this system is* | *who is exercising authority* |
 | Role | output of the dynamics | input that selects the dynamics |
@@ -43,7 +49,7 @@ Two distinct concepts are in play and the analysis depends on not merging them.
 The bridge is a composition, not an equivalence:
 
 ```text
-    p  ──►  T_p  ──►  𝓡_p(x₀)  ──►  [𝓡_p(x₀)]_∼
+    p  ──►  T_p  ──►  ℛ_p(x₀)  ──►  [ℛ_p(x₀)]_∼
    who     which        what is        what kind of
   acts   transitions    reachable      system that is
           are allowed
@@ -63,7 +69,7 @@ equivalence class.
 
 ## 2 · The candidate formulation
 
-> `𝓡_α^actual(x₀) ⊆ 𝓡_α^authorized(x₀)`
+> `ℛ_α^actual(x₀) ⊆ ℛ_α^authorized(x₀)`
 >
 > The futures made reachable by exercising authorization `α` must never exceed
 > the futures that authorization was intended to make reachable.
@@ -72,7 +78,7 @@ Call this **containment**. It is a genuine and useful idea. Tested below.
 
 A second, independent condition is required and is frequently confused with it:
 
-> `𝓡^actual(x₀) ⊆ ⋃_α 𝓡_α^authorized(x₀)`
+> `ℛ^actual(x₀) ⊆ ⋃_α ℛ_α^authorized(x₀)`
 
 Call this **covering** — every reachable effect is attributable to *some*
 authorization. This is exactly **T1 / complete mediation**, restated. Containment
@@ -107,7 +113,7 @@ Because more history only ever *restricts* (§5, A4), computing from a local
 history yields an over-approximation:
 
 ```text
-    𝓡_α^authorized(x₀ | h_local)  ⊇  𝓡_α^authorized(x₀ | h_true)
+    ℛ_α^authorized(x₀ | h_local)  ⊇  ℛ_α^authorized(x₀ | h_true)
 ```
 
 The system bounds actual reach against the **left** side. MED-11 is exactly the
@@ -125,7 +131,7 @@ Three clusters, stated as plainly as the successes.
 
 | Counterexamples | Why containment is silent |
 | :-- | :-- |
-| ATK-06, ATK-08, R4B-01, R4B-02, R4B-03 | These are `𝓡^actual ⊊ 𝓡^intended` — legitimate futures became *un*reachable. Containment is satisfied perfectly by a system that authorizes nothing. |
+| ATK-06, ATK-08, R4B-01, R4B-02, R4B-03 | These are `ℛ^actual ⊊ ℛ^intended` — legitimate futures became *un*reachable. Containment is satisfied perfectly by a system that authorizes nothing. |
 
 A governance layer a deployment cannot live with gets configured away, so these
 were real findings. Containment cannot express them, and a formalism that scores
@@ -153,7 +159,7 @@ guarantee — actual never exceeds intended — and is entirely silent on whethe
 ### 4.4 Covering failures need the other condition
 
 VETO-08, VETO-08b, VETO-09, VETO-12 and MED-12 are cases where **no `α` existed
-at all**. `𝓡_α^actual ⊆ 𝓡_α^authorized` is vacuously true when there is no `α`
+at all**. `ℛ_α^actual ⊆ ℛ_α^authorized` is vacuously true when there is no `α`
 to index by. These require the covering condition of §2, i.e. T1.
 
 ---
@@ -175,7 +181,7 @@ authorize an **idempotent** read, execute it, then replay the same decision.
 ```
 
 The reachable **state set** is identical whether the read happens once or twice.
-A guarantee phrased as `𝓡^actual ⊆ 𝓡^authorized` therefore **cannot distinguish
+A guarantee phrased as `ℛ^actual ⊆ ℛ^authorized` therefore **cannot distinguish
 the two**, and would rate a replay as compliant.
 
 The implementation refuses it anyway. **The code already enforces a trace
@@ -193,12 +199,12 @@ inherits the fidelity of its state abstraction, which is an input (T6/L5).
 Every history-truncation and staleness counterexample shows the real object is
 
 ```text
-    𝓡_α^authorized( x₀ │ h, ρ, τ, p )
+    ℛ_α^authorized( x₀ │ h, ρ, τ, p )
         h = governed history      ρ = policy version
         τ = redemption time       p = principal
 ```
 
-Written as `𝓡_α^authorized(x₀)` the formulation is under-specified, and the
+Written as `ℛ_α^authorized(x₀)` the formulation is under-specified, and the
 under-specification is exactly where MED-03, MED-04, MED-13 and MED-11 live.
 
 ### 5.4 One inclusion, two conditions
@@ -218,26 +224,26 @@ not a region that is entered.
 
 ---
 
-## 6 · On `𝓘_α(x₀) = [𝓡_α(x₀)]_∼` — coherent, but do not adopt it
+## 6 · On `𝒥_α(x₀) = [ℛ_α(x₀)]_∼` — coherent, but do not adopt it
 
-**It is well-formed.** `𝓡_α(x₀)` is a set of reachable states; applying `[·]_∼`
+**It is well-formed.** `ℛ_α(x₀)` is a set of reachable states; applying `[·]_∼`
 is defined wherever `∼` is defined on such sets. No formal objection.
 
 **It is nonetheless the wrong tool, for a precise reason.** The quotient map
 
 ```text
-    π : 𝓡  ⟼  [𝓡]_∼
+    π : ℛ  ⟼  [ℛ]_∼
 ```
 
-is deliberately **not injective**. Forgetting detail is what makes `𝓘(x₀)` a
+is deliberately **not injective**. Forgetting detail is what makes `𝒥(x₀)` a
 useful notion of identity — identity persists *through* change. But the facts
 authorization containment depends on are exactly the facts `π` discards: *which*
 edge, *how many times*, *issued to whom*, *valid until when*.
 
 Concretely: an authorization to transfer **$1** and an authorization to transfer
 **$4,500,000** plausibly induce topologically equivalent reachable sets — each a
-single edge out of `x₀`. `𝓘_α` identifies them. Distinguishing them is the whole
-job. **CONT-02 is invisible under `𝓘_α`.**
+single edge out of `x₀`. `𝒥_α` identifies them. Distinguishing them is the whole
+job. **CONT-02 is invisible under `𝒥_α`.**
 
 > **Authority separation lives below the quotient. System identity lives above
 > it. `π` is the bridge, and `π` being non-injective is precisely why the two
@@ -265,7 +271,7 @@ The labelled states *do* differ — different filenames, different hashes. That 
 the point. `[·]_∼` is a quotient that discards labels, and the consequence lives
 entirely in the labels. Sharpening `∼` until it separates these two sharpens it
 until it separates any two states differing in any respect, at which point it is
-identity rather than an equivalence — and `𝓘(x₀)` stops being a notion under
+identity rather than an equivalence — and `𝒥(x₀)` stops being a notion under
 which identity *persists through change*. **There is no setting of `∼` that is
 both coarse enough to be an identity and fine enough to authorise.**
 
@@ -286,16 +292,16 @@ cannot pass silently.
 
 ### 6.2 The narrowed role
 
-**`𝓘_α` is not adopted, and is now excluded rather than merely not-recommended.**
+**`𝒥_α` is not adopted, and is now excluded rather than merely not-recommended.**
 D6 is confirmed, so this is a result rather than a preference.
 
-`𝓘_α` may be used **only** as a coarse, non-load-bearing descriptor — *what kind
+`𝒥_α` may be used **only** as a coarse, non-load-bearing descriptor — *what kind
 of system does this authorization turn the agent into* — for capability
 classification and reporting. It must never enter the veto path, be used to
 compare two authorizations for equivalence, or appear in any argument that an
 authorization is safe.
 
-**`𝓘(x₀) := [𝓡(t)]_∼` is unchanged.** D6 says nothing against it. It bounds only
+**`𝒥(x₀) := [ℛ(t)]_∼` is unchanged.** D6 says nothing against it. It bounds only
 the proposed *extension* to authorization, which was never adopted. The evidence
 did not require touching the system-identity invariant and it has not been
 touched.
@@ -350,7 +356,7 @@ Stated so the formulation is falsifiable rather than decorative.
 | **D3** | Containment is violated with **no** security consequence in any deployment | Containment is not *necessary*; too strong as an invariant |
 | **D4** | An A4 violation — some history that turns a refusal into a permission | History can manufacture authority; the trajectory-dependence property is unsound |
 | **D5** | A single `α` producing two effects that the trace model records as one | The trace formulation inherits the state-abstraction gap it was meant to fix |
-| **D6** | Two authorizations with materially different consequence that are **provably** equivalent under `∼` | **CONFIRMED** (§6.1). `𝓘_α` excluded from the veto path. |
+| **D6** | Two authorizations with materially different consequence that are **provably** equivalent under `∼` | **CONFIRMED** (§6.1). `𝒥_α` excluded from the veto path. |
 
 **D4 was attacked first and held** (§10b). **D2 succeeded and is preserved as
 evidence of the boundary**, not treated as a failure to hide.
@@ -361,7 +367,7 @@ evidence of the boundary**, not treated as a failure to hide.
 
 Deliberately minimal. Four items, none of which touches the implementation.
 
-1. **Do not adopt `𝓘_α` as an invariant.** Record it as a non-load-bearing
+1. **Do not adopt `𝒥_α` as an invariant.** Record it as a non-load-bearing
    descriptor with the §6 argument for why it cannot carry the veto.
 2. **State containment over traces, not state sets**, with the authorized set
    explicitly indexed `(x₀ │ h, ρ, τ, p)`. This matches what the code already
@@ -473,9 +479,9 @@ Roughly **two-thirds** of the counterexample record falls inside it.
 Set inclusion over states is too weak to adopt: the implementation already
 enforces a strictly stronger trace property, demonstrated by measurement.
 
-`𝓘_α` is coherent and is **excluded** from the veto path: D6 is confirmed, and
+`𝒥_α` is coherent and is **excluded** from the veto path: D6 is confirmed, and
 no setting of `∼` is both coarse enough to be an identity and fine enough to
-authorise. `𝓘(x₀)` itself is untouched.
+authorise. `𝒥(x₀)` itself is untouched.
 
 A4 and A6 held under adversarial probing and are now permanent tests. A4's
 statement required a scope correction that is recorded rather than quietly
@@ -493,7 +499,7 @@ as tests. No claim is strengthened.**
 ║   Authority separation lives BELOW the quotient.                 ║
 ║   System identity lives ABOVE it.                                ║
 ║                                                                  ║
-║   π : 𝓡 ⟼ [𝓡]_∼   is not injective —                            ║
+║   π : ℛ ⟼ [ℛ]_∼   is not injective —                            ║
 ║   which is exactly why the two must not be conflated.            ║
 ║                                                                  ║
 ║   Morrison Runtime Governance™          GB2600765.8              ║
@@ -504,7 +510,7 @@ as tests. No claim is strengthened.**
 
 Morrison Runtime Governance™ · Morrison Framework™ · Authorization as Reachability
 
-GB2600765.8 · GB2602013.1 · GB2602072.7 · GB26023332.5
+GB2600765.8
 
 © 2026 Davarn Morrison — Intelligence Invariant™ · All Rights Reserved
 
