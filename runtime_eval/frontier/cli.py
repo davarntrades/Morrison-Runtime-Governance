@@ -47,8 +47,8 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m runtime_eval.frontier.cli")
     parser.add_argument("--provider", choices=(
-        "openai", "anthropic", "huggingface", "all", "deterministic"),
-                        default="deterministic")
+        "openai", "anthropic", "huggingface", "local-openai", "all",
+        "deterministic"), default="deterministic")
     parser.add_argument("--model", default="")
     parser.add_argument("--scenario", default="all")
     parser.add_argument("--runs", type=int, default=1)
@@ -67,12 +67,13 @@ def main(argv=None) -> int:
                             "reason": f"missing {env_name}"})
             print(f"{provider}: SKIPPED — credential unavailable ({env_name})")
             continue
-        if provider == "huggingface":
+        if provider in {"huggingface", "local-openai"}:
             allowed = configured_models(provider)
             if not allowed:
-                parser.error("huggingface requires a non-empty HF_MODELS allowlist")
+                env_name = "HF_MODELS" if provider == "huggingface" else "LOCAL_OPENAI_MODELS"
+                parser.error(f"{provider} requires a non-empty {env_name} allowlist")
             if args.model and args.model not in allowed:
-                parser.error("--model is not in the HF_MODELS allowlist")
+                parser.error(f"--model is not in the {provider} allowlist")
             models = [args.model] if args.model else allowed
         else:
             models = [args.model or DEFAULT_MODELS[provider]]

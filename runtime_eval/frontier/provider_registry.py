@@ -7,6 +7,10 @@ import os
 from runtime_eval.frontier.anthropic_planner import AnthropicFrontierPlanner
 from runtime_eval.frontier.deterministic_planner import DeterministicFrontierPlanner
 from runtime_eval.frontier.huggingface_planner import HuggingFaceFrontierPlanner
+from runtime_eval.frontier.local_openai_planner import (
+    DEFAULT_LOCAL_OPENAI_BASE_URL,
+    LocalOpenAICompatibleFrontierPlanner,
+)
 from runtime_eval.frontier.openai_planner import OpenAIFrontierPlanner
 from runtime_eval.frontier.scenarios import Scenario
 
@@ -20,10 +24,13 @@ DEFAULT_MODELS = {"openai": "gpt-5.6", "anthropic": "claude-opus-5",
 def configured_models(provider: str) -> list[str]:
     """Return the server-side model allowlist for a provider."""
     if provider == "huggingface":
-        return [item.strip() for item in os.getenv("HF_MODELS", "").split(",")
-                if item.strip()]
-    configured = os.getenv(f"{provider.upper()}_MODEL", "").strip()
-    return [configured] if configured else []
+        raw = os.getenv("HF_MODELS", "")
+    elif provider == "local-openai":
+        raw = os.getenv("LOCAL_OPENAI_MODELS", "")
+    else:
+        configured = os.getenv(f"{provider.upper()}_MODEL", "").strip()
+        return [configured] if configured else []
+    return [item.strip() for item in raw.split(",") if item.strip()]
 
 
 def credential_available(provider: str) -> bool:
@@ -42,6 +49,17 @@ def make_planner(provider: str, scenario: Scenario, model: str = "", client=None
         return HuggingFaceFrontierPlanner(
             scenario, selected, client=client, temperature=temperature,
             timeout_s=timeout_s)
+    if provider == "local-openai":
+        allowed = configured_models(provider)
+        selected = model or (allowed[0] if allowed else "")
+        if not selected or selected not in allowed:
+            raise ValueError("Local model is not in LOCAL_OPENAI_MODELS allowlist")
+        temperature = float(os.getenv("LOCAL_OPENAI_TEMPERATURE", "0"))
+        timeout_s = float(os.getenv("FRONTIER_PROVIDER_TIMEOUT_S", "60"))
+        base_url = os.getenv("LOCAL_OPENAI_BASE_URL", DEFAULT_LOCAL_OPENAI_BASE_URL)
+        return LocalOpenAICompatibleFrontierPlanner(
+            scenario, selected, client=client, base_url=base_url,
+            temperature=temperature, timeout_s=timeout_s)
     selected = model or DEFAULT_MODELS[provider]
     if provider == "deterministic":
         return DeterministicFrontierPlanner(scenario)
