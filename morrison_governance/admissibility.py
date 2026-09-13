@@ -23,6 +23,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable, Optional
 
+from morrison_governance.input_validation import RuleEvaluationError
+
 
 # A check returns None if the state is admissible, otherwise a reason string.
 CheckFn = Callable[[dict], Optional[str]]
@@ -38,7 +40,19 @@ class AdmissibilityCheck:
     severity: str = "structural"
 
     def evaluate(self, state: dict) -> Optional[str]:
-        return self.check(state)
+        """Returns a reason string if the state is inadmissible, else None.
+
+        As with `OmegaRule.evaluate`, a raising predicate becomes a named
+        `RuleEvaluationError` rather than an anonymous traceback, and is
+        re-raised rather than swallowed: a check that cannot run must not
+        silently report "admissible".
+        """
+        try:
+            return self.check(state)
+        except RuleEvaluationError:
+            raise
+        except Exception as exc:  # noqa: BLE001 — re-raised, never swallowed
+            raise RuleEvaluationError(self.name, exc) from exc
 
 
 # ─────────────────────────────────────────────────────────────

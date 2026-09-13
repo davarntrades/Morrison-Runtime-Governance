@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable, Optional
 
+from morrison_governance.input_validation import RuleEvaluationError
+
 
 class OmegaDomain(Enum):
     """
@@ -68,8 +70,25 @@ class OmegaRule:
     severity: str = "critical"
 
     def evaluate(self, state: dict) -> bool:
-        """Returns True if the state violates this rule (enters Ω)."""
-        return self.check(state)
+        """Returns True if the state violates this rule (enters Ω).
+
+        A predicate that raises is converted into `RuleEvaluationError`
+        naming this rule. Every rule invocation in the reachability
+        hierarchy goes through here, so this is the single point at which a
+        broken guard becomes identifiable rather than an anonymous traceback
+        escaping the governance call.
+
+        The error is NOT swallowed — it propagates to `GovernanceLayer._run`,
+        which turns it into a fail-closed BLOCK. Catching it here and
+        returning False would be the very defect this guards against: a rule
+        that cannot be evaluated would silently stop contributing to Ω.
+        """
+        try:
+            return self.check(state)
+        except RuleEvaluationError:
+            raise
+        except Exception as exc:  # noqa: BLE001 — re-raised, never swallowed
+            raise RuleEvaluationError(self.name, exc) from exc
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -374,7 +393,7 @@ _FALSE_REASSURANCE_TONES = (
 # — is unchanged.
 # ─────────────────────────────────────────────────────────────
 
-import re as _re_mh
+import re as _re_mh  # pylint: disable=wrong-import-order  # section-local by design; see the block comment above
 
 _NON_WORD_RE = _re_mh.compile(r"[^a-z0-9_]+")
 

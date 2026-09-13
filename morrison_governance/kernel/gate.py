@@ -39,6 +39,10 @@ from morrison_governance.result import GovernanceVerdict
 from morrison_governance.kernel import capabilities as C
 from morrison_governance.kernel import policy as P
 from morrison_governance.kernel import sensitivity as S
+from morrison_governance.evidence_fingerprint import (
+    DIGEST_UNAVAILABLE, input_digest, structural_shape,
+)
+from morrison_governance.input_validation import validate_tool_call
 from morrison_governance.kernel.canonical import (
     action_hash, canonicalize, semantic_action_hash,
 )
@@ -148,6 +152,10 @@ class Decision:
     destination: dict = field(default_factory=dict)
     trajectory_hash: str = ""
     evidence: Optional[EvidenceRecord] = None
+    # See EvidenceRecord.original_input_digest. Surfaced on the Decision so a
+    # caller can distinguish two refusals without reading the chain.
+    original_input_digest: str = ""
+    input_shape: str = ""
     # The canonical tool family this proposal resolved to. Aliasing is what
     # stops `run_shell` executing what `shell` is refused, and it also means an
     # approval covers every member of the family with the same arguments. That
@@ -690,6 +698,41 @@ class GovernanceKernel:
         _t0 = time.perf_counter()
         _sw = _Stopwatch()
         now = time.time() if now is None else now
+
+        # ── shape validation, BEFORE canonicalisation ──
+        # `canonicalize` cannot fail: args=None becomes {}, and a non-dict
+        # args becomes {"_positional": <value>}. Both are laundered into a
+        # well-formed call, so malformed args on a KNOWN tool reached PERMIT
+        # at V4 — `unknown_tool_policy` does not catch it, because the tool is
+        # in the manifest. A non-dict call crashed in canonicalize instead.
+        #
+        # The refused call is replaced with an inert placeholder rather than
+        # returned early, so the decision still goes through the normal
+        # evidence, hashing and recording pipeline. It is a BLOCK, so nothing
+        # executes on it.
+        unevaluable = validate_tool_call(call, where="kernel call")
+        original_digest = ""
+        original_shape = ""
+        if unevaluable is not None:
+            # Bind the evidence to the ORIGINAL proposal before it is replaced.
+            # `canonicalize` is about to be handed a placeholder shared by every
+            # refusal, so `action_hash` alone would give malformed_A and
+            # malformed_B one audit identity. This digest is what keeps them
+            # distinguishable in the immutable record.
+            #
+            # `input_digest` and `structural_shape` are total by contract; they
+            # are wrapped again here because evidence generation must not be
+            # able to alter control flow. If fingerprinting fails, the refusal
+            # is still recorded, carrying the `unavailable` sentinel — a BLOCK
+            # never becomes a PERMIT because its evidence could not be built.
+            try:
+                original_digest = input_digest(call)
+                original_shape = structural_shape(call)
+            except BaseException as exc:  # noqa: BLE001 — must never fail open
+                original_digest = DIGEST_UNAVAILABLE
+                original_shape = f"<error:{type(exc).__name__}>"
+            call = {"tool": "__unevaluable__", "args": {}}
+
         with _sw("trust_boundary"):
             # THREE representations of one proposal, and the distinction is
             # load-bearing:
@@ -754,6 +797,10 @@ class GovernanceKernel:
         }
 
         candidates: list[tuple[str, str, str, Optional[str], Optional[str]]] = []
+
+        if unevaluable is not None:
+            candidates.append((BLOCK, "unevaluable_input",
+                               f"Refused: {unevaluable}", None, None))
 
         # ── forged authority is recorded and never honoured ──
         # Every quarantined claim is recorded as evidence unconditionally. It
@@ -1103,7 +1150,15 @@ class GovernanceKernel:
                     and requirement != P.DENY
                     and not adversarial_indicator
                     and all(c[0] != BLOCK or c[1] == layer for c in candidates)
-                    and layer not in ("fail_closed", "tenancy", "egress_policy",
+                    # `unevaluable_input` sits with `fail_closed`: this clause
+                    # reclassifies a BLOCK as "resolvable by authorisation",
+                    # and no approval can make an unrepresentable proposal
+                    # evaluable. Leaving it out also made the verdict
+                    # order-dependent — the same malformed call came back
+                    # ESCALATE or BLOCK depending on whether an earlier denial
+                    # happened to be in the ledger.
+                    and layer not in ("fail_closed", "unevaluable_input",
+                                      "tenancy", "egress_policy",
                                       "trajectory_integrity", "capability_policy",
                                       "unknown_tool", "binding", "continuity",
                                       "normalization", "destination_policy",
@@ -1136,6 +1191,7 @@ class GovernanceKernel:
             rule=rule, omega_domain=domain, authorization=authorization,
             forged_claims=forged, destination=dest.as_dict(),
             trajectory_hash=traj_hash,
+            original_input_digest=original_digest, input_shape=original_shape,
             engine_time_ms=engine_ms,
             decision_time_ms=(time.perf_counter() - _t0) * 1000.0,
             tool_family=norm.tool,
@@ -1154,7 +1210,9 @@ class GovernanceKernel:
                 omega_domain=domain, reason=reason, capabilities=sorted(caps),
                 requirement=requirement, authorization=authorization,
                 forged_authority_claims=forged, ruleset_hash=self._ruleset_hash,
-                engine_version=self.engine_version, trajectory_hash=traj_hash))
+                engine_version=self.engine_version, trajectory_hash=traj_hash,
+                original_input_digest=original_digest,
+                input_shape=original_shape))
 
         # Recomputed AFTER sealing so `decision_time_ms` covers the whole
         # pipeline including evidence, matching its documented meaning.

@@ -19,6 +19,13 @@ baseline this report commits to is **1304 passed**.
 This report documents the defect only. It proposes no fix and asserts no
 remediation.
 
+**This describes behaviour at `f4127fc`, before any remediation.** A fix lands
+in a later commit on this branch. Everything below is the measured pre-patch
+state and is deliberately left standing: the defect was real, it was reachable
+through the primary documented entry point, and a reader of the fixed tree
+should be able to see what was wrong rather than infer that the invariant
+always held. Nothing here is rewritten once the fix exists.
+
 ---
 
 ## 1. The claim under test
@@ -235,6 +242,50 @@ four checks.
 
 ---
 
+## 5a. The production kernel path — measured, not assumed
+
+§6 originally recorded `/v1/govern` as out of scope. That was accurate when
+written and is no longer true: the route was subsequently measured, using the
+same method as everything else here. It is recorded rather than left as an open
+question, because "untested" and "tested and partially affected" are different
+claims and the earlier one is now misleading.
+
+`GovernanceKernel.authorize()` — the `/v1/govern` path — is **mostly defended,
+and defended by something other than input validation.** Measured:
+
+| Input | Verdict | Layer |
+|---|---|---|
+| `{'tool': 12345, 'args': {}}` | ESCALATE | `unknown_tool` |
+| `{'args': {'url': 'https://attacker.com'}}` | ESCALATE | `unknown_tool` |
+| `{}` | ESCALATE | `unknown_tool` |
+| `{'tool': 'read_file', 'args': None}` | **PERMIT** | `V4` |
+| `{'tool': 'read_file', 'args': ['x']}` | **PERMIT** | `V4` |
+| `42` | raises `AttributeError` | — |
+
+Two things follow, and they pull in opposite directions:
+
+1. **The kernel does not share most of the defect**, but not because it
+   validates input. `unknown_tool_policy="escalate"` catches the malformed
+   *tool* cases as a side effect of not recognising the resulting tool name.
+   That is a different control doing an adjacent job, and it holds only while
+   the policy is set to escalate.
+
+2. **Malformed `args` on a KNOWN tool is not caught at all.** `read_file` is in
+   the manifest, so `unknown_tool` never fires, and `canonicalize`
+   (`kernel/canonical.py:51`) cannot fail: `args=None` becomes `{}`, and a
+   non-dict `args` becomes `{"_positional": <value>}`. The call is laundered
+   into a well-formed shape before the engine sees it, and reaches PERMIT at
+   V4. This is the same root cause as §4 — a normalisation that cannot fail —
+   in a second location.
+
+The kernel is, however, already correct about the *rule-level* half of the
+failure class: a governance layer that raises is converted into a BLOCK at
+`layer="fail_closed"`, which
+`test_kernel_redteam.py::test_fail_closed_on_governance_exception` has pinned
+all along. `GovernanceLayer` had no equivalent.
+
+---
+
 ## 6. What this report does and does not establish
 
 **Established:**
@@ -252,11 +303,10 @@ four checks.
 - **No exploited production bypass is demonstrated.** These are fuzzed inputs
   into a library entry point, not a captured attack against a deployment. A
   caller that constructs well-formed tool calls never reaches this path.
-- The enterprise deployment's `/v1/govern` route is **not** assessed here. That
-  route goes through `GovernanceKernel.authorize()`, not `GovernanceLayer.evaluate()`,
-  and the kernel's own trust boundary and canonicalisation are a different code
-  path with different behaviour. Whether it shares this defect is out of scope
-  and untested in this report.
+- ~~The enterprise deployment's `/v1/govern` route is **not** assessed here.~~
+  **Superseded — see §5a.** This bullet was written before the route was
+  measured. It has since been measured and is partially affected, so the
+  statement that it is untested no longer holds.
 - No claim is made about how likely a real integration is to emit a malformed
   call. The severity of this finding depends on that, and it is not measured.
 

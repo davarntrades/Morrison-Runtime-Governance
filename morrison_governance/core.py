@@ -42,6 +42,15 @@ from morrison_governance.domains import OmegaDomain, OmegaRule, get_default_rule
 from morrison_governance.feasibility import (
     FeasibilityEvaluator, FeasibilityReport, GoalPredicate,
 )
+from morrison_governance.evidence_fingerprint import (
+    DIGEST_UNAVAILABLE, input_digest, structural_shape,
+)
+from morrison_governance.input_validation import (
+    UNEVALUABLE_INPUT_LAYER, UNEVALUABLE_RULE_LAYER,
+    RuleEvaluationError, UnevaluableInput,
+    validate_langchain_actions, validate_openai_tool_calls,
+    validate_plan, validate_tool_call, validate_trajectory,
+)
 from morrison_governance.reachability import ReachabilityEvaluator
 from morrison_governance.result import GovernanceResult, GovernanceVerdict
 from morrison_governance.stability import (
@@ -145,7 +154,15 @@ class GovernanceLayer:
                 "tool": "send_email",
                 "args": {"to": "ceo@company.com", "body": "..."}
             })
+
+        Input whose shape cannot be faithfully represented is refused with a
+        BLOCK before extraction, rather than normalised into something that
+        looks well formed and then evaluated.
         """
+        reason = validate_tool_call(tool_call)
+        if reason is not None:
+            return self._refuse(reason, entry_point="evaluate",
+                                subject=tool_call)
         trajectory = self.extractor.from_dict(tool_call)
         return self._run(trajectory)
 
@@ -157,7 +174,14 @@ class GovernanceLayer:
                 {"tool": "read_file", "args": {"path": ".env"}},
                 {"tool": "http_request", "args": {"url": "https://..."}},
             ])
+
+        Refused if ANY step is unevaluable: a well-formed first step must not
+        launder a malformed second one.
         """
+        reason = validate_plan(steps)
+        if reason is not None:
+            return self._refuse(reason, entry_point="evaluate_plan",
+                                subject=steps)
         trajectory = self.extractor.from_plan(steps)
         return self._run(trajectory)
 
@@ -168,7 +192,16 @@ class GovernanceLayer:
             result = governance.evaluate_openai(
                 response.choices[0].message.tool_calls
             )
+
+        Validated BEFORE extraction, because `from_openai` silently discards
+        an item matching neither of its branches and an empty trajectory
+        permits — so a dropped call would otherwise be indistinguishable from
+        an empty submission.
         """
+        reason = validate_openai_tool_calls(tool_calls)
+        if reason is not None:
+            return self._refuse(reason, entry_point="evaluate_openai",
+                                subject=tool_calls)
         trajectory = self.extractor.from_openai(tool_calls)
         return self._run(trajectory)
 
@@ -177,14 +210,30 @@ class GovernanceLayer:
         Evaluate from LangChain AgentAction(s).
 
             result = governance.evaluate_langchain(agent_action)
+
+        Validated before extraction, for the same silent-drop reason as
+        `evaluate_openai`.
         """
+        reason = validate_langchain_actions(agent_actions)
+        if reason is not None:
+            return self._refuse(reason, entry_point="evaluate_langchain",
+                                subject=agent_actions)
         trajectory = self.extractor.from_langchain(agent_actions)
         return self._run(trajectory)
 
     def evaluate_trajectory(self, trajectory: Trajectory) -> GovernanceResult:
         """
         Evaluate a pre-extracted trajectory directly.
+
+        This is the production kernel's entry point, so it carries the
+        structural backstop: extraction has already run, but a trajectory can
+        still hold a non-string tool or unrepresentable args.
         """
+        reason = validate_trajectory(trajectory)
+        if reason is not None:
+            return self._refuse(reason, stage="trajectory_validation",
+                                entry_point="evaluate_trajectory",
+                                subject=trajectory)
         return self._run(trajectory)
 
     # ═══════════════════════════════════════════════════════════
@@ -209,10 +258,110 @@ class GovernanceLayer:
     # INTERNALS
     # ═══════════════════════════════════════════════════════════
 
+    _NO_SUBJECT = object()
+
+    def _refuse(self, reason: str, *,
+                layer: str = UNEVALUABLE_INPUT_LAYER,
+                stage: str = "input_validation",
+                entry_point: str = "",
+                subject: Any = _NO_SUBJECT,
+                rule_name: Optional[str] = None,
+                exception: Optional[BaseException] = None) -> GovernanceResult:
+        """Produce a fail-closed BLOCK for something that could not be evaluated.
+
+        This is a first-class verdict, not a caught exception re-dressed. The
+        layer is stating a decision it is entitled to make — "I could not
+        evaluate this, so I refuse it" — which is the fail-closed behaviour
+        `interception.py:9` already requires of the governance path, and which
+        `GovernanceLayer` previously did not implement. The production kernel
+        has met this standard all along
+        (`test_kernel_redteam.py::test_fail_closed_on_governance_exception`);
+        this brings the library entry points up to it.
+
+        The refusal is deliberately distinguishable from a finding:
+
+        - `layer` is a refusal label, never an Ω layer name;
+        - `omega_domain` is left unset, because no domain was violated;
+        - `metadata["unevaluable"]` is True, so callers and audit tooling can
+          separate "could not evaluate" from "evaluated and found a violation"
+          without parsing prose.
+
+        Nothing is silently discarded: the reason, and the originating
+        exception where there was one, are carried on the result and logged.
+        """
+        metadata = {
+            "unevaluable": True,
+            "refusal_reason": reason,
+            "refusal_stage": stage,
+        }
+        if entry_point:
+            metadata["refusal_entry_point"] = entry_point
+        if rule_name is not None:
+            metadata["failed_rule"] = rule_name
+        if exception is not None:
+            metadata["exception_type"] = type(exception).__name__
+            metadata["exception"] = str(exception)
+
+        # Bind the refusal to the ACTUAL rejected input, not to the refusal
+        # verdict alone. Without this, two materially different malformed
+        # proposals are indistinguishable in any record derived from this
+        # result. `input_digest` is total, and it is wrapped again here so
+        # that a failure to build evidence can never propagate into the
+        # control flow that produces the verdict.
+        if subject is not self._NO_SUBJECT:
+            try:
+                metadata["original_input_digest"] = input_digest(subject)
+                metadata["input_shape"] = structural_shape(subject)
+            except BaseException as exc:  # noqa: BLE001 — must never fail open
+                metadata["original_input_digest"] = DIGEST_UNAVAILABLE
+                metadata["input_shape"] = f"<error:{type(exc).__name__}>"
+
+        self._eval_count += 1
+        self._block_count += 1
+        metadata["eval_number"] = self._eval_count
+
+        logger.warning("[BLOCK] eval=%d layer=%s UNEVALUABLE reason=%r",
+                       self._eval_count, layer, reason)
+
+        return GovernanceResult(
+            verdict=GovernanceVerdict.BLOCK,
+            layer=layer,
+            reason=f"Refused: {reason}",
+            omega_domain=None,
+            metadata=metadata,
+        )
+
     def _run(self, trajectory: Trajectory) -> GovernanceResult:
-        """Execute the enforcement hierarchy and log result."""
+        """Execute the enforcement hierarchy and log result.
+
+        The hierarchy is run inside a fail-closed boundary. A rule or
+        admissibility predicate that raises is a broken guard, and a broken
+        guard must never become an open door — so it is converted into a
+        refusal here rather than propagating. §3 of
+        INPUT_VALIDATION_FAILURE_REPORT.md explains why propagating is not an
+        acceptable alternative: an exception produces no verdict, records no
+        governance event, and an ordinary `try/except` in the caller turns it
+        straight into a bypass.
+
+        This is the single choke point for every verdict-returning entry
+        point: `find_admissible` and `evaluate_stable` reach the hierarchy
+        through `self._run` and `self.evaluate` respectively, so both inherit
+        it.
+        """
         start = time.perf_counter()
-        result = self.evaluator.evaluate(trajectory)
+        try:
+            result = self.evaluator.evaluate(trajectory)
+        except RuleEvaluationError as exc:
+            return self._refuse(str(exc), layer=UNEVALUABLE_RULE_LAYER,
+                                stage="rule_evaluation", entry_point="_run",
+                                subject=trajectory,
+                                rule_name=exc.rule_name, exception=exc.cause)
+        except Exception as exc:  # noqa: BLE001 — recorded on the verdict
+            return self._refuse(
+                f"the enforcement hierarchy raised "
+                f"{type(exc).__name__}: {exc}",
+                layer=UNEVALUABLE_RULE_LAYER, stage="rule_evaluation",
+                entry_point="_run", subject=trajectory, exception=exc)
         elapsed = time.perf_counter() - start
 
         # Update counters
@@ -303,10 +452,48 @@ class GovernanceLayer:
                 goal=goal_uses_tool("send_email"),
             )
         """
-        candidates = [self.extractor.from_plan(p) if len(p) > 1
-                      else self.extractor.from_dict(p[0])
-                      for p in candidate_plans]
-        feasibility = FeasibilityEvaluator(runner=self._run)
+        # Candidates are extracted here rather than through evaluate()/
+        # evaluate_plan(), so they need the same validation those entry points
+        # apply. Without it the search could return an unevaluable plan as its
+        # admissible answer — the worst possible place for this defect, since
+        # V4's entire purpose is to refuse rather than pick an unsafe default.
+        #
+        # A refused candidate still becomes a Trajectory and still gets a
+        # FeasibilityReport, so the caller can see which candidate was refused
+        # and why; it is simply never admissible. The reason travels on the
+        # trajectory rather than in a side table so the runner below cannot
+        # mismatch it to the wrong candidate.
+        candidates = []
+        for i, plan in enumerate(candidate_plans):
+            if not isinstance(plan, (list, tuple)):
+                reason = (f"candidate {i} is {type(plan).__name__}, not a "
+                          f"list of steps")
+            elif not plan:
+                reason = f"candidate {i} is an empty plan"
+            else:
+                reason = validate_plan(plan)
+
+            if reason is None:
+                traj = (self.extractor.from_plan(plan) if len(plan) > 1
+                        else self.extractor.from_dict(plan[0]))
+            else:
+                traj = self.extractor.from_dict(
+                    {"tool": "__unevaluable__", "args": {}})
+            traj.unevaluable_reason = reason
+            # Keep the original candidate so the refusal binds to what was
+            # actually proposed, not to the shared placeholder.
+            traj.unevaluable_subject = plan if reason is not None else None
+            candidates.append(traj)
+
+        def _runner(traj: Trajectory) -> GovernanceResult:
+            reason = getattr(traj, "unevaluable_reason", None)
+            if reason is not None:
+                return self._refuse(
+                    reason, entry_point="find_admissible",
+                    subject=getattr(traj, "unevaluable_subject", None))
+            return self._run(traj)
+
+        feasibility = FeasibilityEvaluator(runner=_runner)
         return feasibility.find_admissible(candidates, goal)
 
     # ═══════════════════════════════════════════════════════════
@@ -349,7 +536,13 @@ class GovernanceLayer:
     ):
         """Estimate the stability envelope over perturbation manifolds:
         verdict agreement vs structural perturbation radius, robustness
-        margin, and collapse threshold. Deterministic for a fixed seed."""
+        margin, and collapse threshold. Deterministic for a fixed seed.
+
+        Raises `UnevaluableInput` if the call cannot be classified, for the
+        same reason as `adversarial_test`."""
+        reason = validate_tool_call(tool_call)
+        if reason is not None:
+            raise UnevaluableInput(reason)
         from morrison_governance.manifold import StabilityEnvelopeEstimator
         est = StabilityEnvelopeEstimator(runner=self.evaluate)
         return est.estimate(tool_call, radii=radii,
@@ -369,7 +562,17 @@ class GovernanceLayer:
         Run the hard-adversarial attack suite against this governance layer.
         Returns per-attack-class outcomes including which layer caught each
         variant and which bypassed the hierarchy entirely.
+
+        Raises `UnevaluableInput` if the baseline call cannot be classified.
+        This surface returns a report, not a verdict, so it has nowhere to put
+        a BLOCK — and a robustness claim derived from a baseline that was
+        never classified would be worse than no claim. The raise is typed and
+        deliberate, replacing the incidental `AttributeError` that previously
+        surfaced from inside the attack-mutation code.
         """
+        reason = validate_tool_call(baseline_call, where="baseline call")
+        if reason is not None:
+            raise UnevaluableInput(reason)
         return run_attack_suite(
             baseline=baseline_call,
             evaluator_dict=self.evaluate,
@@ -388,10 +591,43 @@ class GovernanceLayer:
         return a dict {layer: {fired, reason/violations}}. Earlier layers
         do not mask deeper-layer activation here.
         """
+        reason = validate_tool_call(tool_call)
+        if reason is not None:
+            return self._diagnostic_refusal(reason)
         trajectory = self.extractor.from_dict(tool_call)
-        return self.evaluator.evaluate_all(trajectory)
+        return self._run_all(trajectory)
 
     def evaluate_all_plan(self, steps: list[dict]) -> dict:
         """Plan version of evaluate_all."""
+        reason = validate_plan(steps)
+        if reason is not None:
+            return self._diagnostic_refusal(reason)
         trajectory = self.extractor.from_plan(steps)
-        return self.evaluator.evaluate_all(trajectory)
+        return self._run_all(trajectory)
+
+    @staticmethod
+    def _diagnostic_refusal(reason: str) -> dict:
+        """The refusal shape for the diagnostic surfaces.
+
+        These return a per-layer dict rather than a verdict, so there is no
+        `GovernanceResult` to carry a BLOCK. They are not execution gates and
+        are not required to produce one. What they must not do is render an
+        unevaluable call as a clean sweep of non-firing layers — which is
+        exactly how an operator reading the diagnostic would conclude the call
+        was examined and found harmless.
+        """
+        return {"unevaluable": {"fired": True, "reason": reason}}
+
+    def _run_all(self, trajectory: Trajectory) -> dict:
+        """`evaluate_all` does not go through `_run`, so it needs its own
+        fail-closed boundary for a rule that raises."""
+        try:
+            return self.evaluator.evaluate_all(trajectory)
+        except RuleEvaluationError as exc:
+            return {"unevaluable": {"fired": True, "reason": str(exc),
+                                    "failed_rule": exc.rule_name}}
+        except Exception as exc:  # noqa: BLE001 — reported in the dict
+            return {"unevaluable": {
+                "fired": True,
+                "reason": f"the enforcement hierarchy raised "
+                          f"{type(exc).__name__}: {exc}"}}

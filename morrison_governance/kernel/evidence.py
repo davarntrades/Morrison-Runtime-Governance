@@ -184,6 +184,25 @@ class EvidenceRecord:
     action_hash: str                 # canonical action the decision applies to
     proposed: dict                   # the action as proposed (post-canonical)
     decision: str                    # PERMIT | BLOCK | ESCALATE | ...
+    # Identity of the ORIGINAL input, before any normalisation.
+    #
+    # For an ordinary decision this is the digest of the call as received. For
+    # a refusal it is the only thing that distinguishes one rejected proposal
+    # from another: an unevaluable call is replaced by a shared inert
+    # placeholder so the refusal can travel the normal pipeline, which makes
+    # `action_hash` identical across every such refusal. Without this field
+    # two materially different rejected transitions would collapse into one
+    # audit identity.
+    #
+    # It is a digest, not the value: the input is already known to be
+    # malformed and may carry sensitive or unrenderable content.
+    # `evidence_fingerprint.input_digest` is total, so this is always
+    # populated — with the sentinel `"unavailable"` in the worst case, never
+    # by omission.
+    original_input_digest: str = ""
+    # Types and sizes only, no user values. Explains what the digest
+    # identifies without reproducing it.
+    input_shape: str = ""
     layer: str = ""
     rule: Optional[str] = None
     omega_domain: Optional[str] = None
