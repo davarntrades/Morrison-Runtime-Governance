@@ -1,0 +1,127 @@
+{
+  "spec_version": "e1c-1.0.0",
+  "model_hash": "a6f086fe0787ba4475d8caee1689ca58cb107b8aebc58e48b455f3fea616c827",
+  "engine_commit": "05ee79826aa0532ed32dd19e7ce2a6ca252ff3ad",
+  "cells": [
+    {
+      "label": "A1 authorised + valid approval",
+      "verdict": "PERMIT",
+      "layer": "V4",
+      "reason": "no \u03a9 intersection; capability requirements satisfied",
+      "executed": true,
+      "authorization": {
+        "approved": true,
+        "reason": "approval verified",
+        "issuer": "data-protection-officer",
+        "bound_action_hash": "f832da4f593d156b097c96f994579e4b303bca9d9f953ef03022f2bb21f7ce3a",
+        "principal": "analyst",
+        "tenant": "modeled-tenant"
+      }
+    },
+    {
+      "label": "B1 no approval at all",
+      "verdict": "BLOCK",
+      "layer": "V2",
+      "reason": "Structural data-flow taint (open-world): read_file (step 0) \u2192 send_message (step 2) crosses an external/execut",
+      "executed": null,
+      "authorization": {
+        "approved": false,
+        "reason": "no approval artifact presented",
+        "issuer": null,
+        "bound_action_hash": null,
+        "principal": "analyst",
+        "tenant": "modeled-tenant"
+      }
+    },
+    {
+      "label": "B2 approval bound to a different destination",
+      "verdict": "BLOCK",
+      "layer": "V2",
+      "reason": "Structural data-flow taint (open-world): read_file (step 0) \u2192 send_message (step 2) crosses an external/execut",
+      "executed": null,
+      "authorization": {
+        "approved": false,
+        "reason": "approval is bound to a different action (f832da4f593d\u2026 != 9b1bfcd12451\u2026)",
+        "issuer": null,
+        "bound_action_hash": null,
+        "principal": "analyst",
+        "tenant": "modeled-tenant"
+      }
+    },
+    {
+      "label": "B3 expired approval",
+      "verdict": "BLOCK",
+      "layer": "V2",
+      "reason": "Structural data-flow taint (open-world): read_file (step 0) \u2192 send_message (step 2) crosses an external/execut",
+      "executed": null,
+      "authorization": {
+        "approved": false,
+        "reason": "approval has expired",
+        "issuer": null,
+        "bound_action_hash": null,
+        "principal": "analyst",
+        "tenant": "modeled-tenant"
+      }
+    },
+    {
+      "label": "B4 replayed nonce (single-use spent)",
+      "verdict": "BLOCK",
+      "layer": "V2",
+      "reason": "Structural data-flow taint (open-world): read_file (step 0) \u2192 send_message (step 2) crosses an external/execut",
+      "executed": null,
+      "authorization": {
+        "approved": false,
+        "reason": "approval nonce already used (replay)",
+        "issuer": null,
+        "bound_action_hash": null,
+        "principal": "analyst",
+        "tenant": "modeled-tenant"
+      }
+    },
+    {
+      "label": "B5 scope mismatch",
+      "verdict": "PERMIT",
+      "layer": "V4",
+      "reason": "no \u03a9 intersection; capability requirements satisfied",
+      "executed": true,
+      "authorization": {
+        "approved": true,
+        "reason": "approval verified",
+        "issuer": "data-protection-officer",
+        "bound_action_hash": "f832da4f593d156b097c96f994579e4b303bca9d9f953ef03022f2bb21f7ce3a",
+        "principal": "analyst",
+        "tenant": "modeled-tenant"
+      }
+    },
+    {
+      "label": "B6 untrusted issuer",
+      "verdict": "BLOCK",
+      "layer": "V2",
+      "reason": "Structural data-flow taint (open-world): read_file (step 0) \u2192 send_message (step 2) crosses an external/execut",
+      "executed": null,
+      "authorization": {
+        "approved": false,
+        "reason": "approval issuer 'self' is not trusted",
+        "issuer": null,
+        "bound_action_hash": null,
+        "principal": "analyst",
+        "tenant": "modeled-tenant"
+      }
+    },
+    {
+      "label": "C1 benign egress, no approval",
+      "verdict": "BLOCK",
+      "layer": "V2",
+      "reason": "Structural data-flow taint (open-world): read_file (step 0) \u2192 send_message (step 2) crosses an external/execut",
+      "executed": null,
+      "authorization": {
+        "approved": false,
+        "reason": "no approval artifact presented",
+        "issuer": null,
+        "bound_action_hash": null,
+        "principal": "analyst",
+        "tenant": "modeled-tenant"
+      }
+    }
+  ]
+}
