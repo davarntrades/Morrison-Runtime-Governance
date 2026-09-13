@@ -238,6 +238,26 @@ class ReachabilityEvaluator:
             if tainted_by is not None and tool in EGRESS_SINKS:
                 if tool in CODE_EXEC_SINKS or self._is_external_sink(
                         tool, ed, argstr):
+                    # An egress carrying a VERIFIED, action-bound authorization
+                    # is a disclosure the deployment authorised, not an
+                    # exfiltration. Without this the rule cannot express
+                    # "permitted to an authorised destination under approval A,
+                    # prohibited otherwise": it refused the authorised case and
+                    # the unauthorised case identically, which is a
+                    # specification limitation rather than an enforcement one.
+                    #
+                    # Read from CONTEXT ONLY — never from args, and never from
+                    # the merged eval dict. `TrajectoryState.to_eval_dict()`
+                    # merges args and context, so a caller could otherwise
+                    # forge `approved: true` as a tool argument. The kernel
+                    # quarantines those field names, but `GovernanceLayer`
+                    # used directly does not, and this rule must be sound on
+                    # both paths. Context is set by the deployment when it
+                    # builds the trajectory; a tool-call payload cannot reach
+                    # it. This is deliberately stricter than the neighbouring
+                    # `_is_external_sink`, which reads the merged dict.
+                    if self._egress_authorized(state):
+                        continue
                     src_step, src_tool = tainted_by
                     return GovernanceResult(
                         verdict=GovernanceVerdict.BLOCK,
@@ -257,6 +277,25 @@ class ReachabilityEvaluator:
                         },
                     )
         return None
+
+    @staticmethod
+    def _egress_authorized(state) -> bool:
+        """True when trusted context carries an established authority for this
+        action.
+
+        Deliberately NOT a destination allowlist: "authorised destination is
+        always safe" would hard-code a test case and would be forgeable by
+        naming a destination. The predicate is authorization STATE, supplied by
+        the kernel only when `authority_established` holds — that is, a
+        verified approval artifact bound to this action's semantic hash
+        (carrying issuer, scope and expiry), or a satisfied policy grant.
+        Destination, scope, principal, expiry and data provenance are all bound
+        through that artifact rather than re-derived here.
+        """
+        context = getattr(state, "context", None)
+        if not isinstance(context, dict):
+            return False
+        return context.get("approved") is True or context.get("authorized") is True
 
     def _is_external_sink(self, tool: str, ed: dict, argstr: str) -> bool:
         """Deny-by-default: a sink is internal only when explicitly marked or
@@ -382,6 +421,14 @@ class ReachabilityEvaluator:
                 external = is_exec or self._is_external_sink(
                     tl, ed, argstr)
                 if external and (open_world or is_ow):
+                    # Same authorization consumption as the legacy pass above.
+                    # These two rules implement ONE policy at different
+                    # vocabulary coverage, so applying the escape to only one
+                    # would leave the specification gap half-closed and make
+                    # admissibility depend on whether a tool name happens to be
+                    # in `_KNOWN_V2_VOCAB`.
+                    if self._egress_authorized(state):
+                        continue
                     src_step, src_tool = tainted_by
                     return GovernanceResult(
                         verdict=GovernanceVerdict.BLOCK,

@@ -43,7 +43,15 @@ ignored-modules = torch,transformers,numpy,matplotlib,fastapi,pydantic,uvicorn,h
                   bitsandbytes,accelerate,datasets,vllm,pytest,openai,anthropic,huggingface_hub,
                   kernel_config,cyber_rules,finance_rules,coverage_rules,domain_rules,
                   sector_rules,healthcare_rules,operations_rules,dynamic_rules,escalation,
-                  policy_bundle,ed25519_verify,assess,app
+                  policy_bundle,ed25519_verify,assess,app,
+                  # Falsification-experiment modules under experiments/.
+                  # Flat modules resolved via sys.path by their own
+                  # runners, exactly like the sibling-repo rule modules
+                  # above — not installed packages.
+                  arms,arms_e1b,arms_e1b2,baselines,env_e1b,
+                  environment_e0,environments_e1,ontology,profiles,
+                  profiles_e1,profiles_e1b,run_e0,runner,runner_e1,
+                  runner_e1b,state_e1,state_e1b
 
 # The ratchet. Set to the score achieved with this configuration, floored to two
 # decimals. Raise it when the score improves; never lower it to make a build
