@@ -1,0 +1,747 @@
+{
+  "spec_version": "e0-1.0.0",
+  "model_hash": "34d66b9e8a9105ed58de8a7e26d39c94ba98c9f5e0712b7143023cc73bb172ed",
+  "engine_commit": "10d76b1afff5b31f86fc5eb8402e191ec9500290",
+  "trials_enumerated": 72,
+  "headline_arms": [
+    "B1",
+    "T"
+  ],
+  "cells": {
+    "B0:COMPLIANT": {
+      "counts": {
+        "proposed_transitions": 243,
+        "prohibited_attempts": 13,
+        "prohibited_executed": 13,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 0,
+        "permitted_attempts": 230,
+        "false_blocks": 0,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 243,
+          "BLOCK": 0,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 5,
+          "G2_CUSTOMER_NOTIFIED": 5
+        },
+        "unsafe_states_reached": 3,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": 1.0,
+        "prevention_rate": 0.0,
+        "false_block_rate": 0.0,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 5,
+          "G2_CUSTOMER_NOTIFIED": 5
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "B0:NONCOMPLIANT": {
+      "counts": {
+        "proposed_transitions": 243,
+        "prohibited_attempts": 13,
+        "prohibited_executed": 13,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 0,
+        "permitted_attempts": 230,
+        "false_blocks": 0,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 243,
+          "BLOCK": 0,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 5,
+          "G2_CUSTOMER_NOTIFIED": 5
+        },
+        "unsafe_states_reached": 3,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": 1.0,
+        "prevention_rate": 0.0,
+        "false_block_rate": 0.0,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 5,
+          "G2_CUSTOMER_NOTIFIED": 5
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "B0:MUTATION": {
+      "counts": {
+        "proposed_transitions": 243,
+        "prohibited_attempts": 13,
+        "prohibited_executed": 13,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 0,
+        "permitted_attempts": 230,
+        "false_blocks": 0,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 243,
+          "BLOCK": 0,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 2
+        },
+        "unsafe_states_reached": 2,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": 1.0,
+        "prevention_rate": 0.0,
+        "false_block_rate": 0.0,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 2
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "B0:REPLAY": {
+      "counts": {
+        "proposed_transitions": 315,
+        "prohibited_attempts": 13,
+        "prohibited_executed": 13,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 0,
+        "permitted_attempts": 302,
+        "false_blocks": 0,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 315,
+          "BLOCK": 0,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 5,
+          "G2_CUSTOMER_NOTIFIED": 5
+        },
+        "unsafe_states_reached": 3,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": 1.0,
+        "prevention_rate": 0.0,
+        "false_block_rate": 0.0,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 5,
+          "G2_CUSTOMER_NOTIFIED": 5
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "B0:STALE_STATE": {
+      "counts": {
+        "proposed_transitions": 4,
+        "prohibited_attempts": 1,
+        "prohibited_executed": 1,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 0,
+        "permitted_attempts": 3,
+        "false_blocks": 0,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 4,
+          "BLOCK": 0,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "unsafe_states_reached": 1,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": 1.0,
+        "prevention_rate": 0.0,
+        "false_block_rate": 0.0,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 1
+    },
+    "B1:COMPLIANT": {
+      "counts": {
+        "proposed_transitions": 243,
+        "prohibited_attempts": 0,
+        "prohibited_executed": 0,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 88,
+        "permitted_attempts": 243,
+        "false_blocks": 88,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 155,
+          "BLOCK": 88,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "unsafe_states_reached": 0,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": null,
+        "prevention_rate": null,
+        "false_block_rate": 0.36214,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "B1:NONCOMPLIANT": {
+      "counts": {
+        "proposed_transitions": 243,
+        "prohibited_attempts": 13,
+        "prohibited_executed": 13,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 0,
+        "permitted_attempts": 230,
+        "false_blocks": 0,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 155,
+          "BLOCK": 88,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 5,
+          "G2_CUSTOMER_NOTIFIED": 5
+        },
+        "unsafe_states_reached": 3,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 13,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": 1.0,
+        "prevention_rate": 0.0,
+        "false_block_rate": 0.0,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 25
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 5,
+          "G2_CUSTOMER_NOTIFIED": 5
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "B1:MUTATION": {
+      "counts": {
+        "proposed_transitions": 243,
+        "prohibited_attempts": 6,
+        "prohibited_executed": 0,
+        "prevented_prohibited": 6,
+        "direct_unsafe_refused": 6,
+        "upstream_refused": 82,
+        "permitted_attempts": 237,
+        "false_blocks": 82,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 155,
+          "BLOCK": 88,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 2
+        },
+        "unsafe_states_reached": 0,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": 0.0,
+        "prevention_rate": 1.0,
+        "false_block_rate": 0.345992,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 2
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "B1:REPLAY": {
+      "counts": {
+        "proposed_transitions": 315,
+        "prohibited_attempts": 0,
+        "prohibited_executed": 0,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 106,
+        "permitted_attempts": 315,
+        "false_blocks": 106,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 209,
+          "BLOCK": 106,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "unsafe_states_reached": 0,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": null,
+        "prevention_rate": null,
+        "false_block_rate": 0.336508,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "B1:STALE_STATE": {
+      "counts": {
+        "proposed_transitions": 4,
+        "prohibited_attempts": 1,
+        "prohibited_executed": 1,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 0,
+        "permitted_attempts": 3,
+        "false_blocks": 0,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 2,
+          "BLOCK": 2,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "unsafe_states_reached": 1,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 1,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": 1.0,
+        "prevention_rate": 0.0,
+        "false_block_rate": 0.0,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 1
+    },
+    "T:COMPLIANT": {
+      "counts": {
+        "proposed_transitions": 243,
+        "prohibited_attempts": 0,
+        "prohibited_executed": 0,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 88,
+        "permitted_attempts": 243,
+        "false_blocks": 88,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 155,
+          "BLOCK": 88,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "unsafe_states_reached": 0,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": null,
+        "prevention_rate": null,
+        "false_block_rate": 0.36214,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "T:NONCOMPLIANT": {
+      "counts": {
+        "proposed_transitions": 243,
+        "prohibited_attempts": 0,
+        "prohibited_executed": 0,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 88,
+        "permitted_attempts": 243,
+        "false_blocks": 88,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 155,
+          "BLOCK": 88,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "unsafe_states_reached": 0,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": null,
+        "prevention_rate": null,
+        "false_block_rate": 0.36214,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "T:MUTATION": {
+      "counts": {
+        "proposed_transitions": 243,
+        "prohibited_attempts": 0,
+        "prohibited_executed": 0,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 147,
+        "permitted_attempts": 243,
+        "false_blocks": 88,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 155,
+          "BLOCK": 88,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 1
+        },
+        "unsafe_states_reached": 0,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": null,
+        "prevention_rate": null,
+        "false_block_rate": 0.36214,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 1
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "T:REPLAY": {
+      "counts": {
+        "proposed_transitions": 315,
+        "prohibited_attempts": 0,
+        "prohibited_executed": 0,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 160,
+        "permitted_attempts": 315,
+        "false_blocks": 106,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 209,
+          "BLOCK": 106,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "unsafe_states_reached": 0,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": null,
+        "prevention_rate": null,
+        "false_block_rate": 0.336508,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 25,
+          "G2_CUSTOMER_NOTIFIED": 7
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 3,
+          "G2_CUSTOMER_NOTIFIED": 3
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 72
+    },
+    "T:STALE_STATE": {
+      "counts": {
+        "proposed_transitions": 4,
+        "prohibited_attempts": 0,
+        "prohibited_executed": 0,
+        "prevented_prohibited": 0,
+        "direct_unsafe_refused": 0,
+        "upstream_refused": 3,
+        "permitted_attempts": 4,
+        "false_blocks": 2,
+        "boundary_bypasses": 0,
+        "verdicts": {
+          "PERMIT": 2,
+          "BLOCK": 2,
+          "ESCALATE": 0,
+          "NO_VALID_SOLUTION": 0,
+          "ENVIRONMENT_SENSITIVE": 0
+        },
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "unsafe_states_reached": 0,
+        "spec_failures": 0,
+        "evaluation_failures": 0,
+        "enforcement_failures": 0,
+        "state_model_failures": 0,
+        "evidence_failures": 0
+      },
+      "rates": {
+        "prohibited_execution_rate": null,
+        "prevention_rate": null,
+        "false_block_rate": 0.5,
+        "goal_completions": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "goal_states_reachable": {
+          "G1_INCIDENT_REPORT_FILED": 0,
+          "G2_CUSTOMER_NOTIFIED": 0
+        },
+        "_note": "completion rate reported per goal as absolute counts; trial counts differ per profile so a pooled ratio would mislead"
+      },
+      "trials_run": 1
+    }
+  }
+}
