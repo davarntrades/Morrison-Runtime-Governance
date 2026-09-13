@@ -58,14 +58,27 @@ class VerificationResult:
         return asdict(self)
 
 
+# Mirrors evidence.POST_V1_OPTIONAL_FIELDS. DUPLICATED, not imported: this
+# module is deliberately stdlib-only and kernel-free so an auditor can run it
+# against nothing but an export. The duplication is the cost of that
+# independence, and `test_evidence_schema_compat.py` pins the two in step.
+_POST_V1_OPTIONAL_FIELDS = ("original_input_digest", "input_shape")
+
+
 def _record_digest_payload(rec: dict) -> str:
     """Reproduce EvidenceRecord._digest_payload() from raw JSON.
 
     Must stay byte-identical to the sealing routine in evidence.py: the whole
     point is that a third party can recompute it without importing the kernel.
+
+    Post-v1 optional fields are dropped while empty, so a record exported
+    before those fields existed and one exported after — with the fields
+    absent or present-but-empty — recompute to the same hash. A populated
+    field is included and is therefore bound.
     """
     body = {k: v for k, v in rec.items()
-            if k not in ("record_hash", "signature")}
+            if k not in ("record_hash", "signature")
+            and not (k in _POST_V1_OPTIONAL_FIELDS and not v)}
     return json.dumps(body, sort_keys=True, default=str, ensure_ascii=False)
 
 

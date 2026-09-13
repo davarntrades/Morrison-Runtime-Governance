@@ -1,0 +1,409 @@
+"""
+Evidence-schema backward compatibility (Task 2b).
+
+THE INVARIANT UNDER TEST
+────────────────────────
+    A genuine evidence record sealed under the pre-Task-2 schema must still
+    verify after upgrading to the Task-2 code.
+
+`EvidenceRecord._digest_payload()` hashes every dataclass field except
+`record_hash` and `signature`. Task 2 added two fields, which silently changed
+the payload for EVERY record — so records sealed before the upgrade recomputed
+to a different hash and `verify()` reported them as tampered. A false tamper
+alarm on genuine evidence is worse than no alarm: it destroys the value of the
+true ones.
+
+THE RULE
+────────
+Fields added after the v1 schema are omitted from the digest payload while
+they hold their default (empty) value, and included as soon as they are
+populated. So:
+
+    historical record      → fields absent → omitted → v1 hash reproduced
+    new ORDINARY record    → fields empty  → omitted → v1 hash, still stable
+    new REFUSAL record     → fields set    → included → cryptographically bound
+
+A refusal always populates both fields, including when fingerprinting fails
+(`"unavailable"` / `"<error:...>"` are non-empty), so a refusal can never
+accidentally take the omitted path.
+
+WHY NOT THE OBVIOUS GENERALISATION
+──────────────────────────────────
+"Omit any field equal to its dataclass default" would break the very invariant
+this protects: `layer`, `rule`, `requirement`, `ruleset_hash` and others
+default to ""/None and ARE present in v1 payloads. Omitting them would change
+historical hashes. The rule is therefore scoped to an explicit, named list of
+post-v1 fields.
+
+THE GOLDEN HASH
+───────────────
+`PRE_TASK2_RECORD_HASH` below was produced by executing the evidence module as
+it existed at commit 54c3c60 — before `EvidenceRecord` gained any field — not
+by reimplementing the old payload here. A hash derived from the code under
+test would prove nothing.
+"""
+
+from __future__ import annotations
+
+import json
+import pathlib
+
+import pytest
+
+from morrison_governance.kernel.attestation import recompute_chain
+from morrison_governance.kernel.evidence import EvidenceChain, EvidenceRecord
+
+
+# Sealed by the pre-Task-2 module at commit 54c3c60. Do not recompute.
+PRE_TASK2_RECORD_HASH = (
+    "0fd49051fe5c486637586b339dbfec4b233af0f0980dd10b9e6a46bfaf92e621"
+)
+
+# The exact record that hash was taken over.
+PRE_TASK2_FIXTURE = {
+    "seq": 7, "timestamp": 1757700000.0, "actor": "agent-svc",
+    "tenant": "acme", "action_hash": "a" * 64,
+    "proposed": {"tool": "read_file", "args": {"path": "/tmp/x"}},
+    "decision": "PERMIT", "layer": "V4", "rule": None, "omega_domain": None,
+    "reason": "no Ω intersection", "capabilities": ["CAP_FS_READ"],
+    "requirement": "ALLOW", "authorization": {"approved": False},
+    "forged_authority_claims": [], "ruleset_hash": "b" * 64,
+    "engine_version": "0.4.1", "executed": False, "execution_result": None,
+    "trajectory_hash": "c" * 64, "prev_hash": "d" * 64,
+}
+
+
+def _historical_record() -> EvidenceRecord:
+    """A record as the pre-Task-2 schema produced it: the new fields are not
+    supplied at all, exactly as they are absent from historical JSON."""
+    rec = EvidenceRecord(**PRE_TASK2_FIXTURE)
+    rec.record_hash = PRE_TASK2_RECORD_HASH
+    return rec
+
+
+def _refusal_record() -> EvidenceRecord:
+    rec = EvidenceRecord(
+        seq=0, timestamp=1757700001.0, actor="agent-svc", tenant="acme",
+        action_hash="e" * 64,
+        proposed={"tool": "__unevaluable__", "args": {}},
+        decision="BLOCK", layer="unevaluable_input",
+        reason="Refused: kernel call: args is NoneType, not a mapping",
+        original_input_digest="f" * 64,
+        input_shape="{args:null,tool:str[9]}",
+    )
+    return rec.seal()
+
+
+# ═══════════════════════════════════════════════════════════════
+# 1 — a pre-Task-2 record verifies under the new code
+# ═══════════════════════════════════════════════════════════════
+
+
+def test_1_historical_record_verifies_under_new_code():
+    ok, why = _historical_record().verify()
+    assert ok, f"genuine historical evidence reported as tampered: {why}"
+
+
+def test_1b_real_committed_evidence_chains_still_verify():
+    """The strongest form of the test: 20 real records committed to this repo
+    before Task 2 existed, loaded into the current class and verified."""
+    root = pathlib.Path(__file__).resolve().parent.parent / "living-boundary" / "artifacts"
+    chains = sorted(root.glob("**/evidence_chain.jsonl"))
+    assert chains, "no committed evidence chains found"
+
+    checked = 0
+    for path in chains:
+        for line in path.read_text().splitlines():
+            if not line.strip():
+                continue
+            payload = json.loads(line)
+            # These are pre-Task-2 records: the fields are absent. After the
+            # export rule below they stay absent even when the file is
+            # regenerated by current code, which is the point of test 8.
+            assert not payload.get("original_input_digest"), (
+                f"{path} record carries a populated post-v1 field; this "
+                f"fixture is meant to be historical-schema data"
+            )
+            rec = EvidenceRecord(**payload)
+            ok, why = rec.verify()
+            assert ok, f"{path.name} record {rec.seq}: {why}"
+            checked += 1
+    assert checked >= 20, f"only {checked} historical records checked"
+
+
+# ═══════════════════════════════════════════════════════════════
+# 2 — the exact v1 hash is unchanged when the new fields are unset
+# ═══════════════════════════════════════════════════════════════
+
+
+def test_2_ordinary_record_reseals_to_the_exact_pre_branch_hash():
+    """Not merely 'verifies' — reproduces the byte-exact v1 hash. This is what
+    makes regenerated artefacts identical rather than merely valid."""
+    rec = EvidenceRecord(**PRE_TASK2_FIXTURE)
+    rec.seal()
+    assert rec.record_hash == PRE_TASK2_RECORD_HASH
+
+
+def test_2b_new_fields_are_absent_from_the_payload_when_empty():
+    rec = EvidenceRecord(**PRE_TASK2_FIXTURE)
+    payload = json.loads(rec._digest_payload())  # pylint: disable=protected-access
+    assert "original_input_digest" not in payload
+    assert "input_shape" not in payload
+
+
+def test_2c_explicitly_empty_is_the_same_as_absent():
+    """Passing "" explicitly must not differ from omitting the argument —
+    otherwise a loader that fills defaults would change hashes."""
+    absent = EvidenceRecord(**PRE_TASK2_FIXTURE).seal().record_hash
+    explicit = EvidenceRecord(**PRE_TASK2_FIXTURE, original_input_digest="",
+                              input_shape="").seal().record_hash
+    assert absent == explicit == PRE_TASK2_RECORD_HASH
+
+
+# ═══════════════════════════════════════════════════════════════
+# 3 / 4 — populated fields ARE bound into the hash
+# ═══════════════════════════════════════════════════════════════
+
+
+def test_3_changing_a_populated_original_input_digest_changes_the_hash():
+    a = _refusal_record()
+    b = _refusal_record()
+    b.original_input_digest = "0" * 64
+    b.record_hash = ""
+    b.seal()
+    assert a.record_hash != b.record_hash
+
+
+def test_4_changing_a_populated_input_shape_changes_the_hash():
+    a = _refusal_record()
+    b = _refusal_record()
+    b.input_shape = "{args:null,tool:str[99]}"
+    b.record_hash = ""
+    b.seal()
+    assert a.record_hash != b.record_hash
+
+
+def test_3b_new_fields_are_present_in_the_payload_when_populated():
+    payload = json.loads(_refusal_record()._digest_payload())  # pylint: disable=protected-access
+    assert payload["original_input_digest"] == "f" * 64
+    assert payload["input_shape"] == "{args:null,tool:str[9]}"
+
+
+# ═══════════════════════════════════════════════════════════════
+# 5 — altering OR stripping a populated field fails verification
+# ═══════════════════════════════════════════════════════════════
+
+
+@pytest.mark.parametrize("field_name,new_value", [
+    ("original_input_digest", "0" * 64),
+    ("original_input_digest", ""),      # the stripping attack
+    ("input_shape", "{}"),
+    ("input_shape", ""),                # the stripping attack
+])
+def test_5_altering_or_removing_a_populated_field_fails_verification(
+        field_name, new_value):
+    """Clearing the field must not let it slip onto the omitted path and
+    silently re-verify. Omission is only equivalent to absence for a record
+    that was SEALED that way."""
+    rec = _refusal_record()
+    setattr(rec, field_name, new_value)
+    ok, why = rec.verify()
+    assert not ok, (
+        f"tampering with {field_name} -> {new_value!r} still verified"
+    )
+    assert "tampered" in why
+
+
+# ═══════════════════════════════════════════════════════════════
+# 6 — historical tamper detection is unaffected
+# ═══════════════════════════════════════════════════════════════
+
+
+@pytest.mark.parametrize("field_name,new_value", [
+    ("decision", "BLOCK"),
+    ("executed", True),
+    ("action_hash", "9" * 64),
+    ("proposed", {"tool": "wipe_disk", "args": {}}),
+    ("actor", "someone-else"),
+    ("prev_hash", "0" * 64),
+    ("reason", "rewritten after the fact"),
+])
+def test_6_tampering_with_historical_fields_still_fails(field_name, new_value):
+    rec = _historical_record()
+    assert rec.verify()[0], "fixture must verify before tampering"
+    setattr(rec, field_name, new_value)
+    ok, why = rec.verify()
+    assert not ok, f"tampering with {field_name} went undetected"
+    assert "tampered" in why
+
+
+def test_6b_the_canonical_fail_closed_tamper_still_fails():
+    """The EV-02 finding this module exists to close: a BLOCK mutated into an
+    executed PERMIT."""
+    rec = _historical_record()
+    rec.decision = "PERMIT"
+    rec.executed = True
+    assert not rec.verify()[0]
+
+
+# ═══════════════════════════════════════════════════════════════
+# 7 — a mixed chain verifies end to end
+# ═══════════════════════════════════════════════════════════════
+
+
+def test_7_mixed_historical_and_refusal_chain_verifies():
+    """Historical-schema records and new refusal records in one chain. The
+    chain links through record_hash, so a hash that shifts under the upgrade
+    breaks every link after it, not just its own record."""
+    chain = EvidenceChain()
+    for i in range(3):
+        chain.append(EvidenceRecord(
+            seq=0, timestamp=1757700000.0 + i, actor="a", tenant="t",
+            action_hash=f"{i}" * 64, proposed={"tool": "read_file", "args": {}},
+            decision="PERMIT", layer="V4"))
+    for i in range(2):
+        chain.append(EvidenceRecord(
+            seq=0, timestamp=1757700100.0 + i, actor="a", tenant="t",
+            action_hash="e" * 64,
+            proposed={"tool": "__unevaluable__", "args": {}},
+            decision="BLOCK", layer="unevaluable_input",
+            original_input_digest=f"{i}" * 64,
+            input_shape="{args:null,tool:str[9]}"))
+    chain.append(EvidenceRecord(
+        seq=0, timestamp=1757700200.0, actor="a", tenant="t",
+        action_hash="7" * 64, proposed={"tool": "read_file", "args": {}},
+        decision="PERMIT", layer="V4"))
+
+    ok, problems = chain.verify()
+    assert ok, problems
+    assert len(chain.records) == 6
+
+    # And the mix is real: some records carry the fields, some do not.
+    populated = [r for r in chain.records if r.original_input_digest]
+    assert len(populated) == 2
+
+
+def test_7b_tampering_inside_a_mixed_chain_is_still_caught():
+    chain = EvidenceChain()
+    chain.append(EvidenceRecord(
+        seq=0, timestamp=1.0, actor="a", tenant="t", action_hash="1" * 64,
+        proposed={}, decision="PERMIT", layer="V4"))
+    chain.append(EvidenceRecord(
+        seq=0, timestamp=2.0, actor="a", tenant="t", action_hash="2" * 64,
+        proposed={}, decision="BLOCK", layer="unevaluable_input",
+        original_input_digest="a" * 64, input_shape="{}"))
+    assert chain.verify()[0]
+
+    chain.records[1].original_input_digest = "b" * 64
+    ok, problems = chain.verify()
+    assert not ok and problems
+
+
+# ═══════════════════════════════════════════════════════════════
+# 8 — committed artefacts need not change
+# ═══════════════════════════════════════════════════════════════
+
+
+def test_8_committed_living_boundary_hashes_are_reproduced_exactly():
+    """A runtime schema gaining optional fields must not force every committed
+    artefact to be rewritten. Each stored record is re-sealed from its own
+    contents and must land on the hash already in the file."""
+    root = pathlib.Path(__file__).resolve().parent.parent / "living-boundary" / "artifacts"
+    checked = 0
+    for path in sorted(root.glob("**/evidence_chain.jsonl")):
+        for line in path.read_text().splitlines():
+            if not line.strip():
+                continue
+            payload = json.loads(line)
+            stored = payload["record_hash"]
+            rec = EvidenceRecord(**payload)
+            rec.record_hash = ""
+            rec.seal()
+            assert rec.record_hash == stored, (
+                f"{path.name} record {rec.seq} would be rewritten by the "
+                f"schema change: {stored[:12]}… -> {rec.record_hash[:12]}…"
+            )
+            checked += 1
+    assert checked >= 20
+
+
+# ═══════════════════════════════════════════════════════════════
+# 9 — the two independent implementations must agree
+#
+# `attestation._record_digest_payload` reimplements the sealing rule for the
+# keyless auditor path and cannot import from `evidence` (that module is
+# stdlib-only by design). Task 2b changed one and not the other, and two
+# pre-existing kernel tests caught it. These pin the contract directly.
+# ═══════════════════════════════════════════════════════════════
+
+
+def test_9_auditor_path_agrees_on_historical_records():
+    chain = EvidenceChain()
+    for i in range(3):
+        chain.append(EvidenceRecord(
+            seq=0, timestamp=1757700000.0 + i, actor="a", tenant="t",
+            action_hash=f"{i}" * 64, proposed={"tool": "read_file", "args": {}},
+            decision="PERMIT", layer="V4"))
+    res = recompute_chain(chain.to_jsonl())
+    assert res.ok, res.problems
+    assert res.head == chain.head
+
+
+def test_9b_auditor_path_agrees_on_refusal_records():
+    chain = EvidenceChain()
+    chain.append(EvidenceRecord(
+        seq=0, timestamp=1757700000.0, actor="a", tenant="t",
+        action_hash="e" * 64,
+        proposed={"tool": "__unevaluable__", "args": {}},
+        decision="BLOCK", layer="unevaluable_input",
+        original_input_digest="f" * 64, input_shape="{args:null}"))
+    res = recompute_chain(chain.to_jsonl())
+    assert res.ok, res.problems
+
+
+def test_9c_auditor_path_detects_tampering_with_a_populated_field():
+    """The binding must survive the round trip through export and keyless
+    recomputation — not just in-process verify()."""
+    chain = EvidenceChain()
+    chain.append(EvidenceRecord(
+        seq=0, timestamp=1757700000.0, actor="a", tenant="t",
+        action_hash="e" * 64, proposed={}, decision="BLOCK",
+        layer="unevaluable_input",
+        original_input_digest="f" * 64, input_shape="{args:null}"))
+    exported = chain.to_jsonl()
+    assert recompute_chain(exported).ok
+
+    tampered = exported.replace("f" * 64, "0" * 64)
+    assert tampered != exported
+    res = recompute_chain(tampered)
+    assert not res.ok, "auditor did not detect a rewritten original_input_digest"
+
+
+def test_9d_auditor_path_detects_a_stripped_field():
+    chain = EvidenceChain()
+    chain.append(EvidenceRecord(
+        seq=0, timestamp=1757700000.0, actor="a", tenant="t",
+        action_hash="e" * 64, proposed={}, decision="BLOCK",
+        layer="unevaluable_input",
+        original_input_digest="f" * 64, input_shape="{args:null}"))
+    exported = chain.to_jsonl()
+    stripped = json.loads(exported)
+    del stripped["original_input_digest"]
+    res = recompute_chain(json.dumps(stripped))
+    assert not res.ok, "auditor did not detect a deleted original_input_digest"
+
+
+def test_9e_export_omits_empty_post_v1_fields():
+    """Requirement 8 at the byte level: an ordinary record must export exactly
+    as it did before the schema gained the fields."""
+    rec = EvidenceRecord(**PRE_TASK2_FIXTURE)
+    rec.seal()
+    exported = json.loads(rec.to_json())
+    assert "original_input_digest" not in exported
+    assert "input_shape" not in exported
+
+
+def test_9f_export_includes_populated_post_v1_fields():
+    exported = json.loads(_refusal_record().to_json())
+    assert exported["original_input_digest"] == "f" * 64
+    assert exported["input_shape"] == "{args:null,tool:str[9]}"

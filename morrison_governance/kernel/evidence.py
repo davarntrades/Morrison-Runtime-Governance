@@ -173,6 +173,46 @@ def ruleset_manifest(rules) -> list[dict]:
 GENESIS = "0" * 64
 
 
+# ─────────────────────────────────────────────────────────────
+# v1 schema compatibility
+# ─────────────────────────────────────────────────────────────
+# Fields added AFTER the v1 evidence schema. They are omitted from the digest
+# payload (and from the export) while they hold their default, and included
+# the moment they carry a value:
+#
+#   historical record    fields absent  → omitted  → v1 hash reproduced
+#   new ordinary record  fields empty   → omitted  → v1 hash, still stable
+#   new refusal record   fields set     → included → cryptographically bound
+#
+# Without this, adding any field silently re-hashed EVERY record, and evidence
+# sealed before the upgrade verified as "tampered" — a false alarm on genuine
+# records, which is worse than no alarm because it devalues the true ones.
+#
+# Scoped to an explicit list, deliberately. The tempting generalisation —
+# "omit any field equal to its default" — breaks the very invariant this
+# protects: `layer`, `rule`, `requirement` and others default to ""/None and
+# ARE present in v1 payloads, so omitting them would change historical hashes.
+#
+# A refusal always populates both fields, including when fingerprinting fails
+# ("unavailable" and "<error:...>" are non-empty), so a refusal can never
+# accidentally take the omitted path. Clearing a populated field on a sealed
+# record does NOT let it slip back onto that path: the record was sealed with
+# the field included, so the recomputed payload differs and verification fails.
+#
+# CONTRACT: `attestation._record_digest_payload` reimplements this rule for
+# the keyless auditor path and must stay byte-identical. It cannot import from
+# here — that module is deliberately stdlib-only so a third party can run it
+# without the kernel — so the rule is duplicated there and pinned by
+# `test_evidence_schema_compat.py`.
+POST_V1_OPTIONAL_FIELDS = ("original_input_digest", "input_shape")
+
+
+def prune_post_v1_defaults(body: dict) -> dict:
+    """Drop post-v1 optional fields that still hold their default."""
+    return {k: v for k, v in body.items()
+            if not (k in POST_V1_OPTIONAL_FIELDS and not v)}
+
+
 @dataclass
 class EvidenceRecord:
     """One governance decision, bound to everything needed to verify it."""
@@ -225,7 +265,8 @@ class EvidenceRecord:
     def _digest_payload(self) -> str:
         body = {k: v for k, v in asdict(self).items()
                 if k not in ("record_hash", "signature")}
-        return json.dumps(body, sort_keys=True, default=str, ensure_ascii=False)
+        return json.dumps(prune_post_v1_defaults(body),
+                          sort_keys=True, default=str, ensure_ascii=False)
 
     def seal(self, key: bytes = b"") -> "EvidenceRecord":
         self.record_hash = hashlib.sha256(self._digest_payload().encode()).hexdigest()
@@ -246,7 +287,12 @@ class EvidenceRecord:
         return True, "ok"
 
     def to_json(self) -> str:
-        return json.dumps(asdict(self), sort_keys=True, ensure_ascii=False, default=str)
+        # Pruned on the same rule as the digest: an exported chain from a
+        # runtime whose schema gained optional fields must be byte-identical
+        # to one exported before they existed, or every committed artefact
+        # churns for no change in meaning.
+        return json.dumps(prune_post_v1_defaults(asdict(self)),
+                          sort_keys=True, ensure_ascii=False, default=str)
 
 
 @dataclass
