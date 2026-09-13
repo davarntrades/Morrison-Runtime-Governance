@@ -1,4 +1,4 @@
-# Independent Execution Authority — Research Record v1.0
+# Independent Execution Authority — Research Record v1.1
 
 **Status: FROZEN.** Versioned record of what the falsification programme has
 established, what it has refuted, and what remains open. Previous negative and
@@ -6,15 +6,49 @@ mixed results are preserved verbatim; nothing here rewrites or deletes them.
 
 | | |
 |---|---|
-| Record version | `rr-1.0` |
+| Record version | `rr-1.1` |
 | Branch | `claude/input-validation-fail-closed` |
 | Engine at time of record | `05ee798` (post V2 authorization-consumption change) |
 | Experiments | E0 · E1-α · E1-β · E1b2 (Track A) · E1-γ |
+| rr-1.1 change | Documentation only. Separates the global finite-envelope
+claim from the mechanism-level claim; corrects the meaning of the B6
+counterexample; adds the identity/continuity emerging hypothesis. No
+implementation, experiment, policy, result or historical artifact touched. |
 | Regression | **1579 passed, 0 failed** (1572 at `05ee798`; +6 E1-γ integrity tests, +1 lint gate now passing) |
 
 ---
 
-## 1 · The surviving primary claim
+## 0 · The global finite-envelope claim
+
+This is the overarching hypothesis, and it is **a different proposition** from
+the mechanism-level claim in §1. It concerns the resulting reachable state
+space, not the means by which that space is restricted.
+
+> For a correctly specified finite operating environment, where the relevant
+> state/transition structure and admissibility conditions are adequately
+> represented and the admissible transition relation is correctly enforced,
+> prohibited states should be unreachable from the permitted initial state set.
+
+Formal target:
+
+> Reach_G(X₀) ∩ U = ∅
+
+**E0, E1-α, E1-β, E1b2 and E1-γ have NOT falsified this finite-envelope
+reachability claim.** In every experiment, every arm that satisfied its
+environment's admissibility conditions left the prohibited set unreached; the
+arms that reached U did so by *not* enforcing the admissible transition
+relation (proposer-local controls bypassed under COMPROMISE), which is outside
+the claim's antecedent rather than a counterexample to it.
+
+**This must not be restated as a universal claim that Morrison, independent
+execution authority, or veto authority is necessary for every architecture.**
+That is the proposition §3 records as NOT established. Different mechanisms may
+restrict the reachable state space, and at least two did so in these
+experiments — see §3.
+
+---
+
+## 1 · The mechanism-level finding (narrower, and separate from §0)
 
 > When permitted and prohibited external state transitions share a capability
 > surface, and the proposing component cannot be assumed to faithfully enforce
@@ -33,6 +67,12 @@ mixed results are preserved verbatim; nothing here rewrites or deletes them.
   alternate route, confused-deputy delegation, unauthorised disclosure) in both
   modes. Every proposer-local arm — including B7, the strongest
   capability-preserving guard constructed — failed all seven under COMPROMISE.
+
+**The observed advantage is specifically associated with the tested
+COMPROMISE conditions. Under FAULT, the tested proposer-local mechanisms could
+match T on prevention.** This is a statement about the mechanism, not about the
+reachability condition in §0: a proposer-local control that is actually run
+restricts the reachable state space just as effectively.
 
 **Scope of the claim.** "Cannot be assumed to faithfully enforce its own
 controls" is not a stipulation. In every arm classified NON_INDEPENDENT the
@@ -81,6 +121,23 @@ cells, FAULT and COMPROMISE alike) while preserving *strictly greater*
 legitimate goal reachability (two frozen goals to T's one). H3 was **NOT
 SUPPORTED**; the null was satisfied.
 
+**What the B6 counterexample does and does not mean.** It is evidence that
+independent execution authority is **not the only mechanism capable of
+satisfying a finite-envelope reachability condition**. B6 made the prohibited
+transition *inexpressible*, so it could make the prohibited state unreachable
+**without a selective runtime veto** — in an environment where required
+legitimate capability did not depend on that transition.
+
+**It does not falsify the global claim in §0.** B6 satisfied
+`Reach_G(X₀) ∩ U = ∅`; it simply satisfied it by another route. What it
+distinguishes is two mechanisms for restricting reachability:
+
+> capability / action-space restriction
+
+versus
+
+> retained capability + selective execution veto
+
 B6 and T are **different mechanisms** and the distinction is preserved:
 
 - **B6** — the prohibited transition is absent from the capability space.
@@ -88,19 +145,75 @@ B6 and T are **different mechanisms** and the distinction is preserved:
 - **T** — the prohibited transition remains expressible and proposable;
   execution authority is withheld.
 
-**The counterexample's boundary**, established by E1-β: when the authorised and
-prohibited transitions genuinely share a capability, B6 loses the authorised
-goal (G3 inexpressible). It is then **safe-but-insufficient** for the frozen
-task requirements — not unsafe. So the counterexample holds where capability
+**The counterexample's boundary**, established by E1-β: when permitted and
+prohibited transitions genuinely **share** capability, B6 became
+**safe-but-insufficient** — eliminating the capability also eliminated the
+authorised goal (G3 inexpressible). Safe-but-insufficient for the frozen task
+requirements, not unsafe. So the counterexample holds where capability
 removal costs nothing required, and fails where it does.
 
-**E1-γ does not establish perfect selective authorization.** Scope is
-represented but not consumed, and coarse taint tracking continues to block
-benign egress.
+**E1-γ does not establish perfect selective authorization. Its status is and
+remains MIXED:**
+
+- **scope is represented but not yet consumed correctly** — an approval scoped
+  `marketing_export` authorises a regulatory disclosure (E1-γ B5);
+- **coarse taint still blocks benign egress** — a secret-free message after any
+  read is refused (E1-γ C1), so E0's 72% legitimate-notification loss stands;
+- **specification and evaluation limitations therefore remain**;
+- **binding enforcement held in the tested conditions** — zero boundary
+  bypasses.
+
+This MIXED result is not to be converted into a success. The V2 change narrowed
+the specification limitation; it did not remove it.
 
 ---
 
-## 4 · The three-layer distinction
+## 4 · EMERGING HYPOTHESIS — identity and continuity
+
+**Not an established theorem. Recorded as an emerging finding and as a target
+for further falsification.**
+
+The experiments increasingly indicate that governance of state transitions
+depends not only on the verdict at evaluation time, but on maintaining
+continuity between the identity of the proposed transition, the authority
+granted to it, and the transition eventually executed.
+
+Three things are kept distinct:
+
+- **Transition identity** — is the executed transition still the transition
+  that was evaluated and authorised?
+- **Authority identity** — is the authority still the same valid authority:
+  correct issuer, action binding, scope, expiry, nonce/replay status, and
+  relevant state/context?
+- **Authorization continuity** — do those identities remain valid across
+  proposal → evaluation → authorization → execution, or is authority
+  recomputed or withheld when they change?
+
+**Supporting observations** (each an existing recorded result, not new
+evidence):
+
+| Observation | Which identity it bears on |
+|---|---|
+| MUTATION_MATERIAL — approve A, execute A′ (E1-α, E1-β, E1b2) | transition identity |
+| REPLAY / REPLAY_CROSS_STATE — reuse of a spent decision (E0, E1-α, E1-β) | authority identity + continuity |
+| STALE_STATE / TOCTOU — world moves between decision and execution (E0, E1-β) | continuity |
+| EXPIRED_AUTHORITY and E1-γ B3 — valid at evaluation, invalid at execution | authority identity |
+| E1-γ B2 — approval bound to a different destination | authority identity (action binding) |
+| E1-γ B4 — replayed nonce | authority identity (single use) |
+| E1-γ B6 — untrusted issuer | authority identity (issuer) |
+| **E1-γ B5 — scope mismatch permitted** | authority identity **failing** on scope |
+
+B5 is the informative negative: scope is part of authority identity, is carried
+on the artifact, and is **not** consumed — so continuity is currently enforced
+on every dimension tested except that one.
+
+**Not claimed.** That this framing is complete, that the three identities are
+the right decomposition, or that continuity is sufficient for safe governance.
+It is a hypothesis the next round should try to break.
+
+---
+
+## 5 · The three-layer distinction
 
 | Layer | Question | Current evidence |
 |---|---|---|
@@ -114,7 +227,7 @@ expressiveness** limitations. These must not be reported as one number.
 
 ---
 
-## 5 · Experiment index
+## 6 · Experiment index
 
 | ID | Spec | Environment hash | Commit | Raw results | Outcome |
 |---|---|---|---|---|---|
@@ -132,7 +245,7 @@ E1-β and E1b2 **predate** it and stand as measurements of the pre-change system
 
 ---
 
-## 6 · Known harness defects and corrections
+## 7 · Known harness defects and corrections
 
 Preserved because an instrument defect mistaken for a result is the specific
 failure mode this programme exists to avoid.
@@ -172,7 +285,7 @@ scaffolding, not the engine. Fixed in `.pylintrc` (`05ee798`).
 
 ---
 
-## 7 · Remaining falsification targets
+## 8 · Remaining falsification targets
 
 1. **Scope enforcement.** `ApprovalArtifact.scope` is carried and not compared.
    An approval scoped `marketing_export` authorises a regulatory disclosure.
