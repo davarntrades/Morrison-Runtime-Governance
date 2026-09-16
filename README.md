@@ -1,9 +1,3 @@
-> Inside defined operating worlds, the reachable behaviour of an autonomous system can be structurally constrained and exhaustively checked.
->
-> The agent can propose an action. It cannot grant itself permission to execute it.
-
----
-
 <div align="center">
 
 # Morrison Runtime Governance™
@@ -20,6 +14,11 @@
 **Morrison shows what locally safe operation actually looks like inside a real environment, under its tools, permissions, policies, workflows, and reachable states.**
 
 </div>
+
+> [!NOTE]
+> Inside defined operating worlds, the reachable behaviour of an autonomous system can be structurally constrained and exhaustively checked.
+>
+> The agent can propose an action. It cannot grant itself permission to execute it.
 
 ---
 
