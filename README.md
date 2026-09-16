@@ -81,7 +81,7 @@ python -m morrison_governance.global_verification --perturbations
 python -m morrison_governance.global_verification --composition-experiment
 ```
 
-Verify the Safety Envelope and causal overlay regression suites directly:
+Verify the Admissible Operating Envelope and causal overlay regression suites directly:
 
 ```bash
 python -m pytest \
@@ -94,11 +94,11 @@ python -m pytest \
 Technical guides:
 
 - [Global Safety Verification Harness](GLOBAL_SAFETY_VERIFICATION.md)
-- [Runtime evaluation, causal overlay, and Safety Envelope](runtime_eval/README.md)
+- [Runtime evaluation, causal overlay, and Admissible Operating Envelope](runtime_eval/README.md)
 - [Hosted Frontier Containment Harness](runtime_eval/frontier/README.md)
 - [Deployment integrations](morrison_governance/DEPLOYMENT.md)
 
-These paths test different claims. The browser and Frontier harness provide empirical trajectory evidence. The Safety Envelope produces a deployment-bounded assurance artifact. Global verification exhaustively enumerates only the declared finite model; it does not establish universal real-world AI safety.
+These paths test different claims. The browser and Frontier harness provide empirical trajectory evidence. The Admissible Operating Envelope produces a deployment-bounded assurance artifact. Global verification exhaustively enumerates only the declared finite model; it does not establish universal real-world AI safety.
 
 ---
 
@@ -128,7 +128,7 @@ Morrison applies the same engineering idea to autonomous AI.
 
 > **An Admissible Operating Envelope is the environment-bounded region within which an autonomous system has been evaluated as locally admissible under the tools, permissions, policies, workflows, state, and reachable consequences present in that deployment.**
 
-Ω remains the configured forbidden region. The Safety Envelope is broader: it describes the region in which operation is locally admissible, where the boundary sits, and what must happen when a proposed trajectory leaves it.
+Ω remains the configured forbidden region. The Admissible Operating Envelope is broader: it describes the region in which operation is locally admissible, where the boundary sits, and what must happen when a proposed trajectory leaves it.
 
 ---
 
@@ -205,7 +205,7 @@ inside an established governed boundary:
 
 ```text
 OBJECTIVE (not an unconditional guarantee):
-  Locally admissible trajectory ⇔ ℛ(t) remains inside the validated Safety Envelope
+  Locally admissible trajectory ⇔ ℛ(t) remains inside the validated Admissible Operating Envelope
   Forbidden reachability        ⇔ ℛ(t) ∩ Ω ≠ ∅
 ```
 
@@ -268,7 +268,7 @@ A_safe ⊂ V₂ ⊂ V₃ ⊂ V₄ ⊂ V₄⁺ ⊂ V₅ ⊂ V₅⁺
 | Layer | Core question |
 |---|---|
 | **A_safe** | Is the current step directly forbidden? |
-| **V₂** | Is the trajectory drifting toward the Safety Envelope boundary? |
+| **V₂** | Is the trajectory drifting toward the Admissible Operating Envelope boundary? |
 | **V₃** | Is the trajectory forecast to leave the envelope or reach Ω? |
 | **V₄ / V₄⁺** | Does a locally admissible state or trajectory remain constructible? |
 | **V₅ / V₅⁺** | Does the local safety property survive perturbation and adversarial assumption attack? |
@@ -334,7 +334,7 @@ The runtime layer asks:
 
 The causal overlay asks:
 
-- Why was the Safety Envelope boundary reachable?
+- Why was the Admissible Operating Envelope boundary reachable?
 - Which variables materially contributed to that reachability?
 - What intervention would have broken the trajectory?
 - Would Ω still have been reachable if permission, safeguard state, approval, or another causal parent had changed?
@@ -352,7 +352,7 @@ The commercial entry point is no longer only “find catastrophic actions.”
 
 It is to establish the deployment's local operating boundary and prove where autonomous operation remains admissible.
 
-### Safety Envelope Assessment
+### Admissible Operating Envelope Assessment
 A bounded assessment of the deployment's architecture, tools, permissions, policies, reachable states, and constraints.
 
 ### Shadow Mode / Limited Pilot
@@ -362,7 +362,7 @@ Observe live or sandboxed trajectories without enforcing, and show which remain 
 Apply **ALLOW / ESCALATE / BLOCK** before execution and preserve evidence of every governed decision.
 
 ### Enterprise Integration
-Continuously revalidate the Safety Envelope as models, tools, permissions, workflows, and policies change.
+Continuously revalidate the Admissible Operating Envelope as models, tools, permissions, workflows, and policies change.
 
 The target proof is explicit:
 
@@ -381,7 +381,7 @@ Morrison does **not** claim:
 
 Instead, Morrison makes a narrower claim that can be tested, enforced, and audited:
 
-> **For this evaluated deployment, under this specified environment and constraint set, these trajectories were established as locally admissible, these boundary violations were identified, and runtime governance enforced the resulting Safety Envelope before execution.**
+> **For this evaluated deployment, under this specified environment and constraint set, these trajectories were established as locally admissible, these boundary violations were identified, and runtime governance enforced the resulting Admissible Operating Envelope before execution.**
 
 ---
 
@@ -412,7 +412,7 @@ Detailed implementation and evaluation artefacts live throughout this repository
 
 ## The positioning in one sentence
 
-> **See the Safety Envelope your AI can actually operate within — in your environment, before actions execute.**
+> **See the Admissible Operating Envelope your AI can actually operate within — in your environment, before actions execute.**
 
 ---
 
