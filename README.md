@@ -2,16 +2,14 @@
 
 # Morrison Runtime Governance™
 
-![Safety Envelope](https://img.shields.io/badge/Local_Safety_Envelope-Environment--Bounded-5b6cff?style=flat-square)
+![Admissible Operating Envelope](https://img.shields.io/badge/Admissible_Operating_Envelope-Environment--Bounded-5b6cff?style=flat-square)
 ![Primary Property](https://img.shields.io/badge/Demonstrated-Authority_Separation-0f766e?style=flat-square)
 ![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
 ![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
 ![Tests](https://img.shields.io/badge/Tests-1%2C092_Passing-2ea44f?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
 
-**Local Safety Envelopes for autonomous AI — established, tested, and enforced before execution.**
-
-**Morrison shows what locally safe operation actually looks like inside a real environment, under its tools, permissions, policies, workflows, and reachable states.**
+**Admissible Operating Envelopes for autonomous AI — established, tested, and enforced before execution.**
 
 </div>
 
@@ -47,7 +45,7 @@ The Quick Start now runs the current stack end to end:
 2. enforcement-layer attribution;
 3. deterministic replay;
 4. the non-authoritative causal overlay and bounded counterfactual interventions;
-5. construction and evaluation of a provenance-linked local Safety Envelope;
+5. construction and evaluation of a provenance-linked Admissible Operating Envelope;
 6. exhaustive control-versus-governed state-space comparison in a finite model.
 
 For a paced screen-recording version:
@@ -110,13 +108,13 @@ Morrison is not positioned as a universal claim that an AI model is “safe.”
 
 Its strongest enterprise result is narrower, testable, and deployment-specific:
 
-> **Morrison has established and validated a local Safety Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
+> **Morrison has established and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
 
 That statement is intentionally bounded to the evaluated deployment configuration. It is supported by trajectory evidence, reachable-state analysis, governance decisions, environment context, and the documented limits of the evaluation.
 
 ---
 
-## What is a local Safety Envelope?
+## What is an Admissible Operating Envelope?
 
 Safety-critical engineering does not normally ask whether a complex system is simply “safe” in the abstract. It defines an operating region and the boundaries that must not be crossed.
 
@@ -128,7 +126,7 @@ The principle is familiar in:
 
 Morrison applies the same engineering idea to autonomous AI.
 
-> **A local Safety Envelope is the environment-bounded region within which an autonomous system has been evaluated as locally admissible under the tools, permissions, policies, workflows, state, and reachable consequences present in that deployment.**
+> **An Admissible Operating Envelope is the environment-bounded region within which an autonomous system has been evaluated as locally admissible under the tools, permissions, policies, workflows, state, and reachable consequences present in that deployment.**
 
 Ω remains the configured forbidden region. The Safety Envelope is broader: it describes the region in which operation is locally admissible, where the boundary sits, and what must happen when a proposed trajectory leaves it.
 
@@ -174,7 +172,7 @@ before side effects occur.
 flowchart LR
     A[Autonomous AI / Agent] --> T[Proposed trajectory]
     T --> M[Morrison Runtime Governance]
-    M --> E[Local Safety Envelope evaluation]
+    M --> E[Admissible Operating Envelope evaluation]
     E -->|ALLOW| X[Execute]
     E -->|ESCALATE| H[Human / Policy Review]
     E -->|BLOCK| B[Prevent + Evidence]
@@ -215,7 +213,7 @@ Where:
 
 - **ℛ(t)** is the set of reachable states from the current trajectory and environment.
 - **Ω** is the configured forbidden region.
-- the **local Safety Envelope** is the bounded operating region in which the evaluated deployment remains locally admissible.
+- the **Admissible Operating Envelope** is the bounded operating region in which the evaluated deployment remains locally admissible.
 
 Exclusion of Ω holds only inside a boundary the deployment establishes, and is
 conditional on complete mediation, specification correctness, key custody, and
@@ -297,7 +295,7 @@ It should expose the scope of the claim:
 
 A deployment-level conclusion can then be stated clearly:
 
-> **Morrison has established and validated a local Safety Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
+> **Morrison has established and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
 
 That is the assurance artifact Morrison is designed to produce and enforce.
 
@@ -368,7 +366,7 @@ Continuously revalidate the Safety Envelope as models, tools, permissions, workf
 
 The target proof is explicit:
 
-> **Morrison has established and validated a local Safety Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
+> **Morrison has established and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
 
 ---
 
@@ -422,7 +420,7 @@ Detailed implementation and evaluation artefacts live throughout this repository
 
 ### Resurrection Tech Ltd
 
-**Local Safety Envelopes for autonomous AI · Runtime governance before execution · Evidence after every decision**
+**Admissible Operating Envelopes for autonomous AI · Runtime governance before execution · Evidence after every decision**
 
 [Website](https://resurrection-tech.com) · [GitHub](https://github.com/davarntrades) · [LinkedIn](https://www.linkedin.com/in/davarn-morrison-14b93b263) · [Email](mailto:davarn@resurrection-tech.com)
 
