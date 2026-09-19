@@ -5,18 +5,54 @@ from __future__ import annotations
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Iterable
 
 from .counterexample import Counterexample, CounterexampleStep
 from .environment import FiniteEnvironment
 from .evidence import GraphEdge, GraphEvidence, GraphNode
-from .governance import GovernanceAdapter, GovernanceDecision
+from .governance import (
+    ESCALATION_APPROVED_AUTHORIZATION,
+    PERMIT_AUTHORIZATION,
+    ExecutedStep,
+    GovernanceAdapter,
+    GovernanceDecision,
+)
 from .state import VerificationState, stable_hash
 
 
 SAFE_WITHIN_MODEL = "SAFE_WITHIN_MODEL"
 UNSAFE_COUNTEREXAMPLE_FOUND = "UNSAFE_COUNTEREXAMPLE_FOUND"
 INCONCLUSIVE = "INCONCLUSIVE"
+
+ESCALATION_APPROVE = "approve"
+ESCALATION_DENY = "deny"
+# Canonical emission order. Deny first keeps edge ordering stable and lets BFS
+# reach the cheapest denied frontier before the approved one.
+ESCALATION_OUTCOMES = (ESCALATION_DENY, ESCALATION_APPROVE)
+
+NON_EXECUTABLE_VERDICTS = frozenset(
+    {"BLOCK", "NO_VALID_SOLUTION", "ENVIRONMENT_SENSITIVE"}
+)
+
+
+@dataclass(frozen=True)
+class _Branch:
+    """One enumerable resolution of a single proposed action.
+
+    A PERMIT or a BLOCK has exactly one resolution. An ESCALATE has as many as
+    the escalation policy declares admissible, and each is a separate edge.
+    """
+
+    decision: GovernanceDecision
+    executed: bool
+    escalation_outcome: str | None = None
+    origin_verdict: str | None = None
+
+    @property
+    def authorization(self) -> str:
+        if self.escalation_outcome == ESCALATION_APPROVE:
+            return ESCALATION_APPROVED_AUTHORIZATION
+        return PERMIT_AUTHORIZATION
 
 
 @dataclass(frozen=True)
@@ -46,12 +82,24 @@ class TraversalResult:
     proposed_edge_count: int
     blocked_edge_count: int
     blocked_unsafe_edge_count: int
+    approved_escalation_edge_count: int
+    denied_escalation_edge_count: int
+    # Which resolutions of an escalation this run actually enumerated. Observed
+    # from the graph, never taken on the caller's word, so it cannot be
+    # misdeclared in the artifact that carries it.
+    escalation_outcomes_admitted: tuple[str, ...]
     unsafe_state_ids: tuple[str, ...]
     unsafe_reachable_edge_count: int
     unexplored_frontier_size: int
     graph: GraphEvidence
     counterexample: Counterexample | None = None
     per_initial_state: list[dict[str, Any]] = field(default_factory=list)
+    # edge_id -> record_hash of the REAL kernel evidence record behind it.
+    # Per-run, not reproducible across runs: the kernel timestamps an executed
+    # record with wall-clock time, so every record chained after one differs
+    # between runs. That is production behaviour, not drift, and it is why this
+    # binding is kept out of the deterministic graph export.
+    evidence_bindings: dict[str, str] = field(default_factory=dict)
 
     @property
     def reachable_state_count(self) -> int:
@@ -79,6 +127,10 @@ class TraversalResult:
             "proposed_edge_count": self.proposed_edge_count,
             "blocked_edge_count": self.blocked_edge_count,
             "blocked_unsafe_edge_count": self.blocked_unsafe_edge_count,
+            "approved_escalation_edge_count": self.approved_escalation_edge_count,
+            "denied_escalation_edge_count": self.denied_escalation_edge_count,
+            "escalation_outcomes_admitted": list(self.escalation_outcomes_admitted),
+            "evidence_bindings": dict(sorted(self.evidence_bindings.items())),
             "unsafe_reachable_state_count": self.unsafe_reachable_state_count,
             "unsafe_state_ids": list(self.unsafe_state_ids),
             "unsafe_reachable_edge_count": self.unsafe_reachable_edge_count,
@@ -92,7 +144,15 @@ class TraversalResult:
         return result
 
 
+# Legacy form: True meant "this proposal may execute". It is still accepted and
+# is normalised below, but a bare True now enumerates BOTH resolutions, because
+# "approval is possible here" does not mean "approval is certain here".
 EscalationResolver = Callable[[Dict[str, Any], GovernanceDecision], bool]
+# Current form: return which resolutions of this escalation the model admits,
+# as any iterable over {"approve", "deny"}.
+EscalationPolicy = Callable[
+    [Dict[str, Any], GovernanceDecision], "bool | Iterable[str]"
+]
 
 
 class ExhaustiveVerifier:
@@ -105,15 +165,22 @@ class ExhaustiveVerifier:
         *,
         limits: VerificationLimits | None = None,
         algorithm: str = "bfs",
+        escalation_policy: EscalationPolicy | None = None,
         escalation_resolver: EscalationResolver | None = None,
     ):
         if algorithm not in {"bfs", "dfs"}:
             raise ValueError("algorithm must be 'bfs' or 'dfs'")
+        if escalation_policy is not None and escalation_resolver is not None:
+            raise ValueError(
+                "pass escalation_policy or escalation_resolver, not both"
+            )
         self.environment = environment
         self.governance = governance
         self.limits = limits or VerificationLimits()
         self.algorithm = algorithm
-        self.escalation_resolver = escalation_resolver
+        # `escalation_resolver` is the legacy spelling of the same hook.
+        self.escalation_policy = escalation_policy or escalation_resolver
+        self.escalation_resolver = self.escalation_policy
 
     @property
     def mode(self) -> str:
@@ -127,6 +194,9 @@ class ExhaustiveVerifier:
         unsafe_edges = 0
         blocked_edges = 0
         blocked_unsafe_edges = 0
+        approved_escalations = 0
+        denied_escalations = 0
+        evidence_bindings: dict[str, str] = {}
         counterexample: Counterexample | None = None
         per_initial: list[dict[str, Any]] = []
         complete = True
@@ -147,7 +217,7 @@ class ExhaustiveVerifier:
             initial_unsafe = len(unsafe_states)
             queue: deque[tuple[
                 VerificationState,
-                tuple[dict[str, Any], ...],
+                tuple[ExecutedStep, ...],
                 str,
                 int,
                 tuple[CounterexampleStep, ...],
@@ -212,17 +282,6 @@ class ExhaustiveVerifier:
                     break
 
                 for action in available:
-                    if len(graph.edges) >= self.limits.max_edges:
-                        complete = False
-                        stop_reason = "max_edges reached before graph exhaustion"
-                        frontier_size = len(queue) + 1
-                        break
-                    if time.monotonic() - started >= self.limits.timeout_seconds:
-                        complete = False
-                        stop_reason = "timeout_seconds reached before graph exhaustion"
-                        frontier_size = len(queue) + 1
-                        break
-
                     try:
                         proposal = action.propose(state)
                         stable_hash(proposal)
@@ -231,6 +290,7 @@ class ExhaustiveVerifier:
                         successor = self.environment.transition(state, action)
                         violations = self.environment.unsafe(successor)
                         decision = self._decision(history, proposal)
+                        branches = self._branches(history, proposal, decision)
                     except Exception as exc:  # noqa: BLE001
                         complete = False
                         stop_reason = (
@@ -240,101 +300,149 @@ class ExhaustiveVerifier:
                         frontier_size = len(queue) + 1
                         break
 
-                    execute = self._is_executable(proposal, decision)
-                    next_history = history + (proposal,)
-                    destination_id: str | None = None
-                    if execute:
-                        destination_id = self._node_id(
-                            successor, next_history, initial.state_id
-                        )
-                        if (
-                            destination_id not in visited
-                            and len(graph.nodes) >= self.limits.max_states
-                        ):
+                    for branch in branches:
+                        if len(graph.edges) >= self.limits.max_edges:
                             complete = False
-                            stop_reason = "max_states reached before graph exhaustion"
+                            stop_reason = "max_edges reached before graph exhaustion"
+                            frontier_size = len(queue) + 1
+                            break
+                        if time.monotonic() - started >= self.limits.timeout_seconds:
+                            complete = False
+                            stop_reason = "timeout_seconds reached before graph exhaustion"
                             frontier_size = len(queue) + 1
                             break
 
-                    edge_id = "edge-" + stable_hash(
-                        {
+                        execute = branch.executed
+                        next_history = history + (
+                            ExecutedStep(proposal, branch.authorization),
+                        )
+                        destination_id: str | None = None
+                        if execute:
+                            destination_id = self._node_id(
+                                successor, next_history, initial.state_id
+                            )
+                            if (
+                                destination_id not in visited
+                                and len(graph.nodes) >= self.limits.max_states
+                            ):
+                                complete = False
+                                stop_reason = "max_states reached before graph exhaustion"
+                                frontier_size = len(queue) + 1
+                                break
+
+                        identity: dict[str, Any] = {
                             "source": source_id,
                             "destination": destination_id,
                             "action": action.name,
                             "proposal": proposal,
-                            "verdict": decision.verdict,
+                            "verdict": branch.decision.verdict,
                         }
-                    )[:20]
-                    edge = GraphEdge(
-                        edge_id=edge_id,
-                        source=source_id,
-                        destination=destination_id,
-                        action=action.name,
-                        proposed_action=proposal,
-                        governance_verdict=decision.verdict,
-                        executed=execute,
-                        blocked=not execute,
-                        layer=decision.layer,
-                        reason=decision.reason,
-                        rule=decision.rule,
-                        omega_domain=decision.omega_domain,
-                        counterfactual_state_id=(successor.state_id if not execute else None),
-                        counterfactual_unsafe_invariants=(
-                            tuple(item.identifier for item in violations) if not execute else ()
-                        ),
-                    )
-                    graph.add_edge(edge)
+                        if branch.escalation_outcome == ESCALATION_APPROVE:
+                            # A denied escalation IS the pre-existing blocked
+                            # edge and keeps its identity; only the newly
+                            # enumerable approve branch needs disambiguating.
+                            identity["escalation_outcome"] = ESCALATION_APPROVE
+                        edge_id = "edge-" + stable_hash(identity)[:20]
+                        edge = GraphEdge(
+                            edge_id=edge_id,
+                            source=source_id,
+                            destination=destination_id,
+                            action=action.name,
+                            proposed_action=proposal,
+                            governance_verdict=branch.decision.verdict,
+                            executed=execute,
+                            blocked=not execute,
+                            layer=branch.decision.layer,
+                            reason=branch.decision.reason,
+                            rule=branch.decision.rule,
+                            omega_domain=branch.decision.omega_domain,
+                            counterfactual_state_id=(
+                                successor.state_id if not execute else None
+                            ),
+                            counterfactual_unsafe_invariants=(
+                                tuple(item.identifier for item in violations)
+                                if not execute
+                                else ()
+                            ),
+                            escalation_outcome=branch.escalation_outcome,
+                            escalation_origin_verdict=branch.origin_verdict,
+                            action_hash=branch.decision.action_hash,
+                            semantic_hash=branch.decision.semantic_hash,
+                        )
+                        graph.add_edge(edge)
+                        if branch.decision.evidence_hash:
+                            evidence_bindings[edge_id] = branch.decision.evidence_hash
 
-                    if not execute:
-                        blocked_edges += 1
+                        if not execute:
+                            blocked_edges += 1
+                            if branch.escalation_outcome == ESCALATION_DENY:
+                                denied_escalations += 1
+                            if violations:
+                                blocked_unsafe_edges += 1
+                            continue
+
+                        if branch.escalation_outcome == ESCALATION_APPROVE:
+                            # Counts approvals that actually carried execution.
+                            # An approve branch governance still refuses stays
+                            # in blocked_edges, flagged in the graph.
+                            approved_escalations += 1
+                        reachable_states.add(successor.state_id)
                         if violations:
-                            blocked_unsafe_edges += 1
-                        continue
+                            unsafe_states.add(successor.state_id)
+                            unsafe_edges += 1
 
-                    reachable_states.add(successor.state_id)
-                    if violations:
-                        unsafe_states.add(successor.state_id)
-                        unsafe_edges += 1
-
-                    step = CounterexampleStep(
-                        action=action.name,
-                        proposed_action=proposal,
-                        governance_verdict=decision.verdict,
-                        governance_layer=decision.layer,
-                        governance_reason=decision.reason,
-                        resulting_state=successor.to_dict(),
-                        resulting_state_id=successor.state_id,
-                        unsafe_invariants=tuple(item.identifier for item in violations),
-                    )
-                    next_path = path + (step,)
-                    if violations:
-                        candidate = Counterexample(
-                            initial_state=initial.to_dict(),
-                            initial_state_id=initial.state_id,
-                            steps=next_path,
-                            violated_invariants=tuple(item.definition() for item in violations),
-                            final_unsafe_state=successor.to_dict(),
-                            final_unsafe_state_id=successor.state_id,
+                        step = CounterexampleStep(
+                            action=action.name,
+                            proposed_action=proposal,
+                            governance_verdict=branch.decision.verdict,
+                            governance_layer=branch.decision.layer,
+                            governance_reason=branch.decision.reason,
+                            resulting_state=successor.to_dict(),
+                            resulting_state_id=successor.state_id,
+                            unsafe_invariants=tuple(
+                                item.identifier for item in violations
+                            ),
+                            escalation_outcome=branch.escalation_outcome,
                         )
-                        counterexample = self._prefer(counterexample, candidate)
-
-                    if destination_id not in visited:
-                        graph.add_node(
-                            GraphNode(
-                                node_id=destination_id,
-                                state_id=successor.state_id,
-                                state=successor.to_dict(),
-                                safe=not violations,
-                                unsafe_invariants=tuple(
-                                    item.identifier for item in violations
+                        next_path = path + (step,)
+                        if violations:
+                            candidate = Counterexample(
+                                initial_state=initial.to_dict(),
+                                initial_state_id=initial.state_id,
+                                steps=next_path,
+                                violated_invariants=tuple(
+                                    item.definition() for item in violations
                                 ),
-                                depth=depth + 1,
+                                final_unsafe_state=successor.to_dict(),
+                                final_unsafe_state_id=successor.state_id,
                             )
-                        )
-                        visited.add(destination_id)
-                        queue.append(
-                            (successor, next_history, destination_id, depth + 1, next_path)
-                        )
+                            counterexample = self._prefer(counterexample, candidate)
+
+                        if destination_id not in visited:
+                            graph.add_node(
+                                GraphNode(
+                                    node_id=destination_id,
+                                    state_id=successor.state_id,
+                                    state=successor.to_dict(),
+                                    safe=not violations,
+                                    unsafe_invariants=tuple(
+                                        item.identifier for item in violations
+                                    ),
+                                    depth=depth + 1,
+                                )
+                            )
+                            visited.add(destination_id)
+                            queue.append(
+                                (
+                                    successor,
+                                    next_history,
+                                    destination_id,
+                                    depth + 1,
+                                    next_path,
+                                )
+                            )
+                    if not complete:
+                        break
                 if not complete:
                     break
 
@@ -345,6 +453,8 @@ class ExhaustiveVerifier:
                     "explored_configurations": len(graph.nodes) - initial_graph_nodes,
                     "proposed_edges": len(graph.edges) - initial_edges,
                     "new_unsafe_states": len(unsafe_states) - initial_unsafe,
+                    "approved_escalations": approved_escalations,
+                    "denied_escalations": denied_escalations,
                 }
             )
             if not complete:
@@ -369,6 +479,13 @@ class ExhaustiveVerifier:
             proposed_edge_count=len(graph.edges),
             blocked_edge_count=blocked_edges,
             blocked_unsafe_edge_count=blocked_unsafe_edges,
+            approved_escalation_edge_count=approved_escalations,
+            denied_escalation_edge_count=denied_escalations,
+            escalation_outcomes_admitted=tuple(
+                item for item in ESCALATION_OUTCOMES
+                if any(edge.escalation_outcome == item for edge in graph.edges.values())
+            ),
+            evidence_bindings=evidence_bindings,
             unsafe_state_ids=tuple(sorted(unsafe_states)),
             unsafe_reachable_edge_count=unsafe_edges,
             unexplored_frontier_size=frontier_size,
@@ -377,8 +494,104 @@ class ExhaustiveVerifier:
             per_initial_state=per_initial,
         )
 
+    def _escalation_outcomes(
+        self, proposal: dict[str, Any], decision: GovernanceDecision
+    ) -> tuple[str, ...]:
+        """Which resolutions of this escalation the declared model admits.
+
+        With no policy the answer is `deny` alone, which is the standing
+        assumption "an unresolved ESCALATE is non-executable" and reproduces
+        the pre-existing traversal exactly.
+        """
+        if self.escalation_policy is None:
+            return (ESCALATION_DENY,)
+        raw = self.escalation_policy(proposal, decision)
+        if isinstance(raw, bool):
+            # Legacy bool hook. True says approval is ADMISSIBLE here, not that
+            # it is guaranteed, so exhaustiveness requires both resolutions.
+            return ESCALATION_OUTCOMES if raw else (ESCALATION_DENY,)
+        outcomes = set(raw)
+        unknown = sorted(outcomes - set(ESCALATION_OUTCOMES))
+        if unknown:
+            raise ValueError(f"escalation policy returned unknown outcome(s) {unknown}")
+        if not outcomes:
+            raise ValueError(
+                "escalation policy returned no admissible outcome; an escalation "
+                "must resolve to at least one of "
+                f"{list(ESCALATION_OUTCOMES)}"
+            )
+        return tuple(item for item in ESCALATION_OUTCOMES if item in outcomes)
+
+    def _branches(
+        self,
+        history: tuple[ExecutedStep, ...],
+        proposal: dict[str, Any],
+        decision: GovernanceDecision,
+    ) -> tuple[_Branch, ...]:
+        """Expand one governance decision into every edge it licenses."""
+        if self.governance is None:
+            return (_Branch(decision, True),)
+        if decision.verdict == "PERMIT":
+            if not decision.permitted:
+                raise ValueError("governance returned PERMIT with permitted=False")
+            return (_Branch(decision, True),)
+        if decision.verdict in NON_EXECUTABLE_VERDICTS:
+            return (_Branch(decision, False),)
+        if decision.verdict == "ESCALATE":
+            branches: list[_Branch] = []
+            for outcome in self._escalation_outcomes(proposal, decision):
+                if outcome == ESCALATION_DENY:
+                    # Unresolved escalation: recorded, never executed.
+                    branches.append(
+                        _Branch(decision, False, ESCALATION_DENY, decision.verdict)
+                    )
+                    continue
+                approved = self._approve(history, proposal, decision)
+                branches.append(
+                    _Branch(
+                        approved,
+                        approved.verdict == "PERMIT" and approved.permitted,
+                        ESCALATION_APPROVE,
+                        decision.verdict,
+                    )
+                )
+            return tuple(branches)
+        raise ValueError(f"unrecognized governance verdict {decision.verdict!r}")
+
+    def _approve(
+        self,
+        history: tuple[ExecutedStep, ...],
+        proposal: dict[str, Any],
+        decision: GovernanceDecision,
+    ) -> GovernanceDecision:
+        """Ask governance what it decides once approval IS presented.
+
+        The verifier never grants authority itself. If the adapter cannot model
+        an authorised resolution, that is an error and the run fails closed —
+        it is never treated as permission.
+        """
+        approve = getattr(self.governance, "approve_escalation", None)
+        if approve is None:
+            raise ValueError(
+                "escalation policy admits approval but governance adapter "
+                f"{type(self.governance).__name__!r} cannot authorise an "
+                "escalation; refusing to execute it"
+            )
+        approved = approve(history, proposal, decision)
+        if not isinstance(approved, GovernanceDecision):
+            raise TypeError("approve_escalation did not return a GovernanceDecision")
+        if approved.verdict == "PERMIT" and not approved.permitted:
+            raise ValueError(
+                "approved escalation returned PERMIT with permitted=False"
+            )
+        # A decision that STILL escalates once a verified approval is in hand is
+        # a real outcome, not a failure: this escalation is not resolvable by
+        # approval at all (an unknown tool, for instance, declares no capability
+        # for an approval to satisfy). It is recorded, and it does not execute.
+        return approved
+
     def _decision(
-        self, history: tuple[dict[str, Any], ...], proposal: dict[str, Any]
+        self, history: tuple[ExecutedStep, ...], proposal: dict[str, Any]
     ) -> GovernanceDecision:
         if self.governance is None:
             return GovernanceDecision(
@@ -389,41 +602,23 @@ class ExhaustiveVerifier:
             )
         return self.governance.evaluate(history, proposal)
 
-    def _is_executable(
-        self, proposal: dict[str, Any], decision: GovernanceDecision
-    ) -> bool:
-        if self.governance is None:
-            return True
-        if decision.verdict == "PERMIT":
-            if not decision.permitted:
-                raise ValueError("governance returned PERMIT with permitted=False")
-            return True
-        if decision.verdict == "ESCALATE":
-            # Unresolved ESCALATE is non-executable. Only an explicit scenario
-            # resolver can turn this particular proposal into an execution.
-            return bool(
-                self.escalation_resolver
-                and self.escalation_resolver(proposal, decision)
-            )
-        if decision.verdict in {
-            "BLOCK",
-            "NO_VALID_SOLUTION",
-            "ENVIRONMENT_SENSITIVE",
-        }:
-            return False
-        raise ValueError(f"unrecognized governance verdict {decision.verdict!r}")
-
     @staticmethod
     def _node_id(
         state: VerificationState,
-        history: tuple[dict[str, Any], ...],
+        history: tuple[ExecutedStep, ...],
         initial_state_id: str,
     ) -> str:
+        """Identity of a trajectory, not of a state.
+
+        The executed proposal sequence alone still determines the trajectory:
+        a given action contributes at most ONE executed successor per node, so
+        adding the approve branch cannot collide two distinct paths here.
+        """
         return "node-" + stable_hash(
             {
                 "initial_state_id": initial_state_id,
                 "state": state.to_dict(),
-                "executed_history": list(history),
+                "executed_history": [step.proposal for step in history],
             }
         )[:20]
 
@@ -440,6 +635,9 @@ class ExhaustiveVerifier:
             proposed_edge_count=len(graph.edges),
             blocked_edge_count=0,
             blocked_unsafe_edge_count=0,
+            approved_escalation_edge_count=0,
+            denied_escalation_edge_count=0,
+            escalation_outcomes_admitted=(),
             unsafe_state_ids=(),
             unsafe_reachable_edge_count=0,
             unexplored_frontier_size=0,

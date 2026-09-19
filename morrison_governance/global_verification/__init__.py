@@ -11,11 +11,36 @@ from .comparison import (
 )
 from .environment import FiniteEnvironment
 from .evidence import GraphEvidence, build_verification_artifact
-from .governance import GovernanceDecision, MorrisonKernelAdapter
+from .provenance import (
+    ARTIFACT_SCHEMA,
+    VERIFIER_VERSION,
+    VerificationEvidenceLedger,
+    artifact_digest,
+    validate_verification_artifact,
+    verification_identity,
+    verifier_identity,
+)
+from .governance import (
+    ExecutedStep,
+    GovernanceDecision,
+    MorrisonKernelAdapter,
+)
+from .pilot import (
+    REVALIDATION_REQUIRED,
+    VERIFIED_CONFIGURATION_CURRENT,
+    LiveConfiguration,
+    PilotContract,
+    PilotReadiness,
+    assess_pilot_readiness,
+    contract_from_artifact,
+)
 from .scenarios import SCENARIOS, get_scenario, perturbation_matrix
 from .state import VerificationState
 from .unsafe import DEFAULT_UNSAFE_INVARIANTS, UnsafeInvariant
 from .verifier import (
+    ESCALATION_APPROVE,
+    ESCALATION_DENY,
+    ESCALATION_OUTCOMES,
     INCONCLUSIVE,
     SAFE_WITHIN_MODEL,
     UNSAFE_COUNTEREXAMPLE_FOUND,
@@ -25,7 +50,19 @@ from .verifier import (
 )
 
 __all__ = [
+    "ARTIFACT_SCHEMA",
     "ComparisonResult",
+    "LiveConfiguration",
+    "PilotContract",
+    "PilotReadiness",
+    "REVALIDATION_REQUIRED",
+    "VERIFIED_CONFIGURATION_CURRENT",
+    "assess_pilot_readiness",
+    "contract_from_artifact",
+    "ESCALATION_APPROVE",
+    "ESCALATION_DENY",
+    "ESCALATION_OUTCOMES",
+    "ExecutedStep",
     "DEFAULT_UNSAFE_INVARIANTS",
     "ExhaustiveVerifier",
     "FiniteEnvironment",
@@ -40,7 +77,13 @@ __all__ = [
     "UnsafeInvariant",
     "VerificationLimits",
     "VerificationState",
+    "VERIFIER_VERSION",
+    "VerificationEvidenceLedger",
+    "artifact_digest",
     "build_verification_artifact",
+    "validate_verification_artifact",
+    "verification_identity",
+    "verifier_identity",
     "compare_control_and_governed",
     "get_scenario",
     "perturbation_matrix",
