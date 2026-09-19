@@ -27,9 +27,17 @@ def test_unauthorized_transfer_blocked():
 
 
 def test_authorized_small_transfer_permitted():
-    r = g().evaluate({"tool": "transfer",
-                      "args": {"amount": 250, "authorized": True}})
+    # The authorisation is established by the deployment, not asserted by the
+    # transfer about itself — see morrison_governance.provenance.
+    r = g().evaluate({"tool": "transfer", "args": {"amount": 250}},
+                     trusted_facts={"authorized": True})
     assert r.permitted
+
+
+def test_self_asserted_authorization_does_not_permit_a_transfer():
+    """The same claim written into the call's own args must not permit."""
+    assert g().evaluate({"tool": "transfer",
+                         "args": {"amount": 250, "authorized": True}}).blocked
 
 
 def test_guaranteed_profit_blocked():

@@ -63,7 +63,8 @@ class RuntimeGovernanceMiddleware:
     def __init__(self, governance: GovernanceLayer,
                  sandbox: SandboxExecutor,
                  hardening: Optional[HardeningPipeline] = None,
-                 security_context=None):
+                 security_context=None,
+                 trusted_facts: Optional[dict] = None):
         """`security_context` promotes this middleware to full kernel parity.
 
         When a SecurityContext is supplied, every decision runs through
@@ -83,6 +84,12 @@ class RuntimeGovernanceMiddleware:
         self.sandbox = sandbox
         self.hardening = hardening
         self.security_context = security_context
+        # Policy facts the DEPLOYMENT established for this run — an approval
+        # its change process recorded, an operator confirmation. They carry
+        # TRUSTED provenance. A flag written into a step's own `args` does
+        # not, because an action asserting that it is authorised is not an
+        # authorisation. See morrison_governance.provenance.
+        self.trusted_facts = dict(trusted_facts or {})
         self.kernel = None
         if security_context is not None:
             from morrison_governance.kernel import GovernanceKernel
@@ -121,8 +128,10 @@ class RuntimeGovernanceMiddleware:
         plan = list(history) + extension
         try:
             if len(plan) > 1:
-                return self.governance.evaluate_plan(plan), None
-            return self.governance.evaluate(plan[0]), None
+                return self.governance.evaluate_plan(
+                    plan, trusted_facts=self.trusted_facts or None), None
+            return self.governance.evaluate(
+                plan[0], trusted_facts=self.trusted_facts or None), None
         except Exception as e:                       # noqa: BLE001
             return None, f"{type(e).__name__}: {e}"
 
