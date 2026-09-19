@@ -25,6 +25,15 @@ from .governance import (
     GovernanceDecision,
     MorrisonKernelAdapter,
 )
+from .pilot import (
+    REVALIDATION_REQUIRED,
+    VERIFIED_CONFIGURATION_CURRENT,
+    LiveConfiguration,
+    PilotContract,
+    PilotReadiness,
+    assess_pilot_readiness,
+    contract_from_artifact,
+)
 from .scenarios import SCENARIOS, get_scenario, perturbation_matrix
 from .state import VerificationState
 from .unsafe import DEFAULT_UNSAFE_INVARIANTS, UnsafeInvariant
@@ -43,6 +52,13 @@ from .verifier import (
 __all__ = [
     "ARTIFACT_SCHEMA",
     "ComparisonResult",
+    "LiveConfiguration",
+    "PilotContract",
+    "PilotReadiness",
+    "REVALIDATION_REQUIRED",
+    "VERIFIED_CONFIGURATION_CURRENT",
+    "assess_pilot_readiness",
+    "contract_from_artifact",
     "ESCALATION_APPROVE",
     "ESCALATION_DENY",
     "ESCALATION_OUTCOMES",
