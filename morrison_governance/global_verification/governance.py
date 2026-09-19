@@ -14,6 +14,7 @@ from morrison_governance.kernel import (
     SecurityContext,
 )
 from morrison_governance.kernel import capabilities as C
+from morrison_governance.kernel.evidence import ruleset_hash as rules_logic_hash
 from morrison_governance.kernel.trust import ApprovalArtifact
 from .provenance import VerificationEvidenceLedger
 from .state import stable_hash
@@ -200,6 +201,16 @@ class MorrisonKernelAdapter:
         self.ledger = ledger
         probe = self._factory()
         self.configuration_hash = probe.integrity()["ruleset_hash"]
+        # A SECOND, deliberately different ruleset identity.
+        #
+        # `integrity()["ruleset_hash"]` binds more than the rules, so it is not
+        # comparable with what a deployment reports about itself: the service
+        # and its replay tooling both publish `ruleset_hash(layer.rules)`, the
+        # logic-binding hash over the rules alone. Comparing the two would
+        # mismatch under every configuration, which is worse than not comparing
+        # -- it looks like drift detection while being unable to ever agree.
+        # Recording both lets a consumer compare like with like.
+        self.rules_logic_hash = rules_logic_hash(probe.layer.rules)
         # The kernel carries this as an attribute; integrity() does not expose it.
         self.engine_version = getattr(probe, "engine_version", None)
 
