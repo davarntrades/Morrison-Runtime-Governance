@@ -10,6 +10,8 @@ In July 2026, during OpenAI's internal ExploitGym evaluation, agents re-establis
 
 That is a harder test than an internal red-team exercise, because the attack was not designed against our assumptions — it happened to someone else, and we asked whether our architecture would have caught it.
 
+**Before the results.** Everything measured below is reproducible from this repository — verdicts, layers, rules, execution counts and suite totals all come from running the real engine. The incident narrative itself is drawn from secondary reporting, because the primary sources were unreachable from the environment this work ran in. Full detail in *On sourcing* at the end.
+
 ## What held
 
 We reproduced the peer-`GO` mechanism across 23 delivery vectors against the real kernel: flat and stringified authority flags, sector suffix flags, the GO message as free text, nested claims, deadline and urgency fields, a forged approval artifact, a peer-signed artifact installed in the trusted context, a peer forging the trusted issuer's name, identity spoofs, policy spoofs, and all of them combined in one packet.
@@ -84,8 +86,9 @@ The original scenario, re-run unmodified against both engine versions:
 | structural shapes promoting a claim | 5 of 13 | **0 of 13** |
 | authority-forgery vectors | 0 executions | 0 executions |
 | test suite | 947 | **1150** |
+| invented-vocabulary flips | 11 rules / 25 pairs | **0** |
 
-Twenty invented field names across sixty assertions now acquire nothing.
+**One entire attack class is closed outright.** Invented-vocabulary flips went from 11 rules / 25 pairs to **0** — closed structurally, not by a list. Twenty invented field names across sixty assertions now acquire nothing.
 
 **The one remaining bypass, named.** The single end-to-end case still open is premise injection where the payload carries *only* the caller's label — `user_state="curious"` on a crisis reply — and none of the conversation it describes. With nothing to read, independent derivation cannot contradict the label. It is pinned as an expected-failure test, `test_residual_premise_injection_without_evidence_in_the_payload`, so that if it ever changes someone has to look.
 
@@ -98,8 +101,6 @@ solver's synthetic trigger state: {'tool': 'respond', 'user_state': 'active_cris
 synthetic trigger + claim        derivation: (nothing — no content to read)   rule fires: False
 same + REAL refuting content     derivation: crisis_referral = False          rule fires: True
 ```
-
-Invented-vocabulary flips went from 11 rules / 25 pairs to **0** — that class is closed structurally, not by a list.
 
 That single residual is a deployment contract, not a kernel defect: send the conversation if you want the conversation governed. Two adjacent limits are pinned the same way — evidence nested past the derivation depth budget, and a disclosure phrased outside the classifier. No content classifier is complete.
 
