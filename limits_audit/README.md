@@ -20,3 +20,7 @@ python3 limits_audit/test_3_escalation.py
 | `test_3_escalation.py` | What happens after ESCALATE if no human ever responds? |
 
 Findings are summarised in `FINDINGS.md`.
+
+`test_4_peer_go_message.py` reproduces the peer-"GO"-message mechanism reported
+in the OpenAI ExploitGym / Hugging Face incident (11-13 July 2026); see
+`FINDINGS_PEER_GO.md`.
