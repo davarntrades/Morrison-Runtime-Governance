@@ -28,6 +28,7 @@ from .scenarios import (
     COMMON_LIMITATIONS,
     create_persistence_action,
     obtain_credential_action,
+    perturbation_matrix,
     request_privilege_action,
     secret_exfiltration,
     governance_bypass,
@@ -239,6 +240,89 @@ def test_approval_does_not_override_omega():
         if edge.action == "send_external_message" and edge.blocked
     ]
     assert blocked, "egress after an approved secret read must still be refused"
+
+
+def _egress_tool_removed() -> FiniteEnvironment:
+    """The perturbation whose action space contains no route to Ω at all."""
+    for environment in perturbation_matrix():
+        if environment.name == "perturb_egress_tool_removed":
+            return environment
+    raise AssertionError("perturb_egress_tool_removed is missing from the matrix")
+
+
+def test_approved_escalation_that_is_safe_still_reaches_safe_within_model():
+    """The converse case: approval executes, and the model is safe anyway.
+
+    `test_approved_escalation_reaches_omega_...` proves the verifier stops
+    calling an escalating model safe just because the escalation was denied.
+    This proves the opposite failure does not happen either: enumerating the
+    approved branch is not a way of manufacturing counterexamples. Here the
+    approval really executes, traversal really continues past it, the frontier
+    is really exhausted -- and no prohibited state exists, so the verdict is
+    SAFE_WITHIN_MODEL on its merits rather than by truncation.
+    """
+    environment = _egress_tool_removed()
+    governance = _governance()
+    denied = ExhaustiveVerifier(environment, governance).verify()
+    approved = ExhaustiveVerifier(
+        environment, governance, escalation_policy=APPROVE_AND_DENY
+    ).verify()
+
+    # Both complete; neither is SAFE by running out of road.
+    for result in (denied, approved):
+        assert result.complete, result.stop_reason
+        assert result.stop_reason is None
+        assert result.unexplored_frontier_size == 0
+        assert result.verdict == SAFE_WITHIN_MODEL
+        assert result.unsafe_reachable_state_count == 0
+
+    # The approval was genuinely exercised, not skipped.
+    assert approved.approved_escalation_edge_count > 0
+    assert approved.denied_escalation_edge_count > 0
+
+    # Enumeration CONTINUED past the approved escalation: strictly more of the
+    # graph is reachable than under denial, and the extra states are real.
+    assert approved.reachable_state_count > denied.reachable_state_count
+    assert approved.reachable_edge_count > denied.reachable_edge_count
+    assert set(denied.reachable_state_ids) <= set(approved.reachable_state_ids)
+
+    # Every executed approval landed on a safe successor, and a successor of an
+    # approved edge was itself expanded -- i.e. the branch was traversed, not
+    # merely recorded.
+    nodes = approved.graph.nodes
+    executed = [
+        edge for edge in approved.graph.edges.values()
+        if edge.escalation_outcome == ESCALATION_APPROVE and edge.executed
+    ]
+    assert executed
+    sources = {edge.source for edge in approved.graph.edges.values()}
+    for edge in executed:
+        assert edge.governance_verdict == "PERMIT"
+        assert nodes[edge.destination].safe is True
+    assert any(edge.destination in sources for edge in executed), (
+        "no approved successor was expanded; the branch was not traversed"
+    )
+
+
+def test_safe_under_approval_is_not_an_artefact_of_a_single_model():
+    """The same converse holds where a real BLOCK, not an empty action space,
+    is what keeps the approved branch safe."""
+    result = ExhaustiveVerifier(
+        secret_exfiltration(), _governance(), escalation_policy=APPROVE_AND_DENY
+    ).verify()
+    assert result.complete and result.stop_reason is None
+    assert result.verdict == SAFE_WITHIN_MODEL
+    assert result.approved_escalation_edge_count > 0
+    assert max(node.depth for node in result.graph.nodes.values()) >= 2
+    # Ω stays unreached because governance refuses the egress outright, which is
+    # a BLOCK -- not an unresolved escalation standing in for one.
+    egress = [
+        edge for edge in result.graph.edges.values()
+        if edge.action == "send_external_message"
+    ]
+    assert egress
+    assert all(edge.governance_verdict == "BLOCK" for edge in egress)
+    assert all(edge.escalation_outcome is None for edge in egress)
 
 
 def test_unapprovable_escalation_stays_non_executable():
