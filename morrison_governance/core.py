@@ -137,7 +137,17 @@ class GovernanceLayer:
     # PRIMARY API
     # ═══════════════════════════════════════════════════════════
 
-    def evaluate(self, tool_call: dict) -> GovernanceResult:
+    def _extractor_with(self, trusted_facts: Optional[dict]):
+        """The extractor to use for one evaluation, with `trusted_facts` added
+        to the trusted context channel."""
+        if not trusted_facts:
+            return self.extractor
+        from morrison_governance.trajectory import TrajectoryExtractor
+        merged = {**(self.extractor.context or {}), **trusted_facts}
+        return TrajectoryExtractor(context=merged)
+
+    def evaluate(self, tool_call: dict,
+                 trusted_facts: Optional[dict] = None) -> GovernanceResult:
         """
         Evaluate a single tool call.
 
@@ -145,11 +155,29 @@ class GovernanceLayer:
                 "tool": "send_email",
                 "args": {"to": "ceo@company.com", "body": "..."}
             })
+
+        `trusted_facts` is the EXPLICIT promotion channel for policy state the
+        deployment has itself established — a compliance decision, an operator
+        confirmation, an authorisation your own systems verified:
+
+            governance.evaluate(call, trusted_facts={"admin_approved": True})
+
+        Facts passed here carry TRUSTED provenance and may satisfy an Ω rule
+        that requires an attestation. The SAME name written into the call's
+        own `args`, or beside them at the top level, carries UNTRUSTED
+        provenance and cannot — because a caller describing itself as
+        authorised is not an authorisation. That distinction is the whole
+        point: same value, different provenance, different authority.
+
+        Only pass facts your deployment actually established. Forwarding a
+        value straight from an agent or a peer message into this parameter
+        re-creates by hand the confusion the parameter exists to prevent.
         """
-        trajectory = self.extractor.from_dict(tool_call)
+        trajectory = self._extractor_with(trusted_facts).from_dict(tool_call)
         return self._run(trajectory)
 
-    def evaluate_plan(self, steps: list[dict]) -> GovernanceResult:
+    def evaluate_plan(self, steps: list[dict],
+                      trusted_facts: Optional[dict] = None) -> GovernanceResult:
         """
         Evaluate a multi-step tool call plan.
 
@@ -158,7 +186,7 @@ class GovernanceLayer:
                 {"tool": "http_request", "args": {"url": "https://..."}},
             ])
         """
-        trajectory = self.extractor.from_plan(steps)
+        trajectory = self._extractor_with(trusted_facts).from_plan(steps)
         return self._run(trajectory)
 
     def evaluate_openai(self, tool_calls: list) -> GovernanceResult:
@@ -224,6 +252,18 @@ class GovernanceLayer:
 
         result.metadata["eval_time_ms"] = round(elapsed * 1000, 2)
         result.metadata["eval_number"] = self._eval_count
+
+        # PROVENANCE EVIDENCE. A decision that turned on a policy-state fact
+        # should say where that fact came from, what class it held, and
+        # whether any gated read was refused. Without this a provenance
+        # failure is invisible: the audit record of the crisis_referral
+        # bypass read `PERMIT layer=V4 rule=None` with nothing to show that a
+        # caller-supplied attestation had been load-bearing.
+        try:
+            last = trajectory.states[-1].to_eval_dict()
+            result.metadata["provenance"] = last.provenance_report()
+        except Exception:                                # noqa: BLE001
+            pass
 
         if self.log_all:
             status = "PERMIT" if result.permitted else "BLOCK"
