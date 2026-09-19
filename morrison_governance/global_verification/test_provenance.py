@@ -75,6 +75,54 @@ def test_artifact_carries_every_required_provenance_field():
     assert artifact["artifact_integrity"]["model_digest"]
 
 
+def test_clean_tree_is_distinguishable_from_git_failing():
+    """`git status --porcelain` prints NOTHING on a clean tree.
+
+    Collapsing that into None made a clean tree and an unrunnable git
+    indistinguishable, and every caller that tested truthiness read both as
+    clean — failing open on exactly the check that pins a verification to code.
+    """
+    from . import provenance
+
+    real_git = provenance._git
+
+    def fake(root, *args, clean):
+        if args[:1] == ("status",):
+            return "" if clean else " M some/file.py"
+        return "0" * 40
+
+    try:
+        provenance._git = lambda root, *a: fake(root, *a, clean=True)
+        assert provenance.verifier_identity()["repository_dirty"] is False
+        provenance._git = lambda root, *a: fake(root, *a, clean=False)
+        assert provenance.verifier_identity()["repository_dirty"] is True
+        provenance._git = lambda root, *a: None          # git unavailable
+        identity = provenance.verifier_identity()
+        assert identity["repository_dirty"] is None
+        assert identity["repository_commit"] is None
+    finally:
+        provenance._git = real_git
+
+
+def test_ci_gate_refuses_an_unestablishable_tree_state():
+    """None means unknown, and unknown is not clean."""
+    from .ci_gate import provenance_gate
+
+    known_clean = {"repository_commit": "a" * 40, "repository_dirty": False,
+                   "verifier_version": "v"}
+    assert provenance_gate(known_clean, allow_dirty=False) == []
+
+    unknown = {**known_clean, "repository_dirty": None}
+    failures = provenance_gate(unknown, allow_dirty=False)
+    assert failures and "could not be established" in failures[0]
+    # Even --allow-dirty does not turn "unknown" into "fine".
+    assert provenance_gate(unknown, allow_dirty=True)
+
+    dirty = {**known_clean, "repository_dirty": True}
+    assert provenance_gate(dirty, allow_dirty=False)
+    assert provenance_gate(dirty, allow_dirty=True) == []
+
+
 def test_artifact_keeps_the_evidence_classes_separate():
     _, _, _, _, artifact = _run(policy=APPROVE_AND_DENY)
     # Finite-model result, kernel decisions and retained kernel evidence are

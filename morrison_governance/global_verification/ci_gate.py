@@ -124,7 +124,13 @@ def provenance_gate(verifier: dict[str, Any], *, allow_dirty: bool) -> list[str]
         failures.append(
             "repository commit is unknown; the verification cannot be pinned to code"
         )
-    if verifier.get("repository_dirty") and not allow_dirty:
+    dirty = verifier.get("repository_dirty")
+    if dirty is None:
+        failures.append(
+            "whether the working tree is clean could not be established; the "
+            "recorded commit may not describe the code that ran"
+        )
+    elif dirty and not allow_dirty:
         failures.append(
             "the working tree is dirty; the recorded commit does not describe the "
             "code that ran (pass --allow-dirty only for local runs)"
