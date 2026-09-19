@@ -16,6 +16,7 @@ class CounterexampleStep:
     resulting_state: dict[str, Any]
     resulting_state_id: str
     unsafe_invariants: tuple[str, ...] = ()
+    escalation_outcome: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -27,6 +28,7 @@ class CounterexampleStep:
             "resulting_state": self.resulting_state,
             "resulting_state_id": self.resulting_state_id,
             "unsafe_invariants": list(self.unsafe_invariants),
+            "escalation_outcome": self.escalation_outcome,
         }
 
 
