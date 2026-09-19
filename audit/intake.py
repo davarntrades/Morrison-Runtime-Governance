@@ -38,6 +38,13 @@ class TrajectorySpec:
     steps: list                       # list[{"tool": str, "args": dict}]
     expected: Optional[str] = None    # optional client expectation: PERMIT/BLOCK
     note: str = ""
+    # Policy facts the CLIENT'S OWN systems established for this trajectory —
+    # an approval their change process recorded, a compliance sign-off. These
+    # carry TRUSTED provenance. An authorisation written into a step's `args`
+    # does not and never did mean anything: it is the action describing
+    # itself. Keeping the two apart is what lets an audit package say "this
+    # payment was approved" without that claim being self-granting.
+    trusted_facts: dict = field(default_factory=dict)
 
     def calls(self) -> list:
         return [{"tool": s.get("tool"), "args": s.get("args", {}) or {}}
@@ -110,7 +117,8 @@ def parse_package(data: dict) -> AuditPackage:
                      f"trajectory '{tid}' expected must be PERMIT or BLOCK")
         trajectories.append(TrajectorySpec(
             id=tid, steps=steps, expected=expected,
-            note=str(tr.get("note", ""))))
+            note=str(tr.get("note", "")),
+            trusted_facts=dict(tr.get("trusted_facts", {}) or {})))
 
     return AuditPackage(
         org=org, domains=list(domains), tools=tools,

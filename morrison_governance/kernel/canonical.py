@@ -53,14 +53,52 @@ def canonicalize(call: dict) -> dict:
 
     Any extra top-level keys are folded into args so that a caller cannot move
     a field between levels to change the hash while keeping the meaning.
+
+    THE ARGUMENT SPELLINGS
+
+    Frameworks do not agree on where a call's arguments live. OpenAI emits
+    `arguments` (as a JSON STRING), LangChain emits `tool_input`, MCP emits
+    `input`, and `TrajectoryExtractor` has always accepted all of them. This
+    function only understood `args`, so the others were folded in as an
+    ORDINARY FIELD — `{"tool": "reply", "input": {...}}` canonicalised to
+    `{"tool": "reply", "args": {"input": {...}}}`, one level too deep.
+
+    The Ω evaluation namespace is a shallow view of `args`, so nothing in that
+    payload was visible to a single-step rule: a crisis reply, a PII egress, a
+    privileged role change all read as an action with no arguments and cleared
+    every Ω rule. Capability and sensitivity classification still walked the
+    nested structure, so the action was not ungoverned — but the Ω layer was
+    blind to it, which is the layer a sector deployment writes its rules in.
+
+    The aliases are now unwrapped to the same canonical place, and a JSON
+    string is parsed, so one transition has one canonical form however the
+    caller's framework spells it.
     """
     tool = str(call.get("tool", "")).strip().lower()
+
     raw_args = call.get("args")
+    if raw_args is None:
+        for alias in ("arguments", "input", "tool_input", "parameters"):
+            if alias in call:
+                raw_args = call[alias]
+                break
+
+    # A JSON object arriving as text is that object, not an opaque blob.
+    if isinstance(raw_args, str):
+        stripped = raw_args.strip()
+        if stripped[:1] in ("{", "["):
+            try:
+                parsed = json.loads(stripped)
+            except (ValueError, TypeError):
+                parsed = None
+            if isinstance(parsed, dict):
+                raw_args = parsed
+
     args: dict = dict(raw_args) if isinstance(raw_args, dict) else {}
     if raw_args is not None and not isinstance(raw_args, dict):
         args["_positional"] = raw_args
     for k, v in call.items():
-        if k in ("tool", "args"):
+        if k in ("tool", "args", "arguments", "input", "tool_input", "parameters"):
             continue
         args.setdefault(str(k), v)
     return {"tool": tool, "args": _norm(args)}

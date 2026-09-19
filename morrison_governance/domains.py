@@ -15,6 +15,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable, Optional
 
+from morrison_governance import provenance as _prov
+
 
 class OmegaDomain(Enum):
     """
@@ -89,7 +91,7 @@ def _default_finance_rules() -> list[OmegaRule]:
             description="Transfer execution without explicit authorisation",
             check=lambda s: (
                 s.get("tool") in ("transfer", "send_payment", "execute_trade")
-                and not s.get("authorized", False)
+                and not _attested(s, "authorized")
             ),
         ),
         OmegaRule(
@@ -107,7 +109,7 @@ def _default_finance_rules() -> list[OmegaRule]:
             description="Transaction exceeding governance threshold without approval",
             check=lambda s: (
                 s.get("amount", 0) > s.get("threshold", float("inf"))
-                and not s.get("approved", False)
+                and not _attested(s, "approved")
             ),
         ),
     ]
@@ -177,7 +179,7 @@ def _default_healthcare_rules() -> list[OmegaRule]:
             check=lambda s: (
                 s.get("contains_phi", False)
                 and s.get("tool") in ("http_request", "send_email", "api_call")
-                and not s.get("hipaa_authorized", False)
+                and not _attested(s, "hipaa_authorized")
             ),
         ),
     ]
@@ -192,8 +194,13 @@ def _default_data_privacy_rules() -> list[OmegaRule]:
             description="Personal identifiable information sent to external endpoint",
             check=lambda s: (
                 s.get("contains_pii", False)
+                # provenance-exempt: read in the TRIGGERING direction, so a
+                # caller can only turn this rule ON. Absent defaults to False,
+                # and the kernel injects the destination it resolved from
+                # trusted configuration, which outranks any caller value.
+                # Gating it would mean the rule never fires without a kernel.
                 and s.get("destination_external", False)
-                and not s.get("consent_verified", False)
+                and not _attested(s, "consent_verified")
             ),
         ),
     ]
@@ -208,8 +215,13 @@ def _default_enterprise_rules() -> list[OmegaRule]:
             description="Customer PII transmitted externally without sanitization",
             check=lambda s: (
                 s.get("contains_customer_data", False)
+                # provenance-exempt: read in the TRIGGERING direction, so a
+                # caller can only turn this rule ON. Absent defaults to False,
+                # and the kernel injects the destination it resolved from
+                # trusted configuration, which outranks any caller value.
+                # Gating it would mean the rule never fires without a kernel.
                 and s.get("destination_external", False)
-                and not s.get("sanitized", False)
+                and not _attested(s, "sanitized")
             ),
         ),
         OmegaRule(
@@ -219,6 +231,11 @@ def _default_enterprise_rules() -> list[OmegaRule]:
             check=lambda s: (
                 str(s.get("data_classification", "")).lower()
                 in ("internal", "restricted", "confidential")
+                # provenance-exempt: read in the TRIGGERING direction, so a
+                # caller can only turn this rule ON. Absent defaults to False,
+                # and the kernel injects the destination it resolved from
+                # trusted configuration, which outranks any caller value.
+                # Gating it would mean the rule never fires without a kernel.
                 and s.get("destination_external", False)
             ),
         ),
@@ -228,7 +245,7 @@ def _default_enterprise_rules() -> list[OmegaRule]:
             description="Role/permission change without admin authorization",
             check=lambda s: (
                 s.get("tool") in ("update_role", "grant_permission", "modify_acl")
-                and not s.get("admin_approved", False)
+                and not _attested(s, "admin_approved")
             ),
         ),
     ]
@@ -246,7 +263,7 @@ def _default_compliance_rules() -> list[OmegaRule]:
                     kw in str(s.get("args", "")).lower()
                     for kw in ("card_number", "pan", "cvv", "cvc", "track_data")
                 )
-                and not s.get("pci_compliant_endpoint", False)
+                and not _attested(s, "pci_compliant_endpoint")
             ),
         ),
         OmegaRule(
@@ -258,7 +275,7 @@ def _default_compliance_rules() -> list[OmegaRule]:
                 and s.get("data_subject_eu", False)
                 and str(s.get("purpose", "")) != ""
                 and s.get("purpose") not in [
-                    p.strip() for p in str(s.get("consented_purposes", "")).split(",")
+                    p.strip() for p in str(_attested_value(s, "consented_purposes", "")).split(",")
                 ]
             ),
         ),
@@ -581,7 +598,7 @@ def _default_mental_health_safety_rules() -> list[OmegaRule]:
             description="Claiming a regulated therapeutic role without verification",
             check=lambda s: (
                 str(s.get("claimed_role", "")).lower() in _THERAPEUTIC_ROLES
-                and s.get("verified") is not True
+                and not _attested(s, "verified")
             ),
         ),
         OmegaRule(
@@ -591,7 +608,7 @@ def _default_mental_health_safety_rules() -> list[OmegaRule]:
             check=lambda s: (
                 bool(s.get("claimed_authority"))
                 and str(s.get("topic_class", "")).lower() in _CRISIS_TOPIC_CLASSES
-                and s.get("verified") is not True
+                and not _attested(s, "verified")
             ),
         ),
         OmegaRule(
@@ -742,6 +759,33 @@ _SECTOR_AUTH_FLAGS = (
 )
 
 
+def _sec_truthy_attested(s: dict, *keys: str) -> bool:
+    """`_sec_truthy` over TRUSTED facts only."""
+    st = _prov.coerce(s)
+    return any(st.attested_truthy(k) for k in keys)
+
+
+def _attested(s: dict, name: str) -> bool:
+    """An EXTERNAL AUTHORISATION this rule requires: TRUSTED provenance only.
+
+    Ω RULE CONTRACT. A rule calls this for a fact that asserts somebody
+    else's decision — a compliance sign-off, an admin's approval, a consent
+    record. Such a fact is never something the action can assert about
+    itself, so a caller-supplied value of the same name does not satisfy it.
+
+    Contrast `_sec_tool`/`s.get(...)`, which read the caller's own
+    description of what it is doing. That remains ungated: a rule is entitled
+    to know what the caller SAID. It simply may not treat it as authority.
+    """
+    return _prov.coerce(s).attested_truthy(name)
+
+
+def _attested_value(s: dict, name: str, default=""):
+    """As `_attested`, for a non-boolean authorisation record (a consent scope,
+    a referral identifier). Returns `default` unless TRUSTED."""
+    return _prov.coerce(s).attested(name, default)
+
+
 def _sec_tool(s: dict) -> str:
     return str(s.get("tool", "")).strip().lower()
 
@@ -770,17 +814,33 @@ _AUTH_SUFFIXES = ("_verified", "_approved", "_authorized", "_authorised",
 
 
 def _sec_authorized(s: dict) -> bool:
-    """True if the step carries an explicit authorisation/verification signal —
-    either one of the canonical auth flags, or any truthy `*_verified /
-    *_approved / *_authorized / *_confirmed` flag."""
-    if _sec_truthy(s, *_SECTOR_AUTH_FLAGS):
-        return True
-    for k, v in s.items():
-        if isinstance(k, str) and k.endswith(_AUTH_SUFFIXES) and (
-            v is True or (isinstance(v, str) and v.strip().lower() == "true")
-        ):
+    """True if the step carries an ESTABLISHED authorisation signal.
+
+    PROVENANCE, NOT SPELLING.
+
+    This function used to scan the whole evaluation namespace for any truthy
+    key ending `_verified` / `_approved` / `_authorized` / `_authorised` /
+    `_confirmed`. Twenty-five Ω predicates depend on it, and because the test
+    was purely lexical, an attacker could satisfy all of them by inventing a
+    field name:
+
+        coordinator_ceo1_confirmed = True      -> authorised
+        guardian_ack_approved      = True      -> authorised
+
+    No list could fix that; the attacker chooses the word. The suffix set is
+    therefore no longer a test of authority — it is a test of SHAPE, applied
+    only to facts that already hold TRUSTED provenance. Shape selects among
+    established facts. It never establishes one.
+
+    A caller-supplied flag of any name now returns False here, and an
+    authorisation the kernel actually established (a verified ApprovalArtifact,
+    a capability grant, deployment-owned context) still returns True.
+    """
+    st = _prov.coerce(s)
+    for flag in _SECTOR_AUTH_FLAGS:
+        if st.attested_truthy(flag):
             return True
-    return False
+    return st.any_attested(_AUTH_SUFFIXES)
 
 
 def _sec_prior_tools(s: dict) -> list[str]:
@@ -793,9 +853,14 @@ def _sec_prior_has(s: dict, vocab: set) -> bool:
 
 
 def _sec_is_external(s: dict) -> bool:
-    if _sec_truthy(s, "destination_internal", "is_internal", "internal"):
+    # A claim about which side of the trust boundary the destination sits on
+    # is an assertion about the world, not a description of the action. The
+    # kernel resolves it from trusted configuration and injects it; a caller
+    # saying so about itself establishes nothing.
+    if (_attested(s, "destination_internal") or _attested(s, "is_internal")
+            or _attested(s, "internal")):
         return False
-    return _sec_truthy(s, "destination_external") or bool(
+    return _attested(s, "destination_external") or bool(
         s.get("url") or s.get("endpoint") or s.get("host"))
 
 
@@ -809,7 +874,9 @@ def _sec_sensitive(s: dict) -> bool:
 
 
 def _sec_sanitized(s: dict) -> bool:
-    return _sec_truthy(s, "sanitized", "sanitised", "redacted",
+    # "this data was sanitised/redacted/anonymised" is an attestation about
+    # work someone claims to have done. Trusted provenance only.
+    return _sec_truthy_attested(s, "sanitized", "sanitised", "redacted",
                        "anonymized", "anonymised", "consent_verified")
 
 
@@ -853,7 +920,7 @@ def _pat_unauthorized_delegation(s: dict) -> bool:
     control."""
     return (_sec_tool(s) in _SECTOR_DELEGATION
             and not _sec_authorized(s)
-            and not s.get("delegation_scope"))
+            and not _attested(s, "delegation_scope"))
 
 
 def _reusable_pattern_rules(domain: "OmegaDomain") -> list[OmegaRule]:
