@@ -174,6 +174,9 @@ class Decision:
     # against BOTH clocks and the stricter one wins.
     issued_wall: float = 0.0
     reserved: bool = False             # holds a slot in the trajectory
+    # The queued review this ESCALATE opened, when the kernel was built with
+    # an escalation router. None on every other verdict.
+    escalation: Optional[Any] = None
     # How far the governed history behind this decision reaches: "process",
     # "host", "deployment", or "unknown".
     continuity_scope: str = "unknown"
@@ -241,6 +244,8 @@ class Decision:
             "destination": self.destination,
             "evidence_hash": self.evidence.record_hash if self.evidence else None,
             "binding": self.binding(),
+            "escalation": (self.escalation.as_dict()
+                           if self.escalation is not None else None),
             # 4 decimal places = 0.1µs. Several stages cost single-digit
             # microseconds, so rounding to 3 (1µs) would collapse them to a
             # value that no longer reconciles with the total in a published
@@ -302,9 +307,15 @@ class GovernanceKernel:
 
     def __init__(self, layer: GovernanceLayer, context: SecurityContext,
                  evidence_key: bytes = b"", engine_version: str = "",
-                 session_id: str = "", decision_ttl_s: float = DECISION_TTL_S):
+                 session_id: str = "", decision_ttl_s: float = DECISION_TTL_S,
+                 escalation_router: Optional[Any] = None):
         self.layer = layer
         self.ctx = context
+        # Where an ESCALATE goes. Without one the verdict is still correct and
+        # still fail-closed, but it has no destination: nothing is persisted,
+        # nobody is notified, and it never times out. See
+        # morrison_governance.escalation.
+        self.escalation_router = escalation_router
         self.chain = EvidenceChain(key=evidence_key)
         self.engine_version = engine_version
         self.session_id = session_id or uuid.uuid4().hex
@@ -1190,6 +1201,18 @@ class GovernanceKernel:
             self._file(proposed, verdict, DENIED, reason, now,
                        capabilities=caps, decision_id=decision.decision_id,
                        semantic_hash=shash)
+            if verdict == ESCALATE and self.escalation_router is not None:
+                # Give the escalation somewhere to go. Failure-isolated: a
+                # queue or pager being down must not turn a refusal into a
+                # permission, so the verdict is already decided and nothing
+                # here can change it.
+                try:
+                    decision.escalation = self.escalation_router.route(
+                        decision, principal=self.ctx.principal.id,
+                        tenant=self.ctx.principal.tenant,
+                        session_id=self.session_id, now=now)
+                except Exception:                        # noqa: BLE001
+                    pass
             # A BLOCK voids any PERMIT still outstanding for the same
             # transition: otherwise an agent could hold a decision from earlier
             # in the session and execute the very transition just refused.

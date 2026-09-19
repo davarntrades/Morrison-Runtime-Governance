@@ -94,8 +94,26 @@ class AuthorizedCall:
 
     Returned by the batch adapters instead of a bare tool call. The decision is
     a single-use lease bound to this transition, this session and this
-    principal; it is redeemed by `GovernanceGuard.execute_authorized`, which is
-    the only thing that can turn it into an execution.
+    principal, and `GovernanceGuard.execute_authorized` redeems it exactly
+    once — a second redemption is refused by the kernel.
+
+    WHAT THIS DOES NOT PREVENT, STATED PLAINLY
+
+    `.tool` and `.args` are public because the caller needs them to build the
+    framework's reply message. A caller that instead passes them to its own
+    dispatcher executes without redeeming the lease: no single-use check, no
+    evidence record, and the action can then run twice — once directly and
+    once through `execute_authorized`.
+
+    This is NOT fixable here. The caller holds the data; a library cannot stop
+    it calling its own function with values it already has. It is the same
+    boundary `kernel/mediation.py` documents for the kernel as a whole, and
+    the mitigation is the same: an execution lease verified at the RESOURCE,
+    which is what `mint_lease` exists for.
+
+    The narrower claim the batch adapters can make, and do: a REFUSED call
+    yields no `AuthorizedCall` at all, so "partition then execute the allowed
+    list" cannot execute something governance refused.
     """
 
     call: dict
@@ -295,6 +313,21 @@ class GovernanceGuard:
 # OpenAI tool calling
 # ─────────────────────────────────────────────────────────────
 
+def _advisory_gate(guard: GovernanceGuard, decision: Any) -> Any:
+    """Fail closed on a verdict-only adapter, whatever `on_block` says.
+
+    The three adapters that return a Decision instead of executing hand the
+    verdict to a caller who then executes outside the kernel. With
+    `on_block="deny"` they returned a non-PERMIT Decision and the caller's next
+    line ran the tool — an ungoverned execution reachable through a supported,
+    documented configuration. `dispatch`/`authorize` can honour `on_block`
+    because the kernel still gates execution there; these cannot.
+    """
+    if not getattr(decision, "permitted", False):
+        raise GovernanceError(decision)
+    return decision
+
+
 def _openai_call_to_dict(tc: Any) -> dict:
     """Normalise an OpenAI tool_call (object or dict) to {tool, args}."""
     import json
@@ -471,33 +504,73 @@ def claude_guarded_dispatch(
 # LangChain
 # ─────────────────────────────────────────────────────────────
 
-def govern_langchain_tool(guard: GovernanceGuard, tool: Any) -> Any:
-    """Wrap a LangChain tool so every invocation runs through the kernel.
+#: Attribute names through which a LangChain-shaped tool can be EXECUTED.
+#: Sync and async, public and protected, across LangChain versions.
+LANGCHAIN_EXECUTION_ATTRS = (
+    "func", "coroutine", "_run", "_arun", "run", "arun",
+    "invoke", "ainvoke", "batch", "abatch", "stream", "astream",
+    "apply", "aapply",
+)
 
-    Works with objects exposing `.name` and one of `func` / `_run` / `run` /
-    `invoke`. The wrapped callable does not run the original and then record a
-    verdict: the original is invoked BY the kernel, as the executor of an
-    authorised decision, so a refusal means it was never called.
+
+def govern_langchain_tool(guard: GovernanceGuard, tool: Any) -> Any:
+    """Wrap a LangChain tool so EVERY invocation runs through the kernel.
+
+    The wrapped callable does not run the original and then record a verdict:
+    the original is invoked BY the kernel, as the executor of an authorised
+    decision, so a refusal means it was never called.
+
+    WHAT THIS USED TO GET WRONG
+
+    It wrapped the FIRST of `func` / `_run` / `run` / `invoke` it found and
+    returned immediately. For a real `StructuredTool` that is harmless, because
+    `invoke` delegates to `run` delegates to `_run` delegates to `func` — but
+    this adapter is duck-typed and documented as such, and for any tool whose
+    entry points are independent the other three stayed raw. Every attribute
+    that can execute is now wrapped, not just the first one found.
+
+    A tool that refuses attribute assignment — a pydantic v2 `BaseTool`, the
+    default since LangChain 0.1 — still falls back to `_CallableToolProxy`,
+    which is now fail-closed rather than a passthrough. See its docstring.
     """
     name = getattr(tool, "name", getattr(tool, "__name__", "unknown"))
     guard._require_kernel("govern_langchain_tool")
 
-    for attr in ("func", "_run", "run", "invoke"):
+    wrapped_any = False
+    for attr in LANGCHAIN_EXECUTION_ATTRS:
         original = getattr(tool, attr, None)
         if original is None or not callable(original):
             continue
-
-        def gated(*args, __orig=original, **kwargs):
-            return _govern_callable(guard, name, __orig, args, kwargs)
-
         try:
-            setattr(tool, attr, gated)
+            setattr(tool, attr, _govern_bound(guard, name, original))
         except (AttributeError, TypeError):
-            # Pydantic v2 tools may forbid attribute assignment; fall back
-            # to wrapping the callable the caller will actually invoke.
-            return _CallableToolProxy(tool, name, guard, original)
-        return tool
+            # Immutable tool. Nothing can be replaced in place, so the caller
+            # must be handed a proxy instead — and the proxy has to cover every
+            # entry point, not the one that happened to be found first.
+            return _CallableToolProxy(tool, name, guard)
+        wrapped_any = True
+    if not wrapped_any:
+        # Nothing recognisable to wrap. A proxy still governs whatever the
+        # caller reaches for, which is safer than returning the raw tool.
+        return _CallableToolProxy(tool, name, guard)
     return tool
+
+
+def _govern_bound(guard: GovernanceGuard, name: str, original: Callable):
+    """A governed stand-in for one execution-capable tool attribute."""
+    import asyncio
+    import functools
+
+    if asyncio.iscoroutinefunction(original):
+        @functools.wraps(original)
+        async def _agated(*args, **kwargs):
+            return await _govern_coroutine(guard, name, original, args, kwargs)
+        return _agated
+
+    @functools.wraps(original)
+    def _gated(*args, **kwargs):
+        return _govern_callable(guard, name, original, args, kwargs)
+    return _gated
 
 
 def _govern_callable(guard: GovernanceGuard, name: str,
@@ -529,18 +602,123 @@ def _govern_callable(guard: GovernanceGuard, name: str,
     return out
 
 
-class _CallableToolProxy:
-    """Last-resort wrapper for immutable tool objects."""
+def _proposal_from(args: tuple, kwargs: dict) -> dict:
+    """Everything the tool will receive, as a governable proposal."""
+    proposal: dict = {}
+    if len(args) == 1 and not kwargs and isinstance(args[0], dict):
+        return _governable(args[0])
+    if args:
+        proposal["_positional"] = _governable(list(args))
+    proposal.update(_governable(kwargs))
+    return proposal
 
-    def __init__(self, tool, name, guard, original):
-        self._tool, self.name, self._guard, self._orig = (
-            tool, name, guard, original)
+
+async def _govern_coroutine(guard: GovernanceGuard, name: str,
+                            original: Callable, args: tuple,
+                            kwargs: dict) -> Any:
+    """Async form of `_govern_callable`.
+
+    `kernel.execute` takes a synchronous executor, so the decision is taken
+    first, the coroutine is awaited, and the reservation is committed
+    explicitly — the same shape `wrap_mcp_call_tool` uses. A failure after the
+    await still commits: a coroutine that raises may already have acted, and a
+    failed execution is not a free retry.
+    """
+    kernel = guard._require_kernel("govern_langchain_tool (async)")
+    decision = guard.authorize(name, _proposal_from(args, kwargs))
+    if not decision.permitted:
+        raise GovernanceError(decision)
+    try:
+        result = await original(*args, **kwargs)
+    except Exception:
+        kernel.record_remote_execution(decision)
+        raise
+    kernel.record_remote_execution(decision)
+    return result
+
+
+#: Attributes a proxy passes through untouched. Metadata and framework
+#: plumbing — describing a tool is not executing it, and a governed tool that
+#: cannot be introspected breaks the agent loop for no security gain.
+_PROXY_PASSTHROUGH = frozenset({
+    "name", "description", "args_schema", "args", "return_direct", "verbose",
+    "callbacks", "callback_manager", "tags", "metadata", "handle_tool_error",
+    "handle_validation_error", "response_format", "is_single_input",
+    "tool_call_schema", "get_input_schema", "get_output_schema",
+    "dict", "json", "schema", "schema_json", "copy", "construct",
+    "model_dump", "model_dump_json", "model_json_schema", "model_copy",
+    "model_fields", "model_config", "model_computed_fields",
+    "__fields__", "__config__", "__pydantic_fields_set__",
+})
+
+
+class _CallableToolProxy:
+    """Governing wrapper for a tool whose attributes cannot be replaced.
+
+    THE DEFECT THIS CLOSES
+
+    `__getattr__` used to be `return getattr(self._tool, item)`. The proxy
+    governed `__call__` and delegated everything else to the RAW tool, so
+    `proxy.run(...)`, `proxy.invoke(...)` and `proxy._run(...)` all executed
+    ungoverned and left no evidence record. This is the fallback path for a
+    pydantic v2 `BaseTool` — the LangChain default — and a real
+    `AgentExecutor` invokes a tool as `tool.run(...)` or `tool.invoke(...)`,
+    never by calling the object. The proxy governed precisely the path
+    production does not take.
+
+    WHAT IT DOES NOW
+
+    Metadata passes through (`_PROXY_PASSTHROUGH`). Everything else that is
+    CALLABLE is governed, including names this adapter has never heard of.
+    That default is deliberate and is the opposite of the original: a tool
+    method nobody anticipated is exactly the case a passthrough default gets
+    wrong, and the cost of being wrong in this direction is a governed call
+    that did not need to be, not an ungoverned one that did.
+
+    Non-callable attributes pass through: they are data, and reading a
+    tool's data is not executing it.
+    """
+
+    __slots__ = ("_tool", "_name", "_guard", "__weakref__")
+
+    def __init__(self, tool, name, guard, original=None):
+        object.__setattr__(self, "_tool", tool)
+        object.__setattr__(self, "_name", name)
+        object.__setattr__(self, "_guard", guard)
+
+    @property
+    def name(self):
+        return getattr(self._tool, "name", self._name)
 
     def __call__(self, *a, **kw):
-        return _govern_callable(self._guard, self.name, self._orig, a, kw)
+        """Stand in for the tool's own execution.
+
+        A tool that is itself callable is called. One that is not — a
+        `BaseTool` is not — resolves to its first execution-capable attribute,
+        which is what the previous proxy was constructed with and what a
+        caller invoking the proxy directly means.
+        """
+        target = self._tool if callable(self._tool) else None
+        if target is None:
+            for attr in LANGCHAIN_EXECUTION_ATTRS:
+                candidate = getattr(self._tool, attr, None)
+                if callable(candidate):
+                    target = candidate
+                    break
+        if target is None:
+            raise TypeError(f"{self._name!r} exposes no callable entry point")
+        return _govern_callable(self._guard, self._name, target, a, kw)
 
     def __getattr__(self, item):
-        return getattr(self._tool, item)
+        raw = getattr(self._tool, item)
+        if item in _PROXY_PASSTHROUGH or item.startswith("__"):
+            return raw
+        if not callable(raw):
+            return raw
+        return _govern_bound(self._guard, self._name, raw)
+
+    def __repr__(self):
+        return f"<governed {self._name!r} ({type(self._tool).__name__})>"
 
 
 class GovernanceCallbackHandler:
@@ -577,15 +755,21 @@ class GovernanceCallbackHandler:
 def autogen_guard_function_call(
     guard: GovernanceGuard, name: str, arguments: dict
 ) -> Any:
-    """Call from an AutoGen function-execution hook. Raises (fail closed) on a
-    non-PERMIT verdict when guard.on_block == 'raise'.
+    """Call from an AutoGen function-execution hook. ALWAYS fails closed.
 
     Returns the reserving Decision, which the caller must redeem through
-    `guard.execute_authorized`; a hook that only inspects the verdict and then
-    calls the function itself is an ungoverned path. Prefer
-    `register_autogen_guard`, which wires the kernel in as the executor.
+    `guard.execute_authorized`. Prefer `register_autogen_guard`, which wires
+    the kernel in as the executor.
+
+    `on_block` is deliberately NOT honoured here. It exists so a caller can
+    branch on a refusal instead of catching an exception, which is safe for
+    `dispatch` and `authorize`, where the kernel still gates the execution
+    itself. This adapter hands a verdict to a caller that will then execute
+    OUTSIDE the kernel, so there is no second gate: a returned non-PERMIT that
+    the caller ignores is an ungoverned execution, and the adapter's job is to
+    make ignoring it impossible rather than merely inadvisable.
     """
-    return guard.authorize(name, arguments)
+    return _advisory_gate(guard, guard.authorize(name, arguments))
 
 
 def register_autogen_guard(agent: Any, guard: GovernanceGuard) -> Any:
@@ -638,11 +822,13 @@ def browser_action_guard(
 ) -> Any:
     """Authorize a single browser-agent action through the kernel.
 
-    Returns the reserving Decision. Use `browser_guarded_action` when the
-    adapter should also perform the action.
+    Returns the reserving Decision, and ALWAYS fails closed — see
+    `autogen_guard_function_call` for why `on_block` is not honoured by the
+    verdict-only adapters. Use `browser_guarded_action` when the adapter
+    should also perform the action.
     """
     tool, args = _browser_call(action, target, value)
-    return guard.authorize(tool, args)
+    return _advisory_gate(guard, guard.authorize(tool, args))
 
 
 def browser_guarded_action(
@@ -663,10 +849,13 @@ def mcp_guard_call_tool(
 ) -> Any:
     """Authorize at the top of an MCP server's call_tool handler.
 
+    ALWAYS fails closed — see `autogen_guard_function_call` for why `on_block`
+    is not honoured by the verdict-only adapters.
+
     Prefer `wrap_mcp_call_tool`, which makes the kernel the caller of the
     handler rather than trusting the handler to honour a verdict.
     """
-    return guard.authorize(name, arguments or {})
+    return _advisory_gate(guard, guard.authorize(name, arguments or {}))
 
 
 def wrap_mcp_call_tool(guard: GovernanceGuard, call_tool: Callable) -> Callable:
