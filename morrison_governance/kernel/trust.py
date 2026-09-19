@@ -211,6 +211,21 @@ class SecurityContext:
 
     principal: Principal = ANONYMOUS
     approvals: tuple = ()
+    # Policy facts THIS DEPLOYMENT has established — a compliance sign-off its
+    # own systems recorded, an operator confirmation, a clinical triage result.
+    #
+    # They are injected into the Ω evaluation namespace with TRUSTED
+    # provenance, which is what lets a rule that requires an attestation be
+    # satisfied. The same names arriving in a tool call's `args` carry
+    # UNTRUSTED provenance and satisfy nothing, because an action asserting
+    # that it is authorised is not an authorisation.
+    #
+    # This is trusted CONFIGURATION, like `approvals` and `trusted_issuers`:
+    # it must be populated from something the deployment authenticated, never
+    # forwarded from an agent, a peer message, or a request body. A service
+    # that pipes caller input in here has re-created by hand the confusion the
+    # field exists to prevent.
+    trusted_facts: dict = field(default_factory=dict)
     signing_key: bytes = b""
     trusted_issuers: frozenset = field(default_factory=frozenset)
 

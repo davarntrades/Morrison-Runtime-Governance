@@ -860,6 +860,11 @@ class GovernanceKernel:
         # destination, and made `admin_approved` read as a privilege-surface
         # key on an unrelated tool. Context injection has neither effect.
         trusted: dict[str, Any] = {}
+        # Deployment-established policy facts first, so the kernel's own
+        # resolved values below (destination, threshold) still win: the kernel
+        # knows more about those than its configuration does.
+        if getattr(self.ctx, "trusted_facts", None):
+            trusted.update(self.ctx.trusted_facts)
         if authority_established:
             trusted.update(authorized=True, approved=True, verified=True,
                            admin_approved=True, change_approved=True,
