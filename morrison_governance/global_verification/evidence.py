@@ -230,7 +230,13 @@ def build_verification_artifact(
         },
         "governance": {
             "adapter": governance.description,
+            # Kernel integrity hash: binds the ruleset AND the kernel's own
+            # configuration. Use it to compare two verifier runs.
             "ruleset_hash": governance.configuration_hash,
+            # Logic-binding hash over the RULES alone. This is the formula a
+            # deployment publishes about itself, so it is the one to compare a
+            # verification against a running service with.
+            "rules_logic_hash": getattr(governance, "rules_logic_hash", None),
             "engine_version": getattr(governance, "engine_version", None),
         },
         "initial_state_set": [state.to_dict() for state in environment.initial_states],

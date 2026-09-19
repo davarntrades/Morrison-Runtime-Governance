@@ -48,7 +48,13 @@ def _git(repo_root: Path, *args: str) -> str | None:
         )
     except (OSError, subprocess.SubprocessError):
         return None
-    return out.stdout.strip() or None if out.returncode == 0 else None
+    if out.returncode != 0:
+        return None
+    # Return the output even when EMPTY. `git status --porcelain` on a clean
+    # tree prints nothing, and collapsing that into None made "clean" and
+    # "could not run git" indistinguishable -- which reads as clean to every
+    # caller that tests truthiness, i.e. fails open.
+    return out.stdout.strip()
 
 
 def verifier_identity(repo_root: str | Path | None = None) -> dict[str, Any]:
@@ -59,7 +65,7 @@ def verifier_identity(repo_root: str | Path | None = None) -> dict[str, Any]:
     commit should fail on the None, not on a fabricated value.
     """
     root = Path(repo_root) if repo_root else Path(__file__).resolve().parents[2]
-    commit = _git(root, "rev-parse", "HEAD")
+    commit = _git(root, "rev-parse", "HEAD") or None
     status = _git(root, "status", "--porcelain")
     return {
         "verifier_version": VERIFIER_VERSION,
