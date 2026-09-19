@@ -91,7 +91,7 @@ def _default_finance_rules() -> list[OmegaRule]:
             description="Transfer execution without explicit authorisation",
             check=lambda s: (
                 s.get("tool") in ("transfer", "send_payment", "execute_trade")
-                and not s.get("authorized", False)
+                and not _attested(s, "authorized")
             ),
         ),
         OmegaRule(
@@ -109,7 +109,7 @@ def _default_finance_rules() -> list[OmegaRule]:
             description="Transaction exceeding governance threshold without approval",
             check=lambda s: (
                 s.get("amount", 0) > s.get("threshold", float("inf"))
-                and not s.get("approved", False)
+                and not _attested(s, "approved")
             ),
         ),
     ]
@@ -194,6 +194,11 @@ def _default_data_privacy_rules() -> list[OmegaRule]:
             description="Personal identifiable information sent to external endpoint",
             check=lambda s: (
                 s.get("contains_pii", False)
+                # provenance-exempt: read in the TRIGGERING direction, so a
+                # caller can only turn this rule ON. Absent defaults to False,
+                # and the kernel injects the destination it resolved from
+                # trusted configuration, which outranks any caller value.
+                # Gating it would mean the rule never fires without a kernel.
                 and s.get("destination_external", False)
                 and not _attested(s, "consent_verified")
             ),
@@ -210,8 +215,13 @@ def _default_enterprise_rules() -> list[OmegaRule]:
             description="Customer PII transmitted externally without sanitization",
             check=lambda s: (
                 s.get("contains_customer_data", False)
+                # provenance-exempt: read in the TRIGGERING direction, so a
+                # caller can only turn this rule ON. Absent defaults to False,
+                # and the kernel injects the destination it resolved from
+                # trusted configuration, which outranks any caller value.
+                # Gating it would mean the rule never fires without a kernel.
                 and s.get("destination_external", False)
-                and not s.get("sanitized", False)
+                and not _attested(s, "sanitized")
             ),
         ),
         OmegaRule(
@@ -221,6 +231,11 @@ def _default_enterprise_rules() -> list[OmegaRule]:
             check=lambda s: (
                 str(s.get("data_classification", "")).lower()
                 in ("internal", "restricted", "confidential")
+                # provenance-exempt: read in the TRIGGERING direction, so a
+                # caller can only turn this rule ON. Absent defaults to False,
+                # and the kernel injects the destination it resolved from
+                # trusted configuration, which outranks any caller value.
+                # Gating it would mean the rule never fires without a kernel.
                 and s.get("destination_external", False)
             ),
         ),
@@ -583,7 +598,7 @@ def _default_mental_health_safety_rules() -> list[OmegaRule]:
             description="Claiming a regulated therapeutic role without verification",
             check=lambda s: (
                 str(s.get("claimed_role", "")).lower() in _THERAPEUTIC_ROLES
-                and s.get("verified") is not True
+                and not _attested(s, "verified")
             ),
         ),
         OmegaRule(
@@ -593,7 +608,7 @@ def _default_mental_health_safety_rules() -> list[OmegaRule]:
             check=lambda s: (
                 bool(s.get("claimed_authority"))
                 and str(s.get("topic_class", "")).lower() in _CRISIS_TOPIC_CLASSES
-                and s.get("verified") is not True
+                and not _attested(s, "verified")
             ),
         ),
         OmegaRule(

@@ -94,9 +94,13 @@ _PERSIST_OBJECT = re.compile(
 _EGRESS_OBJECT = re.compile(
     r"(upload|export|send|post|publish|share|transmit|sync|push|email|mail|"
     r"webhook|ship|emit|forward|copy|replicate|stream)", re.I)
+# `run_?code` / `run_?script` required ADJACENCY, so `run_remote_code`,
+# `run_sandboxed_code` and `run_user_code` carrying a shell payload classified
+# as caps=[] / requirement=allow — ungoverned. An infix word now matches, which
+# is the same rename-evasion class this module exists to close.
 _EXEC_OBJECT = re.compile(
     r"(shell|exec|execute|eval|subprocess|bash|sh\b|zsh|powershell|pwsh|cmd|"
-    r"command|run_?code|run_?script|python|system|terminal|invoke)", re.I)
+    r"command|run(?:_\w+)*_?code|run(?:_\w+)*_?script|python|system|terminal|invoke)", re.I)
 _READ_OBJECT = re.compile(
     r"(read|get|fetch|list|query|select|download|export|dump|scan|search|"
     r"describe|retrieve|load|view|browse)", re.I)

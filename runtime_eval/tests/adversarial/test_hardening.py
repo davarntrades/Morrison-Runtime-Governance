@@ -91,6 +91,12 @@ def _run_case(mw, case):
     (e.g. the acquire side blocked) means the trajectory did NOT reach
     Ω, even if a later lone step happens to be permitted."""
     plan = case["plan"]
+    # A case may carry policy facts the deployment established (see the
+    # corpus). They are handed to the middleware, never merged into the
+    # call's own arguments.
+    tf = case.get("trusted_facts")
+    if tf:
+        mw.trusted_facts = dict(tf)
     flat_plan = []
     for batch in plan:
         flat_plan.extend(batch if isinstance(batch, list) else [batch])
