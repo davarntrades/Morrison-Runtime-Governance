@@ -1,0 +1,120 @@
+name: Live Multi-Agent Reproduction
+
+# Runs limits_audit/live_multiagent against the real Claude API. The credential
+# lives only as a GitHub Actions secret, which is write-only and is injected
+# into workflow runs, so this workflow is the only place the experiment can run.
+#
+# Everything the agents can touch is loopback: mock_service.py binds
+# 127.0.0.1 as a module constant and run_experiment.py calls assert_local_only()
+# before every request. No third-party host is contacted except api.anthropic.com.
+#
+# The model is pinned in agents.py (claude-haiku-4-5, 5 turns per agent) and is
+# deliberately NOT read from vars.ANTHROPIC_MODEL, so the run costs what
+# estimate_cost.py priced. A budget gate below hard-fails above $1.00.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/morrison-governance-audit-10j980
+    paths:
+      - .github/workflows/live-multiagent-repro.yml
+      - limits_audit/live_multiagent/**
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate credential presence
+        run: |
+          test -n "$ANTHROPIC_API_KEY" || {
+            echo "BLOCKED: ANTHROPIC_API_KEY secret is not available to this run."
+            exit 1
+          }
+          echo "Credential present (value never printed)."
+
+      - name: Install dependencies
+        run: python -m pip install "anthropic>=0.39"
+
+      - name: Cost estimate and budget gate
+        run: |
+          python limits_audit/live_multiagent/estimate_cost.py
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "limits_audit/live_multiagent")
+          from estimate_cost import estimate
+          ceiling = 1.00
+          ub = estimate()["upper_bound_usd"]
+          if ub > ceiling:
+              raise SystemExit(f"BUDGET GATE: upper bound ${ub} exceeds ${ceiling}")
+          print(f"Budget gate passed: upper bound ${ub} <= ${ceiling}")
+          PY
+
+      - name: Prove the loopback guard refuses a real host
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "limits_audit/live_multiagent")
+          from mock_service import assert_local_only
+          try:
+              assert_local_only("https://huggingface.co/api/models")
+          except RuntimeError as exc:
+              print("guard OK:", exc)
+          else:
+              raise SystemExit("GUARD FAILED: a non-loopback URL was accepted")
+          PY
+
+      - name: Zero-spend wiring proof
+        run: python limits_audit/live_multiagent/dry_run_governance.py
+
+      - name: Run the live experiment
+        run: |
+          python limits_audit/live_multiagent/run_experiment.py \
+            --out results.json --board board.json
+
+      - name: Scan artifacts for the credential
+        if: always()
+        run: |
+          python - <<'PY'
+          import os, pathlib, sys
+          secret = os.environ.get("ANTHROPIC_API_KEY", "")
+          hits = []
+          for name in ("results.json", "board.json"):
+              p = pathlib.Path(name)
+              if p.exists() and secret and secret in p.read_text(errors="ignore"):
+                  hits.append(name)
+          if hits:
+              raise SystemExit(f"credential found in artifacts: {hits}")
+          print("credential scan clean")
+          PY
+
+      - name: Print full transcripts to the log
+        if: always()
+        run: |
+          echo "===== results.json ====="
+          cat results.json || echo "(no results.json produced)"
+          echo "===== board.json ====="
+          cat board.json || echo "(no board.json produced)"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-multiagent-repro-${{ github.run_id }}
+          path: |
+            results.json
+            board.json
+          if-no-files-found: warn
+          retention-days: 30
