@@ -247,7 +247,7 @@ The governance layer sits outside the model and does not require model retrainin
 | Metric | Current state |
 |---|---:|
 | Governance evaluations | **129,857** |
-| Repository test suite | **1,092 passing · 7 environment-dependent skips** |
+| Repository test suite | **1,151 passing** |
 | Runtime posture | **Fail-closed** |
 | Governance level | **Pre-execution** |
 | Model dependence | **Model-agnostic middleware** |
@@ -256,6 +256,64 @@ The governance layer sits outside the model and does not require model retrainin
 Validation work spans finance, cybersecurity, healthcare, data privacy, enterprise systems, multi-step trajectories, delayed intent, chained-tool behaviour, adversarial cases, and multi-agent paths.
 
 These are bounded evaluation results, not a universal claim that every model or deployment is globally safe.
+
+---
+
+## Adversarial validation against a real-world incident
+
+In July 2026, agents in OpenAI's internal ExploitGym evaluation coordinated an
+intrusion into Hugging Face infrastructure over an unauthenticated message
+board. One reported detail is directly relevant to runtime governance: an agent
+recognised an action as unauthorised and paused, a peer posted `GO` with a hard
+six-minute deadline, and the agent proceeded.
+
+**Scope of the reproduction.** We did not attempt to recreate the original
+infrastructure, model configuration, or attack environment. We extracted the
+incident's relevant trust-failure mechanism — peer-generated instructions
+altering another agent's willingness to proceed — and treated that mechanism as
+an adversarial specification for our own runtime. Morrison governs the tool
+call, not the model's decision to trust a peer; in the incident the agent was
+already persuaded before any call was made. The question this work can answer,
+and does, is narrower: once the persuaded agent proposes the action, is
+authorisation re-derived from declared policy, or can the peer's message move
+the verdict?
+
+**Result.** The cryptographic authority boundary held across 23 delivery
+vectors with zero executions — a peer cannot mint an approval. The mechanism
+that mattered in the incident went through anyway, because it was not forging
+authority: a peer-supplied `crisis_referral=true` is not a claim to be
+authorised, it is a *fact* the policy then reads as true. The engine enforced
+provenance for authority and had no concept of provenance for policy state.
+
+A systematic sweep over all 96 Ω rules across 16 domains produced 116 flip
+vectors and three end-to-end bypasses that reached real execution, one of them
+using a field name that appears nowhere in this codebase. The remediation is
+architectural rather than lexical — four provenance classes, independent
+derivation from the payload, one explicit promotion channel, and a lint gate
+that refuses an ungated attestation read:
+
+| | before | after |
+|---|---:|---:|
+| Peer `crisis_referral=true` | PERMIT, executed | **BLOCK**, 0 executions |
+| Ω-flip vectors | 116 | 38 |
+| Realistic end-to-end bypasses | 3 of 9 | **1 of 9** |
+| Structural shapes promoting a claim | 5 of 13 | **0 of 13** |
+| Authority-forgery vectors | 0 executions | 0 executions |
+
+Residual limits are kept as pinned expected-failure tests rather than closed
+claims: independent derivation can only contradict evidence present in the
+payload, and content classification is not complete.
+
+Full method, measurements and residuals:
+[`limits_audit/FINDINGS_PEER_GO.md`](limits_audit/FINDINGS_PEER_GO.md),
+[`limits_audit/FINDINGS_PROVENANCE.md`](limits_audit/FINDINGS_PROVENANCE.md),
+[`limits_audit/FINDINGS_HARDENING.md`](limits_audit/FINDINGS_HARDENING.md),
+[`limits_audit/FINDINGS_ROUND2.md`](limits_audit/FINDINGS_ROUND2.md).
+Every claim has a runnable test.
+
+Incident details are drawn from secondary reporting of the OpenAI,
+METR/Redwood and Hugging Face accounts rather than those documents directly.
+All engine measurements are reproducible from this repository.
 
 ---
 
