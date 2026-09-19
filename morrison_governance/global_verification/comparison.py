@@ -66,7 +66,8 @@ def compare_control_and_governed(
     algorithm: str = "bfs",
     escalation_policy: Any = None,
 ) -> ComparisonResult:
-    # The control model has no governance, so it has no escalations to resolve.
+    # The control model has no governance, so it has no escalations to resolve
+    # and produces no kernel evidence to retain.
     control = ExhaustiveVerifier(
         environment, limits=limits, algorithm=algorithm
     ).verify()

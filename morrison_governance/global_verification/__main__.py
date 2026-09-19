@@ -9,6 +9,10 @@ from pathlib import Path
 from .comparison import compare_control_and_governed, run_composition_experiment
 from .evidence import build_verification_artifact
 from .governance import MorrisonKernelAdapter
+from .provenance import (
+    VerificationEvidenceLedger,
+    validate_verification_artifact,
+)
 from .scenarios import SCENARIOS, get_scenario, perturbation_matrix
 from .verifier import (
     ESCALATION_APPROVE,
@@ -91,7 +95,10 @@ def main(argv: list[str] | None = None) -> int:
         max_depth=args.max_depth,
         timeout_seconds=args.timeout_seconds,
     )
-    governance = MorrisonKernelAdapter()
+    # One ledger per run: the branch kernels are thrown away, their evidence
+    # records are not.
+    ledger = VerificationEvidenceLedger()
+    governance = MorrisonKernelAdapter(ledger=ledger)
     escalation_policy = _escalation_policy(args.escalations)
 
     if args.composition_experiment:
@@ -125,8 +132,15 @@ def main(argv: list[str] | None = None) -> int:
                 comparison,
                 algorithm=args.algorithm,
                 limits=limits,
+                ledger=ledger,
             )
         )
+        validation = validate_verification_artifact(artifacts[-1])
+        print(f"artifact {artifacts[-1]['verification_id']} "
+              f"integrity={'VALID' if validation.valid else 'INVALID'} "
+              f"({len(validation.checks)} checks, {len(validation.failures())} failed)")
+        if not validation.valid:
+            exit_code = 2
         if comparison.verdict == "INCONCLUSIVE":
             exit_code = 2
         if args.export_dot and len(environments) == 1:

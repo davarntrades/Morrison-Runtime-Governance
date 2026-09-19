@@ -84,12 +84,22 @@ class TraversalResult:
     blocked_unsafe_edge_count: int
     approved_escalation_edge_count: int
     denied_escalation_edge_count: int
+    # Which resolutions of an escalation this run actually enumerated. Observed
+    # from the graph, never taken on the caller's word, so it cannot be
+    # misdeclared in the artifact that carries it.
+    escalation_outcomes_admitted: tuple[str, ...]
     unsafe_state_ids: tuple[str, ...]
     unsafe_reachable_edge_count: int
     unexplored_frontier_size: int
     graph: GraphEvidence
     counterexample: Counterexample | None = None
     per_initial_state: list[dict[str, Any]] = field(default_factory=list)
+    # edge_id -> record_hash of the REAL kernel evidence record behind it.
+    # Per-run, not reproducible across runs: the kernel timestamps an executed
+    # record with wall-clock time, so every record chained after one differs
+    # between runs. That is production behaviour, not drift, and it is why this
+    # binding is kept out of the deterministic graph export.
+    evidence_bindings: dict[str, str] = field(default_factory=dict)
 
     @property
     def reachable_state_count(self) -> int:
@@ -119,6 +129,8 @@ class TraversalResult:
             "blocked_unsafe_edge_count": self.blocked_unsafe_edge_count,
             "approved_escalation_edge_count": self.approved_escalation_edge_count,
             "denied_escalation_edge_count": self.denied_escalation_edge_count,
+            "escalation_outcomes_admitted": list(self.escalation_outcomes_admitted),
+            "evidence_bindings": dict(sorted(self.evidence_bindings.items())),
             "unsafe_reachable_state_count": self.unsafe_reachable_state_count,
             "unsafe_state_ids": list(self.unsafe_state_ids),
             "unsafe_reachable_edge_count": self.unsafe_reachable_edge_count,
@@ -184,6 +196,7 @@ class ExhaustiveVerifier:
         blocked_unsafe_edges = 0
         approved_escalations = 0
         denied_escalations = 0
+        evidence_bindings: dict[str, str] = {}
         counterexample: Counterexample | None = None
         per_initial: list[dict[str, Any]] = []
         complete = True
@@ -353,8 +366,12 @@ class ExhaustiveVerifier:
                             ),
                             escalation_outcome=branch.escalation_outcome,
                             escalation_origin_verdict=branch.origin_verdict,
+                            action_hash=branch.decision.action_hash,
+                            semantic_hash=branch.decision.semantic_hash,
                         )
                         graph.add_edge(edge)
+                        if branch.decision.evidence_hash:
+                            evidence_bindings[edge_id] = branch.decision.evidence_hash
 
                         if not execute:
                             blocked_edges += 1
@@ -464,6 +481,11 @@ class ExhaustiveVerifier:
             blocked_unsafe_edge_count=blocked_unsafe_edges,
             approved_escalation_edge_count=approved_escalations,
             denied_escalation_edge_count=denied_escalations,
+            escalation_outcomes_admitted=tuple(
+                item for item in ESCALATION_OUTCOMES
+                if any(edge.escalation_outcome == item for edge in graph.edges.values())
+            ),
+            evidence_bindings=evidence_bindings,
             unsafe_state_ids=tuple(sorted(unsafe_states)),
             unsafe_reachable_edge_count=unsafe_edges,
             unexplored_frontier_size=frontier_size,
@@ -615,6 +637,7 @@ class ExhaustiveVerifier:
             blocked_unsafe_edge_count=0,
             approved_escalation_edge_count=0,
             denied_escalation_edge_count=0,
+            escalation_outcomes_admitted=(),
             unsafe_state_ids=(),
             unsafe_reachable_edge_count=0,
             unexplored_frontier_size=0,

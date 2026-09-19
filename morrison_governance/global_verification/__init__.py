@@ -11,6 +11,15 @@ from .comparison import (
 )
 from .environment import FiniteEnvironment
 from .evidence import GraphEvidence, build_verification_artifact
+from .provenance import (
+    ARTIFACT_SCHEMA,
+    VERIFIER_VERSION,
+    VerificationEvidenceLedger,
+    artifact_digest,
+    validate_verification_artifact,
+    verification_identity,
+    verifier_identity,
+)
 from .governance import (
     ExecutedStep,
     GovernanceDecision,
@@ -32,6 +41,7 @@ from .verifier import (
 )
 
 __all__ = [
+    "ARTIFACT_SCHEMA",
     "ComparisonResult",
     "ESCALATION_APPROVE",
     "ESCALATION_DENY",
@@ -51,7 +61,13 @@ __all__ = [
     "UnsafeInvariant",
     "VerificationLimits",
     "VerificationState",
+    "VERIFIER_VERSION",
+    "VerificationEvidenceLedger",
+    "artifact_digest",
     "build_verification_artifact",
+    "validate_verification_artifact",
+    "verification_identity",
+    "verifier_identity",
     "compare_control_and_governed",
     "get_scenario",
     "perturbation_matrix",

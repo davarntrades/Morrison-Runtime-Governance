@@ -15,6 +15,8 @@ from morrison_governance.kernel import (
 )
 from morrison_governance.kernel import capabilities as C
 from morrison_governance.kernel.trust import ApprovalArtifact
+from .provenance import VerificationEvidenceLedger
+from .state import stable_hash
 
 
 class GovernanceEvaluationError(RuntimeError):
@@ -68,6 +70,9 @@ class GovernanceDecision:
     rule: str | None = None
     omega_domain: str | None = None
     action_hash: str = ""
+    # Identity of the TRANSITION, and what an approval artifact binds to.
+    # Deterministic, unlike the kernel's per-call decision_id.
+    semantic_hash: str = ""
     evidence_hash: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -80,6 +85,7 @@ class GovernanceDecision:
             "rule": self.rule,
             "omega_domain": self.omega_domain,
             "action_hash": self.action_hash,
+            "semantic_hash": self.semantic_hash,
             "evidence_hash": self.evidence_hash,
             "metadata": self.metadata,
         }
@@ -184,11 +190,40 @@ class MorrisonKernelAdapter:
         kernel_factory: Callable[[], GovernanceKernel] | None = None,
         *,
         approval_scope: str = "global-verification-modeled-approval",
+        ledger: VerificationEvidenceLedger | None = None,
     ):
         self._factory = kernel_factory or default_kernel_factory()
         self.approval_scope = approval_scope
+        # Optional, and explicit. Without it nothing is retained and behaviour
+        # is exactly as before; with it, the real records outlive the branch
+        # kernels that produced them. The adapter never creates a record.
+        self.ledger = ledger
         probe = self._factory()
         self.configuration_hash = probe.integrity()["ruleset_hash"]
+        # The kernel carries this as an attribute; integrity() does not expose it.
+        self.engine_version = getattr(probe, "engine_version", None)
+
+    @staticmethod
+    def _branch_id(executed_history: tuple[ExecutedStep, ...]) -> str:
+        """Stable identity for the branch a decision was taken on.
+
+        The executed prefix IS the branch, so it names the kernel instance that
+        produced the evidence. Each branch chain starts at GENESIS and is never
+        spliced with another.
+        """
+        return "branch-" + stable_hash(
+            [
+                {"proposal": step.proposal, "authorization": step.authorization}
+                for step in executed_history
+            ]
+        )[:16]
+
+    def _retain(self, decision: Any, executed_history: tuple[ExecutedStep, ...]) -> str | None:
+        if self.ledger is None:
+            return decision.evidence.record_hash if decision.evidence else None
+        return self.ledger.retain(
+            decision.evidence, branch_id=self._branch_id(executed_history)
+        )
 
     # ── prefix reconstruction ────────────────────────────────────────────
     def _replay_prefix(
@@ -287,8 +322,13 @@ class MorrisonKernelAdapter:
         context.approvals = tuple(context.approvals) + (artifact,)
         return kernel.authorize(proposal, now=0.0)
 
-    @staticmethod
-    def _decision(decision: Any, *, escalation_approved: bool = False) -> GovernanceDecision:
+    def _decision(
+        self,
+        decision: Any,
+        executed_history: tuple[ExecutedStep, ...] = (),
+        *,
+        escalation_approved: bool = False,
+    ) -> GovernanceDecision:
         metadata: dict[str, Any] = {
             "capabilities": sorted(decision.capabilities),
             "requirement": decision.requirement,
@@ -305,7 +345,8 @@ class MorrisonKernelAdapter:
             rule=decision.rule,
             omega_domain=decision.omega_domain,
             action_hash=decision.action_hash,
-            evidence_hash=(decision.evidence.record_hash if decision.evidence else None),
+            semantic_hash=decision.semantic_hash,
+            evidence_hash=self._retain(decision, executed_history),
             metadata=metadata,
         )
 
@@ -318,7 +359,7 @@ class MorrisonKernelAdapter:
         decision = kernel.authorize(proposal, now=0.0)
         if decision.layer == "fail_closed":
             raise GovernanceEvaluationError(decision.reason)
-        return self._decision(decision)
+        return self._decision(decision, executed_history)
 
     def approve_escalation(
         self,
@@ -352,4 +393,4 @@ class MorrisonKernelAdapter:
         )
         if approved.layer == "fail_closed":
             raise GovernanceEvaluationError(approved.reason)
-        return self._decision(approved, escalation_approved=True)
+        return self._decision(approved, executed_history, escalation_approved=True)
