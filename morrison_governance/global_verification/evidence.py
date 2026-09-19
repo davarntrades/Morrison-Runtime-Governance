@@ -49,6 +49,10 @@ class GraphEdge:
     omega_domain: str | None = None
     counterfactual_state_id: str | None = None
     counterfactual_unsafe_invariants: tuple[str, ...] = ()
+    # How an ESCALATE was resolved by the declared model ("approve"/"deny"),
+    # and the pre-resolution verdict it came from. None for a plain decision.
+    escalation_outcome: str | None = None
+    escalation_origin_verdict: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -68,6 +72,8 @@ class GraphEdge:
             "counterfactual_unsafe_invariants": list(
                 self.counterfactual_unsafe_invariants
             ),
+            "escalation_outcome": self.escalation_outcome,
+            "escalation_origin_verdict": self.escalation_origin_verdict,
         }
 
 
@@ -113,9 +119,12 @@ class GraphEvidence:
                     f'  "{destination}" [label="BLOCKED", shape=box, color="#b54708"];'
                 )
             style = "solid" if edge.executed else "dashed"
+            label = f"{edge.action}: {edge.governance_verdict}"
+            if edge.escalation_outcome:
+                label += f" (escalation {edge.escalation_outcome}d)"
             lines.append(
                 f'  "{edge.source}" -> "{destination}" '
-                f'[label="{edge.action}: {edge.governance_verdict}", style={style}];'
+                f'[label="{label}", style={style}];'
             )
         lines.append("}")
         return "\n".join(lines) + "\n"

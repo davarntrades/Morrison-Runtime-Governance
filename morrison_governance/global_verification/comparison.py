@@ -64,12 +64,15 @@ def compare_control_and_governed(
     *,
     limits: VerificationLimits | None = None,
     algorithm: str = "bfs",
+    escalation_policy: Any = None,
 ) -> ComparisonResult:
+    # The control model has no governance, so it has no escalations to resolve.
     control = ExhaustiveVerifier(
         environment, limits=limits, algorithm=algorithm
     ).verify()
     governed = ExhaustiveVerifier(
-        environment, governance, limits=limits, algorithm=algorithm
+        environment, governance, limits=limits, algorithm=algorithm,
+        escalation_policy=escalation_policy,
     ).verify()
 
     control_states = set(control.reachable_state_ids)
@@ -111,6 +114,8 @@ def compare_control_and_governed(
         ),
         "blocked_transitions": governed.blocked_edge_count,
         "blocked_unsafe_edges": governed.blocked_unsafe_edge_count,
+        "approved_escalations": governed.approved_escalation_edge_count,
+        "denied_escalations": governed.denied_escalation_edge_count,
         "newly_unreachable_states": newly_unreachable,
         "unsafe_shortest_path_control": control.shortest_unsafe_path,
         "unsafe_shortest_path_governed": governed.shortest_unsafe_path,
@@ -129,13 +134,15 @@ def run_composition_experiment(
     governance: GovernanceAdapter,
     *,
     limits: VerificationLimits | None = None,
+    escalation_policy: Any = None,
 ) -> CompositionExperiment:
     from .scenarios import composed_subsystems, subsystem_a, subsystem_b
 
-    a = compare_control_and_governed(subsystem_a(), governance, limits=limits)
-    b = compare_control_and_governed(subsystem_b(), governance, limits=limits)
+    shared = {"limits": limits, "escalation_policy": escalation_policy}
+    a = compare_control_and_governed(subsystem_a(), governance, **shared)
+    b = compare_control_and_governed(subsystem_b(), governance, **shared)
     composition = compare_control_and_governed(
-        composed_subsystems(), governance, limits=limits
+        composed_subsystems(), governance, **shared
     )
     locals_safe = a.verdict == SAFE_WITHIN_MODEL and b.verdict == SAFE_WITHIN_MODEL
     new_path = locals_safe and composition.verdict == UNSAFE_COUNTEREXAMPLE_FOUND

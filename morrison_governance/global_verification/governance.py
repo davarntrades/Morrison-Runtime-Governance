@@ -14,10 +14,49 @@ from morrison_governance.kernel import (
     SecurityContext,
 )
 from morrison_governance.kernel import capabilities as C
+from morrison_governance.kernel.trust import ApprovalArtifact
 
 
 class GovernanceEvaluationError(RuntimeError):
     """The real governance path could not produce a trustworthy decision."""
+
+
+PERMIT_AUTHORIZATION = "permit"
+ESCALATION_APPROVED_AUTHORIZATION = "escalation_approved"
+AUTHORIZATIONS = (PERMIT_AUTHORIZATION, ESCALATION_APPROVED_AUTHORIZATION)
+
+
+@dataclass(frozen=True)
+class ExecutedStep:
+    """One modeled step of an executable prefix, with the authority that carried it.
+
+    A prefix step is not just "a call that happened". It is a call that happened
+    *under a specific authority*, and replaying it has to reproduce that same
+    authority or the branch is not the branch we think it is. `authorization`
+    records which of the two admissible authorities applied:
+
+    - `permit`              -- governance permitted the call outright;
+    - `escalation_approved` -- governance escalated, and the model resolved the
+                               escalation by presenting a verified approval
+                               artifact bound to that exact action.
+
+    Nothing here grants authority. It records which authority the verifier must
+    reconstruct, so replay can fail closed when it cannot.
+    """
+
+    proposal: dict[str, Any]
+    authorization: str = PERMIT_AUTHORIZATION
+
+    def __post_init__(self) -> None:
+        if self.authorization not in AUTHORIZATIONS:
+            raise ValueError(f"unknown step authorization {self.authorization!r}")
+
+    @property
+    def approved_escalation(self) -> bool:
+        return self.authorization == ESCALATION_APPROVED_AUTHORIZATION
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"proposal": self.proposal, "authorization": self.authorization}
 
 
 @dataclass(frozen=True)
@@ -51,8 +90,22 @@ class GovernanceAdapter(Protocol):
     description: str
 
     def evaluate(
-        self, executed_history: tuple[dict[str, Any], ...], proposal: dict[str, Any]
+        self, executed_history: tuple[ExecutedStep, ...], proposal: dict[str, Any]
     ) -> GovernanceDecision: ...
+
+    def approve_escalation(
+        self,
+        executed_history: tuple[ExecutedStep, ...],
+        proposal: dict[str, Any],
+        decision: GovernanceDecision,
+    ) -> GovernanceDecision:
+        """Resolve an ESCALATE by presenting a verified approval artifact.
+
+        Optional. An adapter that cannot model an authorised resolution must not
+        define this; the verifier then refuses to enumerate the approve branch
+        rather than waving the proposal through.
+        """
+        ...
 
 
 DEFAULT_TOOL_MANIFEST: dict[str, list[str]] = {
@@ -126,31 +179,124 @@ class MorrisonKernelAdapter:
 
     description = "Morrison GovernanceKernel production chokepoint"
 
-    def __init__(self, kernel_factory: Callable[[], GovernanceKernel] | None = None):
+    def __init__(
+        self,
+        kernel_factory: Callable[[], GovernanceKernel] | None = None,
+        *,
+        approval_scope: str = "global-verification-modeled-approval",
+    ):
         self._factory = kernel_factory or default_kernel_factory()
+        self.approval_scope = approval_scope
         probe = self._factory()
         self.configuration_hash = probe.integrity()["ruleset_hash"]
 
-    def evaluate(
-        self, executed_history: tuple[dict[str, Any], ...], proposal: dict[str, Any]
-    ) -> GovernanceDecision:
-        kernel = self._factory()
-        for index, historical_call in enumerate(executed_history):
-            replay = kernel.authorize(historical_call, now=0.0)
+    # ── prefix reconstruction ────────────────────────────────────────────
+    def _replay_prefix(
+        self, kernel: GovernanceKernel, executed_history: tuple[ExecutedStep, ...]
+    ) -> None:
+        """Re-establish the branch's governed history inside a fresh kernel.
+
+        Every step must replay to the SAME authority it was executed under.
+        A step recorded as `permit` that no longer permits, or a step recorded
+        as `escalation_approved` that no longer escalates, means the branch is
+        not reproducible — which is a verification failure, not something to
+        paper over. Only a PERMIT decision is ever recorded as executed, so the
+        kernel's own "only a PERMIT decision can be recorded as executed"
+        invariant is preserved exactly.
+        """
+        for index, step in enumerate(executed_history):
+            replay = kernel.authorize(step.proposal, now=0.0)
             if replay.layer == "fail_closed":
                 raise GovernanceEvaluationError(
                     f"governance failed while replaying prefix step {index}: {replay.reason}"
                 )
-            if replay.verdict != PERMIT:
-                raise GovernanceEvaluationError(
-                    "previously executable prefix did not replay as PERMIT at "
-                    f"step {index}: {replay.verdict} ({replay.reason})"
+            if step.authorization == PERMIT_AUTHORIZATION:
+                if replay.verdict != PERMIT:
+                    raise GovernanceEvaluationError(
+                        "previously executable prefix did not replay as PERMIT at "
+                        f"step {index}: {replay.verdict} ({replay.reason})"
+                    )
+            else:
+                # An approved escalation must still BE an escalation on replay.
+                # If governance now permits it outright, or now blocks it, the
+                # recorded approval no longer describes this step.
+                if replay.verdict != "ESCALATE":
+                    raise GovernanceEvaluationError(
+                        "approved-escalation prefix step "
+                        f"{index} no longer replays as ESCALATE: "
+                        f"{replay.verdict} ({replay.reason})"
+                    )
+                replay = self._authorize_with_approval(
+                    kernel, step.proposal, replay, index
                 )
+                if replay.layer == "fail_closed":
+                    raise GovernanceEvaluationError(
+                        f"governance failed approving prefix step {index}: {replay.reason}"
+                    )
+                if replay.verdict != PERMIT:
+                    raise GovernanceEvaluationError(
+                        f"approved escalation at prefix step {index} did not become "
+                        f"PERMIT under a verified approval artifact: "
+                        f"{replay.verdict} ({replay.reason})"
+                    )
             kernel.record_remote_execution(replay, now=0.0)
 
-        decision = kernel.authorize(proposal, now=0.0)
-        if decision.layer == "fail_closed":
-            raise GovernanceEvaluationError(decision.reason)
+    def _authorize_with_approval(
+        self,
+        kernel: GovernanceKernel,
+        proposal: dict[str, Any],
+        decision: Any,
+        index: int,
+    ) -> Any:
+        """Present a genuinely signed approval bound to this exact action.
+
+        This is the production approval mechanism, not a verifier override: the
+        artifact is HMAC-signed with the deployment's approval key, issued by a
+        trusted issuer, and bound to the decision's SEMANTIC hash, so it cannot
+        authorise any other action. Governance is then re-run and is free to
+        refuse anyway — an approval unlocks a capability requirement, it does
+        not overrule Ω.
+        """
+        context = kernel.ctx
+        if not context.signing_key:
+            raise GovernanceEvaluationError(
+                "cannot model an approved escalation: the modeled deployment has "
+                "no approval signing key, so no approval could ever be verified"
+            )
+        issuers = sorted(context.trusted_issuers)
+        if not issuers:
+            raise GovernanceEvaluationError(
+                "cannot model an approved escalation: the modeled deployment "
+                "trusts no approval issuer"
+            )
+        if not decision.semantic_hash:
+            raise GovernanceEvaluationError(
+                "cannot model an approved escalation: the escalated decision "
+                "carries no semantic hash to bind an approval to"
+            )
+        artifact = ApprovalArtifact(
+            action_hash=decision.semantic_hash,
+            issuer=issuers[0],
+            scope=self.approval_scope,
+            issued_at=0.0,
+            # 0.0 disables the expiry check, keeping enumeration independent of
+            # wall-clock time. Nonces stay unique per prefix position.
+            expires_at=0.0,
+            nonce=f"{self.approval_scope}-{index}-{decision.semantic_hash[:16]}",
+        ).sign(context.signing_key)
+        context.approvals = tuple(context.approvals) + (artifact,)
+        return kernel.authorize(proposal, now=0.0)
+
+    @staticmethod
+    def _decision(decision: Any, *, escalation_approved: bool = False) -> GovernanceDecision:
+        metadata: dict[str, Any] = {
+            "capabilities": sorted(decision.capabilities),
+            "requirement": decision.requirement,
+            "authorization": decision.authorization,
+        }
+        if escalation_approved:
+            metadata["escalation_approved"] = True
+            metadata["approval_bound_action_hash"] = decision.semantic_hash
         return GovernanceDecision(
             verdict=decision.verdict,
             permitted=decision.permitted,
@@ -160,10 +306,50 @@ class MorrisonKernelAdapter:
             omega_domain=decision.omega_domain,
             action_hash=decision.action_hash,
             evidence_hash=(decision.evidence.record_hash if decision.evidence else None),
-            metadata={
-                "capabilities": sorted(decision.capabilities),
-                "requirement": decision.requirement,
-                "authorization": decision.authorization,
-            },
+            metadata=metadata,
         )
 
+    # ── the two enumerable outcomes ──────────────────────────────────────
+    def evaluate(
+        self, executed_history: tuple[ExecutedStep, ...], proposal: dict[str, Any]
+    ) -> GovernanceDecision:
+        kernel = self._factory()
+        self._replay_prefix(kernel, executed_history)
+        decision = kernel.authorize(proposal, now=0.0)
+        if decision.layer == "fail_closed":
+            raise GovernanceEvaluationError(decision.reason)
+        return self._decision(decision)
+
+    def approve_escalation(
+        self,
+        executed_history: tuple[ExecutedStep, ...],
+        proposal: dict[str, Any],
+        decision: GovernanceDecision,
+    ) -> GovernanceDecision:
+        """Return the decision governance reaches once approval IS presented.
+
+        The verifier calls this to enumerate the approve side of an escalation.
+        The result is whatever the real kernel says with a verified approval in
+        hand: usually PERMIT, but a BLOCK here is meaningful and is honoured —
+        it means the escalation was not approvable into execution at all.
+        """
+        if decision.verdict != "ESCALATE":
+            raise GovernanceEvaluationError(
+                f"approve_escalation requires an ESCALATE decision, got {decision.verdict}"
+            )
+        kernel = self._factory()
+        self._replay_prefix(kernel, executed_history)
+        live = kernel.authorize(proposal, now=0.0)
+        if live.layer == "fail_closed":
+            raise GovernanceEvaluationError(live.reason)
+        if live.verdict != "ESCALATE":
+            raise GovernanceEvaluationError(
+                "escalation resolution is not reproducible: re-evaluating the "
+                f"same proposal on the same prefix returned {live.verdict}"
+            )
+        approved = self._authorize_with_approval(
+            kernel, proposal, live, len(executed_history)
+        )
+        if approved.layer == "fail_closed":
+            raise GovernanceEvaluationError(approved.reason)
+        return self._decision(approved, escalation_approved=True)

@@ -11,11 +11,18 @@ from .comparison import (
 )
 from .environment import FiniteEnvironment
 from .evidence import GraphEvidence, build_verification_artifact
-from .governance import GovernanceDecision, MorrisonKernelAdapter
+from .governance import (
+    ExecutedStep,
+    GovernanceDecision,
+    MorrisonKernelAdapter,
+)
 from .scenarios import SCENARIOS, get_scenario, perturbation_matrix
 from .state import VerificationState
 from .unsafe import DEFAULT_UNSAFE_INVARIANTS, UnsafeInvariant
 from .verifier import (
+    ESCALATION_APPROVE,
+    ESCALATION_DENY,
+    ESCALATION_OUTCOMES,
     INCONCLUSIVE,
     SAFE_WITHIN_MODEL,
     UNSAFE_COUNTEREXAMPLE_FOUND,
@@ -26,6 +33,10 @@ from .verifier import (
 
 __all__ = [
     "ComparisonResult",
+    "ESCALATION_APPROVE",
+    "ESCALATION_DENY",
+    "ESCALATION_OUTCOMES",
+    "ExecutedStep",
     "DEFAULT_UNSAFE_INVARIANTS",
     "ExhaustiveVerifier",
     "FiniteEnvironment",
