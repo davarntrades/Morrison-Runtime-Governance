@@ -87,7 +87,21 @@ The original scenario, re-run unmodified against both engine versions:
 
 Twenty invented field names across sixty assertions now acquire nothing.
 
-**The remaining residuals are pinned as tests, not dropped.** Independent derivation can only contradict what it can read: if a deployment sends a label without the material it describes, nothing can check it. That is a deployment contract — send the conversation if you want the conversation governed — not something a kernel can close. Content classifiers are also not complete; an unusual paraphrase may not be recognised. Both fail as expected-failure tests, so if either ever changes, someone has to look.
+**The one remaining bypass, named.** The single end-to-end case still open is premise injection where the payload carries *only* the caller's label — `user_state="curious"` on a crisis reply — and none of the conversation it describes. With nothing to read, independent derivation cannot contradict the label. It is pinned as an expected-failure test, `test_residual_premise_injection_without_evidence_in_the_payload`, so that if it ever changes someone has to look.
+
+**The 38 remaining flip vectors are the same root cause, not a separate class.** 31 are premise-class; the other 7 are self-description fields (`crisis_referral`, `emergency_referral`, `route_to_support`, `safety_disabled`) in one domain. Every one of them arises on an auto-generated minimal state that carries no content field at all. Restore real refuting content and the flip disappears:
+
+```
+solver's synthetic trigger state: {'tool': 'respond', 'user_state': 'active_crisis'}
+  has any content field?       False
+
+synthetic trigger + claim        derivation: (nothing — no content to read)   rule fires: False
+same + REAL refuting content     derivation: crisis_referral = False          rule fires: True
+```
+
+Invented-vocabulary flips went from 11 rules / 25 pairs to **0** — that class is closed structurally, not by a list.
+
+That single residual is a deployment contract, not a kernel defect: send the conversation if you want the conversation governed. Two adjacent limits are pinned the same way — evidence nested past the derivation depth budget, and a disclosure phrased outside the classifier. No content classifier is complete.
 
 ## On sourcing
 
