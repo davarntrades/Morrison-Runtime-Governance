@@ -149,6 +149,40 @@ jobs:
           echo "===== board.json ====="
           cat board.json || echo "(no board.json produced)"
 
+      - name: Spend summary (printed last, so it survives log truncation)
+        if: always()
+        run: |
+          # The per-run totals are printed by the harness BEFORE it cats the
+          # transcripts, which on a large sweep puts them thousands of lines
+          # from the end — out of reach of a tail-only log read, while the
+          # artifact itself sits behind an egress policy. Printing them last
+          # makes exact spend always recoverable.
+          python - <<'PY'
+          import json, pathlib
+          p = pathlib.Path("results.json")
+          if not p.exists():
+              raise SystemExit("no results.json")
+          r = json.loads(p.read_text())
+          runs = r.get("runs", [])
+          tin = sum(x.get("usage", {}).get("input_tokens", 0) for x in runs)
+          tout = sum(x.get("usage", {}).get("output_tokens", 0) for x in runs)
+          priced = sum(x.get("usage", {}).get("cost_usd") or 0.0 for x in runs)
+          by = {}
+          for x in runs:
+              u = x.get("usage", {})
+              k = (x["key"], x.get("peer_variant", "-"), x["arm"])
+              a, b, c = by.get(k, (0, 0, 0))
+              by[k] = (a + u.get("input_tokens", 0),
+                       b + u.get("output_tokens", 0), c + 1)
+          print("═══════ EXACT SPEND ═══════")
+          for k in sorted(by):
+              i, o, n = by[k]
+              print(f"  {k[0]} · {k[1]} · {k[2]}: {n} model-runs, "
+                    f"{i} in / {o} out")
+          print(f"  TOTAL: {len(runs)} model-runs, {tin} in / {tout} out")
+          print(f"  priced (Anthropic) spend: ${round(priced, 4)}")
+          PY
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
