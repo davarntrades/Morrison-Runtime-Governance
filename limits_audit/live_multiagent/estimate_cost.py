@@ -42,8 +42,9 @@ def estimate() -> dict:
 
     per_condition_in = a_in + b_in
     per_condition_out = a_out + b_out
-    total_in = per_condition_in * 2               # UNGOVERNED + GOVERNED
-    total_out = per_condition_out * 2
+    runs = 2 * len(A.ARMS)            # (UNGOVERNED + GOVERNED) x arms
+    total_in = per_condition_in * runs
+    total_out = per_condition_out * runs
 
     raw = (total_in / 1e6) * IN_PER_MTOK + (total_out / 1e6) * OUT_PER_MTOK
 
@@ -57,6 +58,7 @@ def estimate() -> dict:
         "anthropic_model": A.ANTHROPIC_MODEL,
         "turn_cap_per_agent": A.MAX_TURNS,
         "conditions": 2,
+        "arms": len(A.ARMS),
         "est_input_tokens": total_in,
         "est_output_tokens": total_out,
         "est_cost_usd": round(raw, 4),

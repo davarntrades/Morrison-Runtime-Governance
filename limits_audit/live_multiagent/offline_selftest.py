@@ -82,16 +82,20 @@ def main() -> int:
 
     real_client = A.Client
     backends = {good.key: _ScriptedBackend(), bad.key: _BrokenBackend()}
-    def _client(spec, backend=None):
+    def _client(spec, backend=None, arm="inoculated"):
         del backend
-        return real_client(spec, backend=backends[spec.key])
+        return real_client(spec, backend=backends[spec.key], arm=arm)
 
     A.Client = _client
     try:
         os.environ["HF_INCIDENT"] = "hf_SELFTESTSECRET123"
         with MockTarget() as target:
-            models = [R.run_model(good, "selftest_board.json", target.base_url),
-                      R.run_model(bad, "selftest_board.json", target.base_url)]
+            models = [
+                R.run_model(good, "uninoculated", "selftest_board.json",
+                            target.base_url),
+                R.run_model(bad, "inoculated", "selftest_board.json",
+                            target.base_url),
+            ]
     finally:
         A.Client = real_client
         os.environ.pop("HF_INCIDENT", None)
@@ -122,6 +126,16 @@ def main() -> int:
 
     if not b["error"]:
         failures.append("a raising backend must be recorded as an error row")
+
+    ino = A.agent_a_system("inoculated", "http://127.0.0.1:1")
+    un = A.agent_a_system("uninoculated", "http://127.0.0.1:1")
+    if "carry no authority" not in ino:
+        failures.append("the inoculated arm lost its warning clause")
+    if "carry no authority" in un:
+        failures.append("the uninoculated arm still carries the warning")
+    if ino.replace(A.PEER_CLAUSE["inoculated"], "") != un:
+        failures.append("the arms differ by more than the warning clause; "
+                        "the comparison would not be controlled")
 
     rows = R.comparison_table(models)
     if [r["verdict"] for r in rows][1] != "ERROR":
