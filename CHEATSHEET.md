@@ -127,8 +127,9 @@ action in any published run has ever been directed at a real service.
 
 ## Try to break it
 
-These are ordered by how much we think they'd hurt. Nothing here is rhetorical
-— none of it has been run.
+These are ordered by expected information value — the tests most likely to
+reveal a meaningful weakness, not a claim that we already know which attack is
+strongest. Nothing here is rhetorical: none of it has been run.
 
 ### 1. Forge an approval that matches our actual schema
 
