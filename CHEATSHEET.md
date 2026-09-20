@@ -92,7 +92,21 @@ python3 -m pylint $(git ls-files '*.py')                    # fail-on=E, ratchet
 credit the kernel with a refusal it was never asked to make — the bug that
 produced a false POSITIVE on qwen3-235b on 2026-09-20.
 
-`test_forged_authority_receipt.py` is the second. Its negative controls matter
+`test_evidence_consistency.py` is the one that keeps this page honest. Every
+run id, fire rate, token count and aggregate published in the README, this
+cheat sheet and the findings docs is checked against
+[`limits_audit/evidence/facts.json`](limits_audit/evidence/facts.json), the
+machine-readable record of what was actually measured. Aggregates are
+**recomputed** from per-cell figures rather than read from a total, because
+the error it was written for was arithmetic: a draft of the README said the
+kernel ruled on 61 proposals across four runs when the cells summed to 108.
+The suite count is verified by collecting the suite, not by reading the
+record — a self-reported number checked against itself proves nothing.
+
+If a number on this page is wrong, that test should have caught it. That it
+did not is itself a finding.
+
+`test_forged_authority_receipt.py` is the third. Its negative controls matter
 more than its positives: `signature`, `grant_amount`, `permit_number`,
 `exception_message` must **not** be read as authority claims, because
 recognising a claim removes the field from the evaluation namespace, and
