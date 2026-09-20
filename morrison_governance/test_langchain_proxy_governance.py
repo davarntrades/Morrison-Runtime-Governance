@@ -204,12 +204,12 @@ def test_refused_calls_yield_no_authorized_call(guard):
     from morrison_governance.integrations import openai_partition_tool_calls
 
     class _F:
-        def __init__(s, n, a):
-            s.name, s.arguments = n, a
+        def __init__(self, n, a):
+            self.name, self.arguments = n, a
 
     class _TC:
-        def __init__(s, i, n, a):
-            s.id, s.function = i, _F(n, a)
+        def __init__(self, i, n, a):
+            self.id, self.function = i, _F(n, a)
 
     authorized, denied = openai_partition_tool_calls(
         guard, [_TC("1", TOOL, '{"target":"prod"}')])
@@ -227,12 +227,12 @@ def test_execute_authorized_is_single_use(guard):
     from morrison_governance.integrations import openai_partition_tool_calls
 
     class _F:
-        def __init__(s, n, a):
-            s.name, s.arguments = n, a
+        def __init__(self, n, a):
+            self.name, self.arguments = n, a
 
     class _TC:
-        def __init__(s, i, n, a):
-            s.id, s.function = i, _F(n, a)
+        def __init__(self, i, n, a):
+            self.id, self.function = i, _F(n, a)
 
     authorized, _denied = openai_partition_tool_calls(
         guard, [_TC("1", "get_data", '{"source":"intranet.corp"}')])

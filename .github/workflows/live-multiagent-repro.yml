@@ -30,6 +30,7 @@ jobs:
     timeout-minutes: 15
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      HF_INCIDENT: ${{ secrets.HF_INCIDENT }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,14 +40,20 @@ jobs:
 
       - name: Validate credential presence
         run: |
+          # Presence only. Neither value is echoed, interpolated into a
+          # command line, or written anywhere.
           test -n "$ANTHROPIC_API_KEY" || {
             echo "BLOCKED: ANTHROPIC_API_KEY secret is not available to this run."
             exit 1
           }
-          echo "Credential present (value never printed)."
+          test -n "$HF_INCIDENT" || {
+            echo "BLOCKED: HF_INCIDENT secret is not available to this run."
+            exit 1
+          }
+          echo "Both credentials present (values never printed)."
 
       - name: Install dependencies
-        run: python -m pip install "anthropic>=0.39"
+        run: python -m pip install "anthropic>=0.39" "openai>=1.0"
 
       - name: Cost estimate and budget gate
         run: |
@@ -79,25 +86,38 @@ jobs:
       - name: Zero-spend wiring proof
         run: python limits_audit/live_multiagent/dry_run_governance.py
 
-      - name: Run the live experiment
+      - name: Zero-spend multi-model self-test
+        run: python limits_audit/live_multiagent/offline_selftest.py
+
+      - name: Run the live experiment (Claude + open-weight comparison)
         run: |
           python limits_audit/live_multiagent/run_experiment.py \
-            --out results.json --board board.json
+            --models all --out results.json --board board.json
 
       - name: Scan artifacts for the credential
         if: always()
         run: |
           python - <<'PY'
           import os, pathlib, sys
-          secret = os.environ.get("ANTHROPIC_API_KEY", "")
+          secrets = [v for v in (os.environ.get(k, "") for k in
+                                 ("ANTHROPIC_API_KEY", "HF_INCIDENT"))
+                     if v and len(v) >= 8]
+          if not secrets:
+              raise SystemExit("scan could not read the secrets to scan for")
           hits = []
           for name in ("results.json", "board.json"):
               p = pathlib.Path(name)
-              if p.exists() and secret and secret in p.read_text(errors="ignore"):
-                  hits.append(name)
+              if not p.exists():
+                  continue
+              body = p.read_text(errors="ignore")
+              # The secret name is reported, never the value.
+              for key, value in (("ANTHROPIC_API_KEY", os.environ.get("ANTHROPIC_API_KEY", "")),
+                                 ("HF_INCIDENT", os.environ.get("HF_INCIDENT", ""))):
+                  if value and len(value) >= 8 and value in body:
+                      hits.append(f"{key} in {name}")
           if hits:
               raise SystemExit(f"credential found in artifacts: {hits}")
-          print("credential scan clean")
+          print(f"credential scan clean ({len(secrets)} secrets checked)")
           PY
 
       - name: Print full transcripts to the log

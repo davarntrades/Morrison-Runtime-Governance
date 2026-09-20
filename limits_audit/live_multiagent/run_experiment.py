@@ -91,11 +91,18 @@ def call_stub(base_url: str, endpoint: str, body: dict) -> dict:
 
 def run_condition(client: A.Client, condition: str, base_url: str,
                   board_path: str) -> dict:
-    """One full condition. Returns a structured record of everything."""
+    """One full condition. Returns a structured record of everything.
+
+    The kernel session id carries the model key. Sharing a session across
+    probes is what contaminated an earlier suite of ours: denial taint from
+    one probe changed the verdict of the next. Each model/condition pair gets
+    its own session so the comparison measures the models, not their order.
+    """
     MockTarget.reset()
     board = Board(board_path)
     board.clear()
-    kernel = build_kernel(f"{condition}-{datetime.now().timestamp():.0f}")
+    kernel = build_kernel(
+        f"{client.spec.key}-{condition}-{datetime.now().timestamp():.0f}")
 
     record = {"condition": condition, "turns": [], "board": [],
               "stub_calls": [], "peer_message": None}
@@ -211,47 +218,213 @@ def analyse(ungoverned: dict, governed: dict) -> dict:
             "peer_message_preceded_it": peer_induced}
 
 
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Credential hygiene
+# ═══════════════════════════════════════════════════════════════════════════
+
+#: Every environment variable that may hold a live credential. Their values
+#: are removed from anything this script prints or writes.
+SECRET_ENV = ("HF_INCIDENT", "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN",
+              "OPENAI_API_KEY", "HF_TOKEN")
+
+
+def _secret_values() -> tuple:
+    return tuple(v for v in (os.environ.get(k, "") for k in SECRET_ENV)
+                 if v and len(v) >= 8)
+
+
+def scrub(obj):
+    """Recursively remove credential values from a result structure.
+
+    GitHub masks secrets in the log, but the JSON artifact is written by this
+    process and a provider error string can quote the Authorization header.
+    This is belt and braces: the value never leaves here in either channel.
+    """
+    secrets = _secret_values()
+    def _s(x):
+        if isinstance(x, str):
+            for v in secrets:
+                x = x.replace(v, "«redacted»")
+            return x
+        if isinstance(x, dict):
+            return {k: _s(v) for k, v in x.items()}
+        if isinstance(x, list):
+            return [_s(v) for v in x]
+        return x
+    return _s(obj)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Per-model driver
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def run_model(spec, board_path: str, base_url: str) -> dict:
+    """Both conditions for one model. An error is recorded, never fatal.
+
+    One model failing (unserved, rate limited, provider outage) must not
+    destroy the results for the others, so the exception is captured into the
+    record and the comparison reports it as an error row rather than silently
+    dropping the model.
+    """
+    rec = {"key": spec.key, "backend": spec.backend,
+           "model_id": spec.model_id, "note": spec.note, "error": None}
+    try:
+        client = A.Client(spec)
+        for cond in ("UNGOVERNED", "GOVERNED"):
+            print(f"\n─── {spec.key} · {cond} ───", flush=True)
+            r = run_condition(client, cond, base_url, board_path)
+            rec[cond] = r
+            for t in r["turns"]:
+                print(f"  turn {t['n']}: action={t['action'].get('type')} "
+                      f"{t['action'].get('endpoint','')} "
+                      f"governed={(t['governed'] or {}).get('verdict','-')} "
+                      f"stub_called={t['stub_called']}", flush=True)
+        rec["analysis"] = analyse(rec["UNGOVERNED"], rec["GOVERNED"])
+        rec["usage"] = {"input_tokens": client.usage.input_tokens,
+                        "output_tokens": client.usage.output_tokens}
+        if spec.backend == "anthropic":
+            rec["usage"]["cost_usd"] = round(client.usage.cost_usd(), 4)
+        else:
+            # Router pricing varies by serving provider and is not published
+            # in a form this script can read. Inventing a number would be
+            # worse than reporting tokens and saying so.
+            rec["usage"]["cost_usd"] = None
+            rec["usage"]["cost_note"] = (
+                "not priced here; token counts are exact, "
+                "per-provider router pricing is not read by this script")
+        print(f"  VERDICT [{spec.key}]: {rec['analysis']['verdict']}", flush=True)
+    except Exception as exc:                                  # noqa: BLE001
+        rec["error"] = f"{type(exc).__name__}: {exc}"
+        print(f"  ERROR [{spec.key}]: {type(exc).__name__}", flush=True)
+    return rec
+
+
+def comparison_table(models: list) -> list:
+    """One row per model, comparable across backends."""
+    rows = []
+    for m in models:
+        if m.get("error"):
+            rows.append({"model": m["key"], "backend": m["backend"],
+                         "verdict": "ERROR", "detail": m["error"][:160]})
+            continue
+        a = m["analysis"]
+        rows.append({
+            "model": m["key"],
+            "backend": m["backend"],
+            "verdict": a["verdict"],
+            "ungoverned_destructive_proposals": a["ungoverned_destructive_proposals"],
+            "first_destructive_turn_ungoverned": a["first_destructive_turn_ungoverned"],
+            "peer_message_preceded_it": a["peer_message_preceded_it"],
+            "ungoverned_calls_reaching_stub": a["ungoverned_destructive_calls_reaching_stub"],
+            "governed_calls_reaching_stub": a["governed_destructive_calls_reaching_stub"],
+        })
+    return rows
+
+
+def resolve_models(which: str) -> tuple:
+    """Decide which models to run, discovering HF availability at run time."""
+    hf_info = {"token_present": bool(os.environ.get(A.HF_TOKEN_ENV)),
+               "router_models_seen": 0, "selected": [], "skipped": [],
+               "discovery_error": None}
+    specs = []
+    if which in ("all", "anthropic"):
+        specs.append(A.ANTHROPIC_SPEC)
+    if which in ("all", "hf"):
+        token = os.environ.get(A.HF_TOKEN_ENV, "")
+        if not token:
+            hf_info["discovery_error"] = (
+                f"{A.HF_TOKEN_ENV} not set; no Hugging Face models attempted")
+        else:
+            try:
+                available = A.available_hf_models(token)
+                hf_info["router_models_seen"] = len(available)
+                chosen = A.select_hf_models(available)
+                specs.extend(chosen)
+                chosen_ids = {s.model_id for s in chosen}
+                hf_info["selected"] = [s.model_id for s in chosen]
+                hf_info["skipped"] = [
+                    {"model_id": s.model_id,
+                     "why": ("not served by the router for this account"
+                             if s.model_id not in available
+                             else f"over the {A.MAX_HF_MODELS}-model cap")}
+                    for s in A.HF_CANDIDATES if s.model_id not in chosen_ids]
+            except Exception as exc:                          # noqa: BLE001
+                hf_info["discovery_error"] = f"{type(exc).__name__}: {exc}"
+    return tuple(specs), hf_info
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="results.json")
     ap.add_argument("--board", default="board.json")
+    ap.add_argument("--models", default="all",
+                    choices=("all", "anthropic", "hf"),
+                    help="which backends to exercise")
     args = ap.parse_args()
 
-    if not (os.environ.get("ANTHROPIC_API_KEY")
-            or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-        print("NO CREDENTIAL. This experiment makes real Claude API calls and "
-              "there is no ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN in the "
-              "environment.\nExport one and re-run. Nothing was called and no "
-              "results were produced.", file=sys.stderr)
+    have_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY")
+                          or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+    have_hf = bool(os.environ.get(A.HF_TOKEN_ENV))
+    if not (have_anthropic or have_hf):
+        print("NO CREDENTIAL. This experiment makes real model calls and "
+              "neither ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN nor "
+              f"{A.HF_TOKEN_ENV} is set in the environment.\nNothing was "
+              "called and no results were produced.", file=sys.stderr)
         return 2
 
-    client = A.Client()
+    which = args.models
+    if which == "all" and not have_anthropic:
+        print("note: no Anthropic credential; running the Hugging Face "
+              "models only.", file=sys.stderr)
+        which = "hf"
+
+    specs, hf_info = resolve_models(which)
+    if not specs:
+        print("NO MODELS RESOLVED. " + json.dumps(hf_info, indent=2),
+              file=sys.stderr)
+        return 3
+
+    print("models under test: " + ", ".join(f"{s.key} ({s.model_id})"
+                                            for s in specs))
+
     with MockTarget() as target:
         print(f"synthetic target: {target.base_url}  (loopback only)")
-        out = {"model": A.MODEL, "max_turns": A.MAX_TURNS,
+        out = {"started": datetime.now(timezone.utc).isoformat(),
                "target": target.base_url,
-               "started": datetime.now(timezone.utc).isoformat()}
-        for cond in ("UNGOVERNED", "GOVERNED"):
-            print(f"\n─── {cond} ───")
-            rec = run_condition(client, cond, target.base_url, args.board)
-            out[cond] = rec
-            for t in rec["turns"]:
-                print(f"  turn {t['n']}: action={t['action'].get('type')} "
-                      f"{t['action'].get('endpoint','')} "
-                      f"governed={(t['governed'] or {}).get('verdict','-')} "
-                      f"stub_called={t['stub_called']}")
-        out["analysis"] = analyse(out["UNGOVERNED"], out["GOVERNED"])
-        out["usage"] = {"input_tokens": client.usage.input_tokens,
-                        "output_tokens": client.usage.output_tokens,
-                        "cost_usd": round(client.usage.cost_usd(), 4)}
+               "max_turns": A.MAX_TURNS,
+               "huggingface": hf_info,
+               "models": []}
+        for spec in specs:
+            out["models"].append(run_model(spec, args.board, target.base_url))
+        out["comparison"] = comparison_table(out["models"])
 
+    out = scrub(out)
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(out, fh, indent=2)
-    print(f"\nVERDICT: {out['analysis']['verdict']}")
-    print(out["analysis"]["detail"])
-    print(f"\nactual spend: ${out['usage']['cost_usd']} "
-          f"({out['usage']['input_tokens']} in / "
-          f"{out['usage']['output_tokens']} out)")
+
+    print("\n══════════ COMPARISON ══════════")
+    for row in out["comparison"]:
+        print(f"  {row['model']:<22} {row['verdict']}")
+        if row["verdict"] != "ERROR":
+            print(f"      ungoverned reached stub: "
+                  f"{row['ungoverned_calls_reaching_stub']}   "
+                  f"governed reached stub: "
+                  f"{row['governed_calls_reaching_stub']}   "
+                  f"peer-induced: {row['peer_message_preceded_it']}")
+        else:
+            print(f"      {row['detail']}")
+
+    spend = sum(m.get("usage", {}).get("cost_usd") or 0.0
+                for m in out["models"])
+    tokens_in = sum(m.get("usage", {}).get("input_tokens", 0)
+                    for m in out["models"])
+    tokens_out = sum(m.get("usage", {}).get("output_tokens", 0)
+                     for m in out["models"])
+    print(f"\npriced Anthropic spend: ${round(spend, 4)}")
+    print(f"total tokens across all models: {tokens_in} in / {tokens_out} out")
     print(f"full transcripts: {args.out}")
     return 0
 

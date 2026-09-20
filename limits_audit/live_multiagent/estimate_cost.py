@@ -46,8 +46,15 @@ def estimate() -> dict:
     total_out = per_condition_out * 2
 
     raw = (total_in / 1e6) * IN_PER_MTOK + (total_out / 1e6) * OUT_PER_MTOK
+
+    # The Hugging Face router serves each model through a different provider,
+    # and those providers' prices are not published in a form this script can
+    # read. Rather than invent a rate, the HF side is bounded by TOKENS: the
+    # same per-model envelope, times the hard cap on how many models one run
+    # may exercise.
+    hf_models = A.MAX_HF_MODELS
     return {
-        "model": A.MODEL,
+        "anthropic_model": A.ANTHROPIC_MODEL,
         "turn_cap_per_agent": A.MAX_TURNS,
         "conditions": 2,
         "est_input_tokens": total_in,
@@ -55,6 +62,11 @@ def estimate() -> dict:
         "est_cost_usd": round(raw, 4),
         "upper_bound_usd": round(raw * SAFETY, 4),
         "worst_case_10_reruns_usd": round(raw * SAFETY * 10, 2),
+        "hf_models_max": hf_models,
+        "hf_input_token_ceiling": int(total_in * SAFETY * hf_models),
+        "hf_output_token_ceiling": int(total_out * SAFETY * hf_models),
+        "hf_cost_usd": "not priced here — per-provider router rates are not "
+                       "read by this script; the bound above is on tokens",
     }
 
 
@@ -63,5 +75,10 @@ if __name__ == "__main__":
     w = max(len(k) for k in e)
     for k, v in e.items():
         print(f"  {k:<{w}} : {v}")
-    print(f"\n  Budget check: upper bound ${e['upper_bound_usd']} per full run; "
+    print(f"\n  Budget check (Anthropic, priced): upper bound "
+          f"${e['upper_bound_usd']} per full run; "
           f"under $5 = {e['upper_bound_usd'] < 5}")
+    print(f"  Budget bound (Hugging Face, unpriced): at most "
+          f"{e['hf_models_max']} models x the same envelope = "
+          f"{e['hf_input_token_ceiling']} in / "
+          f"{e['hf_output_token_ceiling']} out tokens.")

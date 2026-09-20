@@ -43,9 +43,9 @@ def build(on_block="deny", manifest=None, unknown="escalate"):
 TOOL, ARGS = "delete_database", {"target": "prod"}
 
 class _F:
-    def __init__(s, n, a): s.name, s.arguments = n, a
+    def __init__(self, n, a): self.name, self.arguments = n, a
 class _TC:
-    def __init__(s, i, n, a): s.id, s.function = i, _F(n, a)
+    def __init__(self, i, n, a): self.id, self.function = i, _F(n, a)
 
 results = []
 def probe(label, fn, kind):
@@ -77,12 +77,12 @@ probe("wrap_mcp_call_tool", lambda g: I.wrap_mcp_call_tool(
 
 class _LC:
     name = TOOL
-    def __init__(s): s.func = DANGEROUS
+    def __init__(self): self.func = DANGEROUS
 probe("govern_langchain_tool", lambda g: I.govern_langchain_tool(g, _LC()).func(ARGS),
       "kernel-executed")
 
 class _AG:
-    def __init__(s): s.function_map = {TOOL: DANGEROUS}
+    def __init__(self): self.function_map = {TOOL: DANGEROUS}
 probe("register_autogen_guard",
       lambda g: I.register_autogen_guard(_AG(), g).function_map[TOOL](ARGS), "kernel-executed")
 

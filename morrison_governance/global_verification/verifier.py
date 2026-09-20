@@ -570,13 +570,18 @@ class ExhaustiveVerifier:
         an authorised resolution, that is an error and the run fails closed —
         it is never treated as permission.
         """
-        approve = getattr(self.governance, "approve_escalation", None)
-        if approve is None:
+        # Attribute access rather than `getattr(..., None)`: the None default
+        # leaves a not-callable value on the inferred path, which is an
+        # error-class pylint finding (E1102) under fail-on=E. The behaviour is
+        # identical — a missing hook fails closed.
+        try:
+            approve = self.governance.approve_escalation
+        except AttributeError:
             raise ValueError(
                 "escalation policy admits approval but governance adapter "
                 f"{type(self.governance).__name__!r} cannot authorise an "
                 "escalation; refusing to execute it"
-            )
+            ) from None
         approved = approve(history, proposal, decision)
         if not isinstance(approved, GovernanceDecision):
             raise TypeError("approve_escalation did not return a GovernanceDecision")

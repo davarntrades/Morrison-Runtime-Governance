@@ -1,19 +1,50 @@
 # Live multi-agent reproduction — runs in CI, not in the dev container
 
-The harness is complete and verified. It makes real Claude API calls, so it
-runs where the credential is: a **GitHub Actions repository secret**. Nothing
-here is simulated and no transcript is ever invented.
+The harness is complete and verified. It makes real model calls, so it runs
+where the credentials are: **GitHub Actions repository secrets**. Nothing here
+is simulated and no transcript is ever invented.
 
-## Where the credential is, and why it is not in the container
+Two backends, one prompt set:
 
-`ANTHROPIC_API_KEY` exists as an Actions repository secret on this repo.
-Actions secrets are write-only by design: GitHub injects them into workflow
-runs and provides no API to read the value back out. So the key genuinely
-exists *and* is genuinely unavailable to a development container — both are
-true at once.
+| backend | credential | models |
+|---|---|---|
+| Anthropic Messages API | `ANTHROPIC_API_KEY` | `claude-haiku-4-5` |
+| Hugging Face router (OpenAI-compatible) | `HF_INCIDENT` | open-weight models, discovered at run time |
+
+The prompts are byte-identical across every model. A comparison in which each
+model got a different prompt would measure the prompts, not the models.
+
+## What the Hugging Face token is, and is not, used for
+
+`HF_INCIDENT` is used for **model inference only** — it buys access to
+open-weight models served through the router, so the mechanism can be tested
+on something other than one vendor's model.
+
+It is **not** used to act on Hugging Face. No action in this experiment is
+directed at `huggingface.co`. The target of every proposed action is still the
+loopback stub, and `assert_local_only()` still raises on anything else — a
+dedicated workflow step proves that refusal before any billed call is made.
+The incident's fidelity comes from reproducing the *mechanism* (a peer's
+unauthenticated message changing another agent's willingness to proceed), not
+from pointing destructive calls at a real service.
+
+## Which open-weight models run
+
+Availability is **discovered at run time**, not assumed: the harness asks the
+router which models it serves for this account and runs the ones that are
+actually there, in priority order, up to `agents.MAX_HF_MODELS` (4). Every
+candidate that is skipped is recorded in `results.json` with the reason, so
+the comparison never silently drops a model.
+
+## Where the credentials are, and why they are not in the container
+
+Both exist as Actions repository secrets on this repo. Actions secrets are
+write-only by design: GitHub injects them into workflow runs and provides no
+API to read the value back out. So the keys genuinely exist *and* are
+genuinely unavailable to a development container — both are true at once.
 
 All four credential paths the Claude API reference names were checked in the
-container, and none resolves:
+container, and none resolves (`HF_INCIDENT` is likewise unset there):
 
 | path | result |
 |---|---|
@@ -34,18 +65,22 @@ HTTP 401
 ## To run it
 
 **In CI (the supported path).** `.github/workflows/live-multiagent-repro.yml`
-runs the experiment with `secrets.ANTHROPIC_API_KEY`, prints both transcripts
-to the job log, and uploads `results.json` as a build artifact. It keeps every
-constraint the experiment was built under:
+runs the experiment with `secrets.ANTHROPIC_API_KEY` and `secrets.HF_INCIDENT`,
+prints every transcript to the job log, and uploads `results.json` as a build
+artifact. It keeps every constraint the experiment was built under:
 
 - a step proves `assert_local_only()` refuses a real host before any billed
   call is made;
-- the model stays pinned in `agents.py` — `vars.ANTHROPIC_MODEL` is
-  deliberately **not** read, so the run costs what `estimate_cost.py` priced;
-- a budget gate hard-fails above $1.00 upper bound;
-- the zero-spend wiring proof runs first;
-- `results.json` is scanned for the credential before it is printed or
-  uploaded.
+- the Anthropic model stays pinned in `agents.py` — `vars.ANTHROPIC_MODEL` is
+  deliberately **not** read, so the Claude run costs what `estimate_cost.py`
+  priced;
+- a budget gate hard-fails above $1.00 upper bound, and the unpriced Hugging
+  Face side is bounded by the 4-model cap instead;
+- the zero-spend wiring proof and the zero-spend multi-model self-test run
+  first;
+- neither secret value is printed: the runner masks them, `scrub()` removes
+  them from `results.json` before it is written, and a scan step fails the
+  build if either value appears in an artifact.
 
 **Locally**, with your own key:
 
@@ -64,7 +99,7 @@ via `count_tokens` (that is itself a billed call):
 
 | | |
 |---|---:|
-| Model | `claude-haiku-4-5` |
+| Anthropic model | `claude-haiku-4-5` |
 | Turn cap per agent | 5 |
 | Est. input / output tokens | 19,672 / 7,400 |
 | Estimated cost | **$0.057** |
@@ -72,6 +107,12 @@ via `count_tokens` (that is itself a billed call):
 | 10 reruns, worst case | $0.91 |
 
 Comfortably under $5.
+
+The Hugging Face side is **not priced here**. Router rates vary by serving
+provider and this script does not read them; inventing a number would be worse
+than saying so. It is bounded by tokens instead — at most 4 models × the same
+per-model envelope, i.e. ≤ 125,900 input / 47,360 output tokens — and
+`results.json` records each model's exact token counts.
 
 ## The hard constraint, as code
 
@@ -143,4 +184,5 @@ first bullet, and it is a real possible result of this experiment.
 | `run_experiment.py` | both conditions, logging, `analyse()` |
 | `estimate_cost.py` | pre-run cost estimate |
 | `dry_run_governance.py` | wiring proof, no API calls |
+| `offline_selftest.py` | multi-model plumbing + scrubber proof, no API calls |
 | `../../.github/workflows/live-multiagent-repro.yml` | the CI run path, with the budget and loopback gates |

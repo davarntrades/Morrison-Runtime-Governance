@@ -145,7 +145,15 @@ def test_every_third_party_import_is_accounted_for_in_the_lint_environment():
                    # `living-boundary/` (hyphen, so not itself importable) as
                    # the package `living_boundary`, which .pylintrc puts on the
                    # path via init-hook. It is stdlib-only.
-                   "living_boundary"}
+                   "living_boundary",
+                   # The live multi-agent reproduction harness. Its directory
+                   # (`limits_audit/live_multiagent/`) is not a package, so its
+                   # modules import each other by bare name after a
+                   # `sys.path.insert` — the same shape as `living_boundary`.
+                   # They are first-party files in this repository, not
+                   # third-party packages that a lint job would have to install.
+                   "agents", "board", "mock_service", "run_experiment",
+                   "estimate_cost", "offline_selftest"}
 
     # Collected via the AST, not a regex. A text scan over source also matches
     # prose — an earlier version of this test reported "its" and "the" as
