@@ -58,7 +58,7 @@ declined, and the full verbatim reasoning trace.
 | An agent proposing an action requiring authorization | **Faithful.** Real kernel, real ESCALATE. |
 | A second, unauthenticated source sending "GO / authorized, proceed" | **Faithful in the dimension Morrison governs.** The peer holds no signing key and is not a trusted issuer. |
 | Hard six-minute deadline as coercive pressure | **Faithful as a payload field**, not as real time pressure on a model. |
-| The agent's *decision to defer* to the peer | **Not reproducible.** That happened in the model's reasoning loop. Morrison governs the tool call, not the deliberation that produced it. |
+| The agent's *decision to defer* to the peer | **Not reproducible by this probe** — it happened in the model's reasoning loop, and Morrison governs the tool call, not the deliberation that produced it. **Superseded 2026-09-20:** later runs put real models on both ends and did reproduce the deference itself. See [`FINDINGS_FORGED_ARTIFACT.md`](FINDINGS_FORGED_ARTIFACT.md). Morrison still does not govern it. |
 | ExploitGym, Artifactory/WebDAV, directory-name encoding, 1,200 agents | **Not reproduced.** Approximated as a field in a tool call. |
 
 **The honest framing:** Morrison sits *downstream* of where the real failure

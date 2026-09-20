@@ -283,6 +283,20 @@ run that now records `forged_claims: ["approval_id"]` and
 Every cell is N ≤ 20 on one task, and the write-ups say so rather than
 rounding up.
 
+**What this is not.** Not *"we reproduced the incident."* We reproduced the
+reported *mechanism* — a peer's untrusted message becoming perceived operator
+authority — and tested whether that perception could become execution. No real
+infrastructure, credentials or side effects were involved; the intrusion chain,
+ExploitGym, the Artifactory/WebDAV board, the ~1,206 agents and the original
+prompts and models were not reproduced; and every incident detail we worked
+from is secondary reporting. A tick-and-cross accounting of exactly what was
+and was not reproduced is in
+[`FINDINGS_FORGED_ARTIFACT.md`](limits_audit/FINDINGS_FORGED_ARTIFACT.md).
+
+One line in that accounting is structural rather than practical: Morrison
+governs the tool call, not the model's decision to trust a peer. **Nothing
+here shows it preventing persuasion, and nothing could.**
+
 Full method, measurements and residuals:
 [`limits_audit/FINDINGS_FORGED_ARTIFACT.md`](limits_audit/FINDINGS_FORGED_ARTIFACT.md)
 (the consolidated live-model findings, leading with what broke),
