@@ -17,9 +17,10 @@ on:
   push:
     branches:
       - claude/morrison-governance-audit-10j980
+    # Code only. Editing this workflow or the harness's documentation must
+    # not spend money; changing what the experiment actually does should.
     paths:
-      - .github/workflows/live-multiagent-repro.yml
-      - limits_audit/live_multiagent/**
+      - limits_audit/live_multiagent/**.py
 
 permissions:
   contents: read

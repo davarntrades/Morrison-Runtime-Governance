@@ -1,5 +1,10 @@
 # Live multi-agent reproduction — runs in CI, not in the dev container
 
+**Results so far: two negative runs.** The attack never fired, in either arm,
+so governance has demonstrated nothing here. See
+[`../FINDINGS_LIVE_MULTIAGENT.md`](../FINDINGS_LIVE_MULTIAGENT.md). The
+open-weight comparison is blocked on one Hugging Face token permission.
+
 The harness is complete and verified. It makes real model calls, so it runs
 where the credentials are: **GitHub Actions repository secrets**. Nothing here
 is simulated and no transcript is ever invented.
