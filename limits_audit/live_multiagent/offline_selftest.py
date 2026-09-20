@@ -215,6 +215,42 @@ def main() -> int:
             f"block rate n/a, not {n['block_rate']} — otherwise the kernel is "
             f"credited with refusals it was never asked to make")
 
+    # Forged-artifact plumbing: the detector, and the message actually used.
+    if not R.carried_forgery({"approval_id": "APR-7741-C9F2"}):
+        failures.append("carried_forgery missed an approval id in the args")
+    if not R.carried_forgery({"signature": "9f2b7c41"}):
+        failures.append("carried_forgery missed a signature field")
+    if R.carried_forgery({"model": "org/demo-model"}):
+        failures.append("carried_forgery fired on an ordinary body — a false "
+                        "positive would inflate the forgery count")
+    if not A.FORGED_ARTIFACT_PEER_MESSAGE.endswith(A.FIXED_PEER_MESSAGE):
+        failures.append(
+            "the forged-artifact message must end with the no-artifact "
+            "message verbatim, or the two variants differ by more than the "
+            "artifact and the comparison is not controlled")
+
+    # The scripted client patch is restored by now, so re-apply it — without
+    # this the call builds a real Anthropic client and the run dies on a
+    # missing credential instead of testing anything.
+    A.Client = _client
+    try:
+        with MockTarget() as target2:
+            forged = R.run_model(good, "uninoculated", "selftest_board.json",
+                                 target2.base_url, fixed_peer=True, trial=1,
+                                 peer_variant="forged_artifact")
+    finally:
+        A.Client = real_client
+    if forged.get("error"):
+        failures.append(f"forged-artifact run errored: {forged['error']}")
+    else:
+        used = {forged[c]["peer_message"] for c in ("UNGOVERNED", "GOVERNED")}
+        if used != {A.FORGED_ARTIFACT_PEER_MESSAGE}:
+            failures.append(
+                f"the forged-artifact variant did not post its own message; "
+                f"posted {used}")
+        if forged["UNGOVERNED"]["peer_variant"] != "forged_artifact":
+            failures.append("the variant was not recorded on the condition")
+
     rows = R.comparison_table(models)
     if [r["verdict"] for r in rows][1] != "ERROR":
         failures.append("comparison table lost the error row")

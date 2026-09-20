@@ -18,6 +18,16 @@ IN_PER_MTOK, OUT_PER_MTOK = 1.00, 5.00          # Haiku 4.5 list price
 CHARS_PER_TOKEN = 4.0
 SAFETY = 1.6                                     # upper-bound inflation
 
+#: MEASURED, not approximated. Run 35485983996 executed 10 model-runs of
+#: gpt-oss-120b (2 arms x 5 trials, each run covering both conditions) for
+#: 62,465 input and 22,677 output tokens. A model-run is the unit the sweep
+#: multiplies, so these per-run figures are what a projection should scale —
+#: they beat the 4-chars/token guess for any open-weight model of similar
+#: verbosity, and they are an observation rather than an assumption.
+MEASURED_HF_IN_PER_RUN = 6247
+MEASURED_HF_OUT_PER_RUN = 2268
+MEASURED_SOURCE = "run 35485983996 (gpt-oss-120b, 10 model-runs)"
+
 
 def approx_tokens(text: str) -> int:
     return int(len(text) / CHARS_PER_TOKEN) + 1
@@ -72,15 +82,110 @@ def estimate() -> dict:
     }
 
 
-if __name__ == "__main__":
-    e = estimate()
-    w = max(len(k) for k in e)
-    for k, v in e.items():
+def plan_estimate(models: str = "all", only: str = "", arms: str = "all",
+                  repeats: int = 1, peer_variants: str = "no_artifact") -> dict:
+    """Price only the models THIS run will actually call.
+
+    The previous gate priced the Anthropic envelope unconditionally and
+    multiplied it by repeats. On an HF-only sweep that is a charge against a
+    backend the run never touches: run 35485983996 spent $0 on Anthropic while
+    the gate scored it $0.907 against a $1.00 ceiling, and one more repeat
+    would have blocked a free run. A gate that blocks the wrong runs gets
+    raised or removed, which is how ceilings stop meaning anything.
+
+    So: resolve which backends are in play, and charge each only for itself.
+    """
+    keep = {k.strip() for k in only.split(",") if k.strip()}
+    n_arms = len(A.ARMS) if arms == "all" else 1
+    n_variants = (len(A.PEER_VARIANT_NAMES) if peer_variants == "all"
+                  else len([v for v in peer_variants.split(",") if v.strip()]))
+    n_variants = max(1, n_variants)
+    repeats = max(1, int(repeats))
+
+    anthropic_keys = {A.ANTHROPIC_SPEC.key}
+    hf_keys = {s.key for s in A.HF_CANDIDATES}
+
+    if models in ("all", "anthropic"):
+        sel_anthropic = anthropic_keys & keep if keep else anthropic_keys
+    else:
+        sel_anthropic = set()
+    if models in ("all", "hf"):
+        # Availability is discovered at run time, so an unfiltered sweep is
+        # bounded by the cap rather than by a known list.
+        sel_hf = (hf_keys & keep) if keep else set(list(hf_keys)[:A.MAX_HF_MODELS])
+    else:
+        sel_hf = set()
+
+    base = estimate()
+    per_run_in = base["est_input_tokens"] // (2 * len(A.ARMS))
+    per_run_out = base["est_output_tokens"] // (2 * len(A.ARMS))
+
+    a_runs = len(sel_anthropic) * n_arms * n_variants * repeats
+    a_in = per_run_in * 2 * a_runs
+    a_out = per_run_out * 2 * a_runs
+    a_cost = (a_in / 1e6) * IN_PER_MTOK + (a_out / 1e6) * OUT_PER_MTOK
+
+    h_runs = len(sel_hf) * n_arms * n_variants * repeats
+    h_in = MEASURED_HF_IN_PER_RUN * h_runs
+    h_out = MEASURED_HF_OUT_PER_RUN * h_runs
+
+    return {
+        "models_arg": models,
+        "only_arg": only or "(none)",
+        "arms": n_arms,
+        "peer_variants": n_variants,
+        "repeats": repeats,
+        "anthropic_models_selected": sorted(sel_anthropic),
+        "anthropic_model_runs": a_runs,
+        "anthropic_input_tokens": a_in,
+        "anthropic_output_tokens": a_out,
+        "anthropic_cost_usd": round(a_cost, 4),
+        "anthropic_upper_bound_usd": round(a_cost * SAFETY, 4),
+        "hf_models_selected": sorted(sel_hf),
+        "hf_model_runs": h_runs,
+        "hf_input_tokens_projected": h_in,
+        "hf_output_tokens_projected": h_out,
+        "hf_projection_basis": MEASURED_SOURCE,
+        "hf_cost_usd": "not priced here — per-provider router rates are not "
+                       "read by this script; the token projection above is "
+                       "measured, the dollar figure is not asserted",
+        "priced_upper_bound_usd": round(a_cost * SAFETY, 4),
+    }
+
+
+def _main() -> int:
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--models", default="all")
+    ap.add_argument("--only", default="")
+    ap.add_argument("--arms", default="all")
+    ap.add_argument("--repeats", type=int, default=1)
+    ap.add_argument("--peer-variants", default="no_artifact")
+    ap.add_argument("--ceiling", type=float, default=None,
+                    help="fail if the PRICED upper bound exceeds this")
+    args = ap.parse_args()
+
+    plan = plan_estimate(args.models, args.only, args.arms, args.repeats,
+                         args.peer_variants)
+    w = max(len(k) for k in plan)
+    for k, v in plan.items():
         print(f"  {k:<{w}} : {v}")
-    print(f"\n  Budget check (Anthropic, priced): upper bound "
-          f"${e['upper_bound_usd']} per full run; "
-          f"under $5 = {e['upper_bound_usd'] < 5}")
-    print(f"  Budget bound (Hugging Face, unpriced): at most "
-          f"{e['hf_models_max']} models x the same envelope = "
-          f"{e['hf_input_token_ceiling']} in / "
-          f"{e['hf_output_token_ceiling']} out tokens.")
+    if args.ceiling is not None:
+        ub = plan["priced_upper_bound_usd"]
+        if ub > args.ceiling:
+            print(f"\n  BUDGET GATE FAILED: priced upper bound ${ub} exceeds "
+                  f"${args.ceiling}")
+            return 1
+        print(f"\n  Budget gate passed: priced upper bound ${ub} <= "
+              f"${args.ceiling}")
+        if plan["hf_model_runs"]:
+            print(f"  Hugging Face side is unpriced by design: "
+                  f"{plan['hf_model_runs']} model-run(s), projected "
+                  f"{plan['hf_input_tokens_projected']} in / "
+                  f"{plan['hf_output_tokens_projected']} out tokens "
+                  f"(basis: {plan['hf_projection_basis']}).")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_main())

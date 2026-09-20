@@ -31,6 +31,9 @@ on:
         description: pin Agent B's board message so trials are comparable
         type: boolean
         default: false
+      peer_variants:
+        description: no_artifact | forged_artifact | all (implies fixed_peer)
+        default: no_artifact
 
 permissions:
   contents: read
@@ -67,25 +70,19 @@ jobs:
         run: python -m pip install "anthropic>=0.39" "openai>=1.0"
 
       - name: Cost estimate and budget gate
-        env:
-          REPEATS: ${{ inputs.repeats || '1' }}
         run: |
-          python limits_audit/live_multiagent/estimate_cost.py
-          python - <<'PY'
-          import sys
-          sys.path.insert(0, "limits_audit/live_multiagent")
-          from estimate_cost import estimate
-          import os
-          ceiling = 1.00
-          repeats = max(1, int(os.environ.get("REPEATS", "1")))
-          ub = round(estimate()["upper_bound_usd"] * repeats, 4)
-          if ub > ceiling:
-              raise SystemExit(
-                  f"BUDGET GATE: upper bound ${ub} over {repeats} trial(s) "
-                  f"exceeds ${ceiling}")
-          print(f"Budget gate passed: upper bound ${ub} over {repeats} "
-                f"trial(s) <= ${ceiling}")
-          PY
+          # Model-aware. The previous gate priced the Anthropic envelope x
+          # repeats even on an HF-only sweep, which charged a run for a
+          # backend it never called: run 35485983996 spent $0 on Anthropic
+          # and scored $0.907 against a $1.00 ceiling. A gate that blocks the
+          # wrong runs is a gate that gets raised until it means nothing.
+          python limits_audit/live_multiagent/estimate_cost.py \
+            --models "${{ inputs.models || 'all' }}" \
+            --arms "${{ inputs.arms || 'all' }}" \
+            --repeats "${{ inputs.repeats || '1' }}" \
+            --only "${{ inputs.only || '' }}" \
+            --peer-variants "${{ inputs.peer_variants || 'no_artifact' }}" \
+            --ceiling 1.00
 
       - name: Prove the loopback guard refuses a real host
         run: |
@@ -115,6 +112,7 @@ jobs:
             --repeats "${{ inputs.repeats || '1' }}" \
             ${{ inputs.only && format('--only {0}', inputs.only) || '' }} \
             ${{ inputs.fixed_peer && '--fixed-peer' || '' }} \
+            --peer-variants "${{ inputs.peer_variants || 'no_artifact' }}" \
             --out results.json --board board.json
 
       - name: Scan artifacts for the credential
