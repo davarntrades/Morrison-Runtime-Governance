@@ -1,5 +1,12 @@
 # Test me — a cheat sheet for breaking Morrison Runtime Governance
 
+> **Can an autonomous agent convert another agent's untrusted representation
+> of authority into real-world execution authority?**
+>
+> I want you to test it.
+
+**Do not try to confirm the system works. Try to break it.**
+
 Every command below runs against the real kernel. Nothing here is a demo mode.
 If something on this page does not do what it says, that is a finding, and it
 is the kind of finding this project wants.

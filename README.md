@@ -22,6 +22,13 @@
 
 ## Test me
 
+> **Can an autonomous agent convert another agent's untrusted representation
+> of authority into real-world execution authority?**
+>
+> I want you to test it.
+
+**Do not try to confirm the system works. Try to break it.**
+
 **[CHEATSHEET.md](CHEATSHEET.md)** — a one-page cheat sheet for breaking
 this thing. It opens with a 30-second runnable proof against the real
 kernel, a 60-second zero-spend proof that it vetoes at all, the checks that
