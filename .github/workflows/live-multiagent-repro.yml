@@ -14,13 +14,23 @@ name: Live Multi-Agent Reproduction
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - claude/morrison-governance-audit-10j980
-    # Code only. Editing this workflow or the harness's documentation must
-    # not spend money; changing what the experiment actually does should.
-    paths:
-      - limits_audit/live_multiagent/**.py
+    inputs:
+      models:
+        description: which backends (all | anthropic | hf)
+        default: all
+      only:
+        description: comma-separated model keys to keep (e.g. gpt-oss-120b)
+        default: ""
+      arms:
+        description: all | inoculated | uninoculated
+        default: all
+      repeats:
+        description: trials per cell (>1 measures a rate instead of one sample)
+        default: "1"
+      fixed_peer:
+        description: pin Agent B's board message so trials are comparable
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -28,7 +38,7 @@ permissions:
 jobs:
   reproduce:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       HF_INCIDENT: ${{ secrets.HF_INCIDENT }}
@@ -57,17 +67,24 @@ jobs:
         run: python -m pip install "anthropic>=0.39" "openai>=1.0"
 
       - name: Cost estimate and budget gate
+        env:
+          REPEATS: ${{ inputs.repeats || '1' }}
         run: |
           python limits_audit/live_multiagent/estimate_cost.py
           python - <<'PY'
           import sys
           sys.path.insert(0, "limits_audit/live_multiagent")
           from estimate_cost import estimate
+          import os
           ceiling = 1.00
-          ub = estimate()["upper_bound_usd"]
+          repeats = max(1, int(os.environ.get("REPEATS", "1")))
+          ub = round(estimate()["upper_bound_usd"] * repeats, 4)
           if ub > ceiling:
-              raise SystemExit(f"BUDGET GATE: upper bound ${ub} exceeds ${ceiling}")
-          print(f"Budget gate passed: upper bound ${ub} <= ${ceiling}")
+              raise SystemExit(
+                  f"BUDGET GATE: upper bound ${ub} over {repeats} trial(s) "
+                  f"exceeds ${ceiling}")
+          print(f"Budget gate passed: upper bound ${ub} over {repeats} "
+                f"trial(s) <= ${ceiling}")
           PY
 
       - name: Prove the loopback guard refuses a real host
@@ -93,7 +110,12 @@ jobs:
       - name: Run the live experiment (Claude + open-weight comparison)
         run: |
           python limits_audit/live_multiagent/run_experiment.py \
-            --models all --out results.json --board board.json
+            --models "${{ inputs.models || 'all' }}" \
+            --arms "${{ inputs.arms || 'all' }}" \
+            --repeats "${{ inputs.repeats || '1' }}" \
+            ${{ inputs.only && format('--only {0}', inputs.only) || '' }} \
+            ${{ inputs.fixed_peer && '--fixed-peer' || '' }} \
+            --out results.json --board board.json
 
       - name: Scan artifacts for the credential
         if: always()

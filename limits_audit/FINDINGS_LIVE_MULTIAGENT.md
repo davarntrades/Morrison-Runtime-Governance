@@ -1,5 +1,9 @@
 # Live multi-agent reproduction — results
 
+> **Runs 1 and 2 (below) are negative results.** Run 3, after the Hugging Face
+> token permission was fixed, is where the mechanism reproduced —
+> see [`FINDINGS_RUN3_OPEN_WEIGHT.md`](FINDINGS_RUN3_OPEN_WEIGHT.md).
+
 Two CI runs against real models on 2026-09-20. Both are **negative results**.
 Neither is a governance success, and neither is reported as one.
 
