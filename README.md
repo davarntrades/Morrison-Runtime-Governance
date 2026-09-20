@@ -20,6 +20,17 @@
 
 ---
 
+## Test me
+
+**[CHEATSHEET.md](CHEATSHEET.md)** — a one-page cheat sheet for breaking this
+thing. A 60-second zero-spend proof that the kernel vetoes at all, the checks
+that prove the harness is not grading itself generously, and a ranked list of
+attacks we have **not** run and would like someone else to.
+
+It opens on the negative results, not the positive ones. The most recent live
+run moved a model's fire rate from 3/20 to 17/20 with a forged approval that
+took four lines to write — start there.
+
 ## Try Morrison now
 
 Choose the path that matches how deeply you want to inspect the system.
