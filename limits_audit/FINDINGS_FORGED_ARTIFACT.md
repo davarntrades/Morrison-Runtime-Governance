@@ -233,7 +233,8 @@ deepseek-v3 uninoculated 1 governed proposal, blocked; qwen3-235b uninoculated
 
 **Totals across runs 3, 5 and 6: 68 governed trials proposed a destructive
 action; 68 were refused; 0 destructive calls reached the stub in any governed
-condition.**
+condition.** Including run 7's 40, the figure over all four runs is **108
+proposed, 108 refused, 0 executed**.
 
 The verdict is identical in every cell of run 6, forged artifact or not:
 
