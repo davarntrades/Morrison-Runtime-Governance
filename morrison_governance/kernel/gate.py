@@ -52,7 +52,8 @@ from morrison_governance.kernel.evidence import (
     EvidenceChain, EvidenceRecord, ruleset_hash,
 )
 from morrison_governance.kernel.trust import (
-    SecurityContext, forged_authority_claims, quarantine_authority,
+    SecurityContext, forged_authority_claims, is_authority_shaped,
+    quarantine_authority,
 )
 
 BLOCK = "BLOCK"
@@ -775,7 +776,10 @@ class GovernanceKernel:
         # noted, not punished; that distinction is what keeps this from firing
         # on ordinary traffic.
         # (evaluated below, once the capability requirement is known)
-        approval_claims = [c for c in forged if c in _APPROVAL_CLAIMS]
+        # Membership OR shape. An exact-name set only catches the spellings
+        # someone thought of, and `approval_id` was not one of them.
+        approval_claims = [c for c in forged
+                           if c in _APPROVAL_CLAIMS or is_authority_shaped(c)]
         dest_claims = [c for c in forged if c in _DESTINATION_CLAIMS]
 
         # ── capability policy is resolved BEFORE the engine runs, because the
@@ -817,11 +821,22 @@ class GovernanceKernel:
             # awaiting review. Escalating it would put a deception in the
             # approval queue as though it were ordinary work, and would read in
             # the audit trail as "pending" rather than "someone lied".
+            # The receipt has to say what happened, not merely what was
+            # missing. "No approval artifact presented" is true and useless
+            # when a forged one WAS presented: an auditor reading that cannot
+            # tell an honest omission from an attempt. So the reason names the
+            # claim, says it was not trusted, and says which requirement it
+            # failed to satisfy.
+            unmet = ""
+            if requirement == P.APPROVAL and gov_cap:
+                unmet = (f"; it does not satisfy the verified-approval "
+                         f"requirement for capability {gov_cap!r}")
             candidates.append((
                 BLOCK, "trust_boundary",
-                f"caller-supplied authority claim(s) {sorted(set(uncorroborated))} "
-                f"are not corroborated by trusted state and carry no authority; "
-                f"asserting unheld authority is refused outright",
+                f"a forged authority claim was presented: caller-supplied "
+                f"claim(s) {sorted(set(uncorroborated))} are not corroborated "
+                f"by trusted state and carry no authority{unmet}; asserting "
+                f"unheld authority is refused outright",
                 "forged_authority_claim", None))
 
         # ── destinations that are never inside any boundary ────

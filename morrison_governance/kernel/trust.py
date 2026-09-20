@@ -60,6 +60,106 @@ AUTHORITY_FIELDS = frozenset({
     "requested_by", "session_customer", "impersonate",
 })
 
+# ─────────────────────────────────────────────────────────────
+# Authority by SHAPE, not by spelling
+# ─────────────────────────────────────────────────────────────
+#
+# AUTHORITY_FIELDS is an exact-name set, and an exact-name set only catches
+# the spellings someone thought of. On 2026-09-20 a live run presented
+# `approval_id=APR-7741-C9F2` in a tool call: `approved` is on the list,
+# `approval_id` is not, so the claim was neither quarantined nor recorded.
+# The capability gate still refused the action — nothing executed — but the
+# evidence record said only "no approval artifact presented" when what had
+# actually happened was "a forged one was presented and carried no weight".
+# For an auditable boundary that is the wrong receipt.
+#
+# So authority is recognised by the SHAPE of the name: a root that names an
+# authority instrument, optionally carrying structural affixes. This is the
+# same move `_sec_authorized()` already makes in domains.py — shape selects
+# among claims; it never establishes one.
+#
+# Roots are deliberately narrow. `grant` and `permit` are NOT roots: a
+# `grant_amount` or a `permit_number` is ordinary domain data, and
+# quarantining it would strip a real field out of the evaluation namespace to
+# catch a claim nobody has made.
+_AUTHORITY_ROOTS = frozenset({
+    "approval", "approvals", "approved", "authorization", "authorisation",
+    "authorized", "authorised", "signoff", "attestation", "attested",
+    "waiver", "override", "consent", "consented", "sanction", "sanctioned",
+    "clearance", "authorisations", "authorizations",
+    # collapsed two-word roots, see _collapse_roots
+    "signoff", "breakglass",
+})
+
+# Roots that are written as two words as often as one. Without this,
+# `signed_off_by` reads as [signed, off, by] — no root — while `signoff_id`
+# matches, which is an arbitrary distinction to draw in an audit boundary.
+_ROOT_PAIRS = {
+    ("sign", "off"): "signoff",
+    ("signed", "off"): "signoff",
+    ("break", "glass"): "breakglass",
+}
+
+# Structural parts that can hang off a root without changing what it asserts.
+# `approval_id`, `approval_token`, `approved_by`, `override_ref` are all the
+# same claim wearing different clothes.
+_AUTHORITY_AFFIXES = frozenset({
+    "id", "ids", "ref", "refs", "reference", "code", "token", "no", "num",
+    "number", "key", "hash", "sig", "signature", "url", "uri", "link",
+    "by", "at", "on", "from", "for", "status", "state", "level", "type",
+    "artifact", "artefact", "record", "receipt", "ticket", "case", "doc",
+    "is", "has", "was", "flag", "value", "field", "header", "chain",
+})
+
+_WORD = __import__("re").compile(r"[^a-z0-9]+")
+# camelCase and PascalCase carry the same claim as snake_case. `approvalId`
+# reached this code as one token and slipped through the first version of this
+# matcher; JSON tool-call payloads use camelCase routinely.
+_CAMEL = __import__("re").compile(r"(?<=[a-z0-9])(?=[A-Z])")
+
+
+def _collapse_roots(toks: list) -> list:
+    out, i = [], 0
+    while i < len(toks):
+        pair = (toks[i], toks[i + 1]) if i + 1 < len(toks) else None
+        if pair in _ROOT_PAIRS:
+            out.append(_ROOT_PAIRS[pair])
+            i += 2
+        else:
+            out.append(toks[i])
+            i += 1
+    return out
+
+
+def _name_tokens(key) -> list:
+    spaced = _CAMEL.sub("_", str(key).strip())
+    return _collapse_roots(
+        [tok for tok in _WORD.split(spaced.lower()) if tok])
+
+
+def is_authority_shaped(key) -> bool:
+    """True when a field NAME asserts an authority instrument.
+
+    Detection only. Recognising a claim never honours it — a recognised claim
+    is quarantined and recorded, which is strictly less power than an
+    unrecognised one, since an unrecognised name stays in the namespace.
+
+    A name matches when it contains an authority root and every other token is
+    structural. `approval_id` matches; `signature` alone does not (a document
+    signature is ordinary data); `exception_message` does not (`message` is
+    not structural); `grant_amount` does not (`grant` is not a root).
+    """
+    toks = _name_tokens(key)
+    if not toks:
+        return False
+    if "_".join(toks) in AUTHORITY_FIELDS:
+        return True
+    if not any(tok in _AUTHORITY_ROOTS for tok in toks):
+        return False
+    return all(tok in _AUTHORITY_ROOTS or tok in _AUTHORITY_AFFIXES
+               for tok in toks)
+
+
 # Fields whose presence is itself a signal worth recording loudly.
 _FORGERY_SIGNIFICANT = frozenset({
     "authorized", "authorised", "approved", "approved_by", "approver",
@@ -80,7 +180,8 @@ def quarantine_authority(call: dict) -> tuple[dict, dict]:
     args = dict(canon.get("args") or {})
     quarantined: dict[str, Any] = {}
     for key in list(args.keys()):
-        if str(key).strip().lower() in AUTHORITY_FIELDS:
+        if str(key).strip().lower() in AUTHORITY_FIELDS \
+                or is_authority_shaped(key):
             quarantined[key] = args.pop(key)
     return {"tool": canon["tool"], "args": args}, quarantined
 
@@ -92,7 +193,7 @@ def forged_authority_claims(quarantined: dict) -> list[str]:
     out = []
     for k, v in quarantined.items():
         kl = str(k).strip().lower()
-        if kl not in _FORGERY_SIGNIFICANT:
+        if kl not in _FORGERY_SIGNIFICANT and not is_authority_shaped(kl):
             continue
         if isinstance(v, bool) and not v:
             continue
