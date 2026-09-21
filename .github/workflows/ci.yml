@@ -1,0 +1,119 @@
+name: Morrison CI (deterministic regression)
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f runtime_eval/requirements.txt ]; then pip install -r runtime_eval/requirements.txt; fi
+
+      - name: Create artifact directories
+        run: |
+          mkdir -p ci_logs ci_artifacts
+
+      - name: Compile/import sanity checks
+        run: |
+          set -euo pipefail
+          python -m compileall morrison_governance runtime_eval multi_agent_eval global_governance | tee ci_logs/compileall.log
+          python - <<'PY' | tee ci_logs/import_sanity.log
+          import morrison_governance
+          import runtime_eval
+          import multi_agent_eval
+          import global_governance
+          print('import_sanity=ok')
+          PY
+
+      - name: Core deterministic suites
+        run: |
+          set -euo pipefail
+          python3 morrison_governance/test_governance.py | tee ci_logs/test_governance.log
+          python3 morrison_governance/test_interception.py | tee ci_logs/test_interception.log
+          python3 morrison_governance/test_open_world.py | tee ci_logs/test_open_world.log
+          python3 morrison_governance/test_long_horizon.py | tee ci_logs/test_long_horizon.log
+
+      - name: Runtime-eval deterministic suites
+        run: |
+          set -euo pipefail
+          python3 runtime_eval/tests/test_runtime_eval.py | tee ci_logs/runtime_eval.log
+          python3 runtime_eval/tests/adversarial/test_hardening.py | tee ci_logs/runtime_eval_hardening.log
+
+      - name: Multi-agent + global-governance suites
+        run: |
+          set -euo pipefail
+          python3 multi_agent_eval/tests/test_multi_agent_eval.py | tee ci_logs/multi_agent_eval.log
+          python3 global_governance/tests/test_global_governance.py | tee ci_logs/global_governance.log
+
+      - name: Deterministic replay consistency checks
+        run: |
+          set -euo pipefail
+          python3 quickstart.py | tee ci_logs/quickstart_run_1.log
+          python3 quickstart.py | tee ci_logs/quickstart_run_2.log
+          python3 - <<'PY' | tee ci_logs/quickstart_replay_check.log
+          from pathlib import Path
+          import re
+
+          def extract_hash(path: str) -> str:
+              text = Path(path).read_text(encoding='utf-8')
+              matches = re.findall(r"hash=([0-9a-f]+)", text)
+              if len(matches) < 1:
+                  raise SystemExit(f"No replay hash found in {path}")
+              return matches[-1]
+
+          h1 = extract_hash('ci_logs/quickstart_run_1.log')
+          h2 = extract_hash('ci_logs/quickstart_run_2.log')
+          print(f"quickstart_hash_1={h1}")
+          print(f"quickstart_hash_2={h2}")
+          if h1 != h2:
+              raise SystemExit('Deterministic replay drift detected: hash mismatch')
+          print('quickstart_replay_consistency=ok')
+          PY
+
+      - name: Classification summary (bounded framing)
+        if: always()
+        run: |
+          python3 - <<'PY' > ci_artifacts/ci_summary.md
+          from pathlib import Path
+
+          summary = """# CI Summary (bounded regression framing)
+
+          This CI pipeline is a regression/invariance check over pinned deterministic suites.
+          It does not claim universal guarantees.
+
+          Classification guidance:
+          - **Governance failure:** deterministic tests indicate block/permit regression in pinned suites.
+          - **Malformed/no-plan output:** parser/schema/path returns no executable plan or malformed call handling.
+          - **Planner self-refusal:** planner declines to propose an action; not equivalent to governance block.
+          """
+          Path('ci_artifacts/ci_summary.md').write_text(summary, encoding='utf-8')
+          print(summary)
+          PY
+
+      - name: Upload logs and reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: morrison-ci-logs-${{ github.run_id }}
+          path: |
+            ci_logs/
+            ci_artifacts/
+          if-no-files-found: error
