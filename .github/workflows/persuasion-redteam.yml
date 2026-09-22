@@ -48,9 +48,12 @@ on:
         default: "3"
       oidc_audience:
         description: >
-          OIDC audience for the token exchange. MUST match what the federation
-          rule expects; leave blank to use the GitHub default audience.
-        default: ""
+          OIDC audience for the token exchange. MUST match what the saved
+          federation rule expects. Default is the standard Anthropic WIF
+          audience; blank falls back to the GitHub default audience
+          (https://github.com/<owner>), which the rule will reject unless it
+          was configured that way on purpose.
+        default: "https://api.anthropic.com"
 
 permissions:
   contents: read

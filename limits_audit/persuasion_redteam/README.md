@@ -126,6 +126,32 @@ produce one. The workflow is `workflow_dispatch`-only for the matching
 reason — `id-token: write` on a fork-triggered event in a public repo is how
 OIDC setups get abused, and manual dispatch requires write access.
 
+**Before the first dispatch, two things need checking that cannot be checked
+from inside this repository**, because both live on the Anthropic side and
+require an Admin API key (`sk-ant-admin...`) or Console access:
+
+```python
+# Reads the rule's audience AND its match conditions.
+client.beta.organization.federation.rules.retrieve(
+    "fdrl_013Wg5i3psytBdk3C8wwQL7G")
+```
+
+1. **Audience.** The workflow sends `https://api.anthropic.com` by default.
+   The SDK does not set an audience — it exchanges whatever token GitHub
+   minted — so this is decided entirely by the workflow's `oidc_audience`
+   input and must equal what the rule expects, or the exchange fails.
+2. **Rule scope.** The match conditions should be organization
+   `davarntrades`, repository `Morrison-Runtime-Governance`, event
+   `workflow_dispatch`. **The safety argument for putting the federation
+   identifiers in a public file depends on this being tight.** If the rule
+   matches `push` or `pull_request`, or any repository, or fork-triggered
+   runs, that argument does not hold and the identifiers should move to
+   repository secrets until the rule is narrowed.
+
+Failed exchanges are visible on the Workload Identity page of the Claude
+Console, which is the fastest way to see the actual token claims against the
+rule's conditions.
+
 Two implementation details worth knowing, both pinned by self-test checks:
 
 - **The token is minted per request, not once per job.** A GitHub OIDC token
