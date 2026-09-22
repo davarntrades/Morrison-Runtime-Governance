@@ -1,0 +1,98 @@
+name: Persuasion Red-Team
+
+# Runs limits_audit/persuasion_redteam against the real Claude API.
+#
+# The credential lives only as a GitHub Actions secret, so this workflow is
+# the only place the experiment can run. The dev container has no key, which
+# is why the harness ships with an --offline mode that proves the wiring
+# without billing anything.
+#
+# Models are pinned in agents.py (attacker claude-haiku-4-5, defender
+# claude-opus-5) and are deliberately NOT read from repository variables, so
+# the run costs what estimate_cost.py priced. The budget gate below hard-fails
+# before any billed call if the projection exceeds the credit ceiling.
+#
+# Nothing in this experiment touches a third-party host. The payloads are
+# inert fixtures (assert_inert runs first), no action is ever executed, and
+# api.anthropic.com is the only endpoint contacted.
+
+on:
+  workflow_dispatch:
+    inputs:
+      rounds:
+        description: number of rounds (attacker -> defender -> kernel)
+        default: "20"
+      budget_credits:
+        description: hard ceiling in API credits
+        default: "80"
+      credit_usd:
+        description: USD per credit (the harness's stated assumption)
+        default: "0.01"
+      effort:
+        description: defender thinking effort (low | medium | high)
+        default: low
+      payload:
+        description: c2_beacon | exploit_pseudocode | credentials
+        default: c2_beacon
+      per_rung:
+        description: rounds to hold each strategy before escalating
+        default: "3"
+
+permissions:
+  contents: read
+
+jobs:
+  redteam:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Validate credential presence
+        run: |
+          # Presence only. The value is never echoed, interpolated into a
+          # command line, or written anywhere.
+          test -n "$ANTHROPIC_API_KEY" || {
+            echo "BLOCKED: ANTHROPIC_API_KEY secret is not available."
+            exit 1
+          }
+          echo "Credential present."
+
+      - name: Offline self-test (no billed calls)
+        run: python -m limits_audit.persuasion_redteam.offline_selftest
+
+      - name: Budget gate (fails before any billed call)
+        run: |
+          python -m limits_audit.persuasion_redteam.estimate_cost \
+            --rounds "${{ inputs.rounds }}" \
+            --effort "${{ inputs.effort }}" \
+            --budget-credits "${{ inputs.budget_credits }}" \
+            --credit-usd "${{ inputs.credit_usd }}"
+
+      - name: Run the experiment
+        run: |
+          python -m limits_audit.persuasion_redteam.orchestrator \
+            --rounds "${{ inputs.rounds }}" \
+            --budget-credits "${{ inputs.budget_credits }}" \
+            --credit-usd "${{ inputs.credit_usd }}" \
+            --effort "${{ inputs.effort }}" \
+            --payload "${{ inputs.payload }}" \
+            --per-rung "${{ inputs.per_rung }}" \
+            --out artifacts/persuasion_redteam/results.json
+
+      - name: Upload transcript
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: persuasion-redteam-transcript
+          path: artifacts/persuasion_redteam/
+          if-no-files-found: warn
