@@ -2,18 +2,27 @@ name: Persuasion Red-Team
 
 # Runs limits_audit/persuasion_redteam against the real Claude API.
 #
-# The credential lives only as a GitHub Actions secret, so this workflow is
-# the only place the experiment can run. The dev container has no key, which
-# is why the harness ships with an --offline mode that proves the wiring
-# without billing anything.
+# AUTHENTICATION: Workload Identity Federation, not a stored API key. The job
+# mints a short-lived GitHub OIDC token and the SDK exchanges it for Anthropic
+# credentials. There is no long-lived secret in this repository to leak,
+# rotate, or scope wrongly — which is the right posture for a public repo.
+#
+# The four federation identifiers below are NOT secrets. WIF's security comes
+# from the trust relationship: only a workflow whose OIDC token carries this
+# repository's subject claim can complete the exchange, and a fork cannot
+# produce one. This is why Anthropic's own setup snippets show them inline.
+#
+# Trigger is workflow_dispatch only. That is deliberate: `id-token: write` on
+# a fork-triggered event in a public repo is how OIDC setups get abused, and
+# manual dispatch is restricted to users with write access.
 #
 # Models are pinned in agents.py (attacker claude-haiku-4-5, defender
-# claude-opus-5) and are deliberately NOT read from repository variables, so
-# the run costs what estimate_cost.py priced. The budget gate below hard-fails
-# before any billed call if the projection exceeds the credit ceiling.
+# claude-opus-5) and are NOT read from repository variables, so the run costs
+# what estimate_cost.py priced. The budget gate hard-fails before any billed
+# call if the projection exceeds the credit ceiling.
 #
-# Nothing in this experiment touches a third-party host. The payloads are
-# inert fixtures (assert_inert runs first), no action is ever executed, and
+# Nothing here touches a third-party host. Payloads are inert fixtures
+# (assert_inert runs first), no proposed action is ever executed, and
 # api.anthropic.com is the only endpoint contacted.
 
 on:
@@ -37,16 +46,27 @@ on:
       per_rung:
         description: rounds to hold each strategy before escalating
         default: "3"
+      oidc_audience:
+        description: >
+          OIDC audience for the token exchange. MUST match what the federation
+          rule expects; leave blank to use the GitHub default audience.
+        default: ""
 
 permissions:
   contents: read
+  id-token: write          # required to mint the OIDC token
 
 jobs:
   redteam:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Federation identity. Non-secret by design (see header).
+      ANTHROPIC_FEDERATION_RULE_ID: fdrl_013Wg5i3psytBdk3C8wwQL7G
+      ANTHROPIC_ORGANIZATION_ID: 7ee39e24-7acd-496b-bd42-c948ed4ba54d
+      ANTHROPIC_SERVICE_ACCOUNT_ID: svac_014FA1AbQZ7hBoLp1HhkdorM
+      ANTHROPIC_WORKSPACE_ID: wrkspc_01Nca2hG6hgYMQ6MX1wGywVi
+      ANTHROPIC_OIDC_AUDIENCE: ${{ inputs.oidc_audience }}
     steps:
       - uses: actions/checkout@v4
 
@@ -57,15 +77,22 @@ jobs:
       - name: Install dependencies
         run: pip install anthropic
 
-      - name: Validate credential presence
+      - name: Confirm a federated identity is available
         run: |
-          # Presence only. The value is never echoed, interpolated into a
-          # command line, or written anywhere.
-          test -n "$ANTHROPIC_API_KEY" || {
-            echo "BLOCKED: ANTHROPIC_API_KEY secret is not available."
-            exit 1
-          }
-          echo "Credential present."
+          # Presence only. No token is minted here and nothing is echoed —
+          # the SDK mints one per request, so a token fetched in this step
+          # would only be a copy that expires mid-run.
+          python - <<'PY'
+          import sys
+          from limits_audit.persuasion_redteam.agents import (
+              credential_source, wif_configured)
+          print(f"credential source: {credential_source()}")
+          if not wif_configured():
+              print("BLOCKED: no federated identity. Check that "
+                    "`permissions: id-token: write` is set and the four "
+                    "ANTHROPIC_* federation variables are present.")
+              sys.exit(1)
+          PY
 
       - name: Offline self-test (no billed calls)
         run: python -m limits_audit.persuasion_redteam.offline_selftest

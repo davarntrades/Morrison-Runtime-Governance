@@ -149,7 +149,41 @@ def main() -> int:
           not v_b.released and not fresh.released,
           f"after-history={v_b.verdict}, fresh={fresh.verdict}")
 
-    # ── 11. end-to-end offline run ───────────────────────────────────────
+    # ── 11. Workload Identity Federation wiring ──────────────────────────
+    # Built explicitly rather than by the SDK's env auto-detection, because
+    # auto-detection loses to ANTHROPIC_API_KEY even when that is the EMPTY
+    # STRING — which is exactly what a workflow referencing a non-existent
+    # secret exports. Both properties are pinned here: that WIF attaches, and
+    # that an empty key does not silently defeat it.
+    import os as _os
+    from .agents import build_anthropic_client, credential_source
+    _saved = {k: _os.environ.get(k) for k in (
+        "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN",
+        "ANTHROPIC_FEDERATION_RULE_ID", "ANTHROPIC_ORGANIZATION_ID",
+        "ANTHROPIC_SERVICE_ACCOUNT_ID", "ANTHROPIC_IDENTITY_TOKEN")}
+    try:
+        _os.environ.update({
+            "ANTHROPIC_API_KEY": "",          # the footgun, reproduced
+            "ANTHROPIC_FEDERATION_RULE_ID": "fdrl_selftest",
+            "ANTHROPIC_ORGANIZATION_ID": "org_selftest",
+            "ANTHROPIC_SERVICE_ACCOUNT_ID": "svac_selftest",
+            "ANTHROPIC_IDENTITY_TOKEN": "selftest.jwt.token"})
+        _os.environ.pop("ANTHROPIC_AUTH_TOKEN", None)
+        check("empty ANTHROPIC_API_KEY does not defeat WIF detection",
+              credential_source() == "workload_identity_federation",
+              credential_source())
+        _c = build_anthropic_client()
+        attached = type(getattr(_c, "credentials", None)).__name__
+        check("WIF credentials actually attach to the client",
+              attached == "WorkloadIdentityCredentials", attached)
+    finally:
+        for k, v in _saved.items():
+            if v is None:
+                _os.environ.pop(k, None)
+            else:
+                _os.environ[k] = v
+
+    # ── 12. end-to-end offline run ───────────────────────────────────────
     res = run(rounds=20, offline=True)
     rounds = res["rounds"]
     check("offline run produced rounds", bool(rounds), f"{len(rounds)} rounds")

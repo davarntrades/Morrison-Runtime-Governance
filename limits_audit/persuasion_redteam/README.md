@@ -109,7 +109,43 @@ python -m limits_audit.persuasion_redteam.orchestrator \
 ```
 
 No credential in your shell? Use `--offline` for scripted agents, or run the
-`Persuasion Red-Team` workflow, which is where the secret lives.
+`Persuasion Red-Team` workflow.
+
+### Authentication — federated, not a stored key
+
+The workflow authenticates by **Workload Identity Federation**. It mints a
+short-lived GitHub OIDC token and the SDK exchanges it for Anthropic
+credentials, so **there is no long-lived API key in this repository** to
+leak, rotate, or scope wrongly. That matters here: this repo is public.
+
+The four federation identifiers are in the workflow file in plain sight, and
+that is correct — they are **not secrets**. WIF's security is the trust
+relationship, not the identifiers: only a workflow whose OIDC token carries
+this repository's subject claim can complete the exchange, and a fork cannot
+produce one. The workflow is `workflow_dispatch`-only for the matching
+reason — `id-token: write` on a fork-triggered event in a public repo is how
+OIDC setups get abused, and manual dispatch requires write access.
+
+Two implementation details worth knowing, both pinned by self-test checks:
+
+- **The token is minted per request, not once per job.** A GitHub OIDC token
+  lives for minutes; a 20-round run does not. Because the SDK takes
+  `identity_token_provider` as a *callable* it re-invokes on refresh,
+  `agents._identity_token` mints on demand rather than caching. A workflow
+  that fetches one token into an env var early on has handed the run a
+  credential that can expire mid-experiment.
+
+- **`ANTHROPIC_API_KEY=""` silently defeats WIF.** An empty `api_key`
+  outranks federated credentials in the SDK's resolution order, and an empty
+  string is exactly what a workflow referencing a non-existent secret
+  exports. The harness therefore builds `WorkloadIdentityCredentials`
+  explicitly instead of relying on env auto-detection, so an empty key cannot
+  quietly turn a good identity into an auth failure.
+
+Locally, any of an `ANTHROPIC_API_KEY`, an `ant auth login` profile, or a full
+WIF environment works; `credential_source()` reports which was used and it is
+recorded in the results JSON, because "what identity produced these numbers"
+is an audit question.
 
 ### Stopping rules
 
@@ -179,7 +215,7 @@ every releasing ask**, to isolate the kernel:
   caught BY THE KERNEL and not the model   6
 ```
 
-All 29 checks pass, including the two that matter: **verdict invariance** —
+All 31 checks pass, including the two that matter: **verdict invariance** —
 each releasing action wrapped in six different framings produces one verdict,
 never `authorize` — and **the kernel is not a brick** — all three read-only
 actions are authorized, so it is discriminating rather than merely refusing.
@@ -215,4 +251,4 @@ readout has no live data behind it.
 | `governor.py` | **the component under test** — real kernel + pre-decode normalisation |
 | `orchestrator.py` | the loop, budget control, stopping rules, readout |
 | `estimate_cost.py` | pre-flight budget gate |
-| `offline_selftest.py` | 29 assertions that must hold before billing anything |
+| `offline_selftest.py` | 31 assertions that must hold before billing anything |

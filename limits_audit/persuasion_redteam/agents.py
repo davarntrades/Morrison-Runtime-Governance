@@ -27,6 +27,8 @@ from __future__ import annotations
 import json
 import os
 import re
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -251,6 +253,105 @@ def classify_defender(action: dict) -> str:
     return "partial"          # a safe, read-only action: helped without releasing
 
 
+#: Environment variables that, together, mean "authenticate by Workload
+#: Identity Federation". All four must be present; the identity token may
+#: arrive inline or as a file path.
+_WIF_VARS = ("ANTHROPIC_FEDERATION_RULE_ID", "ANTHROPIC_ORGANIZATION_ID",
+             "ANTHROPIC_SERVICE_ACCOUNT_ID")
+_WIF_TOKEN_VARS = ("ANTHROPIC_IDENTITY_TOKEN", "ANTHROPIC_IDENTITY_TOKEN_FILE")
+
+
+def wif_configured() -> bool:
+    """True when a federated identity is available AND a token can be got.
+
+    Running under Actions with `id-token: write` counts as a token source,
+    because one can be minted on demand.
+    """
+    can_mint = bool(os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL")
+                    and os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN"))
+    return (all(os.environ.get(v) for v in _WIF_VARS)
+            and (can_mint or any(os.environ.get(v) for v in _WIF_TOKEN_VARS)))
+
+
+def _mint_actions_oidc_token() -> str:
+    """Mint a FRESH GitHub OIDC token from the Actions token service.
+
+    A GitHub OIDC token is short-lived — minutes, not the length of a job. A
+    workflow that fetches one in an early step and exports it has handed the
+    run a credential that can expire mid-experiment, and a 20-round run is
+    long enough for that to happen. Because `identity_token_provider` is a
+    callable the SDK re-invokes on refresh, the right move is to mint on
+    demand rather than to cache.
+
+    Returns "" when not running under Actions, so callers fall through to the
+    inline/file forms.
+    """
+    url = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL")
+    req_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+    if not (url and req_token):
+        return ""
+    audience = os.environ.get("ANTHROPIC_OIDC_AUDIENCE", "")
+    if audience:
+        url = f"{url}&audience={urllib.parse.quote(audience, safe='')}"
+    req = urllib.request.Request(
+        url, headers={"Authorization": f"bearer {req_token}",
+                      "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return json.load(resp).get("value", "")
+
+
+def _identity_token() -> str:
+    """Supply the OIDC token the SDK exchanges for Anthropic credentials.
+
+    Order: mint fresh from Actions if we can, else an explicitly supplied
+    token, else a token file. Called at request time, never cached here.
+    """
+    minted = _mint_actions_oidc_token()
+    if minted:
+        return minted
+    inline = os.environ.get("ANTHROPIC_IDENTITY_TOKEN")
+    if inline:
+        return inline
+    path = os.environ.get("ANTHROPIC_IDENTITY_TOKEN_FILE", "")
+    if not path:
+        raise RuntimeError(
+            "WIF is configured but no identity token is available: set "
+            "ANTHROPIC_IDENTITY_TOKEN or ANTHROPIC_IDENTITY_TOKEN_FILE, or "
+            "run where ACTIONS_ID_TOKEN_REQUEST_URL is set (needs "
+            "`permissions: id-token: write`).")
+    with open(path, encoding="utf-8") as fh:
+        return fh.read().strip()
+
+
+def build_anthropic_client(api_key: Optional[str] = None) -> anthropic.Anthropic:
+    """Construct the client, preferring an explicit key, then WIF, then env.
+
+    WIF is built EXPLICITLY rather than left to the SDK's env-var
+    auto-detection, for one specific reason: auto-detection is outranked by
+    `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` *even when they are set to
+    the empty string*. A workflow that references a secret which does not
+    exist exports exactly that — an empty string — and the result is a run
+    that silently ignores a perfectly good federated identity and then fails
+    on authentication. Constructing the credentials by hand makes that
+    impossible, and makes the failure legible when it does happen.
+    """
+    if api_key:
+        return anthropic.Anthropic(api_key=api_key)
+    if wif_configured():
+        return anthropic.Anthropic(
+            credentials=anthropic.WorkloadIdentityCredentials(
+                identity_token_provider=_identity_token,
+                federation_rule_id=os.environ["ANTHROPIC_FEDERATION_RULE_ID"],
+                organization_id=os.environ["ANTHROPIC_ORGANIZATION_ID"],
+                service_account_id=os.environ["ANTHROPIC_SERVICE_ACCOUNT_ID"],
+                # Optional: the federation rule only requires it when the rule
+                # spans more than one workspace. Passing an empty value would
+                # be worse than omitting it, so omit it.
+                **({"workspace_id": os.environ["ANTHROPIC_WORKSPACE_ID"]}
+                   if os.environ.get("ANTHROPIC_WORKSPACE_ID") else {})))
+    return anthropic.Anthropic()
+
+
 class Client:
     """Thin wrapper over the Messages API with a shared usage meter."""
 
@@ -260,8 +361,7 @@ class Client:
         self.effort = effort
         #: Replies cut off at max_tokens. Reported in the readout.
         self.truncated = 0
-        self.client = anthropic.Anthropic(
-            **({"api_key": api_key} if api_key else {}))
+        self.client = build_anthropic_client(api_key)
 
     def _call(self, model: str, system: str, user: str, max_tokens: int,
               thinking: bool) -> str:
@@ -313,4 +413,20 @@ class Client:
 def have_credentials() -> bool:
     if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
         return True
+    if wif_configured():
+        return True
     return os.path.isdir(os.path.expanduser("~/.config/anthropic"))
+
+
+def credential_source() -> str:
+    """Which mechanism a live run would authenticate with. Recorded in the
+    results, because 'how did this run authenticate' is an audit question."""
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return "api_key"
+    if os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+        return "auth_token"
+    if wif_configured():
+        return "workload_identity_federation"
+    if os.path.isdir(os.path.expanduser("~/.config/anthropic")):
+        return "cli_profile"
+    return "none"

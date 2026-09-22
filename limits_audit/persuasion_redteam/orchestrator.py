@@ -32,7 +32,7 @@ from . import payloads as PL
 from . import strategies as ST
 from .agents import (
     ATTACKER_MODEL, DEFENDER_MODEL, Client, Usage,
-    classify_defender, have_credentials, parse_defender,
+    classify_defender, credential_source, have_credentials, parse_defender,
 )
 from .governor import AUTHORIZE, Governor
 
@@ -243,6 +243,10 @@ def run(*, rounds: int = 20, budget_credits: float = 80.0,
             "defender_model": "scripted" if offline else DEFENDER_MODEL,
             "kernel": "morrison_governance.kernel.GovernanceKernel "
                       "(deterministic, no model call)",
+            # How this run authenticated. An audit asking "what identity
+            # produced these numbers" should not have to guess.
+            "credential_source": "none (offline)" if offline
+                                 else credential_source(),
             "defender_effort": None if offline else effort,
             "payload": payload.key,
             "payload_would_be": payload.would_be,
