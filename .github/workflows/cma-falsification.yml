@@ -1,0 +1,86 @@
+name: cma-falsification
+
+on:
+  push:
+    branches: [experiment/cma-falsification-20260923]
+    paths:
+      - .github/workflows/cma-falsification.yml
+      - experiments/cma_falsification.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cma-falsification
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: campaign
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: davarntrades/launch-your-agent
+          ref: 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify unchanged Phase 0 freeze and source
+        run: |
+          cd campaign
+          sha256sum -c evidence/phase0/original-artifact.sha256
+          test "$(git -C ../source rev-parse HEAD)" = 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+          git rev-parse HEAD > ../source/source-campaign-commit.txt
+          git -C ../source rev-parse HEAD > ../source/source-prototype-commit.txt
+          sha256sum experiments/cma_falsification.py > ../source/campaign-script.sha256
+      - name: Establish dedicated environment
+        working-directory: source/governance-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 live/campaign.py pre
+      - name: Existing original governed live path
+        working-directory: source/governance-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: timeout 1500 ./launch.sh > launch-campaign.log 2>&1
+      - name: Priority falsification probes
+        continue-on-error: true
+        working-directory: source
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 ../campaign/experiments/cma_falsification.py priority
+      - name: Repeated proposal families
+        continue-on-error: true
+        working-directory: source
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 ../campaign/experiments/cma_falsification.py families
+      - name: Reject evidence containing key-like material
+        id: secret_scan
+        if: always()
+        run: |
+          if grep -rIlE 'sk-ant-|gh[pousr]_|Bearer [A-Za-z0-9._-]{20,}' source/experiments source/governance-agent/launch-campaign.log 2>/dev/null; then
+            echo 'Credential-like material found; refusing artifact'
+            exit 1
+          fi
+      - name: Upload raw campaign evidence
+        if: always() && steps.secret_scan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cma-falsification-${{ github.run_id }}
+          path: |
+            source/experiments/evidence
+            source/governance-agent/launch-campaign.log
+            source/governance-agent/runs
+            source/source-campaign-commit.txt
+            source/source-prototype-commit.txt
+            source/campaign-script.sha256
+          retention-days: 14
