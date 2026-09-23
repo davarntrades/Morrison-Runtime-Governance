@@ -1,0 +1,102 @@
+name: cma-pagination-probe
+
+# Live falsification experiment for Phase 0 finding #1: does the frozen
+# prototype's event reader (driver.list_events) observe the complete live
+# CMA session history once it crosses one API page?
+#
+# Does not modify Morrison, the CMA prototype, its adapter, executor,
+# policies, test corpus, or expected outcomes. governance-agent/live/
+# pagination_probe.py is new experiment harness code; the frozen files
+# (governor/*.py, driver.py, agent.json, environment.json, launch.sh)
+# are re-hashed and compared below before anything runs.
+
+on:
+  push:
+    branches: [experiment/cma-pagination-probe]
+    paths:
+      - .github/workflows/cma-pagination-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cma-pagination-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout CMA experiment
+        uses: actions/checkout@v4
+        with:
+          repository: davarntrades/launch-your-agent
+          ref: fa585a63aeb5b03d4c2caed1a4c60fd0e07dfd80
+          path: launch-your-agent
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record frozen prototype
+        working-directory: launch-your-agent/governance-agent
+        run: |
+          git rev-parse HEAD | tee live/source-commit.txt
+          sha256sum governor/*.py driver.py agent.json environment.json launch.sh | tee live/frozen-sha256.txt
+
+      - name: Pre — unique live environment (unmodified campaign.py)
+        working-directory: launch-your-agent/governance-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 live/campaign.py pre
+
+      - name: Pagination probe — bounded live falsification run
+        working-directory: launch-your-agent/governance-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set +e
+          timeout 3300 python3 live/pagination_probe.py > live/evidence/pagination-probe.log 2>&1
+          code=$?
+          echo "PROBE_EXIT=$code" >> "$GITHUB_ENV"
+          tail -n 120 live/evidence/pagination-probe.log
+          exit 0
+
+      - name: Stamp source commit into evidence
+        if: always()
+        working-directory: launch-your-agent/governance-agent
+        run: |
+          python3 - <<'PYEOF'
+          import json, os
+          p = "live/evidence/pagination-probe-evidence.json"
+          if os.path.exists(p):
+              d = json.load(open(p))
+              d["meta"]["source_commit"] = open("live/source-commit.txt").read().strip()
+              json.dump(d, open(p, "w"), indent=2, default=str)
+              print("stamped source_commit into", p)
+          else:
+              print("no evidence file present (probe did not reach the write step)")
+          PYEOF
+
+      - name: Refuse artifact if key-like material appears
+        if: always()
+        working-directory: launch-your-agent/governance-agent
+        run: |
+          if grep -rIl "sk-ant-" live 2>/dev/null; then
+            echo "key-like string found; refusing artifact"
+            exit 1
+          fi
+
+      - name: Upload pagination-probe evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cma-pagination-probe-${{ github.run_id }}
+          path: |
+            launch-your-agent/governance-agent/live/evidence
+            launch-your-agent/governance-agent/live/source-commit.txt
+            launch-your-agent/governance-agent/live/frozen-sha256.txt
+            launch-your-agent/governance-agent/live/runs-pagination-probe
+          retention-days: 14
