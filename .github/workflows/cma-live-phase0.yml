@@ -1,0 +1,90 @@
+name: cma-live-phase0
+
+on:
+  push:
+    branches: [experiment/cma-live-phase0]
+    paths:
+      - .github/workflows/cma-live-phase0.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cma-live-phase0
+  cancel-in-progress: false
+
+jobs:
+  phase0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout CMA experiment
+        uses: actions/checkout@v4
+        with:
+          repository: davarntrades/launch-your-agent
+          ref: 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+          path: launch-your-agent
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record frozen prototype
+        working-directory: launch-your-agent/governance-agent
+        run: |
+          git rev-parse HEAD | tee live/source-commit.txt
+          sha256sum governor/*.py driver.py agent.json environment.json launch.sh | tee live/frozen-sha256.txt
+
+      - name: Pre — unique live environment
+        working-directory: launch-your-agent/governance-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 live/campaign.py pre
+
+      - name: Phase 0 — original governed prototype against live CMA
+        working-directory: launch-your-agent/governance-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set +e
+          timeout 1500 ./launch.sh > live/evidence/launch.log 2>&1
+          code=$?
+          echo "LAUNCH_EXIT=$code" >> "$GITHUB_ENV"
+          tail -n 80 live/evidence/launch.log
+          exit 0
+
+      - name: Live platform probes
+        if: always()
+        working-directory: launch-your-agent/governance-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 live/campaign.py probes
+
+      - name: Build report
+        if: always()
+        working-directory: launch-your-agent/governance-agent
+        run: |
+          mkdir -p live/evidence/L1-run
+          cp -r runs/*/ live/evidence/L1-run/ 2>/dev/null || true
+          cp IDS.env live/evidence/IDS.env.txt 2>/dev/null || true
+          test -f live/results-live.json && python3 live/report.py || echo "no results file"
+
+      - name: Refuse artifact if key-like material appears
+        if: always()
+        working-directory: launch-your-agent/governance-agent
+        run: |
+          if grep -rIl "sk-ant-" live LIVE.md 2>/dev/null; then
+            echo "key-like string found; refusing artifact"
+            exit 1
+          fi
+
+      - name: Upload Phase 0 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cma-live-phase0-${{ github.run_id }}
+          path: |
+            launch-your-agent/governance-agent/live
+            launch-your-agent/governance-agent/LIVE.md
+          retention-days: 14
