@@ -58,6 +58,12 @@ from morrison_governance.kernel.normalize import canonical_tool
 KEY = b"veto-acceptance-key"
 ISSUERS = frozenset({"security-review"})
 
+
+def _bound_approval(*args, **kwargs):
+    kwargs.setdefault("principal", "agent-svc")
+    kwargs.setdefault("tenant", "acme")
+    return issue_approval(*args, **kwargs)
+
 MANIFEST = {
     "query_db": [C.CAP_DATA_READ],
     "read_file": [C.CAP_DATA_READ],
@@ -559,8 +565,9 @@ def test_veto_07_one_approval_authorizes_exactly_one_execution():
     payment = {"tool": "transfer",
                "args": {"amount": 4_500_000, "to": "acct-attacker",
                         "currency": "USD"}}
-    ctx.approvals = (issue_approval(payment, issuer="security-review",
-                                    key=KEY, ttl_s=300, nonce="approval-1"),)
+    ctx.approvals = (_bound_approval(payment, issuer="security-review",
+                                    key=KEY, ttl_s=300,
+                                    nonce="veto-approval-replay-nonce-01"),)
 
     first = k.authorize(payment)
     second = k.authorize(payment)
@@ -573,15 +580,17 @@ def test_veto_07_one_approval_authorizes_exactly_one_execution():
     assert len(rt.executed) == 1
 
 
-def test_veto_07b_an_approval_cannot_be_dodged_by_respelling_the_call():
-    """Approvals bind to the semantic hash, so a synonym of the approved tool
-    is the same transition and consumes the same approval rather than
-    presenting as a new, differently-hashed action."""
+def test_veto_07b_explicit_equivalent_aliases_share_one_approval():
+    """Only a trusted explicit registry may make aliases authorization peers."""
     ctx = _ctx(principal=Principal(id="agent-svc", tenant="acme"))
+    registry = {"funds-transfer": ("transfer", "wire_transfer")}
+    ctx.authorization_equivalences = registry
     k = _kernel(ctx)
     approved = {"tool": "transfer", "args": {"amount": 5000, "to": "acct-9"}}
-    ctx.approvals = (issue_approval(approved, issuer="security-review",
-                                    key=KEY, ttl_s=300, nonce="n-1"),)
+    ctx.approvals = (_bound_approval(approved, issuer="security-review",
+                                    key=KEY, ttl_s=300,
+                                    nonce="veto-explicit-alias-nonce-001",
+                                    authorization_equivalences=registry),)
 
     respelled = {"tool": "wire_transfer", "args": {"amount": 5000, "to": "acct-9"}}
     assert canonical_tool("transfer") == canonical_tool("wire_transfer")

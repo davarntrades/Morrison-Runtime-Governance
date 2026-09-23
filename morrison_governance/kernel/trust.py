@@ -24,12 +24,15 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
+import re
+import secrets
 import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Optional
 
 from morrison_governance.kernel.canonical import (
-    action_hash, canonicalize, semantic_action_hash,
+    authorization_action_hash, canonicalize,
 )
 
 # ─────────────────────────────────────────────────────────────
@@ -242,6 +245,8 @@ class ApprovalArtifact:
 
     action_hash: str
     issuer: str
+    principal: str = ""
+    tenant: str = ""
     scope: str = ""
     issued_at: float = 0.0
     expires_at: float = 0.0
@@ -249,10 +254,17 @@ class ApprovalArtifact:
     signature: str = ""
 
     def _payload(self) -> str:
-        return "|".join([
-            self.action_hash, self.issuer, self.scope,
-            f"{self.issued_at:.0f}", f"{self.expires_at:.0f}", self.nonce,
-        ])
+        return json.dumps({
+            "v": 2,
+            "action_hash": self.action_hash,
+            "issuer": self.issuer,
+            "principal": self.principal,
+            "tenant": self.tenant,
+            "scope": self.scope,
+            "issued_at": float(self.issued_at).hex(),
+            "expires_at": float(self.expires_at).hex(),
+            "nonce": self.nonce,
+        }, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
     def sign(self, key: bytes) -> "ApprovalArtifact":
         # An empty key is not a key. HMAC accepts b"" happily and produces a
@@ -267,6 +279,7 @@ class ApprovalArtifact:
         return replace(self, signature=sig)
 
     def verify(self, key: bytes, expected_action_hash: str,
+               expected_principal: str, expected_tenant: str,
                trusted_issuers: frozenset, now: float,
                seen_nonces: Optional[set] = None) -> tuple[bool, str]:
         """Constant-time signature check plus binding, expiry, issuer and
@@ -289,11 +302,25 @@ class ApprovalArtifact:
             return False, (
                 f"approval is bound to a different action "
                 f"({self.action_hash[:12]}… != {expected_action_hash[:12]}…)")
+        if self.principal != expected_principal:
+            return False, (
+                f"approval is bound to principal {self.principal!r}, not "
+                f"{expected_principal!r}")
+        if self.tenant != expected_tenant:
+            return False, (
+                f"approval is bound to tenant {self.tenant!r}, not "
+                f"{expected_tenant!r}")
         if trusted_issuers and self.issuer not in trusted_issuers:
             return False, f"approval issuer {self.issuer!r} is not trusted"
+        if now < self.issued_at:
+            return False, "approval is not yet valid (issued in the future)"
         if self.expires_at and now > self.expires_at:
             return False, "approval has expired"
-        if seen_nonces is not None and self.nonce and self.nonce in seen_nonces:
+        if not _valid_nonce(self.nonce):
+            return False, (
+                "approval nonce is missing or malformed; require 128-bit-class "
+                "base64url/hex text")
+        if seen_nonces is not None and self.nonce in seen_nonces:
             return False, "approval nonce already used (replay)"
         return True, "approval verified"
 
@@ -340,6 +367,11 @@ class SecurityContext:
     unknown_tool_policy: str = "escalate"
     # Declared tool manifest: {tool_name: [capability, ...]}
     tool_manifest: dict = field(default_factory=dict)
+
+    # Trusted authorization equivalence registry:
+    # {identity: (exact_tool_name, explicit_alias, ...)}. Broad semantic tool
+    # families remain classification-only and never populate this implicitly.
+    authorization_equivalences: dict = field(default_factory=dict)
 
     # Policy-owned comparison values a caller must not choose.
     policy_values: dict = field(default_factory=dict)
@@ -422,6 +454,7 @@ class SecurityContext:
         last = "no approval artifact presented"
         for art in self.approvals:
             ok, reason = art.verify(self.signing_key, expected_hash,
+                                    self.principal.id, self.principal.tenant,
                                     self.trusted_issuers, now,
                                     self._used_nonces)
             if ok:
@@ -430,8 +463,7 @@ class SecurityContext:
         return None, last
 
     def consume_nonce(self, art: ApprovalArtifact) -> None:
-        if art.nonce:
-            self._used_nonces.add(art.nonce)
+        self._used_nonces.add(art.nonce)
 
     def grants(self, capability: str) -> bool:
         return capability in self.principal.granted_capabilities
@@ -449,22 +481,39 @@ class SecurityContext:
 
 
 def issue_approval(call: dict, issuer: str, key: bytes, ttl_s: float = 300.0,
-                   scope: str = "", nonce: str = "",
-                   now: Optional[float] = None) -> ApprovalArtifact:
-    """Helper for trusted approval services (and tests): mint a signed approval
-    bound to the SEMANTIC hash of `call`.
+                   scope: str = "", nonce: Optional[str] = None,
+                   now: Optional[float] = None, *, principal: str = "",
+                   tenant: str = "",
+                   authorization_equivalences: Optional[dict] = None,
+                   ) -> ApprovalArtifact:
+    """Mint authority for one exact action, principal, tenant, and nonce.
 
-    Semantic rather than byte-canonical, so an approval is bound to the
-    TRANSITION it was granted for. A reviewer who approves
-    `shell {"cmd": "..."}` has approved that command; re-proposing it as
-    `run_shell` is the same transition and consumes the same approval, rather
-    than presenting as a new unapproved action or — worse — letting a second
-    spelling escape the approval requirement entirely.
-
-    Raises if `key` is empty — see `ApprovalArtifact.sign`.
+    Tool aliases share authority only when the trusted caller supplies the same
+    explicit ``authorization_equivalences`` registry used by the kernel.
+    Omitting ``nonce`` generates a cryptographically strong random value;
+    explicitly empty, short, or malformed values are rejected.
     """
+    if not principal:
+        raise ValueError("approval issuance requires an intended principal")
+    if not tenant:
+        raise ValueError("approval issuance requires an intended tenant")
+    if nonce is None:
+        nonce = secrets.token_urlsafe(24)
+    if not _valid_nonce(nonce):
+        raise ValueError(
+            "approval nonce must be 22-128 base64url/hex characters")
     now = time.time() if now is None else now
     return ApprovalArtifact(
-        action_hash=semantic_action_hash(call), issuer=issuer, scope=scope,
+        action_hash=authorization_action_hash(
+            call, authorization_equivalences),
+        issuer=issuer, principal=principal, tenant=tenant, scope=scope,
         issued_at=now, expires_at=now + ttl_s, nonce=nonce,
     ).sign(key)
+
+
+_NONCE = re.compile(r"^[A-Za-z0-9_-]{22,128}$")
+
+
+def _valid_nonce(nonce: str) -> bool:
+    """Require enough identifier space for a cryptographic single-use token."""
+    return isinstance(nonce, str) and bool(_NONCE.fullmatch(nonce))

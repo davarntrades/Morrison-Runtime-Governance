@@ -96,12 +96,10 @@ _TOOL_FAMILIES: dict[str, tuple[str, ...]] = {
         "https_request", "request", "fetch", "curl", "wget", "web_request",
         "api_call", "call_api", "rest_call", "post", "put", "webhook_send",
     ),
-    # ATK-07. Families collapse names that denote the SAME transition, which is
-    # what stops `run_shell` executing what `shell` is refused. It also means one
-    # approval covers every member with the same arguments — so a family must
-    # not span names whose EFFECT differs in a way the arguments do not record.
-    # Email and push/SMS/chat differ by delivery channel, and a recipient
-    # argument does not say which; they are separate families.
+    # Families are broad classification/revocation identities. They do NOT
+    # grant authorization equivalence: that requires an explicit trusted
+    # SecurityContext.authorization_equivalences entry. Email and push/SMS/chat
+    # remain separate even for classification because delivery channel matters.
     "send_email": (
         "send_email", "sendmail", "email", "mail", "send_mail", "smtp_send",
     ),
@@ -144,18 +142,21 @@ _ALIAS_TO_FAMILY: dict[str, str] = {
 }
 
 
+def normalized_tool_name(tool: str) -> str:
+    """Normalize spelling without asserting authorization equivalence."""
+    name = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", str(tool or "")).lower()
+    return re.sub(r"[^a-z0-9]+", "_", name).strip("_")
+
+
 def canonical_tool(tool: str) -> str:
-    """Resolve a tool name to its canonical family name.
+    """Resolve a tool name to its broad classification family name.
 
     Normalises separators and casing first, so `Run-Shell`, `run_shell` and
     `runShell` all reach the same entry. An unrecognised name normalises to its
     own cleaned form rather than to a catch-all: an unknown tool must stay
     distinguishable, and `SecurityContext.unknown_tool_policy` decides it.
     """
-    name = str(tool or "").strip().lower()
-    # camelCase -> snake_case, then collapse all separators to "_".
-    name = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", str(tool or "")).lower()
-    name = re.sub(r"[^a-z0-9]+", "_", name).strip("_")
+    name = normalized_tool_name(tool)
     if name in _ALIAS_TO_FAMILY:
         return _ALIAS_TO_FAMILY[name]
     # A trailing/leading qualifier around a known family: `secure_shell_v2`.

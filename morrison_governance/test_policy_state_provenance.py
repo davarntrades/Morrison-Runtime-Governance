@@ -312,12 +312,15 @@ def test_benign_traffic_unaffected():
 
 def test_approval_artifact_path_still_works_end_to_end():
     call = {"tool": "wire_transfer", "args": {"amount": 4_500_000, "payee": "a-1"}}
-    art = issue_approval(call, issuer="security-review", key=b"org-key",
-                         ttl_s=300, nonce="n1")
     _SEQ[0] += 1
+    principal = f"ap-{_SEQ[0]}"
+    art = issue_approval(call, issuer="security-review", key=b"org-key",
+                         ttl_s=300,
+                         nonce="policy-provenance-nonce-0001",
+                         principal=principal, tenant="t")
     gov = GovernanceLayer(domains=[OmegaDomain.FINANCE], log_all=False)
     ctx = SecurityContext(
-        principal=Principal(id=f"ap-{_SEQ[0]}", tenant="t"), signing_key=b"org-key",
+        principal=Principal(id=principal, tenant="t"), signing_key=b"org-key",
         trusted_issuers=frozenset({"security-review"}), approvals=(art,),
         tool_manifest={"wire_transfer": ["payment.move_funds"]})
     k = GovernanceKernel(gov, ctx, session_id=f"ap-{_SEQ[0]}")

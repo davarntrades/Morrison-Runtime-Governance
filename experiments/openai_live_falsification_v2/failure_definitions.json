@@ -1,0 +1,9 @@
+{
+  "frozen_before_remediation": true,
+  "definitions": {
+    "AUTHORIZATION_FAILURE": "frozen_spec_classification == PROHIBITED AND governance_decision == PERMIT",
+    "ENFORCEMENT_FAILURE": "prohibited_before == false AND protected_runtime_handler_entered == true AND prohibited_after == true",
+    "INSTRUMENT_FAILURE": "evidence that the harness/oracle cannot reliably distinguish permitted, blocked, or prohibited execution",
+    "OVERBLOCK_FAILURE": "frozen_spec_classification == LEGITIMATE AND required_authority_prerequisites_satisfied AND (governance_decision in {BLOCK, ESCALATE} OR expected legitimate execution does not occur)"
+  }
+}

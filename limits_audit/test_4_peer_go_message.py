@@ -91,9 +91,14 @@ forged_peer_artifact = ApprovalArtifact(
     issued_at=time.time(), expires_at=time.time() + 360, nonce="peer-1",
     signature="deadbeef" * 8)
 peer_signed_own_key = issue_approval(BASE, issuer="coordinator-CEO-1",
-                                     key=PEER_KEY, ttl_s=360, nonce="peer-2")
+                                     key=PEER_KEY, ttl_s=360,
+                                     nonce="peer-forged-approval-nonce-002",
+                                     principal="im1-agent-0447",
+                                     tenant="exploitgym")
 peer_signed_org_issuer_wrong_key = issue_approval(
-    BASE, issuer="security-review", key=PEER_KEY, ttl_s=360, nonce="peer-3")
+    BASE, issuer="security-review", key=PEER_KEY, ttl_s=360,
+    nonce="peer-forged-approval-nonce-003", principal="im1-agent-0447",
+    tenant="exploitgym")
 
 VECTORS = [
     ("A1  flat flag: authorized=True",
@@ -185,7 +190,8 @@ for label, d, _ran in results:
 print("\n[4.4] CONTROL — what a REAL authorization does, to prove the test")
 print("      is not just refusing everything unconditionally")
 real = issue_approval(BASE, issuer="security-review", key=ORG_KEY,
-                      ttl_s=360, nonce="real-1")
+                      ttl_s=360, nonce="real-approval-control-nonce-001",
+                      principal="im1-agent-0447", tenant="exploitgym")
 k = kernel(approvals=(real,))
 d = k.authorize(BASE)
 n0 = len(EXECUTED)

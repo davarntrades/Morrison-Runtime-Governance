@@ -19,7 +19,8 @@ resolution, denial-aware trajectory history, and hash-chained evidence.
 """
 
 from morrison_governance.kernel.canonical import (
-    action_hash, canonical_json, canonicalize,
+    action_hash, authorization_action_hash, authorization_canonical,
+    authorization_equivalence_manifest, canonical_json, canonicalize,
 )
 from morrison_governance.kernel.capabilities import (
     ALL_CAPABILITIES, classify, describe,
@@ -55,7 +56,8 @@ from morrison_governance.kernel.trust import (
 )
 
 __all__ = [
-    "action_hash", "canonical_json", "canonicalize",
+    "action_hash", "authorization_action_hash", "authorization_canonical",
+    "authorization_equivalence_manifest", "canonical_json", "canonicalize",
     "ALL_CAPABILITIES", "classify", "describe",
     "DestinationVerdict", "classify_destination",
     "EvidenceChain", "EvidenceRecord", "rule_fingerprint", "ruleset_hash",

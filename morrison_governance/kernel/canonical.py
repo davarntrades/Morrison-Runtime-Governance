@@ -110,9 +110,70 @@ def canonical_json(call: dict) -> str:
 
 
 def action_hash(call: dict) -> str:
-    """Stable sha256 over the canonical action. This is the identity that a
-    governance decision, an approval artifact, and an execution all refer to."""
+    """Stable sha256 over exact canonical bytes for execution binding."""
     return hashlib.sha256(canonical_json(call).encode("utf-8")).hexdigest()
+
+
+# ─────────────────────────────────────────────────────────────
+# Authorization identity
+# ─────────────────────────────────────────────────────────────
+
+def authorization_equivalence_manifest(equivalences: dict | None) -> dict:
+    """Canonical, validated representation of trusted alias equivalences.
+
+    Input is ``{identity: iterable_of_tool_names}``. Membership is explicit:
+    broad capability or semantic-family membership is never consulted. A tool
+    may belong to at most one identity.
+    """
+    from morrison_governance.kernel.normalize import normalized_tool_name
+
+    manifest: dict[str, list[str]] = {}
+    owners: dict[str, str] = {}
+    for identity, aliases in sorted(
+            (equivalences or {}).items(), key=lambda item: str(item[0])):
+        group = normalized_tool_name(identity)
+        if not group:
+            raise ValueError("authorization equivalence identity is empty")
+        if isinstance(aliases, str):
+            aliases = (aliases,)
+        names = sorted({normalized_tool_name(alias) for alias in aliases})
+        if not names or any(not name for name in names):
+            raise ValueError(
+                f"authorization equivalence {identity!r} has empty aliases")
+        for name in names:
+            prior = owners.setdefault(name, group)
+            if prior != group:
+                raise ValueError(
+                    f"tool {name!r} appears in authorization equivalences "
+                    f"{prior!r} and {group!r}")
+        manifest[group] = names
+    return manifest
+
+
+def authorization_canonical(call: dict,
+                            equivalences: dict | None = None) -> dict:
+    """Exact authorization identity, with only explicitly trusted widening."""
+    from morrison_governance.kernel.normalize import normalized_tool_name
+
+    canon = canonicalize(call)
+    tool = normalized_tool_name(canon["tool"])
+    identity = f"tool:{tool}"
+    for group, aliases in authorization_equivalence_manifest(
+            equivalences).items():
+        if tool in aliases:
+            identity = f"equivalence:{group}"
+            break
+    return {"tool_identity": identity, "args": canon["args"]}
+
+
+def authorization_action_hash(call: dict,
+                              equivalences: dict | None = None) -> str:
+    """Hash of the exact action semantics an approval authorizes."""
+    payload = json.dumps(
+        authorization_canonical(call, equivalences), sort_keys=True,
+        separators=(",", ":"), ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 # ─────────────────────────────────────────────────────────────
@@ -124,11 +185,11 @@ def action_hash(call: dict) -> str:
 # differently — `shell` and `run_shell` carrying the same command, or a
 # collector written as `attacker.example` and as its percent-encoded form.
 #
-# `semantic_action_hash` binds the TRANSITION instead: the canonical tool
-# family and the normalised, fully-traversed argument content. Approvals and
-# revocations bind to this, so an approval cannot be dodged by respelling the
-# call, and a BLOCK on one spelling revokes every other spelling of the same
-# transition.
+# `semantic_action_hash` binds the broad TRANSITION class instead: the
+# canonical tool family and normalised, fully-traversed argument content.
+# Classification and revocation use it. Approval authority deliberately uses
+# `authorization_action_hash` above, because a broad family is not proof that
+# two executors have equivalent effects.
 
 
 def semantic_canonical(call: dict) -> dict:
