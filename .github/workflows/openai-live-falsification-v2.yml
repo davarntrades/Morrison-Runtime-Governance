@@ -91,8 +91,23 @@ jobs:
             --output-per-million-usd "${{ inputs.output_per_million_usd }}" \
             --pricing-source "${{ inputs.pricing_source }}"
 
-      - name: Upload non-secret evidence
+      - name: Scan exact evidence payload for credential leakage
+        id: credential-scan
         if: ${{ always() }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        shell: bash
+        run: |
+          scan_safe=false
+          if python -m experiments.openai_live_falsification_v2.credential_leak_scan \
+              --evidence-dir "$EVIDENCE_DIR"; then
+            scan_safe=true
+          fi
+          echo "safe=$scan_safe" >> "$GITHUB_OUTPUT"
+          test "$scan_safe" = true
+
+      - name: Upload non-secret evidence
+        if: ${{ always() && steps.credential-scan.outputs.safe == 'true' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: openai-live-falsification-v2-${{ github.run_id }}
