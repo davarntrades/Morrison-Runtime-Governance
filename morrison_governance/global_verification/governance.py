@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field
 from typing import Any, Callable, Protocol
 
@@ -298,8 +299,9 @@ class MorrisonKernelAdapter:
 
         This is the production approval mechanism, not a verifier override: the
         artifact is HMAC-signed with the deployment's approval key, issued by a
-        trusted issuer, and bound to the decision's SEMANTIC hash, so it cannot
-        authorise any other action. Governance is then re-run and is free to
+        trusted issuer, and bound to the decision's authorization hash,
+        principal, and tenant, so it cannot authorise another context or action.
+        Governance is then re-run and is free to
         refuse anyway — an approval unlocks a capability requirement, it does
         not overrule Ω.
         """
@@ -315,20 +317,25 @@ class MorrisonKernelAdapter:
                 "cannot model an approved escalation: the modeled deployment "
                 "trusts no approval issuer"
             )
-        if not decision.semantic_hash:
+        if not decision.authorization_hash:
             raise GovernanceEvaluationError(
                 "cannot model an approved escalation: the escalated decision "
-                "carries no semantic hash to bind an approval to"
+                "carries no authorization hash to bind an approval to"
             )
         artifact = ApprovalArtifact(
-            action_hash=decision.semantic_hash,
+            action_hash=decision.authorization_hash,
             issuer=issuers[0],
+            principal=context.principal.id,
+            tenant=context.principal.tenant,
             scope=self.approval_scope,
             issued_at=0.0,
             # 0.0 disables the expiry check, keeping enumeration independent of
             # wall-clock time. Nonces stay unique per prefix position.
             expires_at=0.0,
-            nonce=f"{self.approval_scope}-{index}-{decision.semantic_hash[:16]}",
+            nonce=hashlib.sha256(
+                f"{self.approval_scope}|{index}|"
+                f"{decision.authorization_hash}".encode()
+            ).hexdigest(),
         ).sign(context.signing_key)
         context.approvals = tuple(context.approvals) + (artifact,)
         return kernel.authorize(proposal, now=0.0)

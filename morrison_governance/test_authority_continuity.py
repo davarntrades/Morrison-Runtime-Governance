@@ -63,6 +63,12 @@ from morrison_governance.kernel import capabilities as C
 KEY = b"continuity-characterization-key"
 ISSUERS = frozenset({"security-review"})
 
+
+def _bound_approval(*args, **kwargs):
+    kwargs.setdefault("principal", "agent-svc")
+    kwargs.setdefault("tenant", "acme")
+    return issue_approval(*args, **kwargs)
+
 MANIFEST = {
     "query_db": [C.CAP_DATA_READ],
     "read_file": [C.CAP_DATA_READ],
@@ -170,8 +176,8 @@ def test_cont_02_one_approval_is_spent_once_per_principal():
     observed, single-use by construction, and every execution passed through
     Morrison.
     """
-    artifact = issue_approval(PAYMENT, issuer="security-review", key=KEY,
-                              ttl_s=300, nonce="approval-1")
+    artifact = _bound_approval(PAYMENT, issuer="security-review", key=KEY,
+                              ttl_s=300, nonce="continuity-approval-nonce-01")
     rt = _Runtime()
     verdicts = []
     for _ in range(3):
@@ -188,8 +194,8 @@ def test_cont_02_one_approval_is_spent_once_per_principal():
 def test_cont_02b_a_fresh_valid_approval_still_works_afterwards():
     """Single-use must not become never-again: replaying an approval may not
     poison the transition for a later, legitimately re-approved attempt."""
-    spent = issue_approval(PAYMENT, issuer="security-review", key=KEY,
-                           ttl_s=300, nonce="approval-3")
+    spent = _bound_approval(PAYMENT, issuer="security-review", key=KEY,
+                           ttl_s=300, nonce="continuity-approval-nonce-03")
     rt = _Runtime()
     first = _ctx()
     first.approvals = (spent,)
@@ -200,9 +206,9 @@ def test_cont_02b_a_fresh_valid_approval_still_works_afterwards():
     assert _kernel(replay).submit(PAYMENT, rt)[1] is False
 
     reapproved = _ctx()
-    reapproved.approvals = (issue_approval(PAYMENT, issuer="security-review",
+    reapproved.approvals = (_bound_approval(PAYMENT, issuer="security-review",
                                            key=KEY, ttl_s=300,
-                                           nonce="approval-4"),)
+                                           nonce="continuity-approval-nonce-04"),)
     decision, executed, _ = _kernel(reapproved).submit(PAYMENT, rt)
     assert decision.verdict == PERMIT and executed is True
     assert rt.executed == ["transfer", "transfer"]
@@ -459,8 +465,9 @@ def test_cont_12_an_unreachable_store_is_not_a_clean_history():
 def test_cont_03_the_nonce_is_single_use_within_one_context():
     """CONT-03 — the intra-context half of approval single-use works."""
     ctx = _ctx()
-    ctx.approvals = (issue_approval(PAYMENT, issuer="security-review", key=KEY,
-                                    ttl_s=300, nonce="approval-2"),)
+    ctx.approvals = (_bound_approval(PAYMENT, issuer="security-review", key=KEY,
+                                    ttl_s=300,
+                                    nonce="continuity-approval-nonce-02"),)
     rt = _Runtime()
     executions = sum(1 for _ in range(3)
                      if _kernel(ctx).submit(PAYMENT, rt)[1])

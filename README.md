@@ -405,7 +405,7 @@ The governance layer sits outside the model and does not require model retrainin
 | Metric | Current state |
 |---|---:|
 | Governance evaluations | **129,857** |
-| Repository test suite | **1,557 passing** |
+| Repository test suite | **1,599 passing** |
 | Runtime posture | **Fail-closed** |
 | Governance level | **Pre-execution** |
 | Model dependence | **Model-agnostic middleware** |

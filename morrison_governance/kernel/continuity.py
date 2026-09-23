@@ -190,6 +190,11 @@ class LedgerEntry:
     actor: str = ""
     session_id: str = ""
     semantic_hash: str = ""
+    # Hash of the complete security-relevant Decision binding at reservation
+    # time. Redemption compares the presented Decision to this immutable store
+    # record, so mutating multiple public dataclass fields cannot forge a new
+    # context.
+    binding_hash: str = ""
     capabilities: tuple = ()
     timestamp: float = 0.0
     # The wall-clock instant this entry was filed, independent of the `now` the

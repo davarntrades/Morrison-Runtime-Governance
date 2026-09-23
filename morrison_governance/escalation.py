@@ -357,7 +357,7 @@ class EscalationRouter:
         """Record a reviewer's approval and mint the artifact that carries it.
 
         Returns a real `ApprovalArtifact` — the same object a trusted approval
-        service would produce, bound to this action's semantic hash. This
+        service would produce, bound to this action, principal, and tenant. This
         router mints nothing the kernel would not already verify, and an
         approval after expiry is refused rather than quietly honoured.
         """
@@ -376,9 +376,10 @@ class EscalationRouter:
             raise ValueError(f"escalation {esc_id} is already {esc.state}")
 
         nonce = hashlib.sha256(f"{esc.id}|{issuer}|{now:.0f}".encode()
-                               ).hexdigest()[:16]
+                               ).hexdigest()
         artifact = issue_approval(esc.action, issuer=issuer, key=key,
-                                  ttl_s=approval_ttl_s, nonce=nonce, now=now)
+                                  ttl_s=approval_ttl_s, nonce=nonce, now=now,
+                                  principal=esc.principal, tenant=esc.tenant)
         self.store.put(replace(
             esc, state=APPROVED, resolved_at=now, resolved_by=issuer,
             resolution_reason="approved by reviewer", approval_nonce=nonce))

@@ -117,6 +117,8 @@ def test_control_g_effect_then_raise_is_recorded_as_effect_possible():
         issuer="security-review",
         key=KEY,
         nonce="instrument-effect-then-raise-0001",
+        principal="instrument-agent",
+        tenant="instrument-tenant",
     )
     runtime = StatefulRuntime(raise_after_effect=True)
     kernel = _kernel(approvals=(approval,))

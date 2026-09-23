@@ -55,13 +55,21 @@ from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.result import GovernanceVerdict
 from morrison_governance.kernel import (
     BLOCK, ESCALATE, PERMIT, ApprovalArtifact, EvidenceChain, EvidenceRecord,
-    GovernanceKernel, Principal, SecurityContext, action_hash, classify,
+    GovernanceKernel, Principal, SecurityContext, action_hash,
+    authorization_action_hash, classify,
     classify_destination, issue_approval, quarantine_authority, ruleset_hash,
 )
 from morrison_governance.kernel import capabilities as C
 
 KEY = b"unit-test-approval-key"
 ISSUERS = frozenset({"security-review"})
+
+
+def _bound_approval(*args, **kwargs):
+    """Issue test authority for the authenticated fixture identity."""
+    kwargs.setdefault("principal", "agent-svc")
+    kwargs.setdefault("tenant", "acme")
+    return issue_approval(*args, **kwargs)
 
 MANIFEST = {
     "read_file": [C.CAP_DATA_READ],
@@ -185,7 +193,7 @@ def test_caller_supplied_threshold_cannot_defeat_amount_policy():
 def test_real_approval_artifact_does_permit_the_exact_action():
     """The legitimate path still works — authority just has to be real."""
     call = {"tool": "delete_bucket", "args": {"bucket": "stale-tmp"}}
-    art = issue_approval(call, issuer="security-review", key=KEY, ttl_s=300)
+    art = _bound_approval(call, issuer="security-review", key=KEY, ttl_s=300)
     rt = _Runtime()
     k = _kernel(_ctx(approvals=(art,)))
     d, executed, _ = k.submit(call, rt)
@@ -197,7 +205,7 @@ def test_real_approval_artifact_does_permit_the_exact_action():
 
 def test_approval_from_untrusted_issuer_is_rejected():
     call = {"tool": "delete_bucket", "args": {"bucket": "prod"}}
-    art = issue_approval(call, issuer="attacker", key=KEY)
+    art = _bound_approval(call, issuer="attacker", key=KEY)
     k = _kernel(_ctx(approvals=(art,)))
     d = k.authorize(call)
     assert d.verdict == ESCALATE
@@ -216,7 +224,7 @@ def test_unsigned_or_wrongly_signed_approval_is_rejected():
 
 def test_expired_approval_is_rejected():
     call = {"tool": "delete_bucket", "args": {"bucket": "prod"}}
-    art = issue_approval(call, issuer="security-review", key=KEY,
+    art = _bound_approval(call, issuer="security-review", key=KEY,
                          ttl_s=-1, now=time.time() - 100)
     k = _kernel(_ctx(approvals=(art,)))
     d = k.authorize(call)
@@ -231,7 +239,7 @@ def test_expired_approval_is_rejected():
 def test_approval_for_one_action_does_not_authorise_a_mutated_action():
     """AB-06: approved a $100 transfer, executed a $4,500,000 transfer."""
     approved = {"tool": "transfer", "args": {"amount": 100, "to": "acct-ok"}}
-    art = issue_approval(approved, issuer="security-review", key=KEY)
+    art = _bound_approval(approved, issuer="security-review", key=KEY)
     k = _kernel(_ctx(approvals=(art,)))
     mutated = {"tool": "transfer", "args": {"amount": 4_500_000, "to": "acct-evil"}}
     d = k.authorize(mutated)
@@ -242,7 +250,7 @@ def test_approval_for_one_action_does_not_authorise_a_mutated_action():
 def test_execute_refuses_an_action_that_differs_from_the_authorised_one():
     """evaluate A -> mutate -> execute B must fail at the execution boundary."""
     call = {"tool": "delete_bucket", "args": {"bucket": "stale-tmp"}}
-    art = issue_approval(call, issuer="security-review", key=KEY)
+    art = _bound_approval(call, issuer="security-review", key=KEY)
     rt = _Runtime()
     k = _kernel(_ctx(approvals=(art,)))
     d = k.authorize(call)
@@ -264,7 +272,8 @@ def test_action_hash_ignores_quarantined_fields_but_binds_semantics():
 
 def test_approval_nonce_cannot_be_replayed():
     call = {"tool": "delete_bucket", "args": {"bucket": "stale-tmp"}}
-    art = issue_approval(call, issuer="security-review", key=KEY, nonce="n-1")
+    art = _bound_approval(call, issuer="security-review", key=KEY,
+                          nonce="kernel-replay-nonce-000001")
     rt = _Runtime()
     k = _kernel(_ctx(approvals=(art,)))
     d1, ok1, _ = k.submit(call, rt)
@@ -441,7 +450,7 @@ def test_unknown_tool_policy_block_is_honoured():
 def test_denied_capability_cannot_be_unlocked_by_any_approval():
     """Log tampering is DENY: even a valid approval must not unlock it."""
     call = {"tool": "delete_logs", "args": {"stream": "prod-audit"}}
-    art = issue_approval(call, issuer="security-review", key=KEY)
+    art = _bound_approval(call, issuer="security-review", key=KEY)
     rt = _Runtime()
     k = _kernel(_ctx(approvals=(art,)))
     d, executed, _ = k.submit(call, rt)
@@ -974,7 +983,7 @@ def test_approval_cannot_be_minted_with_an_empty_key():
     artifact that carries no authority."""
     call = {"tool": "delete_bucket", "args": {"bucket": "prod-backups"}}
     with pytest.raises(ValueError, match="empty key"):
-        issue_approval(call, issuer="security-review", key=b"")
+        _bound_approval(call, issuer="security-review", key=b"")
     with pytest.raises(ValueError, match="empty key"):
         ApprovalArtifact(action_hash=action_hash(call),
                          issuer="security-review").sign(b"")
@@ -1024,8 +1033,10 @@ def test_verification_is_disabled_not_bypassed_when_the_key_is_absent():
 
 def test_artifact_verify_fails_closed_on_an_empty_key():
     call = {"tool": "delete_bucket", "args": {"bucket": "prod"}}
-    real = issue_approval(call, issuer="security-review", key=KEY)
-    ok, reason = real.verify(b"", action_hash(call), ISSUERS, time.time())
+    real = _bound_approval(call, issuer="security-review", key=KEY)
+    ok, reason = real.verify(
+        b"", authorization_action_hash(call), "agent-svc", "acme",
+        ISSUERS, time.time())
     assert ok is False
     assert "DISABLED" in reason
 
@@ -1033,7 +1044,7 @@ def test_artifact_verify_fails_closed_on_an_empty_key():
 def test_a_genuinely_approved_action_still_permits_once_a_key_exists():
     """The guard must close the hole without breaking the legitimate path."""
     call = {"tool": "delete_bucket", "args": {"bucket": "stale-tmp"}}
-    art = issue_approval(call, issuer="security-review", key=KEY)
+    art = _bound_approval(call, issuer="security-review", key=KEY)
     rt = _Runtime()
     k = _kernel(_ctx(approvals=(art,)))
     d, executed, _ = k.submit(call, rt)
@@ -1303,7 +1314,7 @@ def test_sensitive_egress_permits_with_a_verified_approval():
     """A governed, approved disclosure is still possible."""
     call = {"tool": "export_report", "args": {
         "url": "https://regulator.example/submit", "columns": ["iban"]}}
-    art = issue_approval(call, issuer="security-review", key=KEY)
+    art = _bound_approval(call, issuer="security-review", key=KEY)
     rt = _Runtime()
     k = _kernel(_ctx(approvals=(art,)))
     d, executed, _ = k.submit(call, rt)
