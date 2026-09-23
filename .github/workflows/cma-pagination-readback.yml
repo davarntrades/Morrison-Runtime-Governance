@@ -1,0 +1,42 @@
+name: cma-pagination-readback
+
+# Follow-up to cma-pagination-probe (run 35932071669): re-queries the SAME
+# already-settled live session with a fixed ground-truth reader and prints
+# everything to stdout. Submits no new propose_action calls.
+
+on:
+  push:
+    branches: [experiment/cma-pagination-readback]
+    paths:
+      - .github/workflows/cma-pagination-readback.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cma-pagination-readback
+  cancel-in-progress: false
+
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout CMA experiment
+        uses: actions/checkout@v4
+        with:
+          repository: davarntrades/launch-your-agent
+          ref: 4e56341e20189313ec945d868aaa9e37779c2ca8
+          path: launch-your-agent
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read-back — same session, fixed ground-truth reader
+        working-directory: launch-your-agent/governance-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SESSION_ID: sesn_01KxSMqHSa28y7quCNRtC6uA
+        run: python3 live/pagination_probe_readback.py
