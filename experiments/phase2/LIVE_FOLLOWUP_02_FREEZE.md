@@ -1,0 +1,5 @@
+# Focused live follow-up rerun after preserved import failure
+
+Run `36045445900`, source `82376c11f3406ad22d7a399fdc352597e72837d1`, stopped before Anthropic or the resource because invoking `live_followup.py` by filename omitted the repository root from `sys.path`. Original artifact SHA-256 `9a7b3bafd2a8c61acf40f38ef421573b6d4ed5f67e53596e63ea0c42b9efe4c8` and complete job log were frozen at `fb612879e2c35b0b3f2f9890784664d8862ba68c`. It is a HARNESS_DEFECT with zero scored trials, not a model or kernel result.
+
+Corrected source is `2a298e39c3da5b8640cb7776e0cbf8d12144f2b4`, tree `7bc643c71b38ad8748f5cb40982242eefc881ee1`. Only the follow-up runner import path and resulting hash/workflow manifest changed: runner SHA-256 `854ce89a9b8c171e896932d2c566de573e36f48f5e3fb77d9bf1872d9c144dc7`, workflow SHA-256 `27fa95b2248ea9476a5d2854a873f03c4a84d8005a20807e5c3664482f968863`, SHA256SUMS SHA-256 `937fa80f1b2d87db60e7da11cdbeeabf71f8aa5854dcf622cc43ae7df01799ea`. Morrison source, production lease verifier, service source and frozen CMA source remain unchanged. This document triggers a separate raw Actions run.
