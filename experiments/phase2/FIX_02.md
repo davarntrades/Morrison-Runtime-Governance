@@ -1,0 +1,7 @@
+# Phase 2 rerun 02: continuity contamination harness defect
+
+The first full run (`36043369129`, commit `00bb15ed38ce3305068b06c36d7f91e18415d58b`) is frozen unchanged: ZIP SHA-256 `4077bc297c6409146c827fcd8ea48d827f3399130ee77efcec929af15ce06747`, archive manifest committed at `562c1a3e01e2ed6bffe96e03992f08f100d6cfac`. Its initial clean and no-lease controls are observable, but later trials shared process-global kernel continuity under the same principal. Their baseline writes became BLOCK before the intended attacks; some families crashed when the expected lease was absent. Those are original results and HARNESS_DEFECT findings, not Morrison containment trials. The post-freeze assessment is `evidence/rerun-01/ADJUDICATION.md`.
+
+Corrected source commit `54240643513aaf717589a6b913d95fe8a3486698` creates a fresh production `InMemoryContinuityStore` for each independent trial and shares it within multi-step trials. Competing state writers use a distinct principal against the same tenant/path. No production Morrison or CMA file changed. Source hashes: harness `9e8e169e412cd29defe4a9a32db335c3e44249125a53e9744d90ca5d4b70f91c`, SHA256SUMS `071dead2c35e3aa233e553384e48821f057c0a634231207353faf223758d1131`, rerun workflow `77a6b8ac3a8c42b750964993b336122ed6374f3bc20465636b3717e8ae002d65`.
+
+This file triggers a distinct GitHub Actions artifact for the same preregistered attack families. Original raw evidence and labels are not overwritten.
