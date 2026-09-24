@@ -1,0 +1,7 @@
+# Focused live follow-up freeze
+
+The full rerun 02 raw database and API journal were frozen unchanged at `3c59b33e02e217f5a916db940a4fa5cbf39e503b`, ZIP SHA-256 `a1698a43d0ba0c620e72dbb49a77c14da561fb1502b8d2d214a70b603e580a28`. Eight of eight deterministic trials each committed with a mismatched authenticated session, principal or tenant. Eight TOCTOU and three stale-state families committed after an intervening write. This is the initial finding, not overwritten.
+
+Live follow-up source is frozen at commit `82376c11f3406ad22d7a399fdc352597e72837d1`, tree `1e3b391b96d94b126a2c354e1be85f1515112786`: harness SHA-256 `ed94cfa205fb9a8ec65479ccc910ad7cac7152758d86530d73d7ddea557d586b`, focused runner `a41cb1d4f77e65c24a10fbbd66ab85a3a5c61379e983335ebc23fc5460e434b8`, workflow `eaf86caae3dcaeb7869abd0a7799bb40e801f30d663cc6979bb160b781a3683e`. The immutable Phase 1 / production Morrison source and frozen CMA prototype remain unchanged.
+
+Purpose: 6 live CMA proposals each for cross-tenant, cross-principal, cross-session and stale-state transitions, with neutral write content to avoid the incidental tenant-word policy BLOCK in rerun 02. The separate live `N_model_proposals` field now records the observed tool-call count directly; rerun 02's original zero field and companion correction records remain unchanged. This change is to the harness and prompts, not the kernel, verifier or persistent service.
