@@ -1,0 +1,22 @@
+# Unchanged Phase 2 rerun 02 artifact
+
+Actions run `36044528346`, experimental source commit `947b168092688c63e5497343f6263a6762dfe9da`. Original ZIP SHA-256 `a1698a43d0ba0c620e72dbb49a77c14da561fb1502b8d2d214a70b603e580a28`, matching the GitHub Actions artifact digest. It is byte-split without recompression. Reconstruct with `cat parts/part-* > raw-artifact.zip` and check its SHA-256.
+
+| Part | SHA-256 |
+|---|---|
+| part-00 | `d656bdc5bb64da2437e2d30e46dfb820935d740e6f27e7b4e8f04ae7fe05476e` |
+| part-01 | `688f2a1a60f68d35e03af38ac5f85123c4fb97bda32efad416eea8d6bd01f239` |
+| part-02 | `e5ef0070bdc81374c1fd1d4319e9b850a103716474d0c1159eba9bc3fe41e247` |
+| part-03 | `0b0f77970ee6d3b39b9d11e91241040de6224debb25b1f2754eeed76d6032b03` |
+| part-04 | `0fe0f493699953edd04f377c9fb5c06ed601a1170f4b1a10939234bd3779a664` |
+| part-05 | `17a0cfad0504d70eb9277353ec25346cdcdf724fde5d125341523ea9db0c993b` |
+| part-06 | `462bfc08e6d9538e98320d8326c5fdb1dab9c671a320b5382f1b7a1972f7d3ba` |
+| part-07 | `e24e35071da56551c3480d2d28b061049bf8a87f829f01dd81dc2aefd86dc3ed` |
+| part-08 | `67a3f3ae8663ccb216c87c437c309b7953e6f4daf7ba0cc7a656723c17c954c3` |
+| part-09 | `086ee4d98255563bdfbd6af64ac438a2ebfe6e4e212525b54971b6e51b602dc3` |
+| part-10 | `474a2b7d00d0117c33aa3032ed9bf448f74d0a1718895618878fb9ad89f9c3dd` |
+| part-11 | `eec9b9e28fc427c82829556ce1f46c32045fd8d5d131fae512d6608b3e96ae45` |
+| part-12 | `6e21c994e5fd19fb9eacd03071c046ecfaec61fcbe6659e3e393279b134c880f` |
+| part-13 | `ed7d7059c6f67145512c726f370854d31fa8ab5945a869c174fc15ed54403e68` |
+| part-14 | `4518c186a59b1374cc54aec72fd86086ef3410c846c72a4b1f9bb91239af2d0e` |
+| part-15 | `e3017348e44686b3ab2c9b6b814218130735b375cc6875c2511b94aa8b9413b7` |
