@@ -1,0 +1,352 @@
+﻿2026-09-24T19:02:55.9546569Z Current runner version: '2.337.0'
+2026-09-24T19:02:55.9570631Z ##[group]Runner Image Provisioner
+2026-09-24T19:02:55.9571637Z Hosted Compute Agent
+2026-09-24T19:02:55.9572254Z Version: 20260828.587
+2026-09-24T19:02:55.9572920Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-24T19:02:55.9573729Z Build Date: 2026-08-28T16:44:25Z
+2026-09-24T19:02:55.9574456Z Worker ID: {1851c1ac-d6c3-499f-bef8-518f19270755}
+2026-09-24T19:02:55.9575749Z Azure Region: westus2
+2026-09-24T19:02:55.9576390Z ##[endgroup]
+2026-09-24T19:02:55.9578013Z ##[group]Operating System
+2026-09-24T19:02:55.9578769Z Ubuntu
+2026-09-24T19:02:55.9579326Z 24.04.5
+2026-09-24T19:02:55.9579882Z LTS
+2026-09-24T19:02:55.9580409Z ##[endgroup]
+2026-09-24T19:02:55.9580952Z ##[group]Runner Image
+2026-09-24T19:02:55.9581596Z Image: ubuntu-24.04
+2026-09-24T19:02:55.9582239Z Version: 20260920.314.1
+2026-09-24T19:02:55.9583538Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260920.314/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-24T19:02:55.9585314Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260920.314
+2026-09-24T19:02:55.9586427Z ##[endgroup]
+2026-09-24T19:02:55.9587590Z ##[group]GITHUB_TOKEN Permissions
+2026-09-24T19:02:55.9590188Z Contents: read
+2026-09-24T19:02:55.9590870Z Metadata: read
+2026-09-24T19:02:55.9591674Z ##[endgroup]
+2026-09-24T19:02:55.9594154Z Secret source: Actions
+2026-09-24T19:02:55.9595658Z Cache mode: write
+2026-09-24T19:02:55.9596496Z Prepare workflow directory
+2026-09-24T19:02:55.9936385Z Prepare all required actions
+2026-09-24T19:02:55.9987860Z Getting action download info
+2026-09-24T19:02:56.4115877Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-09-24T19:02:56.5052954Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-09-24T19:02:56.5842190Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-09-24T19:02:56.8100764Z Complete job name: phase2
+2026-09-24T19:02:56.8882725Z ##[group]Run actions/checkout@v4
+2026-09-24T19:02:56.8883593Z with:
+2026-09-24T19:02:56.8884021Z   path: campaign
+2026-09-24T19:02:56.8884494Z   persist-credentials: false
+2026-09-24T19:02:56.8885457Z   repository: davarntrades/Morrison-Runtime-Governance
+2026-09-24T19:02:56.8889274Z   token: ***
+2026-09-24T19:02:56.8889709Z   ssh-strict: true
+2026-09-24T19:02:56.8890143Z   ssh-user: git
+2026-09-24T19:02:56.8890561Z   clean: true
+2026-09-24T19:02:56.8891003Z   sparse-checkout-cone-mode: true
+2026-09-24T19:02:56.8891530Z   fetch-depth: 1
+2026-09-24T19:02:56.8891967Z   fetch-tags: false
+2026-09-24T19:02:56.8892420Z   show-progress: true
+2026-09-24T19:02:56.8892874Z   lfs: false
+2026-09-24T19:02:56.8893285Z   submodules: false
+2026-09-24T19:02:56.8893725Z   set-safe-directory: true
+2026-09-24T19:02:56.8894228Z   allow-unsafe-pr-checkout: false
+2026-09-24T19:02:56.8895448Z ##[endgroup]
+2026-09-24T19:02:56.9943588Z Syncing repository: davarntrades/Morrison-Runtime-Governance
+2026-09-24T19:02:56.9946769Z ##[group]Getting Git version info
+2026-09-24T19:02:56.9948512Z Working directory is '/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/campaign'
+2026-09-24T19:02:56.9950689Z [command]/usr/bin/git version
+2026-09-24T19:02:57.0062804Z git version 2.55.0
+2026-09-24T19:02:57.0091862Z ##[endgroup]
+2026-09-24T19:02:57.0121882Z Temporarily overriding HOME='/home/runner/work/_temp/bd3bd73b-072b-4349-846e-812b4f0abc31' before making global git config changes
+2026-09-24T19:02:57.0124513Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-24T19:02:57.0128264Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/campaign
+2026-09-24T19:02:57.0191480Z ##[group]Initializing the repository
+2026-09-24T19:02:57.0201177Z [command]/usr/bin/git init /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/campaign
+2026-09-24T19:02:57.0410522Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-24T19:02:57.0412823Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-24T19:02:57.0421416Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-24T19:02:57.0423061Z hint: call:
+2026-09-24T19:02:57.0424144Z hint:
+2026-09-24T19:02:57.0425768Z hint: 	git config --global init.defaultBranch <name>
+2026-09-24T19:02:57.0427180Z hint:
+2026-09-24T19:02:57.0428518Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-24T19:02:57.0430549Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-24T19:02:57.0432371Z hint:
+2026-09-24T19:02:57.0433383Z hint: 	git branch -m <name>
+2026-09-24T19:02:57.0437195Z hint:
+2026-09-24T19:02:57.0438797Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-24T19:02:57.0441666Z Initialized empty Git repository in /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/campaign/.git/
+2026-09-24T19:02:57.0448634Z [command]/usr/bin/git remote add origin https://github.com/davarntrades/Morrison-Runtime-Governance
+2026-09-24T19:02:57.0514677Z ##[endgroup]
+2026-09-24T19:02:57.0516742Z ##[group]Disabling automatic garbage collection
+2026-09-24T19:02:57.0519780Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-24T19:02:57.0565948Z ##[endgroup]
+2026-09-24T19:02:57.0567642Z ##[group]Setting up auth
+2026-09-24T19:02:57.0573296Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-24T19:02:57.0617086Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-24T19:02:57.1070805Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-24T19:02:57.1107938Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-24T19:02:57.1326314Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-24T19:02:57.1362980Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-24T19:02:57.1585103Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-24T19:02:57.1664016Z ##[endgroup]
+2026-09-24T19:02:57.1665188Z ##[group]Fetching the repository
+2026-09-24T19:02:57.1674473Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +3186ec8bf108243dd806f75b9b00f4a47d3d7794:refs/remotes/origin/experiment/cma-phase2-persistent-20260924
+2026-09-24T19:02:59.2579218Z From https://github.com/davarntrades/Morrison-Runtime-Governance
+2026-09-24T19:02:59.2584390Z  * [new ref]         3186ec8bf108243dd806f75b9b00f4a47d3d7794 -> origin/experiment/cma-phase2-persistent-20260924
+2026-09-24T19:02:59.2593324Z ##[endgroup]
+2026-09-24T19:02:59.2595768Z ##[group]Determining the checkout info
+2026-09-24T19:02:59.2597935Z ##[endgroup]
+2026-09-24T19:02:59.2599195Z [command]/usr/bin/git sparse-checkout disable
+2026-09-24T19:02:59.2653871Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-24T19:02:59.2692489Z ##[group]Checking out the ref
+2026-09-24T19:02:59.2699163Z [command]/usr/bin/git checkout --progress --force -B experiment/cma-phase2-persistent-20260924 refs/remotes/origin/experiment/cma-phase2-persistent-20260924
+2026-09-24T19:02:59.4815812Z Switched to a new branch 'experiment/cma-phase2-persistent-20260924'
+2026-09-24T19:02:59.4824503Z branch 'experiment/cma-phase2-persistent-20260924' set up to track 'origin/experiment/cma-phase2-persistent-20260924'.
+2026-09-24T19:02:59.4840030Z ##[endgroup]
+2026-09-24T19:02:59.4895020Z [command]/usr/bin/git log -1 --format=%H
+2026-09-24T19:02:59.4926087Z 3186ec8bf108243dd806f75b9b00f4a47d3d7794
+2026-09-24T19:02:59.4934470Z ##[group]Removing auth
+2026-09-24T19:02:59.4938263Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-24T19:02:59.4972595Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-24T19:02:59.5196578Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-24T19:02:59.5226697Z http.https://github.com/.extraheader
+2026-09-24T19:02:59.5234357Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-24T19:02:59.5269147Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-24T19:02:59.5492478Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-24T19:02:59.5525576Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-24T19:02:59.5743819Z ##[endgroup]
+2026-09-24T19:02:59.6078349Z ##[group]Run actions/checkout@v4
+2026-09-24T19:02:59.6078729Z with:
+2026-09-24T19:02:59.6079033Z   repository: davarntrades/launch-your-agent
+2026-09-24T19:02:59.6079433Z   ref: 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+2026-09-24T19:02:59.6079789Z   path: frozen-cma
+2026-09-24T19:02:59.6080090Z   persist-credentials: false
+2026-09-24T19:02:59.6082708Z   token: ***
+2026-09-24T19:02:59.6083226Z   ssh-strict: true
+2026-09-24T19:02:59.6083694Z   ssh-user: git
+2026-09-24T19:02:59.6084097Z   clean: true
+2026-09-24T19:02:59.6084478Z   sparse-checkout-cone-mode: true
+2026-09-24T19:02:59.6085035Z   fetch-depth: 1
+2026-09-24T19:02:59.6085341Z   fetch-tags: false
+2026-09-24T19:02:59.6085626Z   show-progress: true
+2026-09-24T19:02:59.6085907Z   lfs: false
+2026-09-24T19:02:59.6086157Z   submodules: false
+2026-09-24T19:02:59.6086431Z   set-safe-directory: true
+2026-09-24T19:02:59.6086748Z   allow-unsafe-pr-checkout: false
+2026-09-24T19:02:59.6087060Z ##[endgroup]
+2026-09-24T19:02:59.6916824Z Syncing repository: davarntrades/launch-your-agent
+2026-09-24T19:02:59.6918872Z ##[group]Getting Git version info
+2026-09-24T19:02:59.6920569Z Working directory is '/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/frozen-cma'
+2026-09-24T19:02:59.6963210Z [command]/usr/bin/git version
+2026-09-24T19:02:59.7008594Z git version 2.55.0
+2026-09-24T19:02:59.7030835Z ##[endgroup]
+2026-09-24T19:02:59.7045901Z Temporarily overriding HOME='/home/runner/work/_temp/b205953f-7142-48bb-bd5c-7335e39884f7' before making global git config changes
+2026-09-24T19:02:59.7047370Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-24T19:02:59.7051881Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/frozen-cma
+2026-09-24T19:02:59.7087931Z ##[group]Initializing the repository
+2026-09-24T19:02:59.7092858Z [command]/usr/bin/git init /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/frozen-cma
+2026-09-24T19:02:59.7137325Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-24T19:02:59.7138797Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-24T19:02:59.7140112Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-24T19:02:59.7141203Z hint: call:
+2026-09-24T19:02:59.7141997Z hint:
+2026-09-24T19:02:59.7142804Z hint: 	git config --global init.defaultBranch <name>
+2026-09-24T19:02:59.7143797Z hint:
+2026-09-24T19:02:59.7144981Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-24T19:02:59.7146784Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-24T19:02:59.7149058Z hint:
+2026-09-24T19:02:59.7149816Z hint: 	git branch -m <name>
+2026-09-24T19:02:59.7150670Z hint:
+2026-09-24T19:02:59.7151756Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-24T19:02:59.7153798Z Initialized empty Git repository in /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/frozen-cma/.git/
+2026-09-24T19:02:59.7157660Z [command]/usr/bin/git remote add origin https://github.com/davarntrades/launch-your-agent
+2026-09-24T19:02:59.7187789Z ##[endgroup]
+2026-09-24T19:02:59.7188698Z ##[group]Disabling automatic garbage collection
+2026-09-24T19:02:59.7192454Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-24T19:02:59.7228535Z ##[endgroup]
+2026-09-24T19:02:59.7229539Z ##[group]Setting up auth
+2026-09-24T19:02:59.7235343Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-24T19:02:59.7271029Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-24T19:02:59.7530249Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-24T19:02:59.7570085Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-24T19:02:59.7823793Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-24T19:02:59.7877628Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-24T19:02:59.8138894Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-24T19:02:59.8184080Z ##[endgroup]
+2026-09-24T19:02:59.8185139Z ##[group]Fetching the repository
+2026-09-24T19:02:59.8193905Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+2026-09-24T19:03:00.5893100Z From https://github.com/davarntrades/launch-your-agent
+2026-09-24T19:03:00.5894137Z  * branch            1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6 -> FETCH_HEAD
+2026-09-24T19:03:00.5897869Z ##[endgroup]
+2026-09-24T19:03:00.5898528Z ##[group]Determining the checkout info
+2026-09-24T19:03:00.5900863Z ##[endgroup]
+2026-09-24T19:03:00.5906695Z [command]/usr/bin/git sparse-checkout disable
+2026-09-24T19:03:00.5951202Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-24T19:03:00.5985370Z ##[group]Checking out the ref
+2026-09-24T19:03:00.5991738Z [command]/usr/bin/git checkout --progress --force 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+2026-09-24T19:03:00.6323117Z Note: switching to '1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6'.
+2026-09-24T19:03:00.6323887Z 
+2026-09-24T19:03:00.6324300Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-09-24T19:03:00.6325535Z changes and commit them, and you can discard any commits you make in this
+2026-09-24T19:03:00.6326458Z state without impacting any branches by switching back to a branch.
+2026-09-24T19:03:00.6326918Z 
+2026-09-24T19:03:00.6327240Z If you want to create a new branch to retain commits you create, you may
+2026-09-24T19:03:00.6327772Z do so (now or later) by using -c with the switch command. Example:
+2026-09-24T19:03:00.6328078Z 
+2026-09-24T19:03:00.6328217Z   git switch -c <new-branch-name>
+2026-09-24T19:03:00.6328465Z 
+2026-09-24T19:03:00.6328601Z Or undo this operation with:
+2026-09-24T19:03:00.6328793Z 
+2026-09-24T19:03:00.6328908Z   git switch -
+2026-09-24T19:03:00.6329086Z 
+2026-09-24T19:03:00.6329340Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-09-24T19:03:00.6329684Z 
+2026-09-24T19:03:00.6329987Z HEAD is now at 1f3db3c morrison-cma: B2 vs B comparison and TRACE-v0 interpretation (no fixes)
+2026-09-24T19:03:00.6332121Z ##[endgroup]
+2026-09-24T19:03:00.6375150Z [command]/usr/bin/git log -1 --format=%H
+2026-09-24T19:03:00.6401234Z 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+2026-09-24T19:03:00.6410005Z ##[group]Removing auth
+2026-09-24T19:03:00.6413886Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-24T19:03:00.6446251Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-24T19:03:00.6660917Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-24T19:03:00.6684647Z http.https://github.com/.extraheader
+2026-09-24T19:03:00.6691792Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-24T19:03:00.6727504Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-24T19:03:00.6942718Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-24T19:03:00.6972974Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-24T19:03:00.7185099Z ##[endgroup]
+2026-09-24T19:03:00.7380310Z ##[group]Run actions/setup-python@v5
+2026-09-24T19:03:00.7380664Z with:
+2026-09-24T19:03:00.7380910Z   python-version: 3.12
+2026-09-24T19:03:00.7381195Z   check-latest: false
+2026-09-24T19:03:00.7383657Z   token: ***
+2026-09-24T19:03:00.7383920Z   update-environment: true
+2026-09-24T19:03:00.7384214Z   allow-prereleases: false
+2026-09-24T19:03:00.7384510Z   freethreaded: false
+2026-09-24T19:03:00.7385124Z ##[endgroup]
+2026-09-24T19:03:00.8712679Z ##[group]Installed versions
+2026-09-24T19:03:00.8819107Z (node:2511) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-24T19:03:00.8820045Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-24T19:03:00.8820820Z Successfully set up CPython (3.12.14)
+2026-09-24T19:03:00.8821695Z ##[endgroup]
+2026-09-24T19:03:00.9056211Z ##[group]Run test "$(git -C frozen-cma rev-parse HEAD)" = 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+2026-09-24T19:03:00.9057512Z [36;1mtest "$(git -C frozen-cma rev-parse HEAD)" = 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6[0m
+2026-09-24T19:03:00.9058790Z [36;1mtest -z "$(git -C campaign diff 7dacc63b0ec0e17d769ef08431e3ec0696e8d03a HEAD -- morrison_governance)"[0m
+2026-09-24T19:03:00.9059743Z [36;1mcd campaign[0m
+2026-09-24T19:03:00.9060252Z [36;1msha256sum -c experiments/phase2/SHA256SUMS[0m
+2026-09-24T19:03:00.9061015Z [36;1mgit rev-parse HEAD > experiments/phase2/phase2-run-commit.txt[0m
+2026-09-24T19:03:00.9062182Z [36;1mgit rev-parse 7dacc63b0ec0e17d769ef08431e3ec0696e8d03a > experiments/phase2/morrison-source-commit.txt[0m
+2026-09-24T19:03:00.9063447Z [36;1mgit -C ../frozen-cma rev-parse HEAD > experiments/phase2/cma-source-commit.txt[0m
+2026-09-24T19:03:00.9410750Z shell: /usr/bin/bash -e {0}
+2026-09-24T19:03:00.9411164Z env:
+2026-09-24T19:03:00.9411614Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:00.9412234Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-09-24T19:03:00.9412820Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:00.9413344Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:00.9413892Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:00.9414413Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-09-24T19:03:00.9415094Z ##[endgroup]
+2026-09-24T19:03:00.9590455Z fatal: bad object 7dacc63b0ec0e17d769ef08431e3ec0696e8d03a
+2026-09-24T19:03:00.9611815Z experiments/phase2/PREREGISTRATION.md: OK
+2026-09-24T19:03:00.9612812Z experiments/phase2/campaign.py: OK
+2026-09-24T19:03:00.9613478Z experiments/phase2/service.py: OK
+2026-09-24T19:03:00.9613957Z experiments/phase2/live_followup.py: OK
+2026-09-24T19:03:00.9614863Z .github/workflows/cma-phase2-persistent.yml: OK
+2026-09-24T19:03:00.9615780Z .github/workflows/cma-phase2-live-followup.yml: OK
+2026-09-24T19:03:00.9707564Z ##[group]Run python3 -u experiments/phase2/live_followup.py
+2026-09-24T19:03:00.9708129Z [36;1mpython3 -u experiments/phase2/live_followup.py[0m
+2026-09-24T19:03:00.9772888Z shell: /usr/bin/bash -e {0}
+2026-09-24T19:03:00.9773199Z env:
+2026-09-24T19:03:00.9773542Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:00.9774056Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-09-24T19:03:00.9774554Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:00.9775488Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:00.9775975Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:00.9776436Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-09-24T19:03:00.9777319Z   ANTHROPIC_API_KEY: ***
+2026-09-24T19:03:00.9777599Z ##[endgroup]
+2026-09-24T19:03:01.1592753Z Traceback (most recent call last):
+2026-09-24T19:03:01.1601938Z   File "/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/campaign/experiments/phase2/live_followup.py", line 6, in <module>
+2026-09-24T19:03:01.1603394Z     from experiments.phase2 import campaign as c
+2026-09-24T19:03:01.1604071Z ModuleNotFoundError: No module named 'experiments'
+2026-09-24T19:03:01.1650230Z ##[error]Process completed with exit code 1.
+2026-09-24T19:03:01.1706395Z ##[group]Run if grep -rIlE 'sk-ant-|gh[pousr]_|***' experiments/phase2/raw 2>/dev/null; then
+2026-09-24T19:03:01.1707245Z [36;1mif grep -rIlE 'sk-ant-|gh[pousr]_|***' experiments/phase2/raw 2>/dev/null; then[0m
+2026-09-24T19:03:01.1707730Z [36;1m  exit 1[0m
+2026-09-24T19:03:01.1707996Z [36;1mfi[0m
+2026-09-24T19:03:01.1774938Z shell: /usr/bin/bash -e {0}
+2026-09-24T19:03:01.1775254Z env:
+2026-09-24T19:03:01.1775570Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:01.1776080Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-09-24T19:03:01.1776586Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:01.1777027Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:01.1777459Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:01.1796332Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-09-24T19:03:01.1797029Z ##[endgroup]
+2026-09-24T19:03:01.1996652Z ##[group]Run actions/upload-artifact@v4
+2026-09-24T19:03:01.1997029Z with:
+2026-09-24T19:03:01.1997306Z   name: cma-phase2-persistent-36045445900
+2026-09-24T19:03:01.1998569Z   path: campaign/experiments/phase2/raw
+campaign/experiments/phase2/LIVE_FOLLOWUP_FREEZE.md
+campaign/experiments/phase2/SHA256SUMS
+campaign/experiments/phase2/phase2-run-commit.txt
+campaign/experiments/phase2/morrison-source-commit.txt
+campaign/experiments/phase2/cma-source-commit.txt
+
+2026-09-24T19:03:01.1999852Z   retention-days: 14
+2026-09-24T19:03:01.2000126Z   if-no-files-found: warn
+2026-09-24T19:03:01.2000407Z   compression-level: 6
+2026-09-24T19:03:01.2000677Z   overwrite: false
+2026-09-24T19:03:01.2000937Z   include-hidden-files: false
+2026-09-24T19:03:01.2001213Z env:
+2026-09-24T19:03:01.2001514Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:01.2001998Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-09-24T19:03:01.2002529Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:01.2002963Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:01.2003395Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-24T19:03:01.2003829Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-09-24T19:03:01.2004373Z ##[endgroup]
+2026-09-24T19:03:01.3642802Z (node:2530) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-24T19:03:01.3643757Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-24T19:03:01.3741939Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-09-24T19:03:01.3748959Z The least common ancestor is /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/campaign/experiments/phase2. This will be the root directory of the artifact
+2026-09-24T19:03:01.3750946Z With the provided path, there will be 5 files uploaded
+2026-09-24T19:03:01.3752554Z Artifact name is valid!
+2026-09-24T19:03:01.3753325Z Root directory input is valid!
+2026-09-24T19:03:01.7881673Z Beginning upload of artifact content to blob storage
+2026-09-24T19:03:01.8167209Z (node:2530) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-09-24T19:03:02.0990311Z Uploaded bytes 2032
+2026-09-24T19:03:02.1769665Z Finished uploading artifact content to blob storage!
+2026-09-24T19:03:02.1770585Z SHA256 digest of uploaded artifact zip is 9a7b3bafd2a8c61acf40f38ef421573b6d4ed5f67e53596e63ea0c42b9efe4c8
+2026-09-24T19:03:02.1772940Z Finalizing artifact upload
+2026-09-24T19:03:02.4488961Z Artifact cma-phase2-persistent-36045445900.zip successfully finalized. Artifact ID 10828585201
+2026-09-24T19:03:02.4490478Z Artifact cma-phase2-persistent-36045445900 has been successfully uploaded! Final size is 2032 bytes. Artifact ID is 10828585201
+2026-09-24T19:03:02.4499101Z Artifact download URL: https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/36045445900/artifacts/10828585201
+2026-09-24T19:03:02.4713708Z Post job cleanup.
+2026-09-24T19:03:02.5909865Z (node:2544) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-09-24T19:03:02.5910697Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-24T19:03:02.6072143Z Post job cleanup.
+2026-09-24T19:03:02.6945611Z [command]/usr/bin/git version
+2026-09-24T19:03:02.6987924Z git version 2.55.0
+2026-09-24T19:03:02.7036409Z Temporarily overriding HOME='/home/runner/work/_temp/06c45da4-715b-4922-9d2a-4c3d9b600699' before making global git config changes
+2026-09-24T19:03:02.7038135Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-24T19:03:02.7045309Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/frozen-cma
+2026-09-24T19:03:02.7090760Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-24T19:03:02.7129602Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-24T19:03:02.7377125Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-24T19:03:02.7418592Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-24T19:03:02.7672258Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-24T19:03:02.7712720Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-24T19:03:02.8296461Z Post job cleanup.
+2026-09-24T19:03:02.9136798Z [command]/usr/bin/git version
+2026-09-24T19:03:02.9175882Z git version 2.55.0
+2026-09-24T19:03:02.9215390Z Temporarily overriding HOME='/home/runner/work/_temp/ad5a6871-f467-49f6-af2f-042eccb7475b' before making global git config changes
+2026-09-24T19:03:02.9216945Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-24T19:03:02.9219325Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/campaign
+2026-09-24T19:03:02.9256557Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-24T19:03:02.9290950Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-24T19:03:02.9542606Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-24T19:03:02.9580267Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-24T19:03:02.9845237Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-24T19:03:02.9886053Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-24T19:03:03.0333400Z Cleaning up orphan processes
+2026-09-24T19:03:03.0616884Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
