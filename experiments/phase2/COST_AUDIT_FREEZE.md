@@ -1,0 +1,3 @@
+# Read-only terminal usage audit freeze
+
+Source commit `024da4a3ea8ae53ea4082e0641deb5f310638c8b`, tree `6cc68c6635980c6afb9d9bf482e01de0ccc134df`. Read-only script SHA-256 `3c365234f3e91c779dbeb843d7f02e2da638c43f81359b4937867b0406b68ced`, exact 56-session target list SHA-256 `487833ccb1ad1291ef2d2a1c883c533971e7e329b0fe11993a4d71fcc750b5e4`, workflow SHA-256 `b8726247acf75ab5440d660885a9de67feff171912dfb76e1366430ad26d2d75`. The audit only GETs terminal sessions and records full raw API responses and request IDs. It does not change the original trial archives, Morrison source, CMA prototype, resource or model configuration. `usage.list_cost` is rounded public list-rate session consumption, not a credit debit or invoice.
