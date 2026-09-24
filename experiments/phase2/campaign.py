@@ -14,6 +14,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+
 from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.kernel import ExecutionLease, GovernanceKernel, Principal, SecurityContext
 from morrison_governance.kernel import capabilities as C
