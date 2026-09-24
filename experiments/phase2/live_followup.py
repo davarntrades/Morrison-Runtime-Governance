@@ -1,7 +1,10 @@
 """Follow-up to frozen rerun 02: live model-linked authority-context reproductions."""
 import json
 import os
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from experiments.phase2 import campaign as c
 
