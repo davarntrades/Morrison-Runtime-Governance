@@ -1,0 +1,66 @@
+name: cma-phase2-terminal-cost
+
+on:
+  push:
+    branches: [experiment/cma-phase2-persistent-20260924]
+    paths:
+      - experiments/phase2/COST_AUDIT_FREEZE.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  phase2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: campaign
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: davarntrades/launch-your-agent
+          ref: 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+          path: frozen-cma
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify source freeze
+        run: |
+          test "$(git -C frozen-cma rev-parse HEAD)" = 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+          test -z "$(git -C campaign diff 7dacc63b0ec0e17d769ef08431e3ec0696e8d03a HEAD -- morrison_governance)"
+          cd campaign
+          sha256sum -c experiments/phase2/COST_SHA256SUMS
+          git rev-parse HEAD > experiments/phase2/phase2-run-commit.txt
+          git rev-parse 7dacc63b0ec0e17d769ef08431e3ec0696e8d03a > experiments/phase2/morrison-source-commit.txt
+          git -C ../frozen-cma rev-parse HEAD > experiments/phase2/cma-source-commit.txt
+      - name: Run live and deterministic persistent authority attacks
+        working-directory: campaign
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 -u experiments/phase2/cost_audit.py
+      - name: Reject secret material in evidence
+        if: always()
+        id: secret_scan
+        working-directory: campaign
+        run: |
+          if grep -rIlE 'sk-ant-|gh[pousr]_|Bearer [A-Za-z0-9._-]{20,}' experiments/phase2/raw 2>/dev/null; then
+            exit 1
+          fi
+      - name: Upload immutable raw experiment
+        if: always() && steps.secret_scan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cma-phase2-persistent-${{ github.run_id }}
+          path: |
+            campaign/experiments/phase2/raw
+            campaign/experiments/phase2/COST_AUDIT_FREEZE.md
+            campaign/experiments/phase2/COST_SHA256SUMS
+            campaign/experiments/phase2/phase2-run-commit.txt
+            campaign/experiments/phase2/morrison-source-commit.txt
+            campaign/experiments/phase2/cma-source-commit.txt
+          retention-days: 14
