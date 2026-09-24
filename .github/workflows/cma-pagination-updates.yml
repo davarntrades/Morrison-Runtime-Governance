@@ -1,0 +1,62 @@
+name: cma-pagination-updates
+
+on:
+  push:
+    branches: [experiment/cma-falsification-20260923]
+    paths:
+      - .github/workflows/cma-pagination-updates.yml
+      - experiments/cma_pagination_updates.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: campaign
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: davarntrades/launch-your-agent
+          ref: 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Freeze source and synthetic resource IDs
+        run: |
+          test "$(git -C source rev-parse HEAD)" = 1f3db3c37d7b394185df0e5a5a12efcffe1ac5d6
+          printf 'AGENT_ID=agent_01Dfx9yFhSrmhZHSkLry65Qu\nAGENT_VERSION=1\nENV_ID=env_0152rdQFEnyBZG9TBK2YVe3Y\n' > source/governance-agent/IDS.env
+          git -C campaign rev-parse HEAD > source/campaign-commit.txt
+          git -C source rev-parse HEAD > source/prototype-commit.txt
+          sha256sum campaign/experiments/cma_pagination_updates.py > source/script.sha256
+      - name: Force history beyond default page
+        working-directory: source
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 ../campaign/experiments/cma_pagination_updates.py
+      - name: Reject credential-like material
+        if: always()
+        id: secret_scan
+        run: |
+          if grep -rIlE 'sk-ant-|gh[pousr]_|Bearer [A-Za-z0-9._-]{20,}' source/experiments 2>/dev/null; then
+            exit 1
+          fi
+      - name: Upload raw evidence
+        if: always() && steps.secret_scan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cma-pagination-updates-${{ github.run_id }}
+          path: |
+            source/experiments/evidence
+            source/campaign-commit.txt
+            source/prototype-commit.txt
+            source/script.sha256
+          retention-days: 14
