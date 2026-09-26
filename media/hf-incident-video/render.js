@@ -1,16 +1,17 @@
 // Render scene.html to MP4, frame by frame, deterministically.
 //   node render.js [out.mp4]            full render (needs ffmpeg on PATH, or FFMPEG=/path/to/ffmpeg)
 //   node render.js --stills 12,30,55    write stills at those seconds (PNG) for a quick check
-//   SCENE=ad.html node render.js ad.mp4 renders the 20s advert cut instead (also writes ad.cues.json)
+//   SCENE=ad.html node render.js ad.mp4           renders the advert cut instead (also writes ad.cues.json)
+//   SCENE=ad.html FORMAT=v node render.js ad-v.mp4  the advert in 9:16 (1080x1920)
 const path = require('path');
 const { spawn } = require('child_process');
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require(path.join(require('child_process').execSync('npm root -g').toString().trim(), 'playwright'))); }
-const FPS = 30, FF = process.env.FFMPEG || 'ffmpeg';
+const FPS = 30, FF = process.env.FFMPEG || 'ffmpeg', VERT = process.env.FORMAT === 'v';
 (async () => {
   const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
-  await p.goto('file://' + path.join(__dirname, process.env.SCENE || 'scene.html') + '?render');
+  const p = await b.newPage({ viewport: VERT ? { width: 1080, height: 1920 } : { width: 1920, height: 1080 } });
+  await p.goto('file://' + path.join(__dirname, process.env.SCENE || 'scene.html') + '?render' + (VERT ? '&format=v' : ''));
   const canvas = p.locator('canvas');
   const frame = async t => { await p.evaluate(t => render(t), t); return canvas.screenshot({ type: 'png' }); };
   if (process.argv[2] === '--stills') {

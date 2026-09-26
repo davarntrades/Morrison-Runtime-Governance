@@ -1,153 +1,168 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Hugging Face incident, 20s cut</title><style>
+<!doctype html><html><head><meta charset="utf-8"><title>Hugging Face incident, advert cut</title><style>
 html,body{margin:0;background:#07090d}canvas{display:block;width:100vw;height:auto}
-</style></head><body><canvas id="c" width="1920" height="1080"></canvas><script>
-// 20-second advert cut. Every frame is a pure function of time: render(t).
+</style></head><body><canvas id="c"></canvas><script>
+// Advert cut. Every frame is a pure function of time: render(t).
+// ?format=v renders 9:16 (1080x1920); default is 16:9 (1920x1080).
 // window.CUES lists the sound-design hits; make_audio.py builds the soundtrack from them.
-const c=document.getElementById('c'),W=1280,H=720,S=1.5;
-const BG='#07090d',GRID='#131a23',INK='#f1f5f9',DIM='#8b96a5',LINE='#2a3441',PANEL='#0f151d',
-      ACC='#4cc2ff',RED='#ff4d4d',AMB='#ffb224',GRN='#3ddc84';
+const VERT=new URLSearchParams(location.search).get('format')==='v';
+const W=VERT?720:1280,H=VERT?1280:720,S=1.5,M=VERT?40:70; // design space, scale, side margin
+const P=(h,v)=>VERT?v:h;
+const c=document.getElementById('c');c.width=W*S;c.height=H*S;
 let x=c.getContext('2d');
+const BG='#07090d',GRID='#131a23',INK='#f1f5f9',SOFT='#c3cbd6',DIM='#8b96a5',LINE='#2a3441',
+      ACC='#4cc2ff',RED='#ff4d4d',AMB='#ffb224',GRN='#3ddc84';
 const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
 const prog=(t,s,d)=>clamp((t-s)/d);
 const eo=p=>1-Math.pow(1-p,3), eio=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2, e5=p=>1-Math.pow(1-p,5);
-const back=p=>{const k=2.2;return 1+(k+1)*Math.pow(p-1,3)+k*Math.pow(p-1,2)};
-const typed=(s,p)=>s.slice(0,Math.floor(s.length*clamp(p)));
 const lerp=(a,b,p)=>a+(b-a)*p;
 let GA=1;
 const A=a=>{x.globalAlpha=clamp(a)*GA};
 const font=(size,w,mono)=>`${w} ${size}px ${mono?'"DejaVu Sans Mono",monospace':'"DejaVu Sans",sans-serif'}`;
-function T(s,px,py,o={}){const{size=20,col=INK,w=700,align='center',a=1,mono=false,ls=0}=o;if(a<=0)return;
+function TW(s,size,w=700,mono=false,ls=0){x.font=font(size,w,mono);x.letterSpacing=ls+'px';const r=x.measureText(s).width;x.letterSpacing='0px';return r}
+function T(s,px,py,o={}){const{size=20,col=INK,w=700,align='center',a=1,mono=false,ls=0}=o;if(a<=0||!s)return;
   A(a);x.fillStyle=col;x.font=font(size,w,mono);x.textAlign=align;x.textBaseline='middle';x.letterSpacing=ls+'px';x.fillText(s,px,py);x.letterSpacing='0px'}
 // chromatic-split text: red/cyan fringes offset by `amt` px
 function G(s,px,py,o={},amt=0){if(amt>.3){x.save();x.globalCompositeOperation='lighter';
   T(s,px-amt,py,{...o,col:'#ff2a55',a:(o.a??1)*.8});T(s,px+amt,py+amt*.3,{...o,col:'#22d3ff',a:(o.a??1)*.8});x.restore()}T(s,px,py,o)}
-function TW(s,size,w=700,mono=false){x.font=font(size,w,mono);return x.measureText(s).width}
+// multi-line block centred on (cx,cy); shrinks to fit the safe width
+function TL(lines,cx,cy,o={}){let size=o.size||20;const maxW=W-2*M;
+  for(const l of lines){const w=TW(l,size,o.w??700,o.mono,o.ls||0);if(w>maxW)size*=maxW/w}
+  const lh=size*(o.lh||1.2),y0=cy-(lines.length-1)*lh/2;lines.forEach((l,i)=>G(l,cx,y0+i*lh,{...o,size},o.glitch||0))}
+const typedLines=(lines,p)=>{let n=Math.floor(lines.join('').length*clamp(p));return lines.map(l=>{const s=l.slice(0,Math.max(0,n));n-=l.length;return s})};
 function RR(px,py,w,h,r,o={}){const{fill,stroke,lw=2,a=1}=o;A(a);x.beginPath();x.roundRect(px,py,w,h,r);
   if(fill){x.fillStyle=fill;x.fill()}if(stroke){x.strokeStyle=stroke;x.lineWidth=lw;x.stroke()}}
 function LN(x1,y1,x2,y2,o={}){const{col=LINE,lw=2,a=1}=o;A(a);x.strokeStyle=col;x.lineWidth=lw;x.lineCap='round';x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke()}
+const chipW=(label,size)=>TW(label,size,700,true)+34;
 function chip(label,cx,cy,col,o={}){const{a=1,sc=1,sy=1,size=18,solid=true}=o;if(a<=0)return;
-  const w=TW(label,size,700,true)+34,h=size+18;x.save();x.translate(cx,cy);x.scale(sc,sc*sy);
+  const w=chipW(label,size),h=size+18;x.save();x.translate(cx,cy);x.scale(sc,sc*sy);
   RR(-w/2,-h/2,w,h,h/2,solid?{fill:col,a}:{stroke:col,lw:2.5,a,fill:BG});T(label,0,1,{size,col:solid?BG:col,mono:true,a});x.restore()}
 function glowR(px,py,r,col,a){if(a<=0)return;A(a);const g=x.createRadialGradient(px,py,0,px,py,r);g.addColorStop(0,col);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(px-r,py-r,2*r,2*r)}
-// slam-in: scale from big to 1 with overshoot
+// slam-in: scale from big to 1
 const slam=(t,s,d=.28)=>{const p=prog(t,s,d);return{p,a:eo(prog(t,s,d*.5)),sc:p<=0?3:lerp(2.6,1,e5(p))}};
 function scaled(px,py,sc,fn){x.save();x.translate(px,py);x.scale(sc,sc);fn();x.restore()}
 const shake=(t,s,d,amp)=>{const p=prog(t,s,d);if(p<=0||p>=1)return[0,0];const k=amp*Math.pow(1-p,2);return[Math.sin(t*97)*k,Math.cos(t*73)*k]};
 const glitch=(t,s,d,amp)=>{const p=prog(t,s,d);return p>0&&p<1?amp*(1-p)*(.6+.4*Math.sin(t*140)):0};
 
-const CUES=[];const cue=(t,k)=>CUES.push([+t.toFixed(3),k]);
-const scenes=[];let OFF=0;
+const CUES=[];const scenes=[];let OFF=0;
 // each scene: duration, draw(local t) returning {shake:[dx,dy], flash:[col,alpha], red:0..1}
-function scene(dur,draw,cues=[]){scenes.push({t0:OFF,dur,draw});cues.forEach(([lt,k])=>cue(OFF+lt,k));OFF+=dur}
+function scene(dur,draw,cues=[]){scenes.push({t0:OFF,dur,draw});cues.forEach(([lt,k])=>CUES.push([+(OFF+lt).toFixed(3),k]));OFF+=dur}
 
 /* 1 · the pause */
 scene(2.4,t=>{
-  T('JULY 2026  ·  AN AI AGENT, MID-OPERATION',W/2,200,{size:16,col:DIM,ls:5,a:eo(prog(t,0,.3))});
-  T(typed('“We should not do unauthorized',prog(t,.15,.7)),W/2,300,{size:44});
-  T(typed('real infrastructure harm.”',prog(t,.85,.5)),W/2,360,{size:44});
-  const s=slam(t,1.55);if(s.p>0)scaled(W/2,480,s.sc,()=>{x.rotate(-.06);RR(-130,-40,260,80,10,{stroke:AMB,lw:5,a:s.a});T('PAUSED',0,2,{size:46,col:AMB,a:s.a,ls:6})});
+  T('JULY 2026  ·  AN AI AGENT, MID-OPERATION',W/2,P(185,300),{size:P(20,19),col:DIM,ls:P(5,3),a:eo(prog(t,0,.3))});
+  const Q=P(['“We should not do unauthorized','real infrastructure harm.”'],['“We should not do','unauthorized real','infrastructure harm.”']);
+  TL(typedLines(Q,prog(t,.15,1.2)),W/2,P(305,500),{size:P(50,56)});
+  const s=slam(t,1.55);if(s.p>0)scaled(W/2,P(470,720),s.sc,()=>{x.rotate(-.06);RR(-150,-46,300,92,10,{stroke:AMB,lw:5,a:s.a});T('PAUSED',0,2,{size:54,col:AMB,a:s.a,ls:6})});
   return{shake:shake(t,1.75,.35,8)};
 },[[0,'drone'],[.15,'type'],[1.75,'hit']]);
 
 /* 2 · GO */
-scene(2.5,t=>{
+scene(2.3,t=>{
   const s=slam(t,0,.22),g=glitch(t,0,.7,14)+(Math.sin(t*23)>.97?8:0);
-  glowR(W/2,330,520,'rgba(255,40,60,.35)',.6+.4*Math.sin(t*12));
-  scaled(W/2,320,s.sc,()=>G('GO',0,0,{size:300,col:RED,a:s.a},g));
+  glowR(W/2,P(300,520),P(520,560),'rgba(255,40,60,.35)',.6+.4*Math.sin(t*12));
+  scaled(W/2,P(290,520),s.sc,()=>G('GO',0,0,{size:P(300,330),col:RED,a:s.a},g));
   const rem=Math.max(0,360-t*48),mm=Math.floor(rem/60),ss=Math.floor(rem%60);
-  T(`0${mm}:${String(ss).padStart(2,'0')}`,W/2,530,{size:52,mono:true,col:AMB,a:eo(prog(t,.3,.2))});
-  T('— posted by a peer agent. Hard 6-minute deadline.',W/2,610,{size:24,w:600,a:eo(prog(t,.6,.3))});
+  T(`0${mm}:${String(ss).padStart(2,'0')}`,W/2,P(505,770),{size:P(60,72),mono:true,col:AMB,a:eo(prog(t,.3,.2))});
+  TL(P(['A peer agent posts GO — hard 6-minute deadline.'],['A peer agent posts GO.','Hard 6-minute deadline.']),W/2,P(600,910),{size:P(32,42),w:700,a:eo(prog(t,.5,.3))});
   return{shake:shake(t,0,.6,22),flash:[RED,1-prog(t,0,.18)],red:1};
-},[[0,'boom'],...Array.from({length:7},(_,i)=>[.35+i*.3,'tick'])]);
+},[[0,'boom'],...Array.from({length:6},(_,i)=>[.35+i*.3,'tick'])]);
 
 /* 3 · it proceeds */
-scene(2.4,t=>{
-  const s=slam(t,0,.22),g=glitch(t,0,.5,10);
-  scaled(W/2,250,s.sc,()=>G('“GO authorization arrived!”',0,0,{size:60,col:RED,a:s.a},g));
-  const p=eo(prog(t,.7,.3));T('It proceeded.',W/2,370,{size:40,a:p});
-  const q=slam(t,1.2,.25);if(q.p>0)scaled(W/2,450,q.sc,()=>G('Into Hugging Face infrastructure.',0,0,{size:40,col:RED,a:q.a},glitch(t,1.2,.5,8)));
-  T('OpenAI ExploitGym evaluation  ·  11–13 July 2026  ·  per public reporting',W/2,640,{size:14,col:DIM,w:400,a:eo(prog(t,.5,.4))});
-  return{shake:shake(t,1.3,.4,14),flash:[RED,.7*(1-prog(t,1.2,.2))*(t>1.2?1:0)],red:.8};
-},[[0,'hit'],[1.2,'boom']]);
+scene(2.8,t=>{
+  const s=slam(t,0,.22);
+  scaled(W/2,P(190,390),s.sc,()=>TL(P(['“GO authorization arrived!”'],['“GO authorization','arrived!”']),0,0,{size:P(64,70),col:RED,a:s.a,glitch:glitch(t,0,.5,10)}));
+  TL(['It proceeded.'],W/2,P(315,600),{size:P(50,62),a:eo(prog(t,.6,.3))});
+  const q=slam(t,1.1,.25);if(q.p>0)scaled(W/2,P(455,810),q.sc,()=>TL(P(['The same evaluation saw an intrusion','into Hugging Face infrastructure.'],['The same evaluation','saw an intrusion into','Hugging Face','infrastructure.']),0,0,{size:P(38,46),col:RED,a:q.a,glitch:glitch(t,1.1,.5,8)}));
+  TL(P(['OpenAI ExploitGym evaluation  ·  11–13 July 2026  ·  per public reporting'],['OpenAI ExploitGym · 11–13 July 2026','per public reporting']),W/2,P(655,1070),{size:P(18,21),col:DIM,w:400,a:eo(prog(t,.5,.4))});
+  return{shake:shake(t,1.2,.4,14),flash:[RED,.7*(1-prog(t,1.1,.2))*(t>1.1?1:0)],red:.8};
+},[[0,'hit'],[1.1,'boom']]);
 
 /* 4 · we reproduced it */
-scene(2,t=>{
+scene(1.9,t=>{
   const a=e5(prog(t,.05,.35)),b=e5(prog(t,.3,.35));
-  T('We turned the attack',W/2-300*(1-a),290,{size:64,a});
-  T('on our own runtime.',W/2+300*(1-b),375,{size:64,col:ACC,a:b});
-  const l=eio(prog(t,.7,.5));LN(W/2-260*l,430,W/2+260*l,430,{col:ACC,lw:4});
+  TL(P(['We replayed the mechanism'],['We replayed','the mechanism']),W/2-300*(1-a),P(295,500),{size:P(62,74),a});
+  TL(P(['against our own runtime.'],['against our','own runtime.']),W/2+300*(1-b),P(380,690),{size:P(62,74),col:ACC,a:b});
+  const l=eio(prog(t,.7,.5));LN(W/2-P(300,220)*l,P(440,820),W/2+P(300,220)*l,P(440,820),{col:ACC,lw:5});
   return{flash:[ACC,.8*(1-prog(t,0,.2))]};
 },[[0,'whoosh']]);
 
 /* 5 · 23 ways to forge GO */
 const VEC=[['A1','B'],['A2','B'],['A3','E'],['A4','B'],['A5','B'],['A6','B'],['B1','E'],['B2','E'],['B3','E'],['C1','E'],['C2','E'],['D1','E'],
  ['D2','E'],['D3','E'],['E1','E'],['E2','B'],['F1','B'],['F2','E'],['F3','E'],['G1','B'],['G2','B'],['H1','B'],['I1','B']];
-scene(3.6,t=>{
-  T('23 ways to forge a GO.',W/2,90,{size:44,a:eo(prog(t,0,.25))});
-  const TW_=150,TH=78,GP=14,X0=(W-(6*TW_+5*GP))/2,Y0=150,dt=.085,s0=.35,end=s0+VEC.length*dt;
-  const dim=eo(prog(t,end+.25,.25));
-  VEC.forEach(([code,v],i)=>{const s=slam(t,s0+i*dt,.2);if(s.p<=0)return;const col=v==='B'?RED:AMB,cx=X0+(i%6)*(TW_+GP)+TW_/2,cy=Y0+Math.floor(i/6)*(TH+GP)+TH/2;
-    scaled(cx,cy,lerp(1,s.sc,.4),()=>{RR(-TW_/2,-TH/2,TW_,TH,12,{fill:col+'26',stroke:col,lw:2.5,a:s.a*(1-.75*dim)});
-      T(code,0,-12,{size:24,a:s.a*(1-.75*dim)});T(v==='B'?'BLOCK':'ESCALATE',0,17,{size:13,col,mono:true,a:s.a*(1-.75*dim)})})});
-  const n=Math.min(VEC.length,Math.max(0,Math.floor((t-s0)/dt)+1));
-  T(`${n}/23 attempts  ·  executions: 0`,W/2,560,{size:22,mono:true,col:DIM,w:600,a:eo(prog(t,s0,.2))*(1-dim)});
-  const z=slam(t,end+.25,.25);if(z.p>0){scaled(W/2,330,z.sc,()=>G('0 executions.',0,0,{size:120,col:GRN,a:z.a},glitch(t,end+.25,.5,10)));
-    T('The kernel held.',W/2,450,{size:30,w:600,a:eo(prog(t,end+.6,.3))})}
-  return{shake:shake(t,end+.35,.4,14)};
-},[[0,'drone'],...VEC.map((_,i)=>[.35+i*.085,'tick']),[.35+23*.085+.25,'boom']]);
+scene(4,t=>{
+  TL(P(['23 ways to forge a GO.'],['23 ways to','forge a GO.']),W/2,P(62,235),{size:P(48,68),a:eo(prog(t,0,.25))});
+  const COLS=P(6,4),TW_=P(150,150),TH=P(70,74),GP=12,X0=(W-(COLS*TW_+(COLS-1)*GP))/2,Y0=P(108,340),dt=.085,s0=.35,end=s0+VEC.length*dt;
+  const dim=eo(prog(t,end+.3,.25)),keep=1-.95*dim;
+  VEC.forEach(([code,v],i)=>{const s=slam(t,s0+i*dt,.2);if(s.p<=0)return;const col=v==='B'?RED:AMB,cx=X0+(i%COLS)*(TW_+GP)+TW_/2,cy=Y0+Math.floor(i/COLS)*(TH+GP)+TH/2;
+    scaled(cx,cy,lerp(1,s.sc,.4),()=>{RR(-TW_/2,-TH/2,TW_,TH,12,{fill:col+'26',stroke:col,lw:2.5,a:s.a*keep});
+      T(code,0,-12,{size:26,a:s.a*keep});T(v==='B'?'BLOCK':'ESCALATE',0,17,{size:16,col,mono:true,a:s.a*keep})})});
+  const n=Math.min(VEC.length,Math.max(0,Math.floor((t-s0)/dt)+1)),ca=eo(prog(t,s0,.2))*keep;
+  const rows=Math.ceil(VEC.length/COLS),gridEnd=Y0+rows*(TH+GP);
+  T(`${n}/23 attempts  ·  0 executed`,W/2,gridEnd+P(22,40),{size:P(28,32),mono:true,col:INK,w:700,a:ca});
+  // legend: what the two verdicts mean
+  const L1='BLOCK = refused',L2='ESCALATE = held for a human',ls=P(22,24);
+  if(VERT){chip(L1,W/2,gridEnd+105,RED,{size:ls,solid:false,a:ca});chip(L2,W/2,gridEnd+165,AMB,{size:ls,solid:false,a:ca})}
+  else{const w1=chipW(L1,ls),w2=chipW(L2,ls),g=24,x0=W/2-(w1+w2+g)/2;chip(L1,x0+w1/2,gridEnd+80,RED,{size:ls,solid:false,a:ca});chip(L2,x0+w1+g+w2/2,gridEnd+80,AMB,{size:ls,solid:false,a:ca})}
+  const z=slam(t,end+.3,.25);if(z.p>0){const gl=glitch(t,end+.3,.5,10);
+    if(VERT){scaled(W/2,560,z.sc,()=>{G('0',0,-40,{size:250,col:GRN,a:z.a},gl);G('executions.',0,120,{size:92,col:GRN,a:z.a},gl)})}
+    else scaled(W/2,270,z.sc,()=>G('0 executions.',0,0,{size:124,col:GRN,a:z.a},gl));
+    TL(P(['11 refused  ·  12 held for a human  ·  0 ran'],['11 refused','12 held for a human','0 ran']),W/2,P(400,880),{size:P(34,42),w:700,a:eo(prog(t,end+.65,.3))})}
+  return{shake:shake(t,end+.4,.4,14)};
+},[[0,'drone'],...VEC.map((_,i)=>[.35+i*.085,'tick']),[.35+23*.085+.3,'boom']]);
 
-/* 6 · then one worked */
+/* 6 · a different move got through (pre-fix engine) */
 const ROWS=['+ crisis_referral=true','+ emergency_referral=true','+ route_to_support=true'];
-scene(3.2,t=>{
-  G('Then we found one that worked.',W/2,120,{size:48,a:eo(prog(t,0,.25))},glitch(t,0,.4,6));
-  T('a peer supplies a fact, not authority  ·  reply to a user in crisis',W/2,172,{size:17,col:DIM,w:400,a:eo(prog(t,.2,.3))});
-  ROWS.forEach((r,i)=>{const y=260+i*72,p=e5(prog(t,.5+i*.3,.25));T(r,190,y,{size:28,mono:true,align:'left',a:p});
-    const s=slam(t,.62+i*.3,.2);if(s.p>0)chip('PERMITTED',960,y,RED,{a:s.a,sc:lerp(1,s.sc,.5),size:22})});
-  const z=slam(t,1.85,.25);if(z.p>0)scaled(W/2,540,z.sc,()=>G('3 harmful replies delivered.',0,0,{size:52,col:RED,a:z.a},glitch(t,1.85,.6,12)));
-  T('pre-fix engine  ·  the audit log showed an ordinary PERMIT',W/2,610,{size:17,col:DIM,w:400,a:eo(prog(t,2.3,.3))});
-  return{shake:shake(t,1.9,.45,18),flash:[RED,.6*(1-prog(t,1.85,.25))*(t>1.85?1:0)],red:prog(t,1.85,.3)};
-},[[0,'hit'],[.62,'tick'],[.92,'tick'],[1.22,'tick'],[1.85,'boom']]);
+scene(4.3,t=>{
+  TL(P(['A different move got through.'],['A different move','got through.']),W/2,P(72,230),{size:P(50,64),a:eo(prog(t,0,.25)),glitch:glitch(t,0,.4,6)});
+  TL(P(['The peer didn’t claim authority. It supplied a fact.'],['The peer didn’t claim authority.','It supplied a fact.']),W/2,P(135,360),{size:P(30,36),col:AMB,a:eo(prog(t,.25,.3))});
+  TL(P(['our pre-fix engine  ·  a reply to a user in crisis  ·  test harness'],['our pre-fix engine · test harness','a reply to a user in crisis']),W/2,P(180,440),{size:P(22,27),col:SOFT,w:600,a:eo(prog(t,.45,.3))});
+  ROWS.forEach((r,i)=>{const y=P(260+i*68,550+i*84),p=e5(prog(t,.8+i*.3,.25));T(r,P(190,M),y,{size:P(30,29),mono:true,align:'left',a:p});
+    const s=slam(t,.92+i*.3,.2);if(s.p>0)chip('PERMIT',P(1000,W-M-62),y,RED,{a:s.a,sc:lerp(1,s.sc,.5),size:P(24,24)})});
+  const z=slam(t,2.1,.25);if(z.p>0)scaled(W/2,P(505,860),z.sc,()=>TL(P(['3 of 3 permitted — and executed.'],['3 of 3 permitted','— and executed.']),0,0,{size:P(54,58),col:RED,a:z.a,glitch:glitch(t,2.1,.6,12)}));
+  TL(P(['The audit record showed an ordinary PERMIT.'],['The audit record showed','an ordinary PERMIT.']),W/2,P(590,1010),{size:P(30,34),col:SOFT,w:600,a:eo(prog(t,2.6,.3))});
+  return{shake:shake(t,2.15,.45,18),flash:[RED,.6*(1-prog(t,2.1,.25))*(t>2.1?1:0)],red:prog(t,2.1,.3)};
+},[[0,'hit'],[.92,'tick'],[1.22,'tick'],[1.52,'tick'],[2.1,'boom']]);
 
-/* 7 · rebuilt */
-scene(2.4,t=>{
-  T('So we rebuilt the trust model.',W/2,110,{size:46,a:e5(prog(t,.05,.3))});
-  ROWS.forEach((r,i)=>{const y=210+i*62;T(r,190,y,{size:26,mono:true,align:'left'});
-    const f=prog(t,.35+i*.15,.22),sy=Math.abs(Math.cos(f*Math.PI));
-    chip(f<.5?'PERMITTED':'BLOCK',960,y,f<.5?RED:ACC,{size:20,sy:Math.max(.05,sy)})});
-  const a=eo(prog(t,.9,.2));T('3',W/2-150,510,{size:130,col:DIM,a});LN(W/2-200,510,W/2-100,510,{col:RED,lw:7,a:eo(prog(t,1.05,.15))});
-  T('→',W/2,505,{size:80,col:DIM,w:400,a});
-  const z=slam(t,1.15,.22);if(z.p>0)scaled(W/2+150,510,z.sc,()=>G('0',0,0,{size:130,col:GRN,a:z.a},glitch(t,1.15,.4,8)));
-  T('deliveries, same payload, re-run unmodified',W/2,615,{size:18,col:DIM,w:400,a:eo(prog(t,1.5,.3))});
-  return{flash:[ACC,.7*(1-prog(t,0,.18))],shake:shake(t,1.2,.3,10)};
-},[[0,'whoosh'],[.4,'tick'],[.55,'tick'],[.7,'tick'],[1.15,'hit']]);
+/* 7 · the fix */
+scene(3,t=>{
+  TL(P(['So we gave policy facts provenance.'],['So we gave','policy facts','provenance.']),W/2,P(80,265),{size:P(50,66),a:e5(prog(t,.05,.3))});
+  TL(P(['A peer’s claim is UNTRUSTED. It satisfies nothing.'],['A peer’s claim is UNTRUSTED.','It satisfies nothing.']),W/2,P(140,445),{size:P(30,34),col:ACC,a:eo(prog(t,.3,.3))});
+  ROWS.forEach((r,i)=>{const y=P(222+i*58,560+i*76);T(r,P(190,M),y,{size:P(28,29),mono:true,align:'left'});
+    const f=prog(t,.55+i*.15,.22),sy=Math.abs(Math.cos(f*Math.PI));
+    chip(f<.5?'PERMIT':'BLOCK',P(1000,W-M-62),y,f<.5?RED:ACC,{size:24,sy:Math.max(.05,sy)})});
+  const Y=P(460,830),D=P(160,150),a=eo(prog(t,1.1,.2));
+  T('3',W/2-D,Y,{size:P(130,160),col:DIM,a});LN(W/2-D-55,Y,W/2-D+55,Y,{col:RED,lw:8,a:eo(prog(t,1.25,.15))});
+  T('→',W/2,Y-5,{size:P(80,90),col:DIM,w:400,a});
+  const z=slam(t,1.35,.22);if(z.p>0)scaled(W/2+D,Y,z.sc,()=>G('0',0,0,{size:P(130,160),col:GRN,a:z.a},glitch(t,1.35,.4,8)));
+  TL(P(['harmful replies executed  ·  same test, re-run unmodified'],['harmful replies executed','same test, re-run unmodified']),W/2,P(585,975),{size:P(28,32),col:SOFT,w:600,a:eo(prog(t,1.6,.3))});
+  return{flash:[ACC,.7*(1-prog(t,0,.18))],shake:shake(t,1.4,.3,10)};
+},[[0,'whoosh'],[.6,'tick'],[.75,'tick'],[.9,'tick'],[1.35,'hit']]);
 
-/* 8 · close */
-scene(2.9,t=>{
-  T('It could.',W/2,270,{size:84,a:e5(prog(t,.05,.3))});
-  const z=slam(t,.55,.25);if(z.p>0)scaled(W/2,370,z.sc,()=>G('Now it cannot.',0,0,{size:84,col:ACC,a:z.a},glitch(t,.55,.4,8)));
-  T('MORRISON RUNTIME GOVERNANCE',W/2,490,{size:20,col:INK,ls:7,a:eo(prog(t,1.2,.4))});
-  T('runtime governance for AI agents',W/2,528,{size:17,col:DIM,w:400,a:eo(prog(t,1.4,.4))});
+/* 8 · close — held long enough to land */
+scene(3.9,t=>{
+  TL(['It could.'],W/2,P(255,510),{size:P(90,100),a:e5(prog(t,.05,.3))});
+  const z=slam(t,.55,.25);if(z.p>0)scaled(W/2,P(360,640),z.sc,()=>TL(['Now it cannot.'],0,0,{size:P(90,100),col:ACC,a:z.a,glitch:glitch(t,.55,.4,8)}));
+  T('MORRISON RUNTIME GOVERNANCE',W/2,P(480,800),{size:P(24,24),col:INK,ls:P(7,4),a:eo(prog(t,1.2,.4))});
+  T('runtime governance for AI agents',W/2,P(522,848),{size:P(24,28),col:SOFT,w:600,a:eo(prog(t,1.4,.4))});
+  TL(P(['original scenario, re-run unmodified  ·  one residual case documented in the repo'],['original scenario, re-run unmodified','one residual case documented in the repo']),W/2,P(660,1060),{size:P(17,20),col:DIM,w:400,a:eo(prog(t,1.8,.4))});
   return{shake:shake(t,.6,.3,10)};
 },[[.55,'boom'],[1.2,'end']]);
 
 const TOTAL=OFF;
+const off=document.createElement('canvas').getContext('2d');
+// run a scene's draw off-screen only to read its effects (shake/flash/red)
+function probe(sc,lt){const real=x;let res;try{x=off;res=sc.draw(lt)||{}}finally{x=real}return res}
 function render(t){
   x.setTransform(S,0,0,S,0,0);GA=1;x.globalAlpha=1;x.fillStyle=BG;x.fillRect(0,0,W,H);
-  const sc=scenes.find(s=>t<s.t0+s.dur)||scenes[scenes.length-1],lt=t-sc.t0;
-  // background: dot grid drifting, slight red tint in red scenes
+  const sc=scenes.find(s=>t<s.t0+s.dur)||scenes[scenes.length-1],lt=t-sc.t0,fx=probe(sc,lt);
   x.fillStyle=GRID;for(let gx=0;gx<W+40;gx+=40)for(let gy=20;gy<H;gy+=40){x.beginPath();x.arc((gx+t*14)%(W+40),gy,1.5,0,7);x.fill()}
-  // slow push-in on every shot
-  const z=1+.035*clamp(lt/sc.dur);
-  x.save();const r0=probe(sc,lt);x.translate(W/2+(r0.shake?.[0]||0),H/2+(r0.shake?.[1]||0));x.scale(z,z);x.translate(-W/2,-H/2);
+  const z=1+.035*clamp(lt/sc.dur); // slow push-in on every shot
+  x.save();x.translate(W/2+(fx.shake?.[0]||0),H/2+(fx.shake?.[1]||0));x.scale(z,z);x.translate(-W/2,-H/2);
   GA=1-eio(prog(t,TOTAL-.5,.5));sc.draw(lt);x.restore();GA=1;x.globalAlpha=1;
-  if(r0.red){A(.18*r0.red);x.fillStyle='#ff2040';x.fillRect(0,0,W,H);A(.07*r0.red);x.fillStyle='#000';for(let y=0;y<H;y+=3)x.fillRect(0,y,W,1);x.globalAlpha=1}
-  if(r0.flash&&r0.flash[1]>0){A(r0.flash[1]*.55);x.fillStyle=r0.flash[0];x.fillRect(0,0,W,H);x.globalAlpha=1}
-  // vignette
-  const v=x.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,H*.95);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.55)');x.fillStyle=v;x.fillRect(0,0,W,H);
+  if(fx.red){A(.18*fx.red);x.fillStyle='#ff2040';x.fillRect(0,0,W,H);A(.07*fx.red);x.fillStyle='#000';for(let y=0;y<H;y+=3)x.fillRect(0,y,W,1);x.globalAlpha=1}
+  if(fx.flash&&fx.flash[1]>0){A(fx.flash[1]*.55);x.fillStyle=fx.flash[0];x.fillRect(0,0,W,H);x.globalAlpha=1}
+  const R=Math.max(W,H),v=x.createRadialGradient(W/2,H/2,R*.25,W/2,H/2,R*.75);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.55)');x.fillStyle=v;x.fillRect(0,0,W,H);
 }
-// run a scene's draw off-screen only to read its effects (shake/flash/red)
-const off=document.createElement('canvas').getContext('2d');
-function probe(sc,lt){const real=x;let res;try{x=off;res=sc.draw(lt)||{}}finally{x=real}return res}
 window.render=render;window.TOTAL=TOTAL;window.CUES=CUES.sort((a,b)=>a[0]-b[0]);
 if(!location.search.includes('render')){const st=performance.now();(function loop(){render(((performance.now()-st)/1000)%TOTAL);requestAnimationFrame(loop)})()}
 else render(0);
