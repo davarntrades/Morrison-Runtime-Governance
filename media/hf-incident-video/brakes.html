@@ -1,0 +1,143 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Where are the brakes?</title><style>
+html,body{margin:0;background:#07090d}canvas{display:block;width:100vw;height:auto}
+</style></head><body><canvas id="c"></canvas><script src="engine.js"></script><script>
+// "Where are the brakes?" — brand piece from GREAT_REPRESENTATION_WHERE_ARE_THE_BRAKES.md.
+// Illustrative, not an evidence claim: every line is the essay's own wording.
+
+// the lift: shaft, car, cable, floor indicator. `sway` jiggles the car.
+function lift(cx,cy,s,o={}){const{a=1,sway=0,floor='60'}=o;if(a<=0)return;x.save();x.translate(cx,cy);x.scale(s,s);
+  RR(-130,-200,260,400,10,{fill:PANEL,stroke:LINE,lw:3,a});
+  LN(0,-200,0,-150+sway,{col:DIM,lw:3,a});
+  const cy2=-150+sway;RR(-100,cy2,200,240,8,{fill:'#141c26',stroke:SOFT,lw:3,a});LN(0,cy2+14,0,cy2+226,{col:SOFT,lw:2,a});
+  RR(-60,-262,120,48,8,{fill:BG,stroke:ACC,lw:2,a});T('▲ '+floor,0,-237,{size:26,col:ACC,mono:true,a});
+  x.restore()}
+function stairs(cx,cy,s,a,p=1){x.save();x.translate(cx,cy);x.scale(s,s);A(a);x.strokeStyle=ACC;x.lineWidth=5;x.lineCap='round';x.lineJoin='round';
+  x.beginPath();x.moveTo(-150,60);const n=Math.max(1,Math.round(6*p));for(let i=0;i<n;i++){x.lineTo(-150+i*50,60-i*24-24);x.lineTo(-100+i*50,60-i*24-24)}x.stroke();x.restore()}
+
+/* 1 · the plaque */
+scene(3.8,t=>{
+  T('A THOUGHT EXPERIMENT',W/2,P(70,170),{size:P(20,20),col:DIM,ls:P(6,4),a:eo(prog(t,0,.3))});
+  const la=eo(prog(t,.1,.4));lift(P(330,W/2),P(410,500),P(1,.95),{a:la});
+  T('the 60th floor',P(330,W/2),P(660,730),{size:P(22,24),col:SOFT,w:600,a:la});
+  const pa=eo(prog(t,.6,.3)),px=P(850,W/2),py=P(380,960),pw=P(620,620),ph=P(210,200);
+  RR(px-pw/2,py-ph/2,pw,ph,12,{fill:'rgba(255,178,36,.08)',stroke:AMB,lw:3,a:pa});
+  const Q=['“This lift contains a','state-of-the-art representation','of braking behaviour.”'];
+  TL(typedLines(Q,prog(t,.8,1.8)),px,py,{size:P(32,32),w:700,col:INK,maxW:pw-40});
+  return{};
+},[[0,'drone'],[.8,'type']]);
+
+/* 2 · the stairs */
+scene(2.2,t=>{
+  const s=slam(t,.1,.25);if(s.p>0)scaled(W/2,P(290,540),s.sc,()=>TL(['I’m taking the stairs.'],0,0,{size:P(84,76),a:s.a,glitch:glitch(t,.1,.4,6)}));
+  stairs(W/2,P(470,760),P(1,1),eo(prog(t,.6,.3)),e5(prog(t,.6,.8)));
+  return{shake:shake(t,.15,.3,10)};
+},[[.1,'hit']]);
+
+/* 3 · representation is not mechanism */
+const KNOWS=['understands when braking is appropriate','models safe descent','recognises overspeed','predicts failure'];
+scene(3.8,t=>{
+  TL(P(['Representation is not mechanism.'],['Representation','is not mechanism.']),W/2,P(80,250),{size:P(52,60),a:eo(prog(t,0,.3))});
+  const x0=P(300,M+10),y0=P(190,430),lh=P(62,74);
+  const YV=[0,100,178,256];KNOWS.forEach((k,i)=>{const p=e5(prog(t,.4+i*.28,.25)),y=y0+(VERT?YV[i]:i*lh);if(p<=0)return;
+    const kl=VERT&&i===0?['understands when braking','is appropriate']:[k];
+    T('✓',x0,y-(kl.length-1)*18,{size:P(34,36),col:GRN,a:p,align:'left'});TL(kl,x0+P(56,54),y,{size:P(32,30),w:600,align:'left',a:p,maxW:W-x0-P(56,54)-M})});
+  const z=slam(t,1.9,.25);if(z.p>0)scaled(W/2,P(500,820),z.sc,()=>TL(P(['✕  None of them stop the lift.'],['✕  None of them','stop the lift.']),0,0,{size:P(50,54),col:RED,a:z.a,glitch:glitch(t,1.9,.4,8)}));
+  TL(['What mechanism changes the trajectory?'],W/2,P(610,1010),{size:P(32,32),col:ACC,a:eo(prog(t,2.5,.3))});
+  return{shake:shake(t,1.95,.3,12)};
+},[[.4,'tick'],[.68,'tick'],[.96,'tick'],[1.24,'tick'],[1.9,'boom']]);
+
+/* 4 · then we got to AI */
+const CAN=['call APIs','trigger workflows','send communications','operate computers','write & run code','move money','modify databases','act in the physical world'];
+scene(4.8,t=>{
+  TL(['Then we got to AI.'],W/2,P(70,220),{size:P(58,66),a:eo(prog(t,0,.3))});
+  const cols=P(4,2),cw=P(270,310),chh=P(64,70),g=P(16,16),X0=(W-(cols*cw+(cols-1)*g))/2,Y0=P(140,320);
+  CAN.forEach((k,i)=>{const s=slam(t,.35+i*.12,.2);if(s.p<=0)return;const cx=X0+(i%cols)*(cw+g)+cw/2,cy=Y0+Math.floor(i/cols)*(chh+g)+chh/2;
+    scaled(cx,cy,lerp(1,s.sc,.35),()=>{RR(-cw/2,-chh/2,cw,chh,chh/2,{fill:'rgba(76,194,255,.10)',stroke:ACC,lw:2,a:s.a});TL([k],0,0,{size:P(24,26),w:700,a:s.a,maxW:cw-20})})});
+  const q=eo(prog(t,1.9,.3));TL(['The dominant safety idea:'],W/2,P(370,730),{size:P(28,32),col:SOFT,w:600,a:q});
+  TL(P(['“Tell the model what it is not allowed to do.”'],['“Tell the model what it','is not allowed to do.”']),W/2,P(430,810),{size:P(40,42),a:eo(prog(t,2.2,.3))});
+  const z=slam(t,3.3,.25);if(z.p>0)scaled(W/2,P(570,1000),z.sc,()=>TL(['Where are the brakes?'],0,0,{size:P(64,64),col:RED,a:z.a,glitch:glitch(t,3.3,.5,10)}));
+  return{shake:shake(t,3.35,.35,14)};
+},[[.35,'tick'],[.59,'tick'],[.83,'tick'],[1.07,'tick'],[3.3,'boom']]);
+
+/* 5 · the £80,000 example */
+scene(5.6,t=>{
+  const pa=eo(prog(t,0,.3)),cw=P(980,640);
+  T('THE POLICY',W/2,P(80,230),{size:P(20,20),col:DIM,ls:P(6,4),a:pa});
+  RR(W/2-cw/2,P(105,260),cw,P(90,150),14,{fill:PANEL,stroke:ACC,lw:2.5,a:pa});
+  TL(P(['“Never transfer more than £10,000 without human approval.”'],['“Never transfer more than','£10,000 without human approval.”']),W/2,P(150,335),{size:P(34,34),a:pa,maxW:cw-40});
+  const chk=P([['understands it ✓','explains it ✓','passes evals on it ✓']],[['understands it ✓'],['explains it ✓'],['passes evals on it ✓']]);
+  const ma=eo(prog(t,.6,.3));
+  if(VERT){T('The model…',W/2,470,{size:30,col:SOFT,w:600,a:ma});['understands it ✓','explains it ✓','passes evals on it ✓'].forEach((l,i)=>T(l,W/2,520+i*46,{size:32,col:GRN,a:eo(prog(t,.8+i*.25,.25))}))}
+  else{T('The model',W/2,250,{size:28,col:SOFT,w:600,a:ma});T('understands it ✓   ·   explains it ✓   ·   passes evals on it ✓',W/2,296,{size:30,col:GRN,a:eo(prog(t,.8,.4))})}
+  T('Then it proposes:',W/2,P(360,700),{size:P(28,30),col:SOFT,w:600,a:eo(prog(t,1.8,.3))});
+  const z=slam(t,2.2,.25);if(z.p>0)scaled(W/2,P(445,800),z.sc,()=>G('TRANSFER £80,000',0,0,{size:P(92,70),col:RED,a:z.a,mono:true},glitch(t,2.2,.6,12)));
+  TL(P(['What stops the action from reaching the bank?'],['What stops the action','from reaching the bank?']),W/2,P(575,990),{size:P(40,44),col:ACC,a:eo(prog(t,3.4,.35))});
+  return{shake:shake(t,2.25,.45,18),flash:[RED,.6*(1-prog(t,2.2,.25))*(t>2.2?1:0)],red:.7*prog(t,2.2,.3)*(1-prog(t,3.3,.4))};
+},[[0,'whoosh'],[.8,'tick'],[1.05,'tick'],[1.3,'tick'],[2.2,'boom']]);
+
+/* 6 · three different safety claims */
+const CLAIMS=[['Representation','The system knows the constraint.',SOFT],['Behavioural compliance','The system usually follows it.',SOFT],['Causal enforcement','The architecture prevents prohibited execution.',ACC]];
+scene(4.8,t=>{
+  TL(['Three different safety claims.'],W/2,P(75,220),{size:P(50,56),a:eo(prog(t,0,.3))});
+  CLAIMS.forEach(([c,m,col],i)=>{const s=.4+i*.55,p=e5(prog(t,s,.3));if(p<=0)return;const hi=i===2,y=P(190+i*110,380+i*190);
+    if(hi)glowR(W/2,y,P(520,380),'rgba(76,194,255,.18)',eo(prog(t,s,.5)));
+    const bw=P(1060,640),bh=P(88,150);RR(W/2-bw/2,y-bh/2,bw,bh,14,{fill:hi?'rgba(76,194,255,.10)':PANEL,stroke:hi?ACC:LINE,lw:hi?3:2,a:p});
+    if(VERT){TL([c],W/2,y-30,{size:36,col:hi?ACC:INK,a:p});TL([m],W/2,y+28,{size:26,col:SOFT,w:600,a:p,maxW:bw-40})}
+    else{T(c,W/2-bw/2+30,y,{size:30,col:hi?ACC:INK,align:'left',a:p});TL([m],W/2-bw/2+490,y,{size:26,col:SOFT,w:600,align:'left',a:p,maxW:bw-520})}});
+  TL(P(['Knowing where the boundary is does not mean you cannot cross it.'],['Knowing where the boundary is','does not mean you cannot cross it.']),W/2,P(560,1010),{size:P(30,32),a:eo(prog(t,2.4,.35))});
+  TL(['Humans demonstrate this rather convincingly.'],W/2,P(610,1085),{size:P(24,26),col:DIM,w:600,a:eo(prog(t,3.1,.35))});
+  return{};
+},[[.4,'tick'],[.95,'tick'],[1.5,'hit']]);
+
+/* 7 · stop asking the model to be the brake */
+const PATH=[['Agent','proposes'],['Independent','authorization'],['Admissible','Operating Envelope'],['Execution','commits']];
+scene(6.6,t=>{
+  TL(P(['Stop asking the model to be the brake.'],['Stop asking the model','to be the brake.']),W/2,P(70,180),{size:P(48,52),a:eo(prog(t,0,.3))});
+  const pos=i=>VERT?[W/2,330+i*175]:[172+i*312,300],bw=P(250,420),bh=P(100,110);
+  PATH.forEach(([a1,a2],i)=>{const p=e5(prog(t,.3+i*.2,.3));if(p<=0)return;const[cx,cy]=pos(i),gate=i===1;
+    if(i<3){const[nx,ny]=pos(i+1);VERT?LN(cx,cy+bh/2,nx,ny-bh/2,{col:LINE,lw:3,a:p}):LN(cx+bw/2,cy,nx-bw/2,ny,{col:LINE,lw:3,a:p})}
+    RR(cx-bw/2,cy-bh/2,bw,bh,14,{fill:gate?'rgba(76,194,255,.12)':PANEL,stroke:gate?ACC:(i===3?GRN:SOFT),lw:gate?3.5:2,a:p});
+    T(a1,cx,cy-16,{size:P(26,30),col:gate?ACC:INK,a:p});T(a2,cx,cy+18,{size:P(20,24),col:SOFT,w:600,a:p})});
+  // proposals travelling the path
+  const run=(s,label,col,stopAt)=>{const seg=.45;for(let i=0;i<stopAt;i++){const q=prog(t,s+i*seg,seg);if(q<=0||q>=1)continue;const[a0,b0]=pos(i),[a1,b1]=pos(i+1),e=eio(q);
+      glowR(lerp(a0,a1,e),lerp(b0,b1,e),28,col+'cc',1);chip(label,lerp(a0,a1,e),lerp(b0,b1,e)+(VERT?0:-bh/2-26),col,{size:P(16,18),solid:false})}};
+  run(1.4,'TRANSFER £80,000',RED,1);
+  const h=slam(t,1.85,.22),[gx,gy]=pos(1);if(h.p>0)scaled(VERT?gx:gx,VERT?gy+bh/2+30:gy+bh/2+40,lerp(1,h.sc,.5),()=>chip('£80,000 · HELD for human approval',0,0,AMB,{size:P(17,20),a:h.a}));
+  run(2.8,'TRANSFER £4,000',GRN,3);
+  const e=slam(t,4.15,.22),[ex,ey]=pos(3);if(e.p>0)scaled(VERT?ex:ex,VERT?ey+bh/2+30:ey+bh/2+40,lerp(1,e.sc,.5),()=>chip('£4,000 · EXECUTES',0,0,GRN,{size:P(17,20),a:e.a}));
+  TL(P(['The model can reason. The authorization layer decides what may enter the world.'],['The model can reason.','The authorization layer decides','what may enter the world.']),W/2,P(560,1020),{size:P(28,30),a:eo(prog(t,4.6,.35))});
+  T('illustrative  ·  bounded verification, not a claim of universal AI safety',W/2,P(660,1160),{size:P(17,19),col:DIM,w:400,a:eo(prog(t,.8,.3))});
+  return{shake:shake(t,1.9,.3,10)};
+},[[.3,'tick'],[.5,'tick'],[.7,'tick'],[.9,'tick'],[1.85,'hit'],[4.15,'tick']]);
+
+/* 8 · capability / authority */
+scene(3,t=>{
+  const s=slam(t,.1,.25);if(s.p>0)scaled(W/2,P(320,600),s.sc,()=>{
+    if(VERT){G('CAPABILITY',0,-80,{size:84,a:s.a},glitch(t,.1,.5,10));G('≠',0,20,{size:96,col:RED,a:s.a},glitch(t,.1,.5,10));G('AUTHORITY',0,120,{size:84,col:ACC,a:s.a},glitch(t,.1,.5,10))}
+    else{G('CAPABILITY ≠ AUTHORITY',0,0,{size:78,a:s.a},glitch(t,.1,.5,10))}});
+  TL(P(['An agent can keep its intelligence without inheriting unlimited authority.'],['An agent can keep its intelligence','without inheriting unlimited authority.']),W/2,P(470,850),{size:P(30,32),col:SOFT,w:600,a:eo(prog(t,.9,.35))});
+  return{shake:shake(t,.15,.35,14),flash:[ACC,.6*(1-prog(t,.1,.25))*(t>.1?1:0)]};
+},[[.1,'boom']]);
+
+/* 9 · back to the lift */
+scene(4.4,t=>{
+  const la=eo(prog(t,0,.3)),sway=Math.sin(t*9)*4*(1-prog(t,0,1.5));lift(P(300,W/2),P(410,470),P(1,.9),{a:la,sway});
+  const pa=eo(prog(t,.3,.3)),px=P(850,W/2),py=P(300,900),pw=P(620,620),ph=P(200,190);
+  RR(px-pw/2,py-ph/2,pw,ph,14,{fill:PANEL,stroke:SOFT,lw:2.5,a:pa});
+  TL(typedLines(['“Don’t worry. The lift has an','excellent representation','of braking.”'],prog(t,.45,1.4)),px,py,{size:P(32,32),maxW:pw-40});
+  const z=slam(t,2.4,.25);if(z.p>0)scaled(px,P(510,1090),z.sc,()=>TL(P(['You’re taking the','stairs with me.'],['You’re taking the stairs','with me.']),0,0,{size:P(50,48),col:ACC,a:z.a,glitch:glitch(t,2.4,.4,6)}));
+  return{shake:shake(t,2.45,.3,10)};
+},[[0,'whoosh'],[.45,'type'],[2.4,'hit']]);
+
+/* 10 · close */
+scene(4.6,t=>{
+  const z=slam(t,.1,.28);if(z.p>0)scaled(W/2,P(220,440),z.sc,()=>TL(P(['Where are the brakes?'],['Where are','the brakes?']),0,0,{size:P(92,100),a:z.a,glitch:glitch(t,.1,.5,8)}));
+  TL(['Representation ≠ causal enforcement'],W/2,P(340,640),{size:P(40,40),col:ACC,a:eo(prog(t,.8,.35))});
+  T('MORRISON RUNTIME GOVERNANCE',W/2,P(470,820),{size:P(24,24),col:INK,ls:P(7,4),a:eo(prog(t,1.4,.4))});
+  T('Independent authority before execution.',W/2,P(515,870),{size:P(26,30),col:SOFT,w:600,it:true,a:eo(prog(t,1.6,.4))});
+  T('Davarn Morrison  ·  Resurrection Tech™',W/2,P(650,1060),{size:P(19,21),col:DIM,w:600,a:eo(prog(t,2,.4))});
+  return{shake:shake(t,.15,.3,10)};
+},[[.1,'boom'],[1.4,'end']]);
+
+start();
+</script></body></html>
