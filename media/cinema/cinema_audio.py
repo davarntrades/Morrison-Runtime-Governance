@@ -1,6 +1,7 @@
 """Score, sound design and voiceover mix for cinema.html.
 
     python3 cinema_audio.py film-silent.cues.json vo/ out.wav
+    NO_VO=1 python3 cinema_audio.py ...     # score and sound design only (the published cut)
 
 Reads the cue list the renderer exports (render.js writes <out>.cues.json) so
 picture and sound share one timeline. Everything is synthesised; the voice is
@@ -86,6 +87,13 @@ place(music, pad([D2, A2], FREEZE + .1, T3, att=.6, rel=.8, bright=500), FREEZE 
 place(music, pad([A1, E2], T3, T4, att=1.5, rel=.1, bright=500, hard_end=True), T3, 0.45)
 # 4 · evidence: almost dry — a faint bed only
 place(music, pad([A1, E2, A2], T4 + 1.5, T5, att=3, rel=.8, bright=400), T4 + 1.5, 0.22)
+if os.environ.get("NO_VO"):
+    # without narration the evidence scene carries itself: a fuller bed and a slow, clock-like pulse
+    place(music, pad([A1, E2, A2, C3], T4 + .4, T5, att=2, rel=.8, bright=650), T4 + .4, 0.45)
+    for k in np.arange(T4 + 1.5, T4 + 15.8, 1.0):
+        place(music, np.sin(2 * np.pi * 52 * T(.5)) * np.exp(-T(.5) / .09) * 1.4, k, 1.0)
+    # the held breath after the final block: a whisper of air, not a dropout
+    place(music, pad([A1, E2], FB + .4, first("title"), att=2.5, rel=1.5, bright=300), FB + .4, 0.22)
 # 5 · the principle: resolves, calm and certain
 place(music, pad([A2, Cs3, E3], T5, T6, att=1.5, rel=1.0, bright=1100), T5, 0.6)
 # 6 · final callback: tension up to the block, then silence; a low chord under the title
@@ -184,7 +192,7 @@ for t0 in at.get("title", []): place(fx, chime(), t0, .3)
 
 # ── voiceover ───────────────────────────────────────────────────────────────
 voice = np.zeros(N)
-for vid, t0 in VO.items():
+for vid, t0 in ({} if os.environ.get("NO_VO") else VO).items():   # NO_VO=1: score and sound design only
     w = wave.open(os.path.join(vo_dir, vid + ".wav"))
     sr0 = w.getframerate()
     a = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).astype(float) / 32768
@@ -217,7 +225,7 @@ st = np.stack([L, R], 1)
 st *= env([0, TOTAL - .8, TOTAL], [1, 1, 0])[:, None]
 # master: set loudness from a voiced section (voice + bed ≈ -16 dBFS RMS), then soft-limit peaks
 ref = st[int(T3 * SR):int(T4 * SR)]
-st *= 10 ** (-16 / 20) / np.sqrt(np.mean(ref ** 2))
+st *= 10 ** ((-19 if os.environ.get("NO_VO") else -16) / 20) / np.sqrt(np.mean(ref ** 2))
 k, span = .72, .24
 mag = np.abs(st)
 st = np.where(mag > k, np.sign(st) * (k + span * np.tanh((mag - k) / span)), st)
