@@ -14,10 +14,10 @@ const eo=p=>1-Math.pow(1-p,3), eio=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2, e5=p=
 const lerp=(a,b,p)=>a+(b-a)*p;
 let GA=1;
 const A=a=>{x.globalAlpha=clamp(a)*GA};
-const font=(size,w,mono)=>`${w} ${size}px ${mono?'"DejaVu Sans Mono",monospace':'"DejaVu Sans",sans-serif'}`;
+const font=(size,w,mono,it)=>`${it?'italic ':''}${w} ${size}px ${mono?'"DejaVu Sans Mono",monospace':'"DejaVu Sans",sans-serif'}`;
 function TW(s,size,w=700,mono=false,ls=0){x.font=font(size,w,mono);x.letterSpacing=ls+'px';const r=x.measureText(s).width;x.letterSpacing='0px';return r}
-function T(s,px,py,o={}){const{size=20,col=INK,w=700,align='center',a=1,mono=false,ls=0}=o;if(a<=0||!s)return;
-  A(a);x.fillStyle=col;x.font=font(size,w,mono);x.textAlign=align;x.textBaseline='middle';x.letterSpacing=ls+'px';x.fillText(s,px,py);x.letterSpacing='0px'}
+function T(s,px,py,o={}){const{size=20,col=INK,w=700,align='center',a=1,mono=false,ls=0,it=false}=o;if(a<=0||!s)return;
+  A(a);x.fillStyle=col;x.font=font(size,w,mono,it);x.textAlign=align;x.textBaseline='middle';x.letterSpacing=ls+'px';x.fillText(s,px,py);x.letterSpacing='0px'}
 // chromatic-split text: red/cyan fringes offset by `amt` px
 function G(s,px,py,o={},amt=0){if(amt>.3){x.save();x.globalCompositeOperation='lighter';
   T(s,px-amt,py,{...o,col:'#ff2a55',a:(o.a??1)*.8});T(s,px+amt,py+amt*.3,{...o,col:'#22d3ff',a:(o.a??1)*.8});x.restore()}T(s,px,py,o)}
