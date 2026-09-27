@@ -102,7 +102,7 @@ cue(5,0,'cut');cue(5,.9,'swoosh');cue(5,1.6,'resolve');
 function s1(t){paperBg();chrome(t,'01 — hook');
   const tx=P(96,56),ty=P(280,300);txt('// for teams shipping AI agents',tx,ty-120,{size:15,f:'mono',col:MUTE,a:eo(prog(t,.1,.4))});
   head([['Your AI agent','sans']],tx,ty,P(78,66),t,.25);
-  head([['can','sans'],['act','serif',BLUE,'u'],['now.','sans']],tx,ty+P(104,92),P(78,66),t,.55);
+  head([['can','sans'],['execute','serif',BLUE,'u'],['now.','sans']],tx,ty+P(104,92),P(78,66),t,.55);
   const ap=prog(t,.3,.6),sc=back(ap),wave=Math.sin(t*9)*(t>1&&t<2.6?1:0);
   x.save();const ax=P(960,W/2+40),ay=P(H+10,H+20),ah=P(560,640);x.translate(ax,ay);x.scale(sc,sc);agent(0,0,ah,{wave,blink:blinkAt(t),bob:Math.sin(t*3)*4},eo(ap));x.restore()}
 function s2(t){x.fillStyle=BLUE;x.fillRect(0,0,W,H);chrome(t,'02 — what it can do',true);
@@ -128,7 +128,7 @@ function s3(t){paperBg();chrome(t,'03 — the gap');
   const bp=prog(t,2.1,.45);if(bp>0){const e=back(bp),bx=P(760,300),by=P(460,760);x.save();x.translate(bx,by);x.scale(e,e);
     shadowCard(-10,-10,P(300,340),84,16,'#111214');txt('peer-agent',8,16,{size:12,f:'mono',col:'rgba(255,255,255,.55)'});txt('GO — approved ✓',8,50,{size:P(22,24),w:600,col:'#fff'});
     chip('unverified',P(230,270),16,AMB,1,1,true);x.restore()}
-  agent(P(380,560),H+10,P(300,330),{look:P(1,-.6),blink:blinkAt(t+2),worry:prog(t,2.2,.3)>0?1:0},eo(prog(t,.2,.5)))}
+  agent(P(380,560),H+10,P(300,330),{look:P(1,-.6),blink:blinkAt(t+2),worry:0},eo(prog(t,.2,.5)))}
 function s4(t){paperBg('#f4f5f2');chrome(t,'04 — morrison');
   const tx=P(70,40),ty=P(112,170);head([['With','sans'],['Morrison,','sans',BLUE],['every action','sans']],tx,ty,P(52,44),t,.1);
   head([['passes an','sans'],['independent','serif',TEAL,'u'],['check.','sans']],tx,ty+P(66,58),P(52,44),t,.3);
@@ -146,18 +146,21 @@ function s4(t){paperBg('#f4f5f2');chrome(t,'04 — morrison');
       if(v==='BLOCK'){x.save();x.globalAlpha=(1-prog(t,s+.2,.5))*.5;x.fillStyle=RED;x.fillRect(ax-7,ry-40,14,80);x.restore()}}});
   txt('illustrative',W-24,H-20,{size:12,f:'mono',col:MUTE,align:'right',a:eo(prog(t,1,.4))})}
 function s5(t){x.fillStyle=INK;x.fillRect(0,0,W,H);chrome(t,'05 — tested live',true);
-  const tx=P(96,56),ty=P(170,230);txt('Live models. A peer saying GO —',tx,ty,{size:P(34,32),w:600,col:'#fff',a:eo(prog(t,.1,.4))});
-  head([['some with a','sans','#fff'],['forged','serif','#ff8a8a','u'],['approval.','sans','#fff']],tx,ty+P(52,50),P(34,32),t,.3,{col:'#fff',w:600});
+  const tx=P(96,56),ty=P(170,230);txt('Live models. A peer-agent GO message —',tx,ty,{size:P(34,29),w:600,col:'#fff',a:eo(prog(t,.1,.4))});
+  head([['some with a','sans','#fff'],['forged','serif','#ff8a8a','u'],['approval.','sans','#fff']],tx,ty+P(52,46),P(34,29),t,.3,{col:'#fff',w:600});
   const n=Math.round(108*eo(prog(t,.6,1)));
   const col=(k,v,l,c_)=>{const cx=VT?W/2:220+k*380,cy=VT?470+k*210:420,p=eo(prog(t,.6+k*.35,.4));txt(v,cx,cy,{size:P(120,120),w:700,col:c_,a:p,align:'center'});txt(l,cx,cy+P(40,40),{size:16,f:'mono',col:'rgba(255,255,255,.7)',a:p,align:'center'})};
   col(0,String(n),'destructive proposals','#fff');col(1,String(n),'refused','#ffc766');col(2,'0','executed','#7ee2a8');
   txt('4 live runs · open-weight models · stub endpoints · bounded result, not a universal claim',W/2,P(H-40,H-110),{size:P(13,12),f:'mono',col:'rgba(255,255,255,.55)',a:eo(prog(t,1.6,.4)),align:'center'})}
 function s6(t){paperBg();chrome(t,'06 — the principle');
-  const tx=P(96,56),ty=P(250,260);head([['Let your agent','sans'],['think.','serif',BLUE,'u']],tx,ty,P(76,62),t,.1);head([['Keep the','sans'],['authority.','sans']],tx,ty+P(98,84),P(76,62),t,.35);
-  const lp=eo(prog(t,1.1,.5));txt('MORRISON RUNTIME GOVERNANCE',tx,ty+P(200,190),{size:15,f:'mono',col:INK,a:lp,ls:3});
-  txt('Independent authority before execution.',tx,ty+P(236,224),{size:P(30,30),f:'serif',col:MUTE,a:eo(prog(t,1.4,.5))});
-  txt('Resurrection Tech™',tx,ty+P(290,270),{size:13,f:'mono',col:MUTE,a:eo(prog(t,1.7,.5))});
-  const wave=Math.sin(t*9)*(t>1.2&&t<2.8?1:0);agent(P(990,W/2+60),H+10,P(520,520),{wave,blink:blinkAt(t+.5),bob:Math.sin(t*3)*4},eo(prog(t,.2,.5)))}
+  const tx=P(96,56),ty=P(250,240),dy=P(0,84);
+  if(VT){head([['Let your agent','sans']],tx,ty,62,t,.1);head([['propose.','serif',BLUE,'u']],tx,ty+84,62,t,.22)}
+  else head([['Let your agent','sans'],['propose.','serif',BLUE,'u']],tx,ty,76,t,.1);
+  head([['Keep the','sans'],['authority.','sans']],tx,ty+dy+P(98,84),P(76,62),t,.35);
+  const lp=eo(prog(t,1.1,.5));txt('MORRISON RUNTIME GOVERNANCE',tx,ty+dy+P(200,190),{size:15,f:'mono',col:INK,a:lp,ls:3});
+  txt('Independent authority before execution.',tx,ty+dy+P(236,224),{size:P(30,30),f:'serif',col:MUTE,a:eo(prog(t,1.4,.5))});
+  txt('Resurrection Tech™',tx,ty+dy+P(290,270),{size:13,f:'mono',col:MUTE,a:eo(prog(t,1.7,.5))});
+  const wave=Math.sin(t*9)*(t>1.2&&t<2.8?1:0);agent(P(1085,W/2+60),H+10,P(520,520),{wave,blink:blinkAt(t+.5),bob:Math.sin(t*3)*4},eo(prog(t,.2,.5)))}
 
 const SC=[s1,s2,s3,s4,s5,s6];
 function render(t){x.setTransform(S,0,0,S,0,0);x.globalAlpha=1;let k=0;for(let i=0;i<6;i++)if(t>=TS[i])k=i;const lt=t-TS[k];
