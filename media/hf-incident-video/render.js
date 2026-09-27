@@ -11,7 +11,7 @@ const FPS = 30, FF = process.env.FFMPEG || 'ffmpeg', VERT = process.env.FORMAT =
 (async () => {
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: VERT ? { width: 1080, height: 1920 } : { width: 1920, height: 1080 } });
-  await p.goto('file://' + path.resolve(__dirname, process.env.SCENE || 'scene.html') + '?render' + (VERT ? '&format=v' : ''));
+  await p.goto('file://' + path.resolve(__dirname, process.env.SCENE || 'scene.html') + '?render' + (VERT ? '&format=v' : '&format=h'));
   await p.evaluate(() => window.READY || null);  // fonts etc.
   const canvas = p.locator('canvas');
   const frame = async t => { await p.evaluate(t => render(t), t); return canvas.screenshot({ type: 'png' }); };
