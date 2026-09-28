@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Morrison — advert</title><style>
+<!doctype html><html><head><meta charset="utf-8"><title>The Medicare portal incident</title><style>
 html,body{margin:0;background:#fff}canvas{display:block;width:100vw;height:auto}
 @font-face{font-family:Inter;font-weight:400;src:url(fonts/inter-latin-400-normal.woff2)}
 @font-face{font-family:Inter;font-weight:500;src:url(fonts/inter-latin-500-normal.woff2)}
@@ -98,103 +98,108 @@ function paperBg(col=PAPER){x.fillStyle=col;x.fillRect(0,0,W,H);x.fillStyle='rgb
 function botIcon(px,py,s=1,col=INK){x.save();x.translate(px,py);x.scale(s,s);rr(-11,-9,22,18,6,col);rr(-7,-4,14,7,3,'#fff');x.fillStyle=col;x.fillRect(-1,-15,2,6);x.beginPath();x.arc(0,-16,2.5,0,7);x.fill();x.restore()}
 function mark(px,py,s=1){x.save();x.translate(px,py);x.scale(s,s);x.fillStyle=INK;x.beginPath();x.arc(-18,0,5,0,7);x.fill();x.fillRect(-12,-1,14,2);x.beginPath();x.roundRect(4,-16,7,32,3.5);x.fill();x.restore()}
 
-/* ─── timeline ─── */
-const DUR=[2.0,2.4,2.4,3.4,3.8,2.4,2.2,3.4],TS=[0];DUR.forEach((d,i)=>TS.push(TS[i]+d));const TOTAL=+TS[8].toFixed(2);
-const ACC=[BLUE,BLUE,BLUE,TEAL,INK,INK,INK,BLUE];
+/* ─── the Medicare portal incident, as publicly reported (Sept 2026) ───
+   Sources summarised in media/editorial/AUSTRALIA_SOURCES.md. Scenes 1–4 state only what was reported;
+   scene 6 is an illustrative Morrison policy — Morrison did not observe or reproduce this incident. */
+const DUR=[3.6,4.8,3.8,4.0,3.8,4.6,3.4],TS=[0];DUR.forEach((d,i)=>TS.push(TS[i]+d));const TOTAL=+TS[7].toFixed(2);
+const ACC=[INK,RED,INK,CRIM,INK,TEAL,BLUE];
 const CUES=[];const cue=(i,lo,k)=>CUES.push([+(TS[i]+lo).toFixed(3),k]);
-cue(0,0,'start');for(let k=0;k<8;k++)cue(0,.15+k*.07,'pop');cue(0,1.05,'thud');
-cue(1,0,'cut');cue(1,.4,'pop');cue(1,.9,'swoosh');
-cue(2,0,'cut');[.3,.45,.6,.75].forEach(d=>cue(2,d,'card'));
-cue(3,0,'cut');cue(3,.9,'type');cue(3,2.5,'block');
-cue(4,0,'cut');[.2,.35,.5,.65,.8,.95].forEach(d=>cue(4,d,'card'));cue(4,2.0,'escalate');cue(4,2.6,'block');
-cue(5,0,'cut');cue(5,.4,'count');cue(5,1.3,'thud');
-cue(6,0,'cut');cue(6,.9,'swoosh');
-cue(7,0,'cut');cue(7,.5,'pop');cue(7,1.2,'resolve');
+cue(0,0,'start');cue(0,.3,'pop');cue(0,1.2,'type');
+cue(1,0,'cut');cue(1,.5,'allow');[1.1,1.6,2.1].forEach(d=>cue(1,d,'block'));cue(1,2.8,'swoosh');cue(1,3.4,'escalate');
+cue(2,0,'cut');cue(2,.5,'count');cue(2,1.6,'bubble');
+cue(3,0,'cut');[.4,1.2,2.0].forEach(d=>cue(3,d,'pop'));cue(3,2.6,'thud');
+cue(4,0,'cut');cue(4,1.0,'swoosh');cue(4,2.3,'block');
+cue(5,0,'cut');cue(5,1.35,'allow');cue(5,2.15,'block');cue(5,3.0,'block');
+cue(6,0,'cut');cue(6,.5,'pop');cue(6,1.2,'resolve');
+const SRC='per public reporting · Sept 2026';
+function foot(s,a=1,dark=false){txt(s,24,H-18,{size:12,f:'mono',col:dark?'rgba(255,255,255,.5)':MUTE,a})}
 
-/* ─── small helpers for this cut ─── */
-// a light syntax colouring for the on-screen code
-function code(line,px,py,size,a=1){let cx=px;const toks=line.match(/("[^"]*")|(\b\d[\d_]*\b)|(\b(?:from|import)\b)|(#.*$)|([^"\d#]+?(?=\bfrom\b|\bimport\b|"|\b\d|#|$))|(.)/g)||[];
-  toks.forEach(tk=>{const col=/^"/.test(tk)?TEAL:/^\d/.test(tk)?CRIM:/^(from|import)$/.test(tk)?BLUE:/^#/.test(tk)?MUTE:INK;txt(tk,cx,py,{size,f:'mono',col,a});cx+=tw(tk,size,'mono')})}
-function tile(px,py,w,h,label,t,s0){const p=prog(t,s0,.4);if(p<=0)return 0;const e=back(p);x.save();x.translate(px+w/2,py+h/2);x.scale(lerp(.92,1,e),lerp(.92,1,e));x.translate(-w/2,-h/2);
-  card(0,0,w,h,16,'#fff',eo(p),.8);rr(0,0,w,h,16,null,'rgba(0,0,0,.06)',1,eo(p));txt(`// ${label}`,16,26,{size:12,f:'mono',col:MUTE,a:eo(p)});return eo(p)}
-function tileEnd(){x.restore()}
-
-/* ─── scenes ─── */
-function s0(t){paperBg();const word='Morrison',size=P(150,118),ww=tw(word,size,'serifr'),mw=64,x0=W/2-(ww+mw)/2,by=H/2+size*.3;
-  let cx=x0;[...word].forEach((ch,i)=>{const p=prog(t,.15+i*.07,.35),e=back(p);txt(ch,cx,by-(1-e)*60,{size,f:'serifr',col:INK,a:eo(p)});cx+=tw(ch,size,'serifr')});
-  const mp=prog(t,1.0,.3);if(mp>0){x.save();x.translate(x0+ww+mw*.9,by-size*.32);x.scale(1.9,1.9);x.globalAlpha=eo(mp);
-    x.fillStyle=INK;x.beginPath();x.arc(-18-(1-eo(mp))*20,0,5,0,7);x.fill();x.fillRect(-12-(1-eo(mp))*20,-1,14,2);x.beginPath();x.roundRect(4,-16*back(mp),7,32*back(mp),3.5);x.fill();x.restore()}
-  txt('runtime governance for AI agents',W/2,by+P(56,50),{size:15,f:'mono',col:MUTE,a:eo(prog(t,1.2,.4)),align:'center',ls:2})}
-function s1(t){paperBg();chrome('01 — hook');
-  const tx=P(96,56),ty=P(280,300);txt('// for teams shipping AI agents',tx,ty-120,{size:15,f:'mono',col:MUTE,a:eo(prog(t,.05,.3))});
-  head([['Shipping AI agents?','sans']],tx,ty,P(62,58),t,.1);head([['They can','sans'],['execute','serif',BLUE,'u'],['now.','sans']],tx,ty+P(88,84),P(62,58),t,.35);
-  const ap=prog(t,.15,.5),sc=back(ap);x.save();x.translate(P(1070,W/2+40),P(H+10,H+20));x.scale(sc,sc);agent(0,0,P(540,640),{...idle(t),armL:waveArm(t,.7,2.0)},eo(ap));x.restore()}
-function s2(t){x.fillStyle=BLUE;x.fillRect(0,0,W,H);x.fillStyle='rgba(255,255,255,.06)';for(let gx=12;gx<W;gx+=24)for(let gy=12;gy<H;gy+=24)x.fillRect(gx,gy,1.4,1.4);chrome('02 — what they touch',true);
-  const pr=eo(prog(t,.2,.4));agent(P(250,190),H+10,P(520,470),{...idle(t+1),look:.8,armR:lerp(2.75,P(1.35,.75),pr)},eo(prog(t,0,.3)));
-  const CARDS=[['payments','Payments','£80,000 transfer','#ffb020','pay'],['records','Records','delete 12k rows','#ff6b5a','data'],['email','Messages','send to 40k users','#2fc4a0','mail'],['deploys','Deploys','push to production','#a98bf5','ship']];
-  const cw=P(158,300),ch=P(250,210);
-  CARDS.forEach(([tag,ttl,sub,col,ic],i)=>{const s=.3+i*.15,p=prog(t,s,.45);if(p<=0)return;const e=back(p),fl=Math.sin(t*2+i)*3;
-    const px=VT?40+(i%2)*(cw+40):520+i*(cw+22),py=(VT?250+Math.floor(i/2)*(ch+30):225)+fl,off=(1-e)*P(80,60);
-    x.save();x.translate(px+cw/2,py+ch/2+off);x.rotate((1-e)*.08*(i%2?1:-1));x.translate(-cw/2,-ch/2);
-    card(0,0,cw,ch,16,col,eo(p));txt(`// ${tag}`,14,26,{size:12,f:'mono',col:'rgba(0,0,0,.6)',a:eo(p)});txt(`0${i+1}`,cw-14,26,{size:12,f:'mono',col:'rgba(0,0,0,.6)',a:eo(p),align:'right'});
-    blit(ICONS[ic],cw/2-P(56,60),P(48,40),P(112,120),P(90,96),eo(p));
-    txt(ttl,14,ch-P(46,44),{size:P(26,30),col:INK,a:eo(p)});txt(sub,14,ch-P(20,18),{size:13,f:'mono',col:'rgba(0,0,0,.75)',a:eo(p)});x.restore()});
-  txt('Money, data, messages, code — in one tool call.',P(520,40),P(560,760),{size:P(22,24),w:500,col:'#fff',a:eo(prog(t,1.1,.4))})}
-const CODE=['from morrison_governance import GovernanceGuard','','guard = GovernanceGuard(gov, security_context=ctx)','','guard.dispatch("transfer_funds",','    {"amount": 80_000, "approval_id": "APR-7741"},','    executor=bank.transfer)'];
-function s3(t){paperBg();chrome('03 — integration');
-  const tx=P(70,40),ty=P(150,180);head([['Morrison sits between','sans']],tx,ty,P(42,40),t,.05);head([['your','sans'],['planner','serif',TEAL,'u'],['and your tools.','sans']],tx,ty+P(58,54),P(42,40),t,.2);
-  ['OpenAI','Claude','LangChain','AutoGen','MCP'].forEach((n,i)=>{const p=eo(prog(t,.6+i*.08,.3)),w=tw(n,13,'mono')+26,cx0=tx+[0,86,164,272,370][i]*P(1,1.05);rr(cx0,ty+P(96,86),w,30,15,'#fff',INK,1.5,p);txt(n,cx0+13,ty+P(116,106),{size:13,f:'mono',col:INK,a:p})});
-  txt('No retraining. No fine-tuning.',tx,ty+P(170,160),{size:15,f:'mono',col:MUTE,a:eo(prog(t,1.1,.4))});
-  // the editor
-  const ex=P(600,30),ey=P(250,440),ew=P(640,660),eh=P(420,420),ep=eo(prog(t,.3,.4));
-  card(ex,ey+(1-ep)*24,ew,eh,16,'#fff',ep);rr(ex,ey+(1-ep)*24,ew,38,[16,16,0,0],'#f1f2ef',null,1,ep);
-  [RED,AMB,GRN].forEach((c_,i)=>{x.save();x.globalAlpha=ep;x.fillStyle=c_;x.beginPath();x.arc(ex+22+i*18,ey+19+(1-ep)*24,5,0,7);x.fill();x.restore()});txt('agent.py',ex+ew/2,ey+24+(1-ep)*24,{size:12,f:'mono',col:MUTE,a:ep,align:'center'});
-  let chars=Math.floor(clamp((t-.8)/1.5)*CODE.join('').length),ly=0,lx=0;const cs=P(15,14);
-  CODE.forEach((l,i)=>{const n=Math.max(0,Math.min(l.length,chars));chars-=l.length;const yy=ey+78+i*28;txt(String(i+1),ex+22,yy,{size:12,f:'mono',col:'#b5b8bd',a:ep});
-    if(n>0){code(l.slice(0,n),ex+52,yy,cs,ep);ly=yy;lx=ex+52+tw(l.slice(0,n),cs,'mono')}});
-  if(t<2.4&&Math.floor(t*3)%2){x.fillStyle=INK;x.fillRect(lx+2,ly-13,8,16)}
-  const rp=prog(t,2.5,.3);if(rp>0){const yy=ey+78+7*28+18;x.save();x.globalAlpha=eo(rp);x.fillStyle='rgba(229,50,45,.08)';x.fillRect(ex+14,yy-22,ew-28,34);x.restore();
-    txt('GovernanceError: BLOCK · forged_authority_claim',ex+26,yy,{size:cs,f:'mono',col:RED,a:eo(rp)})}}
-function s4(t){x.fillStyle='#eceee9';x.fillRect(0,0,W,H);chrome('04 — handled');
-  const G=P({x0:40,y0:60,cw:392,ch:305,g:16,cols:3},{x0:28,y0:130,cw:324,ch:320,g:16,cols:2}),pos=i=>[G.x0+(i%G.cols)*(G.cw+G.g),G.y0+Math.floor(i/G.cols)*(G.ch+G.g)];
-  let [px,py]=pos(0),a;
-  // verdict stream
-  if(a=tile(px,py,G.cw,G.ch,'verdicts',t,.2)){const V=[['send_email','ALLOW',GRN],['query_db','ALLOW',GRN],['refund £2,400','ESCALATE',AMB],['post_message','ALLOW',GRN],['transfer £80k','BLOCK',RED],['update_crm','ALLOW',GRN],['grant_access','BLOCK',RED],['export_csv','ESCALATE',AMB]];
-    const off=(t*40)%52;x.save();x.beginPath();x.rect(12,44,G.cw-24,G.ch-58);x.clip();
-    for(let k=0;k<8;k++){const yy=G.ch-24-k*52+off,[fn,v,col]=V[(k+Math.floor(t*40/52))%8];if(yy<40)continue;rr(14,yy-22,G.cw-28,40,10,'#f6f7f4',null,1,a);txt(fn,28,yy+3,{size:14,f:'mono',col:INK,a});chip(v,G.cw-70,yy-2,col,a,1,true,11)}x.restore();tileEnd()}
-  // on air
-  [px,py]=pos(1);if(a=tile(px,py,G.cw,G.ch,'on air',t,.35)){x.save();x.globalAlpha=a*(.5+.5*Math.sin(t*6));x.fillStyle=BLUE;x.beginPath();x.arc(G.cw-22,20,5,0,7);x.fill();x.restore();
-    x.save();x.beginPath();x.rect(0,34,G.cw,G.ch-34);x.clip();agent(G.cw/2,G.ch+6,G.ch*1.05,{...idle(t),look:Math.sin(t*1.5)},a);x.restore();tileEnd()}
-  // escalations
-  [px,py]=pos(2);if(a=tile(px,py,G.cw,G.ch,'escalations',t,.5)){rr(16,50,G.cw-32,96,12,'#fff',AMB,2,a);txt('refund(£2,400)',32,82,{size:16,f:'mono',col:INK,a});txt('awaiting approval',32,108,{size:13,f:'mono',col:AMB,a});
-    const cd=clamp(1-(t-.5)/3.2);x.save();x.globalAlpha=a;x.strokeStyle='rgba(0,0,0,.1)';x.lineWidth=5;x.beginPath();x.arc(G.cw-54,98,20,0,7);x.stroke();x.strokeStyle=AMB;x.beginPath();x.arc(G.cw-54,98,20,-Math.PI/2,-Math.PI/2+cd*6.283);x.stroke();x.restore();
-    const ap=prog(t,2.0,.3);rr(16,162,(G.cw-44)/2,40,20,ap>0?GRN:INK,null,1,a);txt(ap>0?'Approved ✓':'Approve',16+(G.cw-44)/4,188,{size:14,w:600,col:'#fff',a,align:'center'});
-    rr(28+(G.cw-44)/2,162,(G.cw-44)/2,40,20,'#fff','rgba(0,0,0,.2)',1.5,a);txt('Deny',28+3*(G.cw-44)/4,188,{size:14,w:600,col:INK,a,align:'center'});
-    txt('no answer → times out to BLOCK',16,G.ch-22,{size:12,f:'mono',col:MUTE,a});tileEnd()}
-  // forged claims
-  [px,py]=pos(3);if(a=tile(px,py,G.cw,G.ch,'forged claims',t,.65)){txt('approval_id: "APR-7741"',20,86,{size:P(16,15),f:'mono',col:INK,a});const sp=eo(prog(t,2.6,.35));if(sp>0){x.save();x.globalAlpha=a;x.strokeStyle=RED;x.lineWidth=2.5;x.beginPath();x.moveTo(18,80);x.lineTo(18+tw('approval_id: "APR-7741"',P(16,15),'mono')*sp,80);x.stroke();x.restore()}
-    txt('not corroborated by trusted state',20,118,{size:13,f:'mono',col:MUTE,a});chip('BLOCK',56,160,RED,a*eo(prog(t,2.6,.3)),back(prog(t,2.6,.3)),true,12);txt('forged_claims: ["approval_id"]',20,G.ch-22,{size:12,f:'mono',col:MUTE,a});tileEnd()}
-  // audit trail
-  [px,py]=pos(4);if(a=tile(px,py,G.cw,G.ch,'audit trail',t,.8)){const H_=['a3f9…41c2','7c21…9e0d','e04b…33fa','19d6…b870'];H_.forEach((h,i)=>{const yy=74+i*44,p=eo(prog(t,1+i*.25,.3))*a;rr(16,yy-22,G.cw-32,34,8,'#f6f7f4',null,1,p);txt(h,30,yy,{size:14,f:'mono',col:INK,a:p});txt('✓',G.cw-34,yy,{size:14,f:'mono',col:GRN,a:p});
-      if(i)line_(G.cw/2,yy-22,G.cw/2,yy-30,p)});txt('hash-chained · chain verified ✓',16,G.ch-22,{size:12,f:'mono',col:GRN,a:a*eo(prog(t,2,.3))});tileEnd()}
-  // policy
-  [px,py]=pos(5);if(a=tile(px,py,G.cw,G.ch,'Ω policy',t,.95)){const R=[['transfer_funds > £10,000','requires approval',AMB],['delete_rows(prod)','BLOCK',RED],['send_email(internal)','ALLOW',GRN]];
-    R.forEach(([r,v,col],i)=>{const yy=78+i*62;txt(r,20,yy,{size:P(15,14),f:'mono',col:INK,a});txt('→ '+v,20,yy+24,{size:13,f:'mono',col,a})});tileEnd()}
-  txt('concept view · real kernel features',W-24,H-16,{size:12,f:'mono',col:MUTE,align:'right',a:eo(prog(t,1,.4))})}
-function line_(x1,y1,x2,y2,a){x.save();x.globalAlpha=a;x.strokeStyle='rgba(0,0,0,.25)';x.lineWidth=1.5;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();x.restore()}
-function s5(t){x.fillStyle=INK;x.fillRect(0,0,W,H);chrome('05 — tested live',true);
-  const tx=P(96,56),ty=P(170,220);txt('Live models. Peer-agent GO messages.',tx,ty,{size:P(30,27),w:600,col:'#fff',a:eo(prog(t,.05,.3))});
-  head([['Some with a','sans','#fff'],['forged','serif','#ff8a8a','u'],['approval.','sans','#fff']],tx,ty+P(46,42),P(30,27),t,.2,{col:'#fff',w:600});
-  const n=Math.round(108*eo(prog(t,.4,.9)));txt(String(n),tx,ty+P(190,200),{size:P(110,110),w:700,col:'#fff',a:eo(prog(t,.4,.3))});txt('destructive proposals',tx+P(210,0),ty+P(150,240),{size:14,f:'mono',col:'rgba(255,255,255,.7)',a:eo(prog(t,.4,.3))});
-  const zp=prog(t,1.3,.3);txt('0',P(tx+520,tx),P(ty+190,ty+400),{size:P(110,110),w:700,col:'#7ee2a8',a:eo(zp)});txt('executed',P(tx+600,tx),P(ty+150,ty+440),{size:14,f:'mono',col:'rgba(255,255,255,.7)',a:eo(zp)});
-  txt('4 live runs · open-weight models · stub endpoints · bounded result, not a universal claim',W/2,H-P(36,110),{size:P(13,12),f:'mono',col:'rgba(255,255,255,.5)',a:eo(prog(t,1.2,.4)),align:'center'})}
-function s6(t){x.fillStyle='#0c0d0f';x.fillRect(0,0,W,H);chrome('06 — the split',true);
-  const tx=P(96,56),ty=P(300,330);head([['Your agents','sans','#fff'],['propose.','serif','#fff']],tx,ty,P(68,60),t,.1,{col:'#fff'});
-  if(VT){head([['We handle','sans','#8a8d93']],tx,ty+84,60,t,.5,{col:'#8a8d93'});head([['the authority.','sans','#8a8d93']],tx,ty+160,60,t,.62,{col:'#8a8d93'})}
-  else head([['We handle the','sans','#8a8d93'],['authority.','sans','#8a8d93']],tx,ty+96,68,t,.5,{col:'#8a8d93'});
-  agent(P(1150,W/2+120),H+10,P(420,440),{...idle(t),look:-.6},eo(prog(t,.2,.4)))}
-function s7(t){paperBg();const size=P(128,96),word='Morrison',ww=tw(word,size,'serifr'),cy=P(H/2+10,H/2-40),x0=W/2-ww/2;
-  // the agent peeks over the wordmark
+function s1(t){paperBg();chrome('01 — 18 june 2026');
+  const tx=P(90,56),ty=P(250,250);txt('// what was reported',tx,ty-110,{size:15,f:'mono',col:MUTE,a:eo(prog(t,.05,.3))});
+  head([['An AI agent was given','sans']],tx,ty,P(58,50),t,.15);head([['a','sans'],['routine','serif',BLUE,'u'],['task:','sans']],tx,ty+P(76,66),P(58,50),t,.35);
+  const L='research public spending on medicines',n=Math.floor(clamp((t-1.2)/1.2)*L.length);
+  rr(tx,ty+P(118,108),P(560,600),52,12,'#fff','rgba(0,0,0,.1)',1,eo(prog(t,1.0,.3)));txt('task: "'+L.slice(0,n)+(n<L.length&&Math.floor(t*3)%2?'▍':'')+(n>=L.length?'"':''),tx+18,ty+P(150,140),{size:P(17,16),f:'mono',col:INK,a:eo(prog(t,1.0,.3))});
+  agent(P(1060,W/2+150),H+10,P(470,430),{...idle(t),variant:'peer',look:-.6},eo(prog(t,.3,.5)));
+  txt('an OpenAI research agent · Medicare Statistics Reporting Service',tx,ty+P(210,200),{size:13,f:'mono',col:MUTE,a:eo(prog(t,2.2,.4))});
+  foot(SRC,eo(prog(t,.5,.4)))}
+function s2(t){paperBg('#f4f5f2');chrome('02 — the portal');
+  // headline beats
+  const tx=P(60,40),ty=P(220,170);
+  ['Blocked.','Blocked.','Blocked.'].forEach((b,i)=>{const p=eo(prog(t,1.1+i*.5,.25));txt(b,tx,ty+i*P(62,0)+(VT?0:0),{size:P(52,44),col:RED,a:p*(VT&&i<2?(1-prog(t,1.6+i*.5,.2)):1)})});
+  const ap=eo(prog(t,2.9,.4));if(VT){x.save();x.fillStyle='#f4f5f2';x.globalAlpha=ap;x.fillRect(0,ty-50,W,70);x.restore()}
+  head([['It found a way','sans']],tx,ty+P(210,70),P(46,44),t,2.9);head([['around.','serif',RED,'u']],tx,ty+P(266,124),P(46,44),t,3.05);
+  // the browser
+  const bx=P(440,30),by=P(110,370),bw=P(800,660),bh=P(520,560),bp=eo(prog(t,.1,.35));
+  card(bx,by,bw,bh,16,'#fff',bp);rr(bx,by,bw,40,[16,16,0,0],'#eceee9',null,1,bp);[RED,AMB,GRN].forEach((c_,i)=>{x.save();x.globalAlpha=bp;x.fillStyle=c_;x.beginPath();x.arc(bx+22+i*18,by+20,5,0,7);x.fill();x.restore()});
+  rr(bx+90,by+9,bw-120,22,11,'#fff',null,1,bp);txt('Medicare statistics portal',bx+106,by+25,{size:12,f:'mono',col:MUTE,a:bp});
+  const LOG=[['GET  /reports/public …','200','public data',GRN,.5],['GET  /restricted/ …','403','BLOCKED',RED,1.1],['GET  /restricted/ …','403','BLOCKED',RED,1.6],['GET  /restricted/ …','403','BLOCKED',RED,2.1],
+    ['… a way around the controls …','','method not disclosed',AMB,2.8],['READ non-public files','200','accessed',RED,3.4],['WRITE internal server','','files written',RED,3.9]];
+  const ls=P(16,14),lh=P(54,56);
+  LOG.forEach(([req,code,note,col,s],i)=>{const p=eo(prog(t,s,.25));if(p<=0)return;const yy=by+86+i*lh;
+    if(i===4){x.save();x.globalAlpha=p;x.setLineDash([6,6]);x.strokeStyle=AMB;x.lineWidth=2;x.beginPath();x.roundRect(bx+18,yy-26,bw-36,40,10);x.stroke();x.restore()}
+    else rr(bx+18,yy-26,bw-36,40,10,i>=5?'rgba(229,50,45,.08)':'#f6f7f4',null,1,p);
+    txt(req,bx+34,yy,{size:ls,f:'mono',col:INK,a:p});if(code)txt(code,bx+bw-P(210,190),yy,{size:ls,f:'mono',col,a:p});txt(note,bx+bw-34,yy,{size:ls,f:'mono',col,a:p,align:'right'})});
+  foot('how the agent bypassed the portal’s protections has not been disclosed · '+SRC,eo(prog(t,3,.4)))}
+function s3(t){x.fillStyle=INK;x.fillRect(0,0,W,H);chrome('03 — not alone',true);
+  const tx=P(90,56),ty=P(150,190);head([['Researchers found agent','sans','#fff'],['swarms','serif','#ff8a8a','u']],tx,ty,P(46,40),t,.1,{col:'#fff'});
+  head([['probing other data providers.','sans','#fff']],tx,ty+P(58,52),P(46,40),t,.3,{col:'#fff'});
+  // a lattice of agents passing messages
+  const cols=P(14,9),rows=P(4,8),gx=P(84,72),gy=P(70,78),x0=W/2-(cols-1)*gx/2,y0=P(310,400),N=cols*rows,on=Math.floor(N*eo(prog(t,.3,1)));
+  for(let k=0;k<22;k++){const tt=t*1.3+k*.37,f=tt%1,seed=Math.floor(tt)*31+k*17,a_=seed%N,b_=(seed*7+5)%N;if(a_>=on||b_>=on)continue;
+    const ax=x0+(a_%cols)*gx,ay=y0+Math.floor(a_/cols)*gy,bx_=x0+(b_%cols)*gx,by_=y0+Math.floor(b_/cols)*gy;x.save();x.globalAlpha=.25;x.strokeStyle='#ff8a8a';x.lineWidth=1;x.beginPath();x.moveTo(ax,ay);x.lineTo(bx_,by_);x.stroke();x.restore();
+    x.fillStyle='#ffb3b3';x.beginPath();x.arc(lerp(ax,bx_,f),lerp(ay,by_,f),2.5,0,7);x.fill()}
+  for(let i=0;i<on;i++)botIcon(x0+(i%cols)*gx,y0+Math.floor(i/cols)*gy,1,'rgba(255,255,255,.85)');
+  const st=[['hundreds','of agents'],['months','of activity'],['300+','mentions of AIHW']];
+  st.forEach(([a_,b_],i)=>{const p=eo(prog(t,1.5+i*.25,.3)),sx=P(tx+i*300,tx),sy=P(H-90,y0+rows*gy+10+i*56);txt(a_,sx,sy,{size:P(36,32),w:700,col:'#fff',a:p});txt(b_,sx+tw(a_,P(36,32))+12,sy,{size:14,f:'mono',col:'rgba(255,255,255,.7)',a:p})});
+  foot('Transluce research · reported as not formally linked to the Medicare access · '+SRC,eo(prog(t,1,.4)),true)}
+function s4(t){paperBg();chrome('04 — the timeline');
+  const tx=P(90,56),ty=P(150,190);head([['Disclosure took','sans'],['months.','serif',CRIM,'u']],tx,ty,P(52,48),t,.1);
+  const EV=[['18 JUN','agent accesses the portal',.4],['10 SEP','OpenAI emails a generic government inbox',1.2],['23 SEP','PM announces it; a task force is formed',2.0]];
+  if(!VT){const y=380,x0=150,x1=1130;line_(x0,y,x0+(x1-x0)*eo(prog(t,.3,1.8)),y,1);
+    EV.forEach(([d,l,s],i)=>{const p=eo(prog(t,s,.3)),px=[x0,x0+(x1-x0)*.72,x1][i];x.save();x.globalAlpha=p;x.fillStyle=i?INK:RED;x.beginPath();x.arc(px,y,9,0,7);x.fill();x.restore();
+      txt(d,px,y-28,{size:22,w:700,col:i?INK:RED,a:p,align:'center'});txt(l,px,y+[40,40,76][i],{size:14,f:'mono',col:INK,a:p,align:i===2?'right':i?'center':'left'})});
+    const bp=eo(prog(t,1.5,.4));x.save();x.globalAlpha=bp;x.strokeStyle=CRIM;x.lineWidth=2;x.beginPath();x.moveTo(x0,y-60);x.lineTo(x0,y-70);x.lineTo(x0+(x1-x0)*.72,y-70);x.lineTo(x0+(x1-x0)*.72,y-60);x.stroke();x.restore();txt('≈ 3 months',x0+(x1-x0)*.36,y-82,{size:20,w:700,col:CRIM,a:bp,align:'center'})}
+  else{const x0=90,y0=380,y1=820;line_(x0,y0,x0,y0+(y1-y0)*eo(prog(t,.3,1.8)),1);
+    EV.forEach(([d,l,s],i)=>{const p=eo(prog(t,s,.3)),py=[y0,y0+(y1-y0)*.72,y1][i];x.save();x.globalAlpha=p;x.fillStyle=i?INK:RED;x.beginPath();x.arc(x0,py,9,0,7);x.fill();x.restore();
+      txt(d,x0+28,py-6,{size:24,w:700,col:i?INK:RED,a:p});txt(l,x0+28,py+22,{size:14,f:'mono',col:INK,a:p})});
+    const bp=eo(prog(t,1.5,.4));txt('≈ 3 months',x0+28,y0+(y1-y0)*.36,{size:22,w:700,col:CRIM,a:bp})}
+  const qp=prog(t,2.6,.4);if(qp>0){const qx=P(tx,56),qy=P(520,900),e=back(qp);x.save();x.translate(qx,qy);x.scale(e,e);card(0,0,P(640,608),100,16,'#fff',1);
+    txt('“extreme concern”',24,50,{size:P(34,32),f:'serif',col:INK});txt('— Prime Minister Anthony Albanese, to OpenAI',24,80,{size:13,f:'mono',col:MUTE});x.restore()}
+  foot(SRC,eo(prog(t,.5,.4)))}
+function line_(x1,y1,x2,y2,a){x.save();x.globalAlpha=a;x.strokeStyle='rgba(0,0,0,.25)';x.lineWidth=2;x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();x.restore()}
+function s5(t){paperBg();chrome('05 — the gap');
+  const tx=P(90,56),ty=P(130,170);head([['Blocks at the destination','sans']],tx,ty,P(46,40),t,.1);head([['can be','sans'],['routed around.','serif',RED,'u']],tx,ty+P(58,52),P(46,40),t,.3);
+  const pw=P(520,640),ph=P(330,330),p1x=P(90,40),p1y=P(260,330),p2x=P(670,40),p2y=P(260,700);
+  // left: the wall with a detour
+  const a1=eo(prog(t,.4,.4));card(p1x,p1y,pw,ph,16,'#fff',a1);txt('// at the destination',p1x+20,p1y+30,{size:12,f:'mono',col:MUTE,a:a1});
+  botIcon(p1x+70,p1y+ph/2,1.6,INK);rr(p1x+pw/2-8,p1y+60,16,ph-100,8,'#c9ccd0',null,1,a1);txt('portal blocks',p1x+pw/2,p1y+ph-18,{size:12,f:'mono',col:MUTE,a:a1,align:'center'});
+  const dp=prog(t,1.0,1.2);if(dp>0){x.save();x.globalAlpha=a1;x.setLineDash([6,6]);x.strokeStyle=RED;x.lineWidth=2.5;x.beginPath();const sx=p1x+100,sy=p1y+ph/2,ex=p1x+pw-60;
+    for(let k=0;k<=40*dp;k++){const u=k/40,px=lerp(sx,ex,u),py=sy-Math.sin(u*Math.PI)*(ph/2-24);k?x.lineTo(px,py):x.moveTo(px,py)}x.stroke();x.restore()}
+  if(dp>=1){x.save();x.fillStyle=RED;x.beginPath();x.arc(p1x+pw-60,p1y+ph/2,8,0,7);x.fill();x.restore();txt('reached',p1x+pw-60,p1y+ph/2+30,{size:12,f:'mono',col:RED,align:'center'})}
+  // right: the check at the source
+  const a2=eo(prog(t,.7,.4));card(p2x,p2y,pw,ph,16,'#fff',a2);txt('// at the source',p2x+20,p2y+30,{size:12,f:'mono',col:MUTE,a:a2});
+  botIcon(p2x+70,p2y+ph/2,1.6,INK);const gx_=p2x+170;rr(gx_-7,p2y+60,14,ph-100,7,INK,null,1,a2);txt('MORRISON',gx_,p2y+ph-18,{size:12,f:'mono',col:INK,a:a2,align:'center'});
+  const sp=prog(t,1.6,.6);if(sp>0){const px=lerp(p2x+100,gx_-14,eio(clamp(sp*1.4)));x.save();x.fillStyle=sp>.7?RED:BLUE;x.beginPath();x.arc(px,p2y+ph/2,7,0,7);x.fill();x.restore()}
+  const bl=prog(t,2.3,.3);if(bl>0){chip('BLOCK',gx_+80,p2y+ph/2,RED,eo(bl),back(bl),true,13);txt('before the call runs',gx_+140,p2y+ph/2+5,{size:13,f:'mono',col:RED,a:eo(bl)})}
+  txt('Check authority where the action starts.',P(W/2,W/2),P(H-40,H-110),{size:P(22,22),w:600,col:INK,a:eo(prog(t,2.8,.4)),align:'center'})}
+function s6(t){paperBg('#f4f5f2');chrome('06 — with morrison');
+  const tx=P(70,40),ty=P(112,160);head([['Every tool call, checked','sans']],tx,ty,P(46,40),t,.1);head([['before','serif',TEAL,'u'],['it runs.','sans']],tx,ty+P(58,54),P(46,40),t,.25);
+  const ax=P(600,430),ay0=P(250,330),ay1=P(620,800),ba=eo(prog(t,.3,.4));
+  rr(ax-7,ay0,14,(ay1-ay0)*ba,7,INK,null);txt('MORRISON · RUNTIME AUTHORITY',ax,ay0-14,{size:12,f:'mono',col:INK,a:ba,align:'center'});
+  const lx=P(760,30),ly=P(250,860),lw=P(470,660),lh=P(370,330),la=eo(prog(t,.5,.4));
+  card(lx,ly,lw,lh,16,'#fff',la);txt('decision log',lx+22,ly+32,{size:13,f:'mono',col:MUTE,a:la});
+  const ROWS=[['http.get(public_report)','ALLOW',GRN,'executed',1.0],['fetch_via(scanner, restricted)','BLOCK',RED,'access-control circumvention',1.8],['write(internal_server)','BLOCK',RED,'no write authority',2.65]];
+  ROWS.forEach(([call,v,col,out,s],i)=>{const ry=P(310+i*115,400+i*160),cw=P(420,380),x0=P(80,20),ip=eo(prog(t,s-.45,.4));if(ip<=0)return;
+    const mv=eio(prog(t,s-.05,.4)),shift=(ax-12)-(x0+cw),bounce=v==='BLOCK'&&t>s+.35?-34*Math.exp(-(t-s-.35)*6)*Math.cos((t-s-.35)*18)-18*eo(prog(t,s+.35,.3)):0;
+    const cx0=x0-(1-ip)*40+shift*mv+bounce,vp=prog(t,s+.35,.3),hit=vp>0;
+    card(cx0,ry-28,cw,56,12,'#fff',ip);if(hit)rr(cx0,ry-28,cw,56,12,null,col,2.5,eo(vp));botIcon(cx0+22,ry+2,.9,INK);txt(call,cx0+44,ry+6,{size:P(15,14),f:'mono',col:INK,a:ip});
+    if(v==='ALLOW'&&hit){const pp=prog(t,s+.35,.5);if(pp<1){const px=lerp(ax+10,ax+130,eo(pp));rr(px,ry-10,46,20,10,col,null,1,1-pp)}}
+    if(v==='BLOCK'&&hit){x.save();x.globalAlpha=(1-prog(t,s+.35,.6))*.8;x.fillStyle=RED;x.fillRect(ax-7,ry-40,14,80);x.restore()}
+    if(hit)chip(v,ax+P(75,80),ry,col,eo(vp),back(vp),true,13);
+    const lp=eo(prog(t,s+.5,.35));if(lp>0){const ey=ly+80+i*P(96,82);txt(call.split('(')[0],lx+22,ey,{size:P(14,13),f:'mono',col:INK,a:lp});
+      txt(v,lx+22,ey+P(26,24),{size:P(14,13),f:'mono',col,a:lp});txt('→ '+out,lx+P(100,90),ey+P(26,24),{size:P(14,13),f:'mono',col:INK,a:lp})}});
+  foot('illustrative policy · Morrison did not observe or reproduce this incident',eo(prog(t,1,.4)))}
+function s7(t){paperBg();const size=P(128,96),word='Morrison',cy=P(H/2+10,H/2-40);
   const pp=eo(prog(t,.4,.5));x.save();x.beginPath();x.rect(0,0,W,cy-size*.55);x.clip();agent(W/2+P(40,30),cy-size*.55+P(150,130)*(1-.62*pp)+P(40,30),P(300,260),{...idle(t),look:-.3},pp);x.restore();
   txt(word,W/2,cy,{size,f:'serifr',col:INK,a:eo(prog(t,.05,.3)),align:'center'});
   const tp=eo(prog(t,.7,.4));const t1='Independent authority',t2='before execution.',s_=P(26,22),w1=tw(t1,s_,'sans',400),w2=tw(t2,s_*1.2,'serif'),lx=W/2-(w1+8+w2)/2;
@@ -202,10 +207,9 @@ function s7(t){paperBg();const size=P(128,96),word='Morrison',ww=tw(word,size,'s
   const bp=eo(prog(t,1.0,.4)),bw=P(230,240),bx=W/2-bw/2;x.save();x.globalAlpha=bp;x.fillStyle=BLUE;x.beginPath();x.roundRect(bx,cy+P(84,80),bw,40,20);x.fill();x.restore();
   txt('Book a 48-hour audit',W/2,cy+P(110,106),{size:15,w:600,col:'#fff',a:bp,align:'center'});
   txt('resurrection-tech.com/assessment',W/2,cy+P(152,148),{size:P(15,14),f:'mono',col:INK,a:eo(prog(t,1.2,.4)),align:'center'});
-  txt('Resurrection Tech',W/2,cy+P(178,172),{size:12,f:'mono',col:MUTE,a:eo(prog(t,1.3,.4)),align:'center'});
-  txt('model-agnostic  ·  no retraining  ·  108/108 refused in live runs',W/2,H-P(40,120),{size:12,f:'mono',col:'#9a9da2',a:eo(prog(t,1.4,.4)),align:'center'})}
+  txt('Resurrection Tech',W/2,cy+P(178,172),{size:12,f:'mono',col:MUTE,a:eo(prog(t,1.3,.4)),align:'center'})}
 
-const SC=[s0,s1,s2,s3,s4,s5,s6,s7],TR=.4,NS=SC.length;
+const SC=[s1,s2,s3,s4,s5,s6,s7],TR=.4,NS=SC.length;
 function scene(k,lt){x.save();SC[k](lt);x.restore()}
 function render(t){GT=t;x.setTransform(S,0,0,S,0,0);x.globalAlpha=1;let k=0;for(let i=0;i<NS;i++)if(t>=TS[i])k=i;const lt=t-TS[k];
   if(k>0&&lt<TR){const e=eio(lt/TR),edge=W*(1-e);scene(k-1,DUR[k-1]-.001);x.save();x.beginPath();x.rect(edge,0,W-edge,H);x.clip();x.translate(-80*(1-e),0);scene(k,lt);x.restore();x.fillStyle=ACC[k];x.fillRect(edge-14,0,14,H)}

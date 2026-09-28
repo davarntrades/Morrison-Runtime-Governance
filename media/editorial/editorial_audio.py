@@ -1,8 +1,9 @@
 """Light, upbeat bed + UI sound design for agent.html, built from the page's cues.
 
     python3 editorial_audio.py cues.json out.wav
+    MOOD=tense python3 editorial_audio.py cues.json out.wav   # slower minor-key bed for news pieces
 """
-import json, sys, wave
+import json, os, sys, wave
 import numpy as np
 from scipy.signal import butter, sosfilt
 
@@ -51,17 +52,22 @@ def swoosh(d=.35):
     return ((1 - k) * lp(n, 800) + k * lp(n, 5000)) * np.sin(np.pi * k) ** 2 * .5
 
 
-# beat: 112 bpm, I–V–vi–IV in C with a bright pluck arpeggio
-bpm, step = 112, 60 / 112 / 2
+TENSE = os.environ.get("MOOD") == "tense"
+# beat: 112 bpm, I–V–vi–IV in C with a bright pluck arpeggio (tense: 96 bpm, i–VI–iv–V in A minor)
+bpm = 96 if TENSE else 112; step = 60 / bpm / 2
 chords = [[261.6, 329.6, 392.0, 523.3], [196.0, 246.9, 293.7, 392.0], [220.0, 261.6, 329.6, 440.0], [174.6, 220.0, 261.6, 349.2]]
 bass = [65.4, 49.0, 55.0, 43.7]
+if TENSE:
+    chords = [[220.0, 261.6, 329.6, 440.0], [174.6, 220.0, 261.6, 349.2], [146.8, 174.6, 220.0, 293.7], [164.8, 207.7, 246.9, 329.6]]
+    bass = [55.0, 43.7, 36.7, 41.2]
 n_steps = int((TOTAL - .4) / step)
 for k in range(n_steps):
     t0 = k * step; bar = (k // 8) % 4; ch = chords[bar]
     if k % 4 == 0: put(kick(), t0, .9)
     if k % 8 == 4: put(clap(), t0, .7)
-    put(hat(), t0 + (step * .02 if k % 2 else 0), .5 if k % 2 else .3, pan=.3)
-    put(pluck(ch[[0, 2, 1, 3, 2, 1, 3, 2][k % 8]] * 2, .4), t0, .22, pan=-.25 + .5 * (k % 2))
+    put(hat(), t0 + (step * .02 if k % 2 else 0), (.3 if k % 2 else .18) if TENSE else (.5 if k % 2 else .3), pan=.3)
+    pl = pluck(ch[[0, 2, 1, 3, 2, 1, 3, 2][k % 8]] * 2, .4)
+    put(lp(pl, 1800) if TENSE else pl, t0, .26 if TENSE else .22, pan=-.25 + .5 * (k % 2))
     if k % 8 == 0:
         t = T(step * 8); put(np.sin(2 * np.pi * bass[bar] * t) * np.exp(-t * 1.2) * np.minimum(1, t / .01), t0, .45)
 
