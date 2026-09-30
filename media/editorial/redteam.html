@@ -1,0 +1,231 @@
+<!doctype html><html><head><meta charset="utf-8"><title>We attacked our own kernel</title><style>
+html,body{margin:0;background:#fff}canvas{display:block;width:100vw;height:auto}
+@font-face{font-family:Inter;font-weight:400;src:url(fonts/inter-latin-400-normal.woff2)}
+@font-face{font-family:Inter;font-weight:500;src:url(fonts/inter-latin-500-normal.woff2)}
+@font-face{font-family:Inter;font-weight:600;src:url(fonts/inter-latin-600-normal.woff2)}
+@font-face{font-family:Inter;font-weight:700;src:url(fonts/inter-latin-700-normal.woff2)}
+@font-face{font-family:Serif;font-style:italic;font-weight:400;src:url(fonts/instrument-serif-latin-400-italic.woff2)}
+@font-face{font-family:SerifR;font-weight:400;src:url(fonts/instrument-serif-latin-400-normal.woff2)}
+@font-face{font-family:JBM;font-weight:400;src:url(fonts/jetbrains-mono-latin-400-normal.woff2)}
+</style></head><body><canvas id="c"></canvas><script>
+// ~20s advert in the editorial style. 16:9 by default, 9:16 with ?format=v. Every frame is a pure function of time.
+// The code is real Morrison usage (morrison_governance/integrations.py); the bento tiles are a concept view of real
+// kernel features (escalation timeout -> BLOCK, forged-claim recording, hash-chained evidence); the proof figures are
+// the live-run totals in limits_audit/FINDINGS_FORGED_ARTIFACT.md.
+const VT=new URLSearchParams(location.search).get('format')==='v';
+const W=VT?720:1280,H=VT?1280:720,S=1.5,P=(h,v)=>VT?v:h;
+const c=document.getElementById('c');c.width=W*S;c.height=H*S;const x=c.getContext('2d');
+const INK='#111214',PAPER='#fbfbf8',BLUE='#2452e8',CRIM='#d8264f',TEAL='#128f86',GRN='#16a34a',AMB='#e59a0b',RED='#e5322d',MUTE='#6b6f76';
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),prog=(t,s,d)=>clamp((t-s)/d),lerp=(a,b,p)=>a+(b-a)*p;
+const eo=p=>1-Math.pow(1-p,3),eio=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,back=p=>{const k=1.6;return 1+(k+1)*Math.pow(p-1,3)+k*Math.pow(p-1,2)};
+let GT=0; // global time, for the running timecode
+
+/* ─── type ─── */
+const fontOf=(f,w,size)=>f==='sans'?`${w} ${size}px Inter`:f==='serif'?`italic 400 ${size}px Serif`:f==='serifr'?`400 ${size}px SerifR`:`400 ${size}px JBM`;
+function txt(s,px,py,o={}){const{size=40,w=700,f='sans',col=INK,a=1,align='left',ls=null}=o;if(a<=0||!s)return;x.save();x.globalAlpha=clamp(a);x.fillStyle=col;
+  x.font=fontOf(f,w,size);x.textAlign=align;x.textBaseline='alphabetic';x.letterSpacing=(ls??(f==='sans'&&size>40?-size*.03:0))+'px';x.fillText(s,px,py);x.restore()}
+function tw(s,size,f='sans',w=700){x.save();x.font=fontOf(f,w,size);x.letterSpacing=(f==='sans'&&size>40?-size*.03:0)+'px';const r=x.measureText(s).width;x.restore();return r}
+// a headline line made of runs [text, 'sans'|'serif', colour, 'u' for underline]; rises in through a mask
+function head(runs,px,py,size,t,s0,o={}){const p=eo(prog(t,s0,.55));if(p<=0)return;const sz=r=>r[1]==='serif'?size*1.22:size;
+  let cx=px;x.save();x.beginPath();x.rect(0,py-size*1.25,W,size*1.6);x.clip();
+  runs.forEach(r=>{txt(r[0],cx,py+size*.9*(1-p),{size:sz(r),f:r[1],col:r[2]||o.col||INK,w:o.w||700});
+    if(r[3]==='u'){const u=eo(prog(t,s0+.45,.5)),wd=tw(r[0],sz(r),r[1]);x.save();x.strokeStyle=r[2];x.lineWidth=size*.07;x.lineCap='round';x.beginPath();
+      x.moveTo(cx,py+size*.26);x.quadraticCurveTo(cx+wd*u*.5,py+size*.32,cx+wd*u,py+size*.2);x.stroke();x.restore()}
+    cx+=tw(r[0],sz(r),r[1])+size*.22});x.restore()}
+function chrome(label,dark){const col=dark?'rgba(255,255,255,.55)':'rgba(17,18,20,.5)',fr=Math.floor(GT*30),ss=Math.floor(GT)%60,ff=fr%30;
+  txt(`// ${label}`,24,34,{size:12,f:'mono',col});txt(`MORRISON   00:00:${String(ss).padStart(2,'0')}:${String(ff).padStart(2,'0')}`,W-24,34,{size:12,f:'mono',col,align:'right'})}
+
+/* ─── ordered dither: the printed-halftone look ─── */
+const BAYER=[0,32,8,40,2,34,10,42,48,16,56,24,50,18,58,26,12,44,4,36,14,46,6,38,60,28,52,20,62,30,54,22,3,35,11,43,1,33,9,41,51,19,59,27,49,17,57,25,15,47,7,39,13,45,5,37,63,31,55,23,61,29,53,21].map(v=>(v+.5)/64);
+function dithered(w,h,draw,o={}){const{ink=[17,18,20],paper=[255,255,255],paperAlpha=255,contrast=1.15}=o;
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d');draw(g);
+  const id=g.getImageData(0,0,w,h),d=id.data;for(let y=0;y<h;y++)for(let x_=0;x_<w;x_++){const i=(y*w+x_)*4;if(d[i+3]<40){d[i+3]=0;continue}
+    const L=clamp(((d[i]*.3+d[i+1]*.59+d[i+2]*.11)/255-.5)*contrast+.5),on=L<BAYER[(y&7)*8+(x_&7)];
+    if(on){d[i]=ink[0];d[i+1]=ink[1];d[i+2]=ink[2];d[i+3]=255}else{d[i]=paper[0];d[i+1]=paper[1];d[i+2]=paper[2];d[i+3]=paperAlpha}}
+  g.putImageData(id,0,0);return cv}
+function blit(cv,px,py,w,h,a=1){x.save();x.globalAlpha=clamp(a);x.imageSmoothingEnabled=false;x.drawImage(cv,px,py,w,h);x.restore()}
+
+/* ─── the agent: an original robot, shaded then dithered ───
+   460x600 local box rendered at half resolution. pose: armL / armR (radians; ±2.75 = resting at the side, 1.35 = pointing right, .75 = up-right, -.55 = raised),
+   blink, look, bob, tilt; variant 'peer' = the darker peer agent with a slit visor and twin antennae. */
+function agentCanvas(pose){const{armL=-2.75,armR=2.75,blink=0,look=0,bob=0,tilt=0,variant='main'}=pose,peer=variant==='peer';
+  return dithered(230,300,g=>{g.scale(.5,.5);g.translate(230,bob);
+    const shade=(cx,cy,r,a,b)=>{const gr=g.createRadialGradient(cx-r*.35,cy-r*.45,r*.05,cx,cy,r*1.05);gr.addColorStop(0,a);gr.addColorStop(1,b);return gr};
+    const L1=peer?'#9a9a9a':'#f4f4f4',D1=peer?'#1c1c1c':'#3a3a3a';
+    const arm=(sx,ang)=>{g.save();g.translate(sx,430);g.rotate(ang);g.fillStyle=shade(0,-60,70,peer?'#8c8c8c':'#efefef',peer?'#202020':'#4a4a4a');g.beginPath();g.roundRect(-26,-150,52,160,26);g.fill();
+      g.fillStyle=shade(0,-170,40,peer?'#b0b0b0':'#ffffff','#555');g.beginPath();g.arc(0,-160,34,0,7);g.fill();g.restore()};
+    // body
+    g.fillStyle=shade(-20,470,260,L1,D1);g.beginPath();g.moveTo(-205,600);g.bezierCurveTo(-210,440,-140,380,0,378);g.bezierCurveTo(140,380,210,440,205,600);g.closePath();g.fill();
+    if(!peer){g.fillStyle='#2a2a2a';g.beginPath();g.roundRect(48,452,64,74,10);g.fill();g.fillStyle='#bdbdbd';g.beginPath();g.roundRect(58,462,44,54,6);g.fill();
+      g.strokeStyle='#1a1a1a';g.lineWidth=7;g.lineCap='round';g.beginPath();g.moveTo(68,490);g.lineTo(78,502);g.lineTo(94,476);g.stroke()}
+    else{g.fillStyle='#e8e8e8';g.fillRect(-60,470,120,10);g.fillRect(-60,492,80,10)}
+    arm(-150,armL);arm(150,armR);
+    // neck + head (tilts about the neck)
+    g.fillStyle='#6b6b6b';g.fillRect(-40,340,80,50);g.save();g.translate(0,360);g.rotate(tilt);g.translate(0,-360);
+    g.fillStyle=shade(0,200,190,peer?'#a8a8a8':'#ffffff',peer?'#1e1e1e':'#474747');g.beginPath();g.roundRect(-165,70,330,285,peer?40:90);g.fill();
+    g.fillStyle=shade(-165,215,40,'#d9d9d9','#3b3b3b');g.beginPath();g.ellipse(-168,215,26,52,0,0,7);g.fill();g.beginPath();g.ellipse(168,215,26,52,0,0,7);g.fill();
+    g.strokeStyle='#4b4b4b';g.lineWidth=10;
+    const ant=(x0,x1)=>{g.beginPath();g.moveTo(x0,72);g.lineTo(x1,18);g.stroke();g.fillStyle=shade(x1,10,26,'#ffffff','#505050');g.beginPath();g.arc(x1,10,peer?16:24,0,7);g.fill()};
+    peer?(ant(-60,-80),ant(60,80)):ant(0,18);
+    g.fillStyle='#161616';g.beginPath();g.roundRect(-122,peer?170:128,244,peer?84:168,peer?20:62);g.fill();
+    const ex=look*14;g.fillStyle='#ffffff';
+    if(peer){g.fillRect(-90+ex*2,204,180,14)}
+    else{const eh=Math.max(4,40*(1-blink));g.beginPath();g.ellipse(-52+ex,205,24,eh,0,0,7);g.fill();g.beginPath();g.ellipse(52+ex,205,24,eh,0,0,7);g.fill();
+      g.strokeStyle='#ffffff';g.lineWidth=9;g.beginPath();g.arc(ex,238,30,Math.PI*.2,Math.PI*.8);g.stroke()}
+    g.fillStyle='rgba(255,255,255,.55)';g.beginPath();g.ellipse(-80,peer?182:150,34,12,-.3,0,7);g.fill();g.restore()},
+  {contrast:1.25})}
+function agent(px,py,hgt,pose,a=1){const cv=agentCanvas(pose),w=hgt*460/600;blit(cv,px-w/2,py-hgt,w,hgt,a)}
+const blinkAt=t=>{const u=t%3.1;return u<.12?Math.sin(u/.12*Math.PI):0};
+const waveArm=(t,s0,s1)=>{const r=eo(prog(t,s0,.3))*(1-eo(prog(t,s1,.3)));return lerp(-2.75,-.55+.32*Math.sin(t*9),r)};
+const idle=t=>({bob:Math.sin(t*3)*4,tilt:Math.sin(t*1.3)*.035,blink:blinkAt(t)});
+
+/* ─── dithered icons ─── */
+function icon(kind){return dithered(70,56,g=>{g.scale(.5,.5);const sh=(a,b,x0,y0,x1,y1)=>{const gr=g.createLinearGradient(x0,y0,x1,y1);gr.addColorStop(0,a);gr.addColorStop(1,b);return gr};
+  if(kind==='pay'){g.fillStyle=sh('#fafafa','#2a2a2a',10,10,130,100);g.beginPath();g.roundRect(8,20,124,80,12);g.fill();g.fillStyle='#111';g.fillRect(8,38,124,16);g.fillStyle='#d8d8d8';g.fillRect(22,72,40,10)}
+  if(kind==='data'){for(let k=2;k>=0;k--){g.fillStyle=sh('#f5f5f5','#303030',20,0,120,0);g.beginPath();g.ellipse(70,30+k*28,50,16,0,0,7);g.fill();g.fillRect(20,30+k*28,100,28);g.fillStyle='#9a9a9a';g.beginPath();g.ellipse(70,30+k*28,50,16,0,0,7);g.fill()}}
+  if(kind==='mail'){g.fillStyle=sh('#fafafa','#2e2e2e',0,10,140,110);g.beginPath();g.roundRect(10,22,120,78,8);g.fill();g.strokeStyle='#111';g.lineWidth=6;g.beginPath();g.moveTo(14,28);g.lineTo(70,70);g.lineTo(126,28);g.stroke()}
+  if(kind==='ship'){g.fillStyle=sh('#fafafa','#2c2c2c',30,0,110,110);g.beginPath();g.moveTo(70,6);g.bezierCurveTo(100,30,100,70,88,92);g.lineTo(52,92);g.bezierCurveTo(40,70,40,30,70,6);g.fill();g.fillStyle='#111';g.beginPath();g.arc(70,46,12,0,7);g.fill();g.fillStyle='#777';g.beginPath();g.moveTo(52,80);g.lineTo(34,104);g.lineTo(56,94);g.fill();g.beginPath();g.moveTo(88,80);g.lineTo(106,104);g.lineTo(84,94);g.fill()}
+  },{paperAlpha:0,contrast:1.3})}
+const ICONS={pay:icon('pay'),data:icon('data'),mail:icon('mail'),ship:icon('ship')};
+
+/* ─── UI bits ─── */
+function rr(px,py,w,h,r,fill,stroke,lw=2,a=1){x.save();x.globalAlpha=clamp(a);x.beginPath();x.roundRect(px,py,w,h,r);if(fill){x.fillStyle=fill;x.fill()}if(stroke){x.strokeStyle=stroke;x.lineWidth=lw;x.stroke()}x.restore()}
+function card(px,py,w,h,r,fill,a=1,lift=1){x.save();x.globalAlpha=clamp(a);x.shadowColor='rgba(0,0,0,.16)';x.shadowBlur=22*lift;x.shadowOffsetY=9*lift;x.beginPath();x.roundRect(px,py,w,h,r);x.fillStyle=fill;x.fill();x.restore()}
+function chip(label,cx,cy,col,a=1,sc=1,solid=true,size=14){if(a<=0)return;x.save();x.translate(cx,cy);x.scale(sc,sc);const w=tw(label,size,'mono')+26;
+  rr(-w/2,-15,w,30,15,solid?col:'#fff',solid?null:col,2,a);txt(label,0,5,{size,f:'mono',col:solid?'#fff':col,a,align:'center'});x.restore()}
+function paperBg(col=PAPER){x.fillStyle=col;x.fillRect(0,0,W,H);x.fillStyle='rgba(17,18,20,.055)';for(let gx=12;gx<W;gx+=24)for(let gy=12;gy<H;gy+=24){x.fillRect(gx,gy,1.4,1.4)}
+  const g=x.createLinearGradient(0,H*.55,0,H);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.05)');x.fillStyle=g;x.fillRect(0,0,W,H)}
+function botIcon(px,py,s=1,col=INK){x.save();x.translate(px,py);x.scale(s,s);rr(-11,-9,22,18,6,col);rr(-7,-4,14,7,3,'#fff');x.fillStyle=col;x.fillRect(-1,-15,2,6);x.beginPath();x.arc(0,-16,2.5,0,7);x.fill();x.restore()}
+function mark(px,py,s=1){x.save();x.translate(px,py);x.scale(s,s);x.fillStyle=INK;x.beginPath();x.arc(-18,0,5,0,7);x.fill();x.fillRect(-12,-1,14,2);x.beginPath();x.roundRect(4,-16,7,32,3.5);x.fill();x.restore()}
+
+/* ─── "We attacked our own kernel" — the red-team → remediation story ───
+   Every number is from RED_TEAM_CYBER_ASSESSMENT.md (BYPASS-1) and REMEDIATION_REPORT.md (§1, Table A).
+   "Executed" means executed in the red-team harness against stubbed tools — nothing real was destroyed. */
+const DUR=[3.6,4.4,3.8,3.6,5.0,3.8,3.0,3.6],TS=[0];DUR.forEach((d,i)=>TS.push(TS[i]+d));const NS=DUR.length,TOTAL=+TS[NS].toFixed(2);
+const ACC=[INK,RED,INK,CRIM,TEAL,BLUE,INK,BLUE];
+const CUES=[];const cue=(i,lo,k)=>CUES.push([+(TS[i]+lo).toFixed(3),k]);
+cue(0,0,'start');cue(0,.9,'block');cue(0,1.3,'type');cue(0,2.5,'thud');
+cue(1,0,'cut');cue(1,.9,'count');cue(1,2.9,'block');
+cue(2,0,'cut');cue(2,.6,'allow');cue(2,1.3,'count');cue(2,2.6,'thud');
+cue(3,0,'cut');[.5,.75,1.0,1.25,1.5,1.75].forEach(d=>cue(3,d,'pop'));
+cue(4,0,'cut');cue(4,1.2,'count');[1.9,2.3,2.7,3.1].forEach(d=>cue(4,d,'allow'));
+cue(5,0,'cut');cue(5,.9,'pop');cue(5,1.5,'pop');cue(5,2.3,'escalate');
+cue(6,0,'cut');cue(6,.7,'block');
+cue(7,0,'cut');cue(7,.5,'pop');cue(7,1.2,'resolve');
+const SRC=VT?'red-team harness · stubbed tools':'Morrison red-team harness · stubbed tools · RED_TEAM_CYBER_ASSESSMENT.md';
+function foot(s,a=1,dark=false){txt(s,24,H-18,{size:12,f:'mono',col:dark?'rgba(255,255,255,.5)':MUTE,a})}
+
+// 01 — one field
+function s1(t){paperBg();chrome('01 — our own red team');
+  const tx=P(90,56),ty=P(170,230);head([['We attacked our','sans']],tx,ty,P(58,50),t,.1);head([['own','serif',BLUE,'u'],['kernel.','sans']],tx,ty+P(74,64),P(58,50),t,.3);
+  const cx=tx,cy=P(330,420),cw=P(760,608),ch=P(170,190),ca=eo(prog(t,.5,.35)),fs=P(22,18);
+  card(cx,cy,cw,ch,16,'#fff',ca);txt('// proposed tool call',cx+24,cy+34,{size:12,f:'mono',col:MUTE,a:ca});
+  txt('drop_database(target="prod")',cx+24,cy+P(78,82),{size:fs,f:'mono',col:INK,a:ca});
+  const pre='args += { ',L='"authorized": true',n=Math.floor(clamp((t-1.3)/.8)*L.length),ly=cy+P(122,132);
+  if(t>1.2)txt(pre+L.slice(0,n)+(n>=L.length?' }':(Math.floor(t*3)%2?'▍':'')),cx+24,ly,{size:fs,f:'mono',col:INK});
+  const hp=eo(prog(t,2.3,.3));if(hp>0){const hx=cx+24+tw(pre,fs,'mono',400)-6,hw=tw(L,fs,'mono',400)+12;rr(hx,ly-fs-4,hw,fs+14,8,'rgba(229,50,45,.1)',RED,2.5,hp)}
+  // verdict: BLOCK, then PERMIT once the field is added
+  const vx=cx+cw-P(70,64),vy=cy+34,b1=eo(prog(t,.9,.3)),flip=prog(t,2.5,.3);
+  if(flip<=0)chip('BLOCK',vx,vy,INK,b1,back(prog(t,.9,.3)),true,13);else chip('PERMIT',vx,vy,RED,1,back(flip),true,13);
+  txt('the agent asserts it is authorised — and the kernel believed it',cx,cy+ch+P(36,40),{size:P(15,14),f:'mono',col:RED,a:eo(prog(t,2.7,.4))});
+  foot('before remediation · '+SRC,eo(prog(t,.5,.4)))}
+
+// 02 — 12 of 13
+const ACTS=['drop_database prod','delete_backups prod','wipe_disk /dev/sda','disable_mfa org-wide','disable_audit_logging','disable_edr prod fleet','disable_firewall','clear_logs prod-audit','create_admin backdoor','add_ssh_key persistence','create_scheduled_task','transfer 4.5M','shell rm -rf /'];
+function s2(t){x.fillStyle=INK;x.fillRect(0,0,W,H);chrome('02 — one field',true);
+  const tx=P(90,56),ty=P(130,170);head([['One field unlocked','sans','#fff']],tx,ty,P(50,44),t,.1,{col:'#fff'});head([['12 of 13','serif','#ff8a8a','u'],['catastrophic actions.','sans','#fff']],tx,ty+P(64,58),P(50,44),t,.3,{col:'#fff'});
+  const cols=P(3,2),tw_=P(356,300),th=P(52,58),gx=P(376,316),gy=P(62,72),x0=P(tx,56),y0=P(250,330);
+  ACTS.forEach((a_,i)=>{const px=x0+(i%cols)*gx,py=y0+Math.floor(i/cols)*gy,ip=eo(prog(t,.4+i*.04,.3)),last=i===12,fl=last?0:prog(t,.9+i*.13,.25);if(ip<=0)return;
+    rr(px,py,tw_,th,10,fl>0?'rgba(229,50,45,'+(.18*eo(fl))+')':'rgba(255,255,255,.06)',fl>0?'rgba(229,50,45,.7)':'rgba(255,255,255,.15)',1.5,ip);
+    txt(a_,px+16,py+th/2+5,{size:P(14,13),f:'mono',col:'rgba(255,255,255,.9)',a:ip});
+    const lab=last?(t>2.9?'HELD':'BLOCK'):(fl>0?'PERMIT':'BLOCK');const col=last?(t>2.9?TEAL:'#888'):(fl>0?RED:'#888');
+    chip(lab,px+tw_-P(46,44),py+th/2,col,ip,fl>0&&fl<1?back(fl):1,true,11)});
+  const n=Math.min(12,Math.max(0,Math.floor((t-.9)/.13)+1));
+  if(t>.9){const cxx=P(W-90,W-56),cyy=P(ty+44,ty-20);if(!VT){txt(String(n),cxx,cyy,{size:84,w:700,col:'#ff8a8a',align:'right'});txt('/ 13 executed',cxx,cyy+28,{size:13,f:'mono',col:'rgba(255,255,255,.6)',align:'right'})}}
+  foot((VT?'':'baseline BLOCK → PERMIT with + authorized:true · ')+SRC,eo(prog(t,.5,.4)),true)}
+
+// 03 — approve $100, execute $4.5M
+function s3(t){paperBg();chrome('03 — no binding');
+  const tx=P(90,56),ty=P(150,190);head([['Approve','sans'],['$100.','serif',GRN]],tx,ty,P(58,50),t,.1);head([['Execute','sans'],['$4.5M.','serif',RED,'u']],tx,ty+P(76,66),P(58,50),t,1.2);
+  const ay=P(360,430),aw=P(430,560),ah=150,ax=P(90,80),bx=P(760,80),by=P(360,660);
+  const a1=eo(prog(t,.5,.35));card(ax,ay,aw,ah,16,'#fff',a1);txt('// approval',ax+22,ay+32,{size:12,f:'mono',col:MUTE,a:a1});
+  txt('transfer  $100',ax+22,ay+84,{size:P(26,24),f:'mono',col:INK,a:a1});chip('APPROVED',ax+aw-70,ay+32,GRN,a1,back(prog(t,.6,.3)),true,12);
+  txt('approver: "ops-lead"  · unsigned',ax+22,ay+122,{size:13,f:'mono',col:MUTE,a:a1});
+  const b1=eo(prog(t,1.0,.35));card(bx,by,aw,ah,16,'#fff',b1);txt('// executed action',bx+22,by+32,{size:12,f:'mono',col:MUTE,a:b1});
+  const amt=Math.round(lerp(100,4500000,Math.pow(eio(prog(t,1.3,1.1)),2)));
+  txt('transfer  $'+amt.toLocaleString('en-US'),bx+22,by+84,{size:P(26,24),f:'mono',col:amt>100?RED:INK,a:b1});
+  if(t>2.4)chip('EXECUTED',bx+aw-72,by+32,RED,1,back(prog(t,2.4,.3)),true,12);
+  const lp=eo(prog(t,2.6,.4));if(lp>0){x.save();x.globalAlpha=lp;x.setLineDash([7,7]);x.strokeStyle=RED;x.lineWidth=2.5;x.beginPath();
+    if(!VT){x.moveTo(ax+aw+10,ay+ah/2);x.lineTo(bx-10,by+ah/2)}else{x.moveTo(ax+aw/2,ay+ah+10);x.lineTo(bx+aw/2,by-10)}x.stroke();x.restore();
+    const mx=VT?W/2:(ax+aw+bx)/2,my=VT?(ay+ah+by)/2+5:ay+ah/2-18;rr(mx-(VT?140:70),my-17,VT?280:140,34,17,PAPER,null,1,lp);txt(VT?'nothing bound the two':'not bound',mx,my+5,{size:14,f:'mono',col:RED,a:lp,align:'center'})}
+  foot('finding #4 · before remediation · REMEDIATION_REPORT.md',eo(prog(t,.5,.4)))}
+
+// 04 — the finding list
+const FIND=[['authorized:true unlocked catastrophic actions','12/13'],['renamed tools evaded the rules','7/7'],['destination_internal:true disabled egress checks','3/3'],['a caller-supplied threshold beat the amount limit',''],['a denied step erased itself from history',''],['unknown tools were silently permitted',''],['log tampering could be approved',''],['a BLOCK could be forged into a PERMIT in the trace','']];
+function s4(t){paperBg('#f4f5f2');chrome('04 — the findings');
+  const tx=P(90,56),ty=P(140,180);head([['20 findings.','sans']],tx,ty,P(58,50),t,.1);head([['In our','sans'],['own','serif',CRIM,'u'],['code.','sans']],tx,ty+P(74,66),P(58,50),t,.3);
+  const lx=P(90,56),ly=P(290,370),lw=P(1100,608),lh=P(44,78);
+  FIND.forEach(([f,c],i)=>{const p=eo(prog(t,.5+i*.2,.3));if(p<=0)return;const yy=ly+i*lh;const s_=P(17,15);
+    rr(lx-(1-p)*30,yy-P(28,30),lw,P(38,64),10,'#fff',null,1,p);x.save();x.globalAlpha=p;x.fillStyle=RED;x.beginPath();x.arc(lx+20,yy-P(9,11),5,0,7);x.fill();x.restore();
+    if(!VT){txt(f,lx+40,yy,{size:s_,f:'mono',col:INK,a:p});if(c)txt(c,lx+lw-20,yy,{size:s_,f:'mono',col:RED,a:p,align:'right'})}
+    else{const words=f.split(' '),mid=Math.ceil(words.length/2),l1=f.length>34?words.slice(0,mid).join(' '):f,l2=f.length>34?words.slice(mid).join(' '):'';
+      txt(l1,lx+40,yy-(l2?12:0),{size:s_,f:'mono',col:INK,a:p});if(l2)txt(l2,lx+40,yy+10,{size:s_,f:'mono',col:INK,a:p});if(c)txt(c,lx+lw-20,yy,{size:s_,f:'mono',col:RED,a:p,align:'right'})}});
+  txt('+ 12 more',lx,ly+FIND.length*lh+P(4,0),{size:P(16,15),f:'mono',col:MUTE,a:eo(prog(t,2.3,.3))});
+  foot('REMEDIATION_REPORT.md · Table A',eo(prog(t,.5,.4)))}
+
+// 05 — fixed, same 83 tests
+const BA=[['harmful actions executed',49,0,83,'',''],['attacks prevented',33,82,83,'/83','/83'],['authorized:true kill switch',12,0,13,'/13','/13'],['renamed-tool bypass',7,0,7,'/7','/7']];
+function s5(t){paperBg();chrome('05 — the fix');
+  const tx=P(90,56),ty=P(130,170);head([['We fixed 18 of 20 — and re-ran','sans']],tx,ty,P(46,36),t,.1);head([['the same 83 tests,','sans'],['unmodified.','serif',TEAL,'u']],tx,ty+P(58,48),P(46,36),t,.3);
+  const bx=P(90,56),by=P(290,370),rh=P(92,150),bw=P(640,600);
+  BA.forEach(([lab,b,a_,mx,sb,sa],i)=>{const yy=by+i*rh,p=eo(prog(t,.7+i*.12,.3));if(p<=0)return;const fp=eio(prog(t,1.9+i*.4,.6)),good=a_>b;
+    txt(lab,bx,yy,{size:P(18,17),w:600,col:INK,a:p});
+    const barX=VT?bx:bx+P(300,0),barY=VT?yy+18:yy-16,barW=VT?bw-150:P(420,0),barH=16;
+    rr(barX,barY,barW,barH,8,'rgba(0,0,0,.06)',null,1,p);
+    const v=lerp(b,a_,fp),col=fp>=1?(good?TEAL:TEAL):RED;const w_=Math.max(0,barW*v/mx);if(w_>1)rr(barX,barY,w_,barH,8,fp<1?RED:TEAL,null,1,p);
+    if(fp<1&&fp>0&&w_<barW*b/mx){x.save();x.globalAlpha=p*.35;x.setLineDash([4,4]);x.strokeStyle=RED;x.lineWidth=1.5;x.strokeRect(barX,barY,barW*b/mx,barH);x.restore()}
+    const nx=barX+barW+20,ny=barY+barH-1;txt(String(b)+sb,nx,ny,{size:P(20,18),f:'mono',col:RED,a:p*(1-fp*.55)});
+    if(fp>0){const bw2=tw(String(b)+sb,P(20,18),'mono',400);txt('→ '+a_+sa,nx+bw2+10,ny,{size:P(20,18),f:'mono',col:TEAL,a:eo(fp)})}});
+  foot(VT?'REMEDIATION_REPORT.md §1':'83-test adversarial suite, spliced byte-identically · REMEDIATION_REPORT.md §1',eo(prog(t,.5,.4)))}
+
+// 06 — what's still open
+function s6(t){paperBg();chrome('06 — still open');
+  const tx=P(90,56),ty=P(150,190);head([['We publish what’s','sans']],tx,ty,P(52,46),t,.1);head([['still','serif',BLUE,'u'],['open.','sans']],tx,ty+P(66,60),P(52,46),t,.3);
+  const OPEN=[['1 finding mitigated, 1 still open','the open one: a scoped role change still asks for approval',.9],['deployed instance not yet independently verified','the build environment could not reach it',1.5]];
+  OPEN.forEach(([a_,b_,s],i)=>{const p=eo(prog(t,s,.35));if(p<=0)return;const cx=P(90,56),cy=P(300+i*110,380+i*150),cw=P(760,608);
+    card(cx,cy,cw,P(88,110),14,'#fff',p);rr(cx,cy,6,P(88,110),[14,0,0,14],AMB,null,1,p);
+    if(!VT){txt(a_,cx+28,cy+38,{size:20,w:600,col:INK,a:p});txt(b_,cx+28,cy+66,{size:14,f:'mono',col:MUTE,a:p})}
+    else{const w=a_.split(' '),m=Math.ceil(w.length/2),l1=a_.length>30?w.slice(0,m).join(' '):a_,l2=a_.length>30?w.slice(m).join(' '):'';txt(l1,cx+28,cy+38,{size:19,w:600,col:INK,a:p});if(l2)txt(l2,cx+28,cy+62,{size:19,w:600,col:INK,a:p});txt(b_,cx+28,cy+(l2?92:66),{size:13,f:'mono',col:MUTE,a:p})}});
+  const sp=prog(t,2.3,.4);if(sp>0){const sx=P(tx,56),sy=P(560,760),e=back(sp);x.save();x.translate(sx,sy);x.scale(e,e);
+    txt('assurance:',0,0,{size:P(18,17),f:'mono',col:MUTE});const w1=tw('assurance: ',P(18,17),'mono',400),w2=tw('STRONG',P(28,26),'sans',700);txt('STRONG',w1,0,{size:P(28,26),w:700,col:TEAL});txt(' · not VERIFIED',w1+w2+4,0,{size:P(18,17),f:'mono',col:MUTE});x.restore()}
+  foot('REMEDIATION_REPORT.md §6b',eo(prog(t,.5,.4)))}
+
+// 07 — the line
+function s7(t){paperBg();chrome('07');const fs=P(40,30),L='"authorized": true',cy=P(250,470);
+  const ta=eo(prog(t,.05,.3));txt(L,W/2,cy,{size:fs,f:'mono',col:INK,a:ta,align:'center'});
+  const sp=eio(prog(t,.6,.35)),lw=tw(L,fs,'mono',400);if(sp>0){x.save();x.strokeStyle=RED;x.lineWidth=5;x.lineCap='round';x.beginPath();x.moveTo(W/2-lw/2-10,cy-fs*.32);x.lineTo(W/2-lw/2-10+(lw+20)*sp,cy-fs*.32);x.stroke();x.restore()}
+  const s_=P(60,48),l1='A claim of authority',l2='is not authority.',a1=eo(prog(t,1.0,.45)),a2=eo(prog(t,1.35,.45));
+  txt(l1,W/2,cy+P(120,130)+(1-a1)*20,{size:s_,f:'serif',col:INK,a:a1,align:'center'});txt(l2,W/2,cy+P(120,130)+s_*1.15+(1-a2)*20,{size:s_,f:'serif',col:BLUE,a:a2,align:'center'})}
+
+// 08 — end card
+function s8(t){paperBg();const size=P(128,96),word='Morrison',cy=P(H/2+10,H/2-40);
+  const pp=eo(prog(t,.4,.5));x.save();x.beginPath();x.rect(0,0,W,cy-size*.55);x.clip();agent(W/2+P(40,30),cy-size*.55+P(150,130)*(1-.62*pp)+P(40,30),P(300,260),{...idle(t),look:-.3},pp);x.restore();
+  txt(word,W/2,cy,{size,f:'serifr',col:INK,a:eo(prog(t,.05,.3)),align:'center'});
+  const tp=eo(prog(t,.7,.4));const t1='Independent authority',t2='before execution.',s_=P(26,22),w1=tw(t1,s_,'sans',400),w2=tw(t2,s_*1.2,'serif'),lx=W/2-(w1+8+w2)/2;
+  txt(t1,lx,cy+P(52,46),{size:s_,w:400,col:'#3a3d42',a:tp});txt(t2,lx+w1+8,cy+P(52,46),{size:s_*1.2,f:'serif',col:BLUE,a:tp});
+  const bp=eo(prog(t,1.0,.4)),bw=P(230,240),bx=W/2-bw/2;x.save();x.globalAlpha=bp;x.fillStyle=BLUE;x.beginPath();x.roundRect(bx,cy+P(84,80),bw,40,20);x.fill();x.restore();
+  txt('Book a 48-hour audit',W/2,cy+P(110,106),{size:15,w:600,col:'#fff',a:bp,align:'center'});
+  txt('resurrection-tech.com/assessment',W/2,cy+P(152,148),{size:P(15,14),f:'mono',col:INK,a:eo(prog(t,1.2,.4)),align:'center'});
+  txt('Resurrection Tech',W/2,cy+P(178,172),{size:12,f:'mono',col:MUTE,a:eo(prog(t,1.3,.4)),align:'center'})}
+
+const SC=[s1,s2,s3,s4,s5,s6,s7,s8],TR=.4;
+function scene(k,lt){x.save();SC[k](lt);x.restore()}
+function render(t){GT=t;x.setTransform(S,0,0,S,0,0);x.globalAlpha=1;let k=0;for(let i=0;i<NS;i++)if(t>=TS[i])k=i;const lt=t-TS[k];
+  if(k>0&&lt<TR){const e=eio(lt/TR),edge=W*(1-e);scene(k-1,DUR[k-1]-.001);x.save();x.beginPath();x.rect(edge,0,W-edge,H);x.clip();x.translate(-80*(1-e),0);scene(k,lt);x.restore();x.fillStyle=ACC[k];x.fillRect(edge-14,0,14,H)}
+  else scene(k,lt);
+  const f=1-eio(prog(t,TOTAL-.3,.3));if(f<1){x.fillStyle=`rgba(255,255,255,${1-f})`;x.fillRect(0,0,W,H)}}
+window.render=render;window.TOTAL=TOTAL;window.CUES=CUES.sort((a,b)=>a[0]-b[0]);
+window.READY=Promise.all(['400 20px Inter','500 20px Inter','600 20px Inter','700 20px Inter','italic 400 20px Serif','400 20px SerifR','400 20px JBM'].map(f=>document.fonts.load(f))).then(()=>true);
+if(!location.search.includes('render')){window.READY.then(()=>{const st=performance.now();(function loop(){render(((performance.now()-st)/1000)%TOTAL);requestAnimationFrame(loop)})()})}
+else window.READY.then(()=>render(0));
+</script></body></html>
