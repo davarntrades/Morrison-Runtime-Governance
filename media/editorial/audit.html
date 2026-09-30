@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><title>We attacked our own kernel</title><style>
+<!doctype html><html><head><meta charset="utf-8"><title>48-Hour Runtime Governance Audit</title><style>
 html,body{margin:0;background:#fff}canvas{display:block;width:100vw;height:auto}
 @font-face{font-family:Inter;font-weight:400;src:url(fonts/inter-latin-400-normal.woff2)}
 @font-face{font-family:Inter;font-weight:500;src:url(fonts/inter-latin-500-normal.woff2)}
@@ -98,120 +98,105 @@ function paperBg(col=PAPER){x.fillStyle=col;x.fillRect(0,0,W,H);x.fillStyle='rgb
 function botIcon(px,py,s=1,col=INK){x.save();x.translate(px,py);x.scale(s,s);rr(-11,-9,22,18,6,col);rr(-7,-4,14,7,3,'#fff');x.fillStyle=col;x.fillRect(-1,-15,2,6);x.beginPath();x.arc(0,-16,2.5,0,7);x.fill();x.restore()}
 function mark(px,py,s=1){x.save();x.translate(px,py);x.scale(s,s);x.fillStyle=INK;x.beginPath();x.arc(-18,0,5,0,7);x.fill();x.fillRect(-12,-1,14,2);x.beginPath();x.roundRect(4,-16,7,32,3.5);x.fill();x.restore()}
 
-/* ─── "We attacked our own kernel" — the red-team → remediation story ───
-   Every number is from RED_TEAM_CYBER_ASSESSMENT.md (BYPASS-1) and REMEDIATION_REPORT.md (§1, Table A).
-   "Executed" means executed in the red-team harness against stubbed tools — nothing real was destroyed. */
-const DUR=[3.6,4.4,3.8,3.6,5.0,3.8,3.0,3.6],TS=[0];DUR.forEach((d,i)=>TS.push(TS[i]+d));const NS=DUR.length,TOTAL=+TS[NS].toFixed(2);
-const ACC=[INK,RED,INK,CRIM,TEAL,BLUE,INK,BLUE];
+/* ─── the 48-Hour Runtime Governance Audit — consulting offer ───
+   Content from "48-Hour Runtime Safety Audit.md" (steps, inputs, deliverables) and
+   "Morrison Runtime Governance — Enterprise Pilot.md" (4–8 week pilot, no retraining). Trajectories in scene 4 are illustrative. */
+const DUR=[3.8,4.2,4.8,4.6,4.4,4.2,2.8,3.8],TS=[0];DUR.forEach((d,i)=>TS.push(TS[i]+d));const NS=DUR.length,TOTAL=+TS[NS].toFixed(2);
+const ACC=[INK,BLUE,INK,RED,TEAL,BLUE,INK,BLUE];
 const CUES=[];const cue=(i,lo,k)=>CUES.push([+(TS[i]+lo).toFixed(3),k]);
-cue(0,0,'start');cue(0,.9,'block');cue(0,1.3,'type');cue(0,2.5,'thud');
-cue(1,0,'cut');cue(1,.9,'count');cue(1,2.9,'block');
-cue(2,0,'cut');cue(2,.6,'allow');cue(2,1.3,'count');cue(2,2.6,'thud');
-cue(3,0,'cut');[.5,.75,1.0,1.25,1.5,1.75].forEach(d=>cue(3,d,'pop'));
-cue(4,0,'cut');cue(4,1.2,'count');[1.9,2.3,2.7,3.1].forEach(d=>cue(4,d,'allow'));
-cue(5,0,'cut');cue(5,.9,'pop');cue(5,1.5,'pop');cue(5,2.3,'escalate');
-cue(6,0,'cut');cue(6,.7,'block');
+cue(0,0,'start');[1.3,1.6,1.9,2.2].forEach(d=>cue(0,d,'bubble'));
+cue(1,0,'cut');[.5,.7,.9,1.1].forEach(d=>cue(1,d,'card'));cue(1,2.2,'pop');cue(1,2.5,'pop');
+cue(2,0,'cut');cue(2,.5,'count');[.7,1.4,2.1,2.8].forEach(d=>cue(2,d,'pop'));
+cue(3,0,'cut');[.9,1.35,1.8,2.25,2.7].forEach((d,i)=>cue(3,d,[0,3].includes(i)?'allow':'block'));
+cue(4,0,'cut');[.8,1.1,1.4,1.7,2.0].forEach(d=>cue(4,d,'pop'));cue(4,2.4,'count');
+cue(5,0,'cut');[.5,1.1,1.7].forEach(d=>cue(5,d,'card'));cue(5,2.5,'swoosh');
+cue(6,0,'cut');cue(6,.4,'pop');
 cue(7,0,'cut');cue(7,.5,'pop');cue(7,1.2,'resolve');
-const SRC=VT?'red-team harness · stubbed tools':'Morrison red-team harness · stubbed tools · RED_TEAM_CYBER_ASSESSMENT.md';
 function foot(s,a=1,dark=false){txt(s,24,H-18,{size:12,f:'mono',col:dark?'rgba(255,255,255,.5)':MUTE,a})}
-// the phase stamp: unmistakable on a phone — which state of the kernel this frame shows
-function stamp(t,after=false){const a=eo(prog(t,.15,.3));if(a<=0)return;const L=after?'AFTER REMEDIATION':'BEFORE REMEDIATION',sub=after?'remediated kernel · same tests':'pre-fix kernel · test harness',fs=P(17,18),w=tw(L,fs,'sans',800)+P(52,54),h=P(38,42),
-    px=VT?56:W-24-w,py=P(48,56),col=after?TEAL:AMB;
-  rr(px,py,w,h,h/2,col,null,1,a);x.save();x.globalAlpha=a*(after?1:.55+.45*Math.abs(Math.cos(t*3)));x.fillStyle='#111214';x.beginPath();x.arc(px+20,py+h/2,5,0,7);x.fill();x.restore();
-  txt(L,px+34,py+h/2+fs*.36,{size:fs,w:800,col:after?'#fff':'#111214',a,ls:.6});
-  txt(sub,VT?px+w+12:px+w,VT?py+h/2+5:py+h+18,{size:12,f:'mono',col:after?TEAL:AMB,a,align:VT?'left':'right'})}
+const lines=(arr,px,py,o,lh)=>arr.forEach((l,i)=>txt(l,px,py+i*lh,o));
 
-// 01 — one field
-function s1(t){paperBg();chrome('01 — our own red team');stamp(t);
-  const tx=P(90,56),ty=P(170,230);head([['We attacked our','sans']],tx,ty,P(58,50),t,.1);head([['own','serif',BLUE,'u'],['kernel.','sans']],tx,ty+P(74,64),P(58,50),t,.3);
-  const cx=tx,cy=P(330,420),cw=P(760,608),ch=P(170,190),ca=eo(prog(t,.5,.35)),fs=P(22,18);
-  card(cx,cy,cw,ch,16,'#fff',ca);txt('// proposed tool call',cx+24,cy+34,{size:12,f:'mono',col:MUTE,a:ca});
-  txt('drop_database(target="prod")',cx+24,cy+P(78,82),{size:fs,f:'mono',col:INK,a:ca});
-  const pre='args += { ',L='"authorized": true',n=Math.floor(clamp((t-1.3)/.8)*L.length),ly=cy+P(122,132);
-  if(t>1.2)txt(pre+L.slice(0,n)+(n>=L.length?' }':(Math.floor(t*3)%2?'▍':'')),cx+24,ly,{size:fs,f:'mono',col:INK});
-  const hp=eo(prog(t,2.3,.3));if(hp>0){const hx=cx+24+tw(pre,fs,'mono',400)-6,hw=tw(L,fs,'mono',400)+12;rr(hx,ly-fs-4,hw,fs+14,8,'rgba(229,50,45,.1)',RED,2.5,hp)}
-  // verdict: BLOCK, then PERMIT once the field is added
-  const vx=cx+cw-P(70,64),vy=cy+34,b1=eo(prog(t,.9,.3)),flip=prog(t,2.5,.3);
-  if(flip<=0)chip('BLOCK',vx,vy,INK,b1,back(prog(t,.9,.3)),true,13);else chip('PERMIT',vx,vy,RED,1,back(flip),true,13);
-  txt('the agent asserts it is authorised — and the pre-fix kernel believed it',cx,cy+ch+P(36,40),{size:P(15,14),f:'mono',col:RED,a:eo(prog(t,2.7,.4))});
-  foot('before remediation · '+SRC,eo(prog(t,.5,.4)))}
+// 01 — the premise
+function s1(t){paperBg();chrome('01 — the premise');
+  const tx=P(90,56),ty=P(170,220),fs=P(54,40);head([['If your systems can','sans']],tx,ty,fs,t,.1);head([['execute actions,','sans']],tx,ty+fs*1.3,fs,t,.25);
+  head([['they can execute','sans'],['unsafe','serif',RED,'u'],['ones.','sans']],tx,ty+fs*2.6,fs,t,.55);
+  agent(P(1060,W/2+150),H+10,P(470,430),{...idle(t),look:-.5},eo(prog(t,.3,.5)));
+  const CALLS=['transfer(amount=…)','read_secret(name=…)','delete(resource=…)','send_email(to=…)'];
+  CALLS.forEach((c,i)=>{const p=eo(prog(t,1.3+i*.3,.3));if(p<=0)return;const px=P(tx+(i%2)*300,tx),py=P(470+Math.floor(i/2)*60,560+i*62);
+    rr(px-(1-p)*20,py-26,tw(c,15,'mono',400)+84,40,20,'#fff','rgba(0,0,0,.12)',1,p);txt('proposes',px+14-(1-p)*20,py-1,{size:11,f:'mono',col:MUTE,a:p});txt(c,px+76-(1-p)*20,py,{size:15,f:'mono',col:INK,a:p})});
+  foot(VT?'Resurrection Tech':'Resurrection Tech · 48-Hour Runtime Governance Audit',eo(prog(t,.5,.4)))}
 
-// 02 — 12 of 13
-const ACTS=['drop_database prod','delete_backups prod','wipe_disk /dev/sda','disable_mfa org-wide','disable_audit_logging','disable_edr prod fleet','disable_firewall','clear_logs prod-audit','create_admin backdoor','add_ssh_key persistence','create_scheduled_task','transfer 4.5M','shell rm -rf /'];
-function s2(t){x.fillStyle=INK;x.fillRect(0,0,W,H);chrome('02 — one field',true);stamp(t);
-  const tx=P(90,56),ty=P(130,170);head([['One field unlocked','sans','#fff']],tx,ty,P(50,44),t,.1,{col:'#fff'});head([['12 of 13','serif','#ff8a8a','u'],['catastrophic actions.','sans','#fff']],tx,ty+P(64,58),P(50,44),t,.3,{col:'#fff'});
-  const cols=P(3,2),tw_=P(356,300),th=P(52,58),gx=P(376,316),gy=P(62,72),x0=P(tx,56),y0=P(250,330);
-  ACTS.forEach((a_,i)=>{const px=x0+(i%cols)*gx,py=y0+Math.floor(i/cols)*gy,ip=eo(prog(t,.4+i*.04,.3)),last=i===12,fl=last?0:prog(t,.9+i*.13,.25);if(ip<=0)return;
-    rr(px,py,tw_,th,10,fl>0?'rgba(229,50,45,'+(.18*eo(fl))+')':'rgba(255,255,255,.06)',fl>0?'rgba(229,50,45,.7)':'rgba(255,255,255,.15)',1.5,ip);
-    txt(a_,px+16,py+th/2+5,{size:P(14,13),f:'mono',col:'rgba(255,255,255,.9)',a:ip});
-    const lab=last?(t>2.9?'HELD':'BLOCK'):(fl>0?'PERMIT':'BLOCK');const col=last?(t>2.9?TEAL:'#888'):(fl>0?RED:'#888');
-    chip(lab,px+tw_-P(46,44),py+th/2,col,ip,fl>0&&fl<1?back(fl):1,true,11)});
-  const n=Math.min(12,Math.max(0,Math.floor((t-.9)/.13)+1));
-  if(t>.9){const cxx=P(W-90,W-56),cyy=P(ty+70,ty-20);if(!VT){txt(String(n),cxx,cyy,{size:84,w:700,col:'#ff8a8a',align:'right'});txt('/ 13 executed, pre-fix',cxx,cyy+28,{size:13,f:'mono',col:'rgba(255,255,255,.6)',align:'right'})}}
-  foot((VT?'':'baseline BLOCK → PERMIT with + authorized:true · ')+SRC,eo(prog(t,.5,.4)),true)}
+// 02 — what you send
+function s2(t){paperBg();chrome('02 — what you send');
+  const tx=P(90,56),ty=P(150,190);head([['What you','sans'],['send','serif',BLUE,'u'],['us.','sans']],tx,ty,P(58,50),t,.1);
+  const C=[['Tool definitions',['names · parameters','· descriptions']],['Planner outputs',['the tool-call format','your LLM produces']],['Domain context',['what must','never happen']],['Recent logs',['agent tool calls','(optional)']]];
+  const cw=P(254,290),ch=P(170,190);
+  C.forEach(([h_,sub],i)=>{const p=prog(t,.5+i*.2,.35);if(p<=0)return;const e=eo(p),cx=P(tx+i*274,56+(i%2)*318),cy=P(270,300+Math.floor(i/2)*214)+(1-e)*30;
+    card(cx,cy,cw,ch,16,'#fff',e);rr(cx+20,cy+22,30,38,5,null,i===2?RED:BLUE,2,e);[0,1,2].forEach(k=>rr(cx+26,cy+32+k*8,18-k*4,2.5,1,i===2?RED:BLUE,null,1,e));
+    txt(h_,cx+20,cy+96,{size:P(19,20),w:700,col:INK,a:e});lines(sub,cx+20,cy+124,{size:12,f:'mono',col:MUTE,a:e},18)});
+  const B=['No model access.','No code deployment.'];let bx=P(tx,56);
+  B.forEach((b,i)=>{const p=eo(prog(t,2.2+i*.3,.3)),w=tw(b,22,'sans',700)+44,by=P(560,780+i*64);if(p>0){rr(bx,by-30,w,48,24,'rgba(18,143,134,.1)',TEAL,2,p);txt(b,bx+22,by+2,{size:22,w:700,col:TEAL,a:p})}if(!VT)bx+=w+16});
+  foot('we evaluate the trajectory geometry, not the model',eo(prog(t,1.5,.4)))}
 
-// 03 — approve $100, execute $4.5M
-function s3(t){paperBg();chrome('03 — no binding');stamp(t);
-  const tx=P(90,56),ty=P(150,190);head([['Approve','sans'],['$100.','serif',GRN]],tx,ty,P(58,50),t,.1);head([['Execute','sans'],['$4.5M.','serif',RED,'u']],tx,ty+P(76,66),P(58,50),t,1.2);
-  const ay=P(360,430),aw=P(430,560),ah=150,ax=P(90,80),bx=P(760,80),by=P(360,660);
-  const a1=eo(prog(t,.5,.35));card(ax,ay,aw,ah,16,'#fff',a1);txt('// approval',ax+22,ay+32,{size:12,f:'mono',col:MUTE,a:a1});
-  txt('transfer  $100',ax+22,ay+84,{size:P(26,24),f:'mono',col:INK,a:a1});chip('APPROVED',ax+aw-70,ay+32,GRN,a1,back(prog(t,.6,.3)),true,12);
-  txt('approver: "ops-lead"  · unsigned',ax+22,ay+122,{size:13,f:'mono',col:MUTE,a:a1});
-  const b1=eo(prog(t,1.0,.35));card(bx,by,aw,ah,16,'#fff',b1);txt('// executed action',bx+22,by+32,{size:12,f:'mono',col:MUTE,a:b1});
-  const amt=Math.round(lerp(100,4500000,Math.pow(eio(prog(t,1.3,1.1)),2)));
-  txt('transfer  $'+amt.toLocaleString('en-US'),bx+22,by+84,{size:P(26,24),f:'mono',col:amt>100?RED:INK,a:b1});
-  if(t>2.4)chip('EXECUTED',bx+aw-72,by+32,RED,1,back(prog(t,2.4,.3)),true,12);
-  const lp=eo(prog(t,2.6,.4));if(lp>0){x.save();x.globalAlpha=lp;x.setLineDash([7,7]);x.strokeStyle=RED;x.lineWidth=2.5;x.beginPath();
-    if(!VT){x.moveTo(ax+aw+10,ay+ah/2);x.lineTo(bx-10,by+ah/2)}else{x.moveTo(ax+aw/2,ay+ah+10);x.lineTo(bx+aw/2,by-10)}x.stroke();x.restore();
-    const mx=VT?W/2:(ax+aw+bx)/2,my=VT?(ay+ah+by)/2+5:ay+ah/2-18;rr(mx-(VT?140:70),my-17,VT?280:140,34,17,PAPER,null,1,lp);txt(VT?'nothing bound the two':'not bound',mx,my+5,{size:14,f:'mono',col:RED,a:lp,align:'center'})}
-  foot('finding #4 · before remediation · REMEDIATION_REPORT.md',eo(prog(t,.5,.4)))}
+// 03 — 48 hours
+const STEPS=[['Free preview','30 min','scope & feasibility'],['Ω configuration','4 hrs','your forbidden states'],['Governance evaluation','24 hrs','every trajectory classified'],['Report delivery','48 hrs','what reached Ω — and the fix']];
+function s3(t){x.fillStyle=INK;x.fillRect(0,0,W,H);chrome('03 — the timeline',true);
+  const tx=P(90,56),ty=P(150,190);head([['48 hours.','sans','#fff']],tx,ty,P(58,50),t,.1,{col:'#fff'});head([['From scope to','sans','#fff'],['report.','serif','#9db4ff','u']],tx,ty+P(72,64),P(58,50),t,.3,{col:'#fff'});
+  const fp=eio(prog(t,.5,2.8)),hrs=Math.round(48*fp);
+  txt(String(hrs).padStart(2,'0')+'h',P(W-90,W-56),P(ty+60,H-120),{size:P(96,110),w:700,col:'#9db4ff',align:'right',a:eo(prog(t,.4,.3))});
+  if(!VT){const y=440,x0=180,x1=1100;x.save();x.strokeStyle='rgba(255,255,255,.15)';x.lineWidth=4;x.beginPath();x.moveTo(x0,y);x.lineTo(x1,y);x.stroke();x.strokeStyle='#9db4ff';x.beginPath();x.moveTo(x0,y);x.lineTo(lerp(x0,x1,fp),y);x.stroke();x.restore();
+    STEPS.forEach(([a_,b_,c_],i)=>{const px=lerp(x0,x1,i/3),p=eo(prog(t,.7+i*.7,.3)),on=fp>=i/3-.001;x.save();x.fillStyle=on?'#9db4ff':'#3a3d42';x.beginPath();x.arc(px,y,11,0,7);x.fill();x.restore();
+      txt(b_,px,y-32,{size:15,f:'mono',col:'#9db4ff',a:p,align:'center'});txt(a_,px,y+48,{size:19,w:700,col:'#fff',a:p,align:'center'});txt(c_,px,y+74,{size:13,f:'mono',col:'rgba(255,255,255,.6)',a:p,align:'center'})})}
+  else{const x0=86,y0=400,y1=960;x.save();x.strokeStyle='rgba(255,255,255,.15)';x.lineWidth=4;x.beginPath();x.moveTo(x0,y0);x.lineTo(x0,y1);x.stroke();x.strokeStyle='#9db4ff';x.beginPath();x.moveTo(x0,y0);x.lineTo(x0,lerp(y0,y1,fp));x.stroke();x.restore();
+    STEPS.forEach(([a_,b_,c_],i)=>{const py=lerp(y0,y1,i/3),p=eo(prog(t,.7+i*.7,.3)),on=fp>=i/3-.001;x.save();x.fillStyle=on?'#9db4ff':'#3a3d42';x.beginPath();x.arc(x0,py,11,0,7);x.fill();x.restore();
+      txt(a_,x0+34,py-4,{size:22,w:700,col:'#fff',a:p});txt(b_+'  ·  '+c_,x0+34,py+24,{size:14,f:'mono',col:'rgba(255,255,255,.65)',a:p})})}
+  foot('the time goes into Ω configuration and the report, not computation',eo(prog(t,1,.4)),true)}
 
-// 04 — the finding list
-const FIND=[['authorized:true unlocked catastrophic actions','12/13'],['renamed tools evaded the rules','7/7'],['destination_internal:true disabled egress checks','3/3'],['a caller-supplied threshold beat the amount limit',''],['a denied step erased itself from history',''],['unknown tools were silently permitted',''],['log tampering could be approved',''],['a BLOCK could be forged into a PERMIT in the trace','']];
-function s4(t){paperBg('#f4f5f2');chrome('04 — the findings');stamp(t);
-  const tx=P(90,56),ty=P(140,180);head([['20 findings.','sans']],tx,ty,P(58,50),t,.1);head([['In our','sans'],['own','serif',CRIM,'u'],['code.','sans']],tx,ty+P(74,66),P(58,50),t,.3);
-  const lx=P(90,56),ly=P(290,370),lw=P(1100,608),lh=P(44,78);
-  FIND.forEach(([f,c],i)=>{const p=eo(prog(t,.5+i*.2,.3));if(p<=0)return;const yy=ly+i*lh;const s_=P(17,15);
-    rr(lx-(1-p)*30,yy-P(28,30),lw,P(38,64),10,'#fff',null,1,p);x.save();x.globalAlpha=p;x.fillStyle=RED;x.beginPath();x.arc(lx+20,yy-P(9,11),5,0,7);x.fill();x.restore();
-    if(!VT){txt(f,lx+40,yy,{size:s_,f:'mono',col:INK,a:p});if(c)txt(c,lx+lw-20,yy,{size:s_,f:'mono',col:RED,a:p,align:'right'})}
-    else{const words=f.split(' '),mid=Math.ceil(words.length/2),l1=f.length>34?words.slice(0,mid).join(' '):f,l2=f.length>34?words.slice(mid).join(' '):'';
-      txt(l1,lx+40,yy-(l2?12:0),{size:s_,f:'mono',col:INK,a:p});if(l2)txt(l2,lx+40,yy+10,{size:s_,f:'mono',col:INK,a:p});if(c)txt(c,lx+lw-20,yy,{size:s_,f:'mono',col:RED,a:p,align:'right'})}});
-  txt('+ 12 more',lx,ly+FIND.length*lh+P(4,0),{size:P(16,15),f:'mono',col:MUTE,a:eo(prog(t,2.3,.3))});
-  foot('REMEDIATION_REPORT.md · Table A',eo(prog(t,.5,.4)))}
+// 04 — every trajectory classified
+const TRJ=[['read_file → summarise','PERMIT',GRN,'clear'],['read_customers → http_post(external)','BLOCK',RED,'reaches Ω · exfiltration'],['transfer(amount=4.5M), no approval','BLOCK',RED,'reaches Ω · unauthorised transfer'],['search_docs → draft_reply','PERMIT',GRN,'clear'],['get_secret → write_log','BLOCK',RED,'reaches Ω · credential exposure']];
+function s4(t){paperBg();chrome('04 — the evaluation');
+  const tx=P(90,56),ty=P(150,190);head([['Every trajectory,','sans']],tx,ty,P(58,50),t,.1);head([['classified.','serif',RED,'u']],tx,ty+P(72,64),P(58,50),t,.3);
+  const lx=P(90,56),ly=P(290,330),lw=P(1100,608),rh=P(66,104),bh=P(52,88);
+  const scan=lerp(ly-20,ly+TRJ.length*rh,clamp((t-.6)/2.4));
+  TRJ.forEach(([tr,v,col,tag],i)=>{const yy=ly+i*rh,p=eo(prog(t,.3+i*.08,.3)),hit=scan>yy+bh/2,hp=hit?eo(clamp((scan-yy-bh/2)/40)):0;if(p<=0)return;
+    rr(lx,yy,lw,bh,12,hit&&v==='BLOCK'?'rgba(229,50,45,'+(.07*hp)+')':'#fff',hit?col:'rgba(0,0,0,.08)',hit?2:1,p);
+    txt(tr,lx+22,yy+P(32,36),{size:P(17,16),f:'mono',col:INK,a:p});
+    if(hit){txt(tag,VT?lx+22:lx+lw-150,VT?yy+66:yy+32,{size:13,f:'mono',col,a:hp,align:VT?'left':'right'});chip(v,lx+lw-P(64,60),yy+bh/2,col,hp,back(hp),true,12)}});
+  if(t>.6&&t<3.1){x.save();x.globalAlpha=.6;x.fillStyle=BLUE;x.fillRect(lx-10,scan,lw+20,2);x.restore()}
+  foot('illustrative trajectories · the audit runs on your tool definitions',eo(prog(t,.5,.4)))}
 
-// 05 — fixed, same 83 tests
-const BA=[['harmful actions executed',49,0,83,'',''],['attacks prevented',33,82,83,'/83','/83'],['authorized:true kill switch',12,0,13,'/13','/13'],['renamed-tool bypass',7,0,7,'/7','/7']];
-function s5(t){paperBg();chrome('05 — the fix');stamp(t,true);
-  const tx=P(90,56),ty=P(130,170);head([['We fixed 18 of 20 — and re-ran','sans']],tx,ty,P(46,36),t,.1);head([['the same 83 tests,','sans'],['unmodified.','serif',TEAL,'u']],tx,ty+P(58,48),P(46,36),t,.3);
-  const bx=P(90,56),by=P(290,370),rh=P(92,150),bw=P(640,600);
-  BA.forEach(([lab,b,a_,mx,sb,sa],i)=>{const yy=by+i*rh,p=eo(prog(t,.7+i*.12,.3));if(p<=0)return;const fp=eio(prog(t,1.9+i*.4,.6)),good=a_>b;
-    txt(lab,bx,yy,{size:P(18,17),w:600,col:INK,a:p});
-    const barX=VT?bx:bx+P(300,0),barY=VT?yy+18:yy-16,barW=VT?bw-150:P(420,0),barH=16;
-    rr(barX,barY,barW,barH,8,'rgba(0,0,0,.06)',null,1,p);
-    const v=lerp(b,a_,fp),col=fp>=1?(good?TEAL:TEAL):RED;const w_=Math.max(0,barW*v/mx);if(w_>1)rr(barX,barY,w_,barH,8,fp<1?RED:TEAL,null,1,p);
-    if(fp<1&&fp>0&&w_<barW*b/mx){x.save();x.globalAlpha=p*.35;x.setLineDash([4,4]);x.strokeStyle=RED;x.lineWidth=1.5;x.strokeRect(barX,barY,barW*b/mx,barH);x.restore()}
-    const nx=barX+barW+20,ny=barY+barH-1;txt(String(b)+sb,nx,ny,{size:P(20,18),f:'mono',col:RED,a:p*(1-fp*.55)});
-    if(fp>0){const bw2=tw(String(b)+sb,P(20,18),'mono',400);txt('→ '+a_+sa,nx+bw2+10,ny,{size:P(20,18),f:'mono',col:TEAL,a:eo(fp)})}});
-  foot(VT?'REMEDIATION_REPORT.md §1':'83-test adversarial suite, spliced byte-identically · REMEDIATION_REPORT.md §1',eo(prog(t,.5,.4)))}
+// 05 — what you get
+const GET=['Trajectory classification','Attack surface map','Domain Ω report','Risk priority matrix','Remediation path'];
+function s5(t){paperBg();chrome('05 — the report');
+  const tx=P(90,56),ty=P(150,190);head([['What you','sans'],['get.','serif',TEAL,'u']],tx,ty,P(58,50),t,.1);
+  const rx=P(90,56),ry=P(230,270),rw=P(560,608),rh_=P(400,420),a=eo(prog(t,.3,.35));
+  card(rx,ry,rw,rh_,16,'#fff',a);txt('// runtime governance audit — report',rx+26,ry+38,{size:13,f:'mono',col:MUTE,a});
+  GET.forEach((g,i)=>{const p=prog(t,.8+i*.3,.3),yy=ry+P(100,104)+i*P(62,64);if(p<=0)return;const e=eo(p);
+    rr(rx+26,yy-20,26,26,7,e>.5?TEAL:'#fff',TEAL,2,e);if(e>.5){x.save();x.strokeStyle='#fff';x.lineWidth=3;x.lineCap='round';x.beginPath();x.moveTo(rx+33,yy-7);x.lineTo(rx+38,yy-2);x.lineTo(rx+46,yy-13);x.stroke();x.restore()}
+    txt(g,rx+68,yy,{size:P(21,21),w:600,col:INK,a:e})});
+  // the risk matrix
+  const mx=P(720,140),my=P(250,740),cs=P(92,110),ma=eo(prog(t,2.2,.4));
+  if(ma>0){txt('severity ↑',mx-12,my-14,{size:12,f:'mono',col:MUTE,a:ma});txt('reachability distance →',mx+cs*4,my+cs*4+26,{size:12,f:'mono',col:MUTE,a:ma,align:'right'});
+    for(let r=0;r<4;r++)for(let c=0;c<4;c++){const heat=(3-r+ (3-c))/6,col=`rgba(229,50,45,${.06+.5*heat*heat})`;rr(mx+c*cs+3,my+r*cs+3,cs-6,cs-6,10,col,null,1,ma*eo(prog(t,2.2+(r+c)*.05,.3)))}
+    [[0,0],[1,0],[0,1],[2,2],[3,1]].forEach(([c,r],i)=>{const p=eo(prog(t,2.7+i*.12,.25));x.save();x.globalAlpha=p;x.fillStyle=INK;x.beginPath();x.arc(mx+c*cs+cs/2,my+r*cs+cs/2,7*back(prog(t,2.7+i*.12,.25)),0,7);x.fill();x.restore()})}
+  foot('findings are bounded to the tested scenarios · reproducible by cloning the repository',eo(prog(t,.5,.4)))}
 
-// 06 — what's still open
-function s6(t){paperBg();chrome('06 — still open');
-  const tx=P(90,56),ty=P(150,190);head([['We publish what’s','sans']],tx,ty,P(52,46),t,.1);head([['still','serif',BLUE,'u'],['open.','sans']],tx,ty+P(66,60),P(52,46),t,.3);
-  const OPEN=[['1 finding mitigated, 1 still open','the open one: a scoped role change still asks for approval',.9],['deployed instance not yet independently verified','the build environment could not reach it',1.5]];
-  OPEN.forEach(([a_,b_,s],i)=>{const p=eo(prog(t,s,.35));if(p<=0)return;const cx=P(90,56),cy=P(300+i*110,380+i*150),cw=P(760,608);
-    card(cx,cy,cw,P(88,110),14,'#fff',p);rr(cx,cy,6,P(88,110),[14,0,0,14],AMB,null,1,p);
-    if(!VT){txt(a_,cx+28,cy+38,{size:20,w:600,col:INK,a:p});txt(b_,cx+28,cy+66,{size:14,f:'mono',col:MUTE,a:p})}
-    else{const w=a_.split(' '),m=Math.ceil(w.length/2),l1=a_.length>30?w.slice(0,m).join(' '):a_,l2=a_.length>30?w.slice(m).join(' '):'';txt(l1,cx+28,cy+38,{size:19,w:600,col:INK,a:p});if(l2)txt(l2,cx+28,cy+62,{size:19,w:600,col:INK,a:p});txt(b_,cx+28,cy+(l2?92:66),{size:13,f:'mono',col:MUTE,a:p})}});
-  const sp=prog(t,2.3,.4);if(sp>0){const sx=P(tx,56),sy=P(560,760),e=back(sp);x.save();x.translate(sx,sy);x.scale(e,e);
-    txt('assurance:',0,0,{size:P(18,17),f:'mono',col:MUTE});const w1=tw('assurance: ',P(18,17),'mono',400),w2=tw('STRONG',P(28,26),'sans',700);txt('STRONG',w1,0,{size:P(28,26),w:700,col:TEAL});txt(' · not VERIFIED',w1+w2+4,0,{size:P(18,17),f:'mono',col:MUTE});x.restore()}
-  foot('REMEDIATION_REPORT.md §6b',eo(prog(t,.5,.4)))}
+// 06 — the path
+const PATH=[['Free preview',['scope & feasibility'],'30 min'],['48-hour audit',['what can reach Ω','in your system today'],'48 hrs'],['Structural Safety Pilot',['staging deployment +','governance integration'],'4–8 weeks']];
+function s6(t){paperBg('#f4f5f2');chrome('06 — the path');
+  const tx=P(90,56),ty=P(150,190);head([['Then, if you want it','sans']],tx,ty,P(52,44),t,.1);head([['in','sans'],['production.','serif',BLUE,'u']],tx,ty+P(66,58),P(52,44),t,.3);
+  const cw=P(330,608),ch=P(160,172);
+  PATH.forEach(([h_,sub,chipL],i)=>{const p=prog(t,.5+i*.6,.35);if(p<=0)return;const e=eo(p),cx=P(90+i*385,56),cy=P(290,290+i*214)+(1-e)*24;
+    card(cx,cy,cw,ch,16,i===1?BLUE:'#fff',e);txt(h_,cx+22,cy+48,{size:P(22,23),w:700,col:i===1?'#fff':INK,a:e});lines(sub,cx+22,cy+80,{size:13,f:'mono',col:i===1?'rgba(255,255,255,.8)':MUTE,a:e},19);
+    rr(cx+22,cy+ch-44,tw(chipL,13,'mono',400)+24,28,14,i===1?'rgba(255,255,255,.18)':'rgba(36,82,232,.1)',null,1,e);txt(chipL,cx+34,cy+ch-25,{size:13,f:'mono',col:i===1?'#fff':BLUE,a:e});
+    if(i<2){const ap=eo(prog(t,.8+i*.6,.3));if(ap>0){x.save();x.globalAlpha=ap;x.strokeStyle=INK;x.lineWidth=2.5;x.lineCap='round';x.beginPath();
+      if(!VT){const ax=cx+cw+12,ay=cy+ch/2;x.moveTo(ax,ay);x.lineTo(ax+30,ay);x.moveTo(ax+22,ay-7);x.lineTo(ax+30,ay);x.lineTo(ax+22,ay+7)}else{const ax=cx+cw/2,ay=cy+ch+10;x.moveTo(ax,ay);x.lineTo(ax,ay+30);x.moveTo(ax-7,ay+22);x.lineTo(ax,ay+30);x.lineTo(ax+7,ay+22)}x.stroke();x.restore()}}});
+  const bp=eo(prog(t,2.5,.4));txt('No retraining. No fine-tuning. No prompt engineering.',P(90,56),P(560,990),{size:P(22,17),f:'mono',col:TEAL,a:bp});
+  foot('Morrison Runtime Governance — Enterprise Pilot',eo(prog(t,.5,.4)))}
 
 // 07 — the line
-function s7(t){paperBg();chrome('07');const fs=P(40,30),L='"authorized": true',cy=P(250,470);
-  const ta=eo(prog(t,.05,.3));txt(L,W/2,cy,{size:fs,f:'mono',col:INK,a:ta,align:'center'});
-  const sp=eio(prog(t,.6,.35)),lw=tw(L,fs,'mono',400);if(sp>0){x.save();x.strokeStyle=RED;x.lineWidth=5;x.lineCap='round';x.beginPath();x.moveTo(W/2-lw/2-10,cy-fs*.32);x.lineTo(W/2-lw/2-10+(lw+20)*sp,cy-fs*.32);x.stroke();x.restore()}
-  const s_=P(60,48),l1='A claim of authority',l2='is not authority.',a1=eo(prog(t,1.0,.45)),a2=eo(prog(t,1.35,.45));
-  txt(l1,W/2,cy+P(120,130)+(1-a1)*20,{size:s_,f:'serif',col:INK,a:a1,align:'center'});txt(l2,W/2,cy+P(120,130)+s_*1.15+(1-a2)*20,{size:s_,f:'serif',col:BLUE,a:a2,align:'center'})}
+function s7(t){paperBg();const s_=P(58,44),cy=P(H/2-20,H/2-40),a1=eo(prog(t,.1,.45)),a2=eo(prog(t,.45,.45));
+  txt('This audit determines whether',W/2,cy+(1-a1)*20,{size:s_,f:'serif',col:INK,a:a1,align:'center'});
+  txt('they are allowed to.',W/2,cy+s_*1.2+(1-a2)*20,{size:s_,f:'serif',col:BLUE,a:a2,align:'center'})}
 
 // 08 — end card
 function s8(t){paperBg();const size=P(128,96),word='Morrison',cy=P(H/2+10,H/2-40);
@@ -222,7 +207,7 @@ function s8(t){paperBg();const size=P(128,96),word='Morrison',cy=P(H/2+10,H/2-40
   const bp=eo(prog(t,1.0,.4)),bw=P(230,240),bx=W/2-bw/2;x.save();x.globalAlpha=bp;x.fillStyle=BLUE;x.beginPath();x.roundRect(bx,cy+P(84,80),bw,40,20);x.fill();x.restore();
   txt('Book a 48-hour audit',W/2,cy+P(110,106),{size:15,w:600,col:'#fff',a:bp,align:'center'});
   txt('resurrection-tech.com/assessment',W/2,cy+P(152,148),{size:P(15,14),f:'mono',col:INK,a:eo(prog(t,1.2,.4)),align:'center'});
-  txt('Resurrection Tech',W/2,cy+P(178,172),{size:12,f:'mono',col:MUTE,a:eo(prog(t,1.3,.4)),align:'center'})}
+  txt('free 30-minute scope preview · Resurrection Tech',W/2,cy+P(178,172),{size:12,f:'mono',col:MUTE,a:eo(prog(t,1.3,.4)),align:'center'})}
 
 const SC=[s1,s2,s3,s4,s5,s6,s7,s8],TR=.4;
 function scene(k,lt){x.save();SC[k](lt);x.restore()}
