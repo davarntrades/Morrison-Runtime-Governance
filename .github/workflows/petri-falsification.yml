@@ -20,7 +20,7 @@ jobs:
       - name: Check model credential without printing it
         run: test -n "$ANTHROPIC_API_KEY"
       - name: Install pinned Petri and provider
-        run: pip install 'inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574' 'anthropic==0.96.0'
+        run: pip install 'inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574' 'anthropic==1.0.0'
       - name: Record environment
         run: pip freeze > petri-environment.txt
       - name: Initial governed batch
