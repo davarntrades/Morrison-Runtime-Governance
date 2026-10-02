@@ -1,12 +1,15 @@
 """Preserve raw reservation and single-use attacks against actual kernel interfaces."""
 
+import argparse
 import json
 from dataclasses import asdict
 from pathlib import Path
 
 from integration import make_kernel
 
-out = Path(__file__).parent / "results" / "reservation-001"
+parser = argparse.ArgumentParser()
+parser.add_argument("--output", type=Path, required=True)
+out = parser.parse_args().output
 out.mkdir(exist_ok=False)
 k = make_kernel()
 read_call = {"tool": "read_file", "args": {"path": "/app/README.md"}}

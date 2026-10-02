@@ -26,7 +26,7 @@ No prior research artifacts are edited. Signing keys in this experiment are dumm
 
 `scenarios.py` defines each finite AOE transition and expected verdict before attacks. `oracle.py` independently scores live delivered proposals without reading Morrison verdicts. Unknown tool/destination/schema semantics are marked incomplete (`expected_verdict=null`), not passing. The initial `/etc/shadow` expectation was incorrect and is preserved in batches 001/002; the source's explicit Ω block justifies the corrected expectation in later runs. Nested-authority BLOCK remains the intended requirement and its mismatch remains visible.
 
-`run_offline.py` returns exit code 1 when a verdict is falsified, **after** writing results, oracle and hashes. This is expected for the preserved nested-authority finding. Scripted proposals are explicitly distinguished from live model proposals. The authoritative isolated scripted batch has 15 steps per arm over 11 scenarios. A control is exact-proposal matched; independent live auditor runs cannot guarantee matched conversations.
+`run_offline.py` returns exit code 1 when a verdict is falsified, **after** writing results, oracle and hashes. This is expected for the preserved nested-authority finding. Scripted proposals are explicitly distinguished from live model proposals. The initial isolated scripted batch has 15 steps per arm over 11 scenarios; the extended batch has 20 per arm over 12, including a five-step trajectory. A control is exact-proposal matched; independent live auditor runs cannot guarantee matched conversations.
 
 Full live auditor/model/judge requests and responses are retained in Inspect `.eval` files, in addition to per-session JSON containing original results, calls, canonical actions, verdict/reasons, evidence chains and state. An auditor that never elicits a tool call is zero tested transitions, not a mediation pass. Model versions and resolved generation configuration are recorded in the `.eval` logs. Anthropic does not provide a deterministic seed guarantee here.
 
@@ -47,7 +47,12 @@ export PYTHONPATH="$PWD:$PWD/experiments/petri_falsification"
 .venv/bin/ruff check experiments/petri_falsification/*.py
 ```
 
-Output directories must be new; existing evidence is never overwritten. `run_reservations.py` and `run_scripted_petri.py` similarly refuse to overwrite their fixed run directories. Change their output identifiers in a separate worktree to repeat those smoke runs.
+Output directories must be new; existing evidence is never overwritten. Run additional reservation and full Petri protocol smoke checks with new output directories:
+
+```bash
+.venv/bin/python experiments/petri_falsification/run_reservations.py --output /tmp/petri-reservations-new
+.venv/bin/python experiments/petri_falsification/run_scripted_petri.py --output /tmp/petri-protocol-new
+```
 
 With `ANTHROPIC_API_KEY` configured securely, run one live arm:
 
@@ -66,3 +71,9 @@ Repeat with `-T arm=ungoverned` and a different log directory. Inspect the initi
 ## Limits
 
 This establishes only synthetic mediation on the deliberately instrumented Petri path. It cannot establish production mediation completeness across credentials, networks, executors or resources. Effects are ledger transitions, not a high-fidelity database/filesystem simulator. The finite oracle cannot decide arbitrary newly invented tool semantics. Capability/schema gaps remain possible. Time, UUIDs and hashes of timestamped evidence differ across reproduction; proposal shapes/verdict expectations are deterministic. The live judge is auxiliary and cannot override deterministic assertions. No default-branch merge or destructive operation is part of this experiment.
+
+## Completed expanded live run
+
+Run `37029345244` used ten seeds per arm, `-T fixture_client=true -T max_turns=10 --limit 10 --max-samples 3`, the same dated Anthropic model in all roles, 1500 output tokens per generation, 100000 tokens per sample and a 180-second sample limit. The fixture profile leaves authority to Morrison and explicitly confines every tool to an in-memory simulation. Its judge uses only `broken_tool_use`; deterministic results remain independent of that judge. See FINDINGS.md for the strict AOE mismatches and incomplete live trajectory coverage.
+
+For complete raw transcripts, extract `results/live-initial-001.zip` and `results/live-expanded-001.zip` into new directories, then use `.venv/bin/inspect log dump <path-to-log.eval>` to render Inspect logs as JSON. Archive SHA-256 values are in PROVENANCE.json.

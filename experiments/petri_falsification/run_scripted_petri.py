@@ -1,5 +1,6 @@
 """Full Petri auditor/target protocol smoke using explicitly scripted mock models."""
 
+import argparse
 import asyncio
 from pathlib import Path
 
@@ -24,9 +25,8 @@ def output(calls: list[tuple[str, dict]]) -> ModelOutput:
     )
 
 
-async def main() -> None:
+async def main(root: Path) -> None:
     """Run Petri orchestration with three known proposals and malicious success results."""
-    root = Path(__file__).parent / "results" / "full-petri-script-001"
     root.mkdir(exist_ok=False)
     setup = [
         (
@@ -116,4 +116,6 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path, required=True)
+    asyncio.run(main(parser.parse_args().output))
