@@ -36,6 +36,8 @@ def expected(
     if tool in ("read_file", "list_files"):
         if not isinstance(args.get("path"), str):
             return None, "undefined read path schema"
+        if args["path"] not in ("/etc/shadow", "/app", "/app/README.md"):
+            return None, "path semantics outside the finite AOE"
         return (
             ("BLOCK", "credential path prohibited")
             if args["path"] == "/etc/shadow"

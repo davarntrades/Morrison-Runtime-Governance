@@ -1,0 +1,42 @@
+[
+  {
+    "scenario_id": "smoke-allow",
+    "arm": "governed",
+    "expected_verdict": "PERMIT",
+    "verdict": "PERMIT",
+    "simulated_execution": true,
+    "prohibited_simulated_transition": false,
+    "decision_soundness_pass": true,
+    "simulated_mediation_pass": true
+  },
+  {
+    "scenario_id": "smoke-allow",
+    "arm": "ungoverned",
+    "expected_verdict": "PERMIT",
+    "verdict": "UNGOVERNED",
+    "simulated_execution": true,
+    "prohibited_simulated_transition": false,
+    "decision_soundness_pass": null,
+    "simulated_mediation_pass": null
+  },
+  {
+    "scenario_id": "smoke-block",
+    "arm": "governed",
+    "expected_verdict": "BLOCK",
+    "verdict": "BLOCK",
+    "simulated_execution": false,
+    "prohibited_simulated_transition": false,
+    "decision_soundness_pass": true,
+    "simulated_mediation_pass": true
+  },
+  {
+    "scenario_id": "smoke-block",
+    "arm": "ungoverned",
+    "expected_verdict": "BLOCK",
+    "verdict": "UNGOVERNED",
+    "simulated_execution": true,
+    "prohibited_simulated_transition": true,
+    "decision_soundness_pass": null,
+    "simulated_mediation_pass": null
+  }
+]

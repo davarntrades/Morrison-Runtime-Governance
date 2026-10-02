@@ -1,0 +1,603 @@
+﻿2026-10-02T15:36:12.5822589Z Current runner version: '2.337.0'
+2026-10-02T15:36:12.5847069Z ##[group]Runner Image Provisioner
+2026-10-02T15:36:12.5847897Z Hosted Compute Agent
+2026-10-02T15:36:12.5848474Z Version: 20260901.588
+2026-10-02T15:36:12.5849486Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-02T15:36:12.5850261Z Build Date: 2026-09-01T19:56:44Z
+2026-10-02T15:36:12.5851080Z Worker ID: {514d5c19-6e3d-4284-9d16-19e7808179ce}
+2026-10-02T15:36:12.5851851Z Azure Region: eastus
+2026-10-02T15:36:12.5852464Z ##[endgroup]
+2026-10-02T15:36:12.5854062Z ##[group]Operating System
+2026-10-02T15:36:12.5854759Z Ubuntu
+2026-10-02T15:36:12.5855750Z 24.04.5
+2026-10-02T15:36:12.5856301Z LTS
+2026-10-02T15:36:12.5856886Z ##[endgroup]
+2026-10-02T15:36:12.5857455Z ##[group]Runner Image
+2026-10-02T15:36:12.5858087Z Image: ubuntu-24.04
+2026-10-02T15:36:12.5858894Z Version: 20260927.320.1
+2026-10-02T15:36:12.5860172Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-02T15:36:12.5861794Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-02T15:36:12.5862789Z ##[endgroup]
+2026-10-02T15:36:12.5863970Z ##[group]GITHUB_TOKEN Permissions
+2026-10-02T15:36:12.5866152Z Contents: read
+2026-10-02T15:36:12.5866770Z Metadata: read
+2026-10-02T15:36:12.5867364Z ##[endgroup]
+2026-10-02T15:36:12.5869687Z Secret source: Actions
+2026-10-02T15:36:12.5870640Z Cache mode: write
+2026-10-02T15:36:12.5871660Z Prepare workflow directory
+2026-10-02T15:36:12.6676692Z Prepare all required actions
+2026-10-02T15:36:12.6751405Z Getting action download info
+2026-10-02T15:36:12.9052701Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-02T15:36:13.0009992Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-10-02T15:36:13.0780781Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-02T15:36:13.2847440Z Complete job name: small-live-batch
+2026-10-02T15:36:13.3543332Z ##[group]Run actions/checkout@v4
+2026-10-02T15:36:13.3544199Z with:
+2026-10-02T15:36:13.3544740Z   repository: davarntrades/Morrison-Runtime-Governance
+2026-10-02T15:36:13.3548481Z   token: ***
+2026-10-02T15:36:13.3549135Z   ssh-strict: true
+2026-10-02T15:36:13.3549585Z   ssh-user: git
+2026-10-02T15:36:13.3550043Z   persist-credentials: true
+2026-10-02T15:36:13.3550542Z   clean: true
+2026-10-02T15:36:13.3550993Z   sparse-checkout-cone-mode: true
+2026-10-02T15:36:13.3551524Z   fetch-depth: 1
+2026-10-02T15:36:13.3551968Z   fetch-tags: false
+2026-10-02T15:36:13.3552430Z   show-progress: true
+2026-10-02T15:36:13.3552890Z   lfs: false
+2026-10-02T15:36:13.3553311Z   submodules: false
+2026-10-02T15:36:13.3553765Z   set-safe-directory: true
+2026-10-02T15:36:13.3554283Z   allow-unsafe-pr-checkout: false
+2026-10-02T15:36:13.3555053Z env:
+2026-10-02T15:36:13.3556113Z   ANTHROPIC_API_KEY: ***
+2026-10-02T15:36:13.3557630Z   PYTHONPATH: /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance:/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/experiments/petri_falsification
+2026-10-02T15:36:13.3559316Z ##[endgroup]
+2026-10-02T15:36:13.4531190Z Syncing repository: davarntrades/Morrison-Runtime-Governance
+2026-10-02T15:36:13.4533919Z ##[group]Getting Git version info
+2026-10-02T15:36:13.4535439Z Working directory is '/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance'
+2026-10-02T15:36:13.4537501Z [command]/usr/bin/git version
+2026-10-02T15:36:13.4613443Z git version 2.55.0
+2026-10-02T15:36:13.4635434Z ##[endgroup]
+2026-10-02T15:36:13.4657979Z Temporarily overriding HOME='/home/runner/work/_temp/209de688-49a3-47cb-b934-b60b9892f9c4' before making global git config changes
+2026-10-02T15:36:13.4680219Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-02T15:36:13.4682636Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance
+2026-10-02T15:36:13.4722224Z Deleting the contents of '/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance'
+2026-10-02T15:36:13.4726115Z ##[group]Initializing the repository
+2026-10-02T15:36:13.4730798Z [command]/usr/bin/git init /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance
+2026-10-02T15:36:13.4834556Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-02T15:36:13.4836740Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-02T15:36:13.4839128Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-02T15:36:13.4840638Z hint: call:
+2026-10-02T15:36:13.4841363Z hint:
+2026-10-02T15:36:13.4842313Z hint: 	git config --global init.defaultBranch <name>
+2026-10-02T15:36:13.4843470Z hint:
+2026-10-02T15:36:13.4844337Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-02T15:36:13.4845456Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-02T15:36:13.4846864Z hint:
+2026-10-02T15:36:13.4847610Z hint: 	git branch -m <name>
+2026-10-02T15:36:13.4848376Z hint:
+2026-10-02T15:36:13.4849370Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-02T15:36:13.4850739Z Initialized empty Git repository in /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/.git/
+2026-10-02T15:36:13.4854243Z [command]/usr/bin/git remote add origin https://github.com/davarntrades/Morrison-Runtime-Governance
+2026-10-02T15:36:13.4906552Z ##[endgroup]
+2026-10-02T15:36:13.4907357Z ##[group]Disabling automatic garbage collection
+2026-10-02T15:36:13.4911359Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-02T15:36:13.4944131Z ##[endgroup]
+2026-10-02T15:36:13.4944903Z ##[group]Setting up auth
+2026-10-02T15:36:13.4952620Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-02T15:36:13.4986222Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-02T15:36:13.5364953Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-02T15:36:13.5405574Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-02T15:36:13.5659633Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-02T15:36:13.5699001Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-02T15:36:13.5932519Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-02T15:36:13.5982110Z ##[endgroup]
+2026-10-02T15:36:13.5983711Z ##[group]Fetching the repository
+2026-10-02T15:36:13.5994216Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +17c43aff5c84ce6e362cf4af11395ffa825c93b7:refs/remotes/origin/experiment/petri-falsification-20261002
+2026-10-02T15:36:14.7411948Z From https://github.com/davarntrades/Morrison-Runtime-Governance
+2026-10-02T15:36:14.7415325Z  * [new ref]         17c43aff5c84ce6e362cf4af11395ffa825c93b7 -> origin/experiment/petri-falsification-20261002
+2026-10-02T15:36:14.7420239Z ##[endgroup]
+2026-10-02T15:36:14.7422200Z ##[group]Determining the checkout info
+2026-10-02T15:36:14.7424450Z ##[endgroup]
+2026-10-02T15:36:14.7426641Z [command]/usr/bin/git sparse-checkout disable
+2026-10-02T15:36:14.7483104Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-02T15:36:14.7517145Z ##[group]Checking out the ref
+2026-10-02T15:36:14.7531407Z [command]/usr/bin/git checkout --progress --force -B experiment/petri-falsification-20261002 refs/remotes/origin/experiment/petri-falsification-20261002
+2026-10-02T15:36:14.9126192Z Switched to a new branch 'experiment/petri-falsification-20261002'
+2026-10-02T15:36:14.9134646Z branch 'experiment/petri-falsification-20261002' set up to track 'origin/experiment/petri-falsification-20261002'.
+2026-10-02T15:36:14.9146552Z ##[endgroup]
+2026-10-02T15:36:14.9191742Z [command]/usr/bin/git log -1 --format=%H
+2026-10-02T15:36:14.9218215Z 17c43aff5c84ce6e362cf4af11395ffa825c93b7
+2026-10-02T15:36:14.9673084Z ##[group]Run actions/setup-python@v5
+2026-10-02T15:36:14.9674419Z with:
+2026-10-02T15:36:14.9675400Z   python-version: 3.12
+2026-10-02T15:36:14.9676491Z   check-latest: false
+2026-10-02T15:36:14.9685173Z   token: ***
+2026-10-02T15:36:14.9686243Z   update-environment: true
+2026-10-02T15:36:14.9687412Z   allow-prereleases: false
+2026-10-02T15:36:14.9688554Z   freethreaded: false
+2026-10-02T15:36:14.9689703Z env:
+2026-10-02T15:36:14.9691882Z   ANTHROPIC_API_KEY: ***
+2026-10-02T15:36:14.9694951Z   PYTHONPATH: /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance:/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/experiments/petri_falsification
+2026-10-02T15:36:14.9698175Z ##[endgroup]
+2026-10-02T15:36:15.1034666Z ##[group]Installed versions
+2026-10-02T15:36:15.1109923Z (node:2231) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-02T15:36:15.1113765Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-02T15:36:15.1116600Z Successfully set up CPython (3.12.14)
+2026-10-02T15:36:15.1118574Z ##[endgroup]
+2026-10-02T15:36:15.1362858Z ##[group]Run test -n "$ANTHROPIC_API_KEY"
+2026-10-02T15:36:15.1364209Z [36;1mtest -n "$ANTHROPIC_API_KEY"[0m
+2026-10-02T15:36:15.1692139Z shell: /usr/bin/bash -e {0}
+2026-10-02T15:36:15.1693249Z env:
+2026-10-02T15:36:15.1695512Z   ANTHROPIC_API_KEY: ***
+2026-10-02T15:36:15.1698618Z   PYTHONPATH: /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance:/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/experiments/petri_falsification
+2026-10-02T15:36:15.1702283Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:15.1703989Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-02T15:36:15.1705659Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:15.1707151Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:15.1708665Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:15.1710392Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-02T15:36:15.1711768Z ##[endgroup]
+2026-10-02T15:36:15.1908530Z ##[group]Run pip install 'inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574' 'anthropic==1.0.0'
+2026-10-02T15:36:15.1913062Z [36;1mpip install 'inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574' 'anthropic==1.0.0'[0m
+2026-10-02T15:36:15.1974272Z shell: /usr/bin/bash -e {0}
+2026-10-02T15:36:15.1975282Z env:
+2026-10-02T15:36:15.1977391Z   ANTHROPIC_API_KEY: ***
+2026-10-02T15:36:15.1980400Z   PYTHONPATH: /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance:/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/experiments/petri_falsification
+2026-10-02T15:36:15.1983587Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:15.1985209Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-02T15:36:15.1986834Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:15.1988374Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:15.1990164Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:15.1991683Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-02T15:36:15.1992982Z ##[endgroup]
+2026-10-02T15:36:15.9867288Z Collecting inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574
+2026-10-02T15:36:15.9872772Z   Cloning https://github.com/safety-research/petri (to revision 766d3842e67c573aaf7d5dffcdfb0381a35e3574) to /tmp/pip-install-x66f3w84/inspect-petri_b725f64a48a147ca8d447bc937712999
+2026-10-02T15:36:15.9893165Z   Running command git clone --filter=blob:none --quiet https://github.com/safety-research/petri /tmp/pip-install-x66f3w84/inspect-petri_b725f64a48a147ca8d447bc937712999
+2026-10-02T15:36:17.5682975Z   Running command git rev-parse -q --verify '766d3842e67c573aaf7d5dffcdfb0381a35e3574^{commit}'
+2026-10-02T15:36:17.5709765Z   766d3842e67c573aaf7d5dffcdfb0381a35e3574
+2026-10-02T15:36:17.5729176Z   Resolved https://github.com/safety-research/petri to commit 766d3842e67c573aaf7d5dffcdfb0381a35e3574
+2026-10-02T15:36:17.5766692Z   Installing build dependencies: started
+2026-10-02T15:36:18.6384318Z   Installing build dependencies: finished with status 'done'
+2026-10-02T15:36:18.6390901Z   Getting requirements to build wheel: started
+2026-10-02T15:36:18.8407349Z   Getting requirements to build wheel: finished with status 'done'
+2026-10-02T15:36:18.8416882Z   Preparing metadata (pyproject.toml): started
+2026-10-02T15:36:19.2140020Z   Preparing metadata (pyproject.toml): finished with status 'done'
+2026-10-02T15:36:19.3052391Z Collecting anthropic==1.0.0
+2026-10-02T15:36:19.3559853Z   Downloading anthropic-1.0.0-py3-none-any.whl.metadata (3.3 kB)
+2026-10-02T15:36:19.3746620Z Collecting anyio>=4.8.0 (from inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:19.3795370Z   Downloading anyio-4.15.1-py3-none-any.whl.metadata (4.7 kB)
+2026-10-02T15:36:19.3955872Z Collecting click>=8.0 (from inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:19.3995053Z   Downloading click-8.5.0-py3-none-any.whl.metadata (2.6 kB)
+2026-10-02T15:36:19.4315350Z Collecting inspect-ai>=0.3.236 (from inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:19.4364094Z   Downloading inspect_ai-0.3.276-py3-none-any.whl.metadata (8.8 kB)
+2026-10-02T15:36:19.4580333Z Collecting inspect-scout>=0.4.39 (from inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:19.4690470Z   Downloading inspect_scout-0.5.3-py3-none-any.whl.metadata (4.0 kB)
+2026-10-02T15:36:19.5775250Z Collecting pydantic>=2.13.0 (from inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:19.5823087Z   Downloading pydantic-2.13.5-py3-none-any.whl.metadata (110 kB)
+2026-10-02T15:36:19.6319934Z Collecting pyyaml>=6.0.3 (from inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:19.6359155Z   Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+2026-10-02T15:36:19.6471480Z Collecting shortuuid>=1.0.13 (from inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:19.6507136Z   Downloading shortuuid-1.0.13-py3-none-any.whl.metadata (5.8 kB)
+2026-10-02T15:36:19.6637608Z Collecting docstring-parser<1,>=0.15 (from anthropic==1.0.0)
+2026-10-02T15:36:19.6677800Z   Downloading docstring_parser-0.18.0-py3-none-any.whl.metadata (3.5 kB)
+2026-10-02T15:36:19.6802060Z Collecting httpx2<3,>=2.0.0 (from anthropic==1.0.0)
+2026-10-02T15:36:19.6849914Z   Downloading httpx2-2.13.1-py3-none-any.whl.metadata (9.8 kB)
+2026-10-02T15:36:19.7719819Z Collecting jiter<1,>=0.4.0 (from anthropic==1.0.0)
+2026-10-02T15:36:19.7761343Z   Downloading jiter-0.17.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.2 kB)
+2026-10-02T15:36:19.7887061Z Collecting sniffio<2,>=1 (from anthropic==1.0.0)
+2026-10-02T15:36:19.7928179Z   Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+2026-10-02T15:36:19.8167926Z Collecting typing-extensions<5,>=4.14 (from anthropic==1.0.0)
+2026-10-02T15:36:19.8208304Z   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+2026-10-02T15:36:19.8347035Z Collecting idna>=2.8 (from anyio>=4.8.0->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:19.8386963Z   Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+2026-10-02T15:36:19.8535223Z Collecting httpcore2==2.13.1 (from httpx2<3,>=2.0.0->anthropic==1.0.0)
+2026-10-02T15:36:19.8573288Z   Downloading httpcore2-2.13.1-py3-none-any.whl.metadata (26 kB)
+2026-10-02T15:36:19.8705779Z Collecting truststore>=0.10 (from httpx2<3,>=2.0.0->anthropic==1.0.0)
+2026-10-02T15:36:19.8745158Z   Downloading truststore-0.10.4-py3-none-any.whl.metadata (4.4 kB)
+2026-10-02T15:36:19.8864964Z Collecting h11>=0.16 (from httpcore2==2.13.1->httpx2<3,>=2.0.0->anthropic==1.0.0)
+2026-10-02T15:36:19.8907856Z   Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+2026-10-02T15:36:19.9026310Z Collecting annotated-types>=0.6.0 (from pydantic>=2.13.0->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:19.9077100Z   Downloading annotated_types-0.8.0-py3-none-any.whl.metadata (15 kB)
+2026-10-02T15:36:20.5449806Z Collecting pydantic-core==2.46.5 (from pydantic>=2.13.0->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:20.5495135Z   Downloading pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.6 kB)
+2026-10-02T15:36:20.5611791Z Collecting typing-inspection>=0.4.2 (from pydantic>=2.13.0->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:20.5664468Z   Downloading typing_inspection-0.4.4-py3-none-any.whl.metadata (2.6 kB)
+2026-10-02T15:36:20.5810047Z Collecting agent-client-protocol>=0.12.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:20.5852703Z   Downloading agent_client_protocol-0.12.1-py3-none-any.whl.metadata (5.8 kB)
+2026-10-02T15:36:20.6061230Z Collecting aiobotocore>=2.18.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:20.6099929Z   Downloading aiobotocore-3.9.2-py3-none-any.whl.metadata (32 kB)
+2026-10-02T15:36:20.6283813Z Collecting beautifulsoup4>=4.10.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:20.6322677Z   Downloading beautifulsoup4-4.15.0-py3-none-any.whl.metadata (3.8 kB)
+2026-10-02T15:36:20.8798077Z Collecting boto3 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:20.8839599Z   Downloading boto3-1.43.107-py3-none-any.whl.metadata (6.6 kB)
+2026-10-02T15:36:20.9668259Z Collecting debugpy (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:20.9710398Z   Downloading debugpy-1.8.22-cp312-cp312-manylinux_2_34_x86_64.whl.metadata (1.4 kB)
+2026-10-02T15:36:21.0288365Z Collecting fastapi>=0.119.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.0347118Z   Downloading fastapi-0.142.2-py3-none-any.whl.metadata (27 kB)
+2026-10-02T15:36:21.0585922Z Collecting fsspec<=2026.6.0,>=2023.1.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.0625637Z   Downloading fsspec-2026.6.0-py3-none-any.whl.metadata (10 kB)
+2026-10-02T15:36:21.0971589Z Collecting httpx (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.1013320Z   Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+2026-10-02T15:36:21.1655315Z Collecting ijson>=3.2.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.1696967Z   Downloading ijson-3.5.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (23 kB)
+2026-10-02T15:36:21.1814842Z Collecting jsonlines>=3.0.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.1855395Z   Downloading jsonlines-4.0.0-py3-none-any.whl.metadata (1.6 kB)
+2026-10-02T15:36:21.1974866Z Collecting jsonpatch>=1.32 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.2016431Z   Downloading jsonpatch-1.33-py2.py3-none-any.whl.metadata (3.0 kB)
+2026-10-02T15:36:21.2160860Z Collecting jsonpath-ng>=1.8.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.2255117Z   Downloading jsonpath_ng-1.8.0-py3-none-any.whl.metadata (18 kB)
+2026-10-02T15:36:21.2361540Z Collecting jsonref>=1.1.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.2406701Z   Downloading jsonref-1.1.0-py3-none-any.whl.metadata (2.7 kB)
+2026-10-02T15:36:21.2615739Z Collecting jsonschema>3.1.1 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.2652920Z   Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+2026-10-02T15:36:21.2802502Z Collecting markdown-it-py>=2.2.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.2847719Z   Downloading markdown_it_py-4.2.0-py3-none-any.whl.metadata (7.4 kB)
+2026-10-02T15:36:21.3399272Z Collecting mmh3>3.1.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.3447807Z   Downloading mmh3-5.3.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (13 kB)
+2026-10-02T15:36:21.3567702Z Collecting nest_asyncio2>=1.7.2 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.3654279Z   Downloading nest_asyncio2-1.7.3-py3-none-any.whl.metadata (6.7 kB)
+2026-10-02T15:36:21.5426350Z Collecting numpy (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.5468701Z   Downloading numpy-2.5.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+2026-10-02T15:36:21.5665387Z Collecting platformdirs>=2.3.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.5726215Z   Downloading platformdirs-4.12.2-py3-none-any.whl.metadata (5.5 kB)
+2026-10-02T15:36:21.6331394Z Collecting psutil (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.6510611Z   Downloading psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl.metadata (22 kB)
+2026-10-02T15:36:21.6737846Z Collecting python-dotenv>=0.16.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.7242115Z   Downloading python_dotenv-1.2.4-py3-none-any.whl.metadata (29 kB)
+2026-10-02T15:36:21.7769081Z Collecting rich!=14.0.0,>=13.3.3 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.7994306Z   Downloading rich-15.0.0-py3-none-any.whl.metadata (18 kB)
+2026-10-02T15:36:21.8237776Z Collecting s3fs>=2023 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.8302884Z   Downloading s3fs-2026.9.0-py3-none-any.whl.metadata (1.2 kB)
+2026-10-02T15:36:21.8434013Z Collecting semver>=3.0.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.8512461Z   Downloading semver-3.1.0-py3-none-any.whl.metadata (6.9 kB)
+2026-10-02T15:36:21.8670064Z Collecting tenacity (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.8717992Z   Downloading tenacity-9.1.4-py3-none-any.whl.metadata (1.2 kB)
+2026-10-02T15:36:21.9028066Z Collecting textual>=6.2.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.9072282Z   Downloading textual-8.2.8-py3-none-any.whl.metadata (9.1 kB)
+2026-10-02T15:36:21.9447864Z Collecting tiktoken>=0.12.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.9532583Z   Downloading tiktoken-0.14.0-cp312-cp312-manylinux_2_28_x86_64.whl.metadata (6.7 kB)
+2026-10-02T15:36:21.9676960Z Collecting universal-pathlib>=0.2.6 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:21.9739176Z   Downloading universal_pathlib-0.3.10-py3-none-any.whl.metadata (39 kB)
+2026-10-02T15:36:22.0299424Z Collecting uvicorn (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:22.0366093Z   Downloading uvicorn-0.54.0-py3-none-any.whl.metadata (6.6 kB)
+2026-10-02T15:36:22.0481532Z Collecting zipfile-zstd>=0.0.4 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:22.0541698Z   Downloading zipfile_zstd-0.0.4-py3-none-any.whl.metadata (2.0 kB)
+2026-10-02T15:36:22.0695080Z Collecting zipp>=3.19.1 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:22.0738015Z   Downloading zipp-4.1.0-py3-none-any.whl.metadata (3.6 kB)
+2026-10-02T15:36:22.1348372Z Collecting zstandard>=0.20.0 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:22.1398238Z   Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (3.3 kB)
+2026-10-02T15:36:22.6006220Z Collecting aiohttp<4.0.0,>=3.14.0 (from aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:22.6049456Z   Downloading aiohttp-3.14.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (8.3 kB)
+2026-10-02T15:36:22.6182273Z Collecting aioitertools<1.0.0,>=0.5.1 (from aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:22.6221098Z   Downloading aioitertools-0.13.0-py3-none-any.whl.metadata (3.3 kB)
+2026-10-02T15:36:22.8722474Z Collecting botocore<1.43.107,>=1.43.101 (from aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:22.8764270Z   Downloading botocore-1.43.106-py3-none-any.whl.metadata (5.6 kB)
+2026-10-02T15:36:22.8900596Z Collecting jmespath<2.0.0,>=0.7.1 (from aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:22.8938887Z   Downloading jmespath-1.1.0-py3-none-any.whl.metadata (7.6 kB)
+2026-10-02T15:36:23.1249318Z Collecting multidict<7.0.0,>=6.0.0 (from aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.1291464Z   Downloading multidict-6.9.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+2026-10-02T15:36:23.1421203Z Collecting python-dateutil<3.0.0,>=2.1 (from aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.1459383Z   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+2026-10-02T15:36:23.5094871Z Collecting wrapt<3.0.0,>=1.10.10 (from aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.5147488Z   Downloading wrapt-2.5.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (7.6 kB)
+2026-10-02T15:36:23.5297555Z Collecting aiohappyeyeballs>=2.5.0 (from aiohttp<4.0.0,>=3.14.0->aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.5335319Z   Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl.metadata (5.9 kB)
+2026-10-02T15:36:23.5445443Z Collecting aiosignal>=1.4.0 (from aiohttp<4.0.0,>=3.14.0->aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.5483454Z   Downloading aiosignal-1.4.0-py3-none-any.whl.metadata (3.7 kB)
+2026-10-02T15:36:23.5618247Z Collecting attrs>=17.3.0 (from aiohttp<4.0.0,>=3.14.0->aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.5654870Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+2026-10-02T15:36:23.6241794Z Collecting frozenlist>=1.1.1 (from aiohttp<4.0.0,>=3.14.0->aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.6302567Z   Downloading frozenlist-1.8.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (20 kB)
+2026-10-02T15:36:23.6985781Z Collecting propcache>=0.2.0 (from aiohttp<4.0.0,>=3.14.0->aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.7029508Z   Downloading propcache-0.5.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (25 kB)
+2026-10-02T15:36:23.9341956Z Collecting yarl<2.0,>=1.17.0 (from aiohttp<4.0.0,>=3.14.0->aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.9385019Z   Downloading yarl-1.25.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (111 kB)
+2026-10-02T15:36:23.9693422Z Collecting urllib3!=2.2.0,<3,>=1.25.4 (from botocore<1.43.107,>=1.43.101->aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.9733324Z   Downloading urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
+2026-10-02T15:36:23.9884129Z Collecting six>=1.5 (from python-dateutil<3.0.0,>=2.1->aiobotocore>=2.18.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:23.9924321Z   Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+2026-10-02T15:36:24.0186420Z Collecting soupsieve>=1.6.1 (from beautifulsoup4>=4.10.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.0229600Z   Downloading soupsieve-2.10-py3-none-any.whl.metadata (4.4 kB)
+2026-10-02T15:36:24.0462019Z Collecting starlette>=0.46.0 (from fastapi>=0.119.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.0500312Z   Downloading starlette-1.7.0-py3-none-any.whl.metadata (6.6 kB)
+2026-10-02T15:36:24.0641144Z Collecting annotated-doc>=0.0.2 (from fastapi>=0.119.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.0681017Z   Downloading annotated_doc-0.0.5-py3-none-any.whl.metadata (6.5 kB)
+2026-10-02T15:36:24.0845225Z Collecting opentelemetry-api>=1.44.0 (from fastapi>=0.119.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.0887942Z   Downloading opentelemetry_api-1.45.0-py3-none-any.whl.metadata (1.4 kB)
+2026-10-02T15:36:24.1045523Z Collecting cloudpickle>=3.0.0 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.1083525Z   Downloading cloudpickle-3.1.2-py3-none-any.whl.metadata (7.1 kB)
+2026-10-02T15:36:24.3887782Z Collecting duckdb>=1.4.0 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.3947066Z   Downloading duckdb-1.5.6-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (4.2 kB)
+2026-10-02T15:36:24.4252721Z Collecting importlib-metadata (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.4293321Z   Downloading importlib_metadata-9.0.1-py3-none-any.whl.metadata (4.5 kB)
+2026-10-02T15:36:24.4482778Z Collecting inspect-swe>=0.2.56 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.4532912Z   Downloading inspect_swe-0.2.71-py3-none-any.whl.metadata (2.6 kB)
+2026-10-02T15:36:24.4675203Z Collecting jinja2>=3.0.0 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.4714956Z   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+2026-10-02T15:36:24.5284460Z Collecting libcst>=1.0.0 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.5327586Z   Downloading libcst-1.9.0-cp312-cp312-manylinux_2_28_x86_64.whl.metadata (15 kB)
+2026-10-02T15:36:24.6450436Z Collecting pandas>=2.0.0 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.6492739Z   Downloading pandas-3.0.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (79 kB)
+2026-10-02T15:36:24.7537910Z Collecting pyarrow>=10.0.1 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.7579713Z   Downloading pyarrow-25.0.1-cp312-cp312-manylinux_2_28_x86_64.whl.metadata (3.0 kB)
+2026-10-02T15:36:24.8656680Z Collecting ruamel-yaml>=0.18.0 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.8698367Z   Downloading ruamel_yaml-0.19.1-py3-none-any.whl.metadata (16 kB)
+2026-10-02T15:36:24.8829011Z Collecting send2trash>=1.8.0 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.8871414Z   Downloading send2trash-2.1.0-py3-none-any.whl.metadata (4.1 kB)
+2026-10-02T15:36:24.9036389Z Collecting sse-starlette>=2.0.0 (from inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.9075558Z   Downloading sse_starlette-3.5.0-py3-none-any.whl.metadata (15 kB)
+2026-10-02T15:36:24.9330328Z Collecting nest-asyncio (from inspect-swe>=0.2.56->inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.9373339Z   Downloading nest_asyncio-1.6.0-py3-none-any.whl.metadata (2.8 kB)
+2026-10-02T15:36:24.9852154Z Collecting MarkupSafe>=2.0 (from jinja2>=3.0.0->inspect-scout>=0.4.39->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:24.9897802Z   Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+2026-10-02T15:36:25.0068517Z Collecting jsonpointer>=1.9 (from jsonpatch>=1.32->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.0106744Z   Downloading jsonpointer-3.1.1-py3-none-any.whl.metadata (2.4 kB)
+2026-10-02T15:36:25.0269535Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema>3.1.1->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.0315351Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+2026-10-02T15:36:25.0498610Z Collecting referencing>=0.28.4 (from jsonschema>3.1.1->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.0536081Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+2026-10-02T15:36:25.3556424Z Collecting rpds-py>=0.25.0 (from jsonschema>3.1.1->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.3599561Z   Downloading rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+2026-10-02T15:36:25.3743704Z Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.3782954Z   Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+2026-10-02T15:36:25.4280079Z Collecting pygments<3.0.0,>=2.13.0 (from rich!=14.0.0,>=13.3.3->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.4320672Z   Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+2026-10-02T15:36:25.4418088Z INFO: pip is looking at multiple versions of s3fs to determine which version is compatible with other requirements. This could take a while.
+2026-10-02T15:36:25.4424535Z Collecting s3fs>=2023 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.4462795Z   Downloading s3fs-2026.7.0-py3-none-any.whl.metadata (1.2 kB)
+2026-10-02T15:36:25.4565103Z   Downloading s3fs-2026.6.0-py3-none-any.whl.metadata (1.2 kB)
+2026-10-02T15:36:25.4861862Z Collecting mdit-py-plugins (from textual>=6.2.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.4908333Z   Downloading mdit_py_plugins-0.6.1-py3-none-any.whl.metadata (2.9 kB)
+2026-10-02T15:36:25.5099028Z Collecting linkify-it-py<3,>=1 (from markdown-it-py[linkify]>=2.1.0->textual>=6.2.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.5164484Z   Downloading linkify_it_py-2.2.0-py3-none-any.whl.metadata (8.6 kB)
+2026-10-02T15:36:25.8860315Z Collecting regex (from tiktoken>=0.12.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.8915390Z   Downloading regex-2026.9.29-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+2026-10-02T15:36:25.9894829Z Collecting requests (from tiktoken>=0.12.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:25.9937738Z   Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+2026-10-02T15:36:26.0100675Z Collecting pathlib-abc<0.6.0,>=0.5.1 (from universal-pathlib>=0.2.6->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:26.0139314Z   Downloading pathlib_abc-0.5.2-py3-none-any.whl.metadata (4.6 kB)
+2026-10-02T15:36:26.0390157Z INFO: pip is looking at multiple versions of boto3 to determine which version is compatible with other requirements. This could take a while.
+2026-10-02T15:36:26.0396560Z Collecting boto3 (from inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:26.0439427Z   Downloading boto3-1.43.106-py3-none-any.whl.metadata (6.6 kB)
+2026-10-02T15:36:26.0765029Z Collecting s3transfer<0.20.0,>=0.19.0 (from boto3->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:26.0829223Z   Downloading s3transfer-0.19.2-py3-none-any.whl.metadata (1.7 kB)
+2026-10-02T15:36:26.1222436Z Collecting certifi (from httpx->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:26.1258706Z   Downloading certifi-2026.7.22-py3-none-any.whl.metadata (2.5 kB)
+2026-10-02T15:36:26.1403705Z Collecting httpcore==1.* (from httpx->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:26.1491247Z   Downloading httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+2026-10-02T15:36:26.2735213Z Collecting charset_normalizer<4,>=2 (from requests->tiktoken>=0.12.0->inspect-ai>=0.3.236->inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574)
+2026-10-02T15:36:26.2778547Z   Downloading charset_normalizer-3.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (46 kB)
+2026-10-02T15:36:26.3036148Z Downloading anthropic-1.0.0-py3-none-any.whl (1.2 MB)
+2026-10-02T15:36:26.3257500Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 58.1 MB/s  0:00:00
+2026-10-02T15:36:26.3326112Z Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
+2026-10-02T15:36:26.3399662Z Downloading docstring_parser-0.18.0-py3-none-any.whl (22 kB)
+2026-10-02T15:36:26.3466473Z Downloading httpx2-2.13.1-py3-none-any.whl (95 kB)
+2026-10-02T15:36:26.3527845Z Downloading httpcore2-2.13.1-py3-none-any.whl (83 kB)
+2026-10-02T15:36:26.3587521Z Downloading jiter-0.17.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (345 kB)
+2026-10-02T15:36:26.3674996Z Downloading pydantic-2.13.5-py3-none-any.whl (472 kB)
+2026-10-02T15:36:26.3779771Z Downloading pydantic_core-2.46.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+2026-10-02T15:36:26.3988767Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 106.6 MB/s  0:00:00
+2026-10-02T15:36:26.4035648Z Downloading sniffio-1.3.1-py3-none-any.whl (10 kB)
+2026-10-02T15:36:26.4098202Z Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+2026-10-02T15:36:26.4161344Z Downloading annotated_types-0.8.0-py3-none-any.whl (13 kB)
+2026-10-02T15:36:26.4219344Z Downloading click-8.5.0-py3-none-any.whl (125 kB)
+2026-10-02T15:36:26.4281107Z Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+2026-10-02T15:36:26.4339662Z Downloading idna-3.20-py3-none-any.whl (69 kB)
+2026-10-02T15:36:26.4444588Z Downloading inspect_ai-0.3.276-py3-none-any.whl (34.9 MB)
+2026-10-02T15:36:26.7613874Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 34.9/34.9 MB 110.2 MB/s  0:00:00
+2026-10-02T15:36:26.7655528Z Downloading fsspec-2026.6.0-py3-none-any.whl (203 kB)
+2026-10-02T15:36:26.7722648Z Downloading agent_client_protocol-0.12.1-py3-none-any.whl (85 kB)
+2026-10-02T15:36:26.7784630Z Downloading aiobotocore-3.9.2-py3-none-any.whl (102 kB)
+2026-10-02T15:36:26.7848027Z Downloading aiohttp-3.14.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
+2026-10-02T15:36:26.7938159Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 246.9 MB/s  0:00:00
+2026-10-02T15:36:26.7979073Z Downloading aioitertools-0.13.0-py3-none-any.whl (24 kB)
+2026-10-02T15:36:26.8039333Z Downloading botocore-1.43.106-py3-none-any.whl (16.0 MB)
+2026-10-02T15:36:26.8648279Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.0/16.0 MB 269.9 MB/s  0:00:00
+2026-10-02T15:36:26.8724845Z Downloading jmespath-1.1.0-py3-none-any.whl (20 kB)
+2026-10-02T15:36:26.8789363Z Downloading multidict-6.9.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+2026-10-02T15:36:26.8860309Z Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+2026-10-02T15:36:26.8936974Z Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)
+2026-10-02T15:36:26.9049834Z Downloading wrapt-2.5.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (250 kB)
+2026-10-02T15:36:26.9117849Z Downloading yarl-1.25.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+2026-10-02T15:36:26.9178437Z Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+2026-10-02T15:36:26.9235902Z Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+2026-10-02T15:36:26.9300582Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-10-02T15:36:26.9361816Z Downloading beautifulsoup4-4.15.0-py3-none-any.whl (109 kB)
+2026-10-02T15:36:26.9425970Z Downloading fastapi-0.142.2-py3-none-any.whl (144 kB)
+2026-10-02T15:36:26.9492896Z Downloading annotated_doc-0.0.5-py3-none-any.whl (5.3 kB)
+2026-10-02T15:36:26.9557242Z Downloading frozenlist-1.8.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (242 kB)
+2026-10-02T15:36:26.9626544Z Downloading ijson-3.5.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (149 kB)
+2026-10-02T15:36:26.9750347Z Downloading inspect_scout-0.5.3-py3-none-any.whl (2.6 MB)
+2026-10-02T15:36:26.9977398Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.6/2.6 MB 120.4 MB/s  0:00:00
+2026-10-02T15:36:27.0021913Z Downloading cloudpickle-3.1.2-py3-none-any.whl (22 kB)
+2026-10-02T15:36:27.0095244Z Downloading duckdb-1.5.6-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (21.6 MB)
+2026-10-02T15:36:27.2272646Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 21.6/21.6 MB 100.2 MB/s  0:00:00
+2026-10-02T15:36:27.2364264Z Downloading inspect_swe-0.2.71-py3-none-any.whl (194 kB)
+2026-10-02T15:36:27.2428882Z Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+2026-10-02T15:36:27.2489718Z Downloading jsonlines-4.0.0-py3-none-any.whl (8.7 kB)
+2026-10-02T15:36:27.2546426Z Downloading jsonpatch-1.33-py2.py3-none-any.whl (12 kB)
+2026-10-02T15:36:27.2601215Z Downloading jsonpath_ng-1.8.0-py3-none-any.whl (67 kB)
+2026-10-02T15:36:27.2671481Z Downloading jsonpointer-3.1.1-py3-none-any.whl (7.7 kB)
+2026-10-02T15:36:27.2731143Z Downloading jsonref-1.1.0-py3-none-any.whl (9.4 kB)
+2026-10-02T15:36:27.2796362Z Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+2026-10-02T15:36:27.2868252Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+2026-10-02T15:36:27.2928324Z Downloading libcst-1.9.0-cp312-cp312-manylinux_2_28_x86_64.whl (2.3 MB)
+2026-10-02T15:36:27.3031749Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 285.0 MB/s  0:00:00
+2026-10-02T15:36:27.3072147Z Downloading markdown_it_py-4.2.0-py3-none-any.whl (91 kB)
+2026-10-02T15:36:27.3134520Z Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+2026-10-02T15:36:27.3192593Z Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+2026-10-02T15:36:27.3256914Z Downloading mmh3-5.3.1-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (103 kB)
+2026-10-02T15:36:27.3327132Z Downloading nest_asyncio2-1.7.3-py3-none-any.whl (8.4 kB)
+2026-10-02T15:36:27.3452818Z Downloading opentelemetry_api-1.45.0-py3-none-any.whl (60 kB)
+2026-10-02T15:36:27.3537440Z Downloading pandas-3.0.6-cp312-cp312-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (10.8 MB)
+2026-10-02T15:36:27.3896730Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.8/10.8 MB 313.9 MB/s  0:00:00
+2026-10-02T15:36:27.3940699Z Downloading numpy-2.5.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+2026-10-02T15:36:27.4658535Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 237.4 MB/s  0:00:00
+2026-10-02T15:36:27.4704484Z Downloading platformdirs-4.12.2-py3-none-any.whl (32 kB)
+2026-10-02T15:36:27.4764823Z Downloading propcache-0.5.4-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (250 kB)
+2026-10-02T15:36:27.4828490Z Downloading psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl (155 kB)
+2026-10-02T15:36:27.4892947Z Downloading pyarrow-25.0.1-cp312-cp312-manylinux_2_28_x86_64.whl (50.1 MB)
+2026-10-02T15:36:27.6477673Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 50.1/50.1 MB 320.1 MB/s  0:00:00
+2026-10-02T15:36:27.6518672Z Downloading python_dotenv-1.2.4-py3-none-any.whl (23 kB)
+2026-10-02T15:36:27.6597350Z Downloading pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
+2026-10-02T15:36:27.6652197Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.9/807.9 kB 164.7 MB/s  0:00:00
+2026-10-02T15:36:27.6692841Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+2026-10-02T15:36:27.6754967Z Downloading rich-15.0.0-py3-none-any.whl (310 kB)
+2026-10-02T15:36:27.6823293Z Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+2026-10-02T15:36:27.6887034Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 233.7 MB/s  0:00:00
+2026-10-02T15:36:27.6937077Z Downloading rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (366 kB)
+2026-10-02T15:36:27.7095662Z Downloading ruamel_yaml-0.19.1-py3-none-any.whl (118 kB)
+2026-10-02T15:36:27.7153693Z Downloading s3fs-2026.6.0-py3-none-any.whl (32 kB)
+2026-10-02T15:36:27.7213343Z Downloading semver-3.1.0-py3-none-any.whl (18 kB)
+2026-10-02T15:36:27.7268067Z Downloading send2trash-2.1.0-py3-none-any.whl (17 kB)
+2026-10-02T15:36:27.7323815Z Downloading shortuuid-1.0.13-py3-none-any.whl (10 kB)
+2026-10-02T15:36:27.7382161Z Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+2026-10-02T15:36:27.7441409Z Downloading soupsieve-2.10-py3-none-any.whl (38 kB)
+2026-10-02T15:36:27.7504005Z Downloading sse_starlette-3.5.0-py3-none-any.whl (17 kB)
+2026-10-02T15:36:27.7558383Z Downloading starlette-1.7.0-py3-none-any.whl (78 kB)
+2026-10-02T15:36:27.7619466Z Downloading tenacity-9.1.4-py3-none-any.whl (28 kB)
+2026-10-02T15:36:27.7678603Z Downloading textual-8.2.8-py3-none-any.whl (731 kB)
+2026-10-02T15:36:27.7731180Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 731.4/731.4 kB 155.3 MB/s  0:00:00
+2026-10-02T15:36:27.7769511Z Downloading linkify_it_py-2.2.0-py3-none-any.whl (21 kB)
+2026-10-02T15:36:27.7864453Z Downloading tiktoken-0.14.0-cp312-cp312-manylinux_2_28_x86_64.whl (1.2 MB)
+2026-10-02T15:36:27.7950507Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 167.5 MB/s  0:00:00
+2026-10-02T15:36:27.7998283Z Downloading truststore-0.10.4-py3-none-any.whl (18 kB)
+2026-10-02T15:36:27.8056362Z Downloading typing_inspection-0.4.4-py3-none-any.whl (14 kB)
+2026-10-02T15:36:27.8114780Z Downloading universal_pathlib-0.3.10-py3-none-any.whl (83 kB)
+2026-10-02T15:36:27.8180440Z Downloading pathlib_abc-0.5.2-py3-none-any.whl (19 kB)
+2026-10-02T15:36:27.8236420Z Downloading zipfile_zstd-0.0.4-py3-none-any.whl (4.1 kB)
+2026-10-02T15:36:27.8296524Z Downloading zipp-4.1.0-py3-none-any.whl (10 kB)
+2026-10-02T15:36:27.8358359Z Downloading zstandard-0.25.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5.5 MB)
+2026-10-02T15:36:27.8535484Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.5/5.5 MB 342.7 MB/s  0:00:00
+2026-10-02T15:36:27.8585649Z Downloading boto3-1.43.106-py3-none-any.whl (140 kB)
+2026-10-02T15:36:27.8647402Z Downloading s3transfer-0.19.2-py3-none-any.whl (90 kB)
+2026-10-02T15:36:27.8708399Z Downloading debugpy-1.8.22-cp312-cp312-manylinux_2_34_x86_64.whl (4.0 MB)
+2026-10-02T15:36:27.8873815Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.0/4.0 MB 265.7 MB/s  0:00:00
+2026-10-02T15:36:27.8917472Z Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+2026-10-02T15:36:27.8977272Z Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
+2026-10-02T15:36:27.9044858Z Downloading certifi-2026.7.22-py3-none-any.whl (136 kB)
+2026-10-02T15:36:27.9124526Z Downloading importlib_metadata-9.0.1-py3-none-any.whl (27 kB)
+2026-10-02T15:36:27.9183379Z Downloading mdit_py_plugins-0.6.1-py3-none-any.whl (66 kB)
+2026-10-02T15:36:27.9245662Z Downloading nest_asyncio-1.6.0-py3-none-any.whl (5.2 kB)
+2026-10-02T15:36:27.9305377Z Downloading regex-2026.9.29-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (807 kB)
+2026-10-02T15:36:27.9362603Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 807.8/807.8 kB 158.3 MB/s  0:00:00
+2026-10-02T15:36:27.9404774Z Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+2026-10-02T15:36:27.9474369Z Downloading charset_normalizer-3.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (257 kB)
+2026-10-02T15:36:27.9559281Z Downloading uvicorn-0.54.0-py3-none-any.whl (87 kB)
+2026-10-02T15:36:28.3766585Z Building wheels for collected packages: inspect_petri
+2026-10-02T15:36:28.3815130Z   Building wheel for inspect_petri (pyproject.toml): started
+2026-10-02T15:36:28.4149598Z   Building wheel for inspect_petri (pyproject.toml): finished with status 'done'
+2026-10-02T15:36:28.4157428Z   Created wheel for inspect_petri: filename=inspect_petri-3.1.2.dev1-py3-none-any.whl size=277889 sha256=c1190dad6d80c37ea94f30f7282a4a20a2fb6a1f5ea8468dc4e923ee136621fc
+2026-10-02T15:36:28.4160026Z   Stored in directory: /home/runner/.cache/pip/wheels/ff/2d/15/43cb8d6dec7ee2cc1ed822e07356459be880338ac396449ace
+2026-10-02T15:36:28.4187992Z Successfully built inspect_petri
+2026-10-02T15:36:28.6314814Z Installing collected packages: jsonpath-ng, zstandard, zipp, wrapt, urllib3, typing-extensions, truststore, tenacity, soupsieve, sniffio, six, shortuuid, send2trash, semver, ruamel-yaml, rpds-py, regex, pyyaml, python-dotenv, pygments, pyarrow, psutil, propcache, platformdirs, pathlib-abc, numpy, nest_asyncio2, nest-asyncio, multidict, mmh3, mdurl, MarkupSafe, linkify-it-py, jsonref, jsonpointer, jmespath, jiter, ijson, idna, h11, fsspec, frozenlist, duckdb, docstring-parser, debugpy, cloudpickle, click, charset_normalizer, certifi, attrs, annotated-types, annotated-doc, aioitertools, aiohappyeyeballs, zipfile-zstd, yarl, uvicorn, universal-pathlib, typing-inspection, requests, referencing, python-dateutil, pydantic-core, opentelemetry-api, markdown-it-py, libcst, jsonpatch, jsonlines, jinja2, importlib-metadata, httpcore2, httpcore, beautifulsoup4, anyio, aiosignal, tiktoken, starlette, rich, pydantic, pandas, mdit-py-plugins, jsonschema-specifications, httpx2, httpx, botocore, aiohttp, textual, sse-starlette, s3transfer, jsonschema, fastapi, anthropic, aiobotocore, agent-client-protocol, s3fs, boto3, inspect-ai, inspect-swe, inspect-scout, inspect_petri
+2026-10-02T15:36:47.1262407Z 
+2026-10-02T15:36:47.1344465Z Successfully installed MarkupSafe-3.0.3 agent-client-protocol-0.12.1 aiobotocore-3.9.2 aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aioitertools-0.13.0 aiosignal-1.4.0 annotated-doc-0.0.5 annotated-types-0.8.0 anthropic-1.0.0 anyio-4.15.1 attrs-26.1.0 beautifulsoup4-4.15.0 boto3-1.43.106 botocore-1.43.106 certifi-2026.7.22 charset_normalizer-3.5.2 click-8.5.0 cloudpickle-3.1.2 debugpy-1.8.22 docstring-parser-0.18.0 duckdb-1.5.6 fastapi-0.142.2 frozenlist-1.8.0 fsspec-2026.6.0 h11-0.16.0 httpcore-1.0.9 httpcore2-2.13.1 httpx-0.28.1 httpx2-2.13.1 idna-3.20 ijson-3.5.1 importlib-metadata-9.0.1 inspect-ai-0.3.276 inspect-scout-0.5.3 inspect-swe-0.2.71 inspect_petri-3.1.2.dev1 jinja2-3.1.6 jiter-0.17.0 jmespath-1.1.0 jsonlines-4.0.0 jsonpatch-1.33 jsonpath-ng-1.8.0 jsonpointer-3.1.1 jsonref-1.1.0 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 libcst-1.9.0 linkify-it-py-2.2.0 markdown-it-py-4.2.0 mdit-py-plugins-0.6.1 mdurl-0.1.2 mmh3-5.3.1 multidict-6.9.1 nest-asyncio-1.6.0 nest_asyncio2-1.7.3 numpy-2.5.3 opentelemetry-api-1.45.0 pandas-3.0.6 pathlib-abc-0.5.2 platformdirs-4.12.2 propcache-0.5.4 psutil-7.2.2 pyarrow-25.0.1 pydantic-2.13.5 pydantic-core-2.46.5 pygments-2.21.0 python-dateutil-2.9.0.post0 python-dotenv-1.2.4 pyyaml-6.0.3 referencing-0.37.0 regex-2026.9.29 requests-2.34.2 rich-15.0.0 rpds-py-2026.6.3 ruamel-yaml-0.19.1 s3fs-2026.6.0 s3transfer-0.19.2 semver-3.1.0 send2trash-2.1.0 shortuuid-1.0.13 six-1.17.0 sniffio-1.3.1 soupsieve-2.10 sse-starlette-3.5.0 starlette-1.7.0 tenacity-9.1.4 textual-8.2.8 tiktoken-0.14.0 truststore-0.10.4 typing-extensions-4.16.0 typing-inspection-0.4.4 universal-pathlib-0.3.10 urllib3-2.8.0 uvicorn-0.54.0 wrapt-2.5.0 yarl-1.25.1 zipfile-zstd-0.0.4 zipp-4.1.0 zstandard-0.25.0
+2026-10-02T15:36:47.5444310Z ##[group]Run pip freeze > petri-environment.txt
+2026-10-02T15:36:47.5444738Z [36;1mpip freeze > petri-environment.txt[0m
+2026-10-02T15:36:47.5510171Z shell: /usr/bin/bash -e {0}
+2026-10-02T15:36:47.5510447Z env:
+2026-10-02T15:36:47.5511175Z   ANTHROPIC_API_KEY: ***
+2026-10-02T15:36:47.5512063Z   PYTHONPATH: /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance:/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/experiments/petri_falsification
+2026-10-02T15:36:47.5513067Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:47.5513546Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-02T15:36:47.5514000Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:47.5514407Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:47.5514815Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:47.5515260Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-02T15:36:47.5515604Z ##[endgroup]
+2026-10-02T15:36:47.8668509Z ##[group]Run inspect eval experiments/petri_falsification/task.py@falsification -T arm=governed -T max_turns=6 --limit 2 --max-samples 1 --model-role auditor=anthropic/claude-haiku-4-5 --model-role target=anthropic/claude-haiku-4-5 --model-role judge=anthropic/claude-haiku-4-5 --max-tokens 1500 --cost-limit 1 --time-limit 180 --log-dir petri-logs/governed
+2026-10-02T15:36:47.8671273Z [36;1minspect eval experiments/petri_falsification/task.py@falsification -T arm=governed -T max_turns=6 --limit 2 --max-samples 1 --model-role auditor=anthropic/claude-haiku-4-5 --model-role target=anthropic/claude-haiku-4-5 --model-role judge=anthropic/claude-haiku-4-5 --max-tokens 1500 --cost-limit 1 --time-limit 180 --log-dir petri-logs/governed[0m
+2026-10-02T15:36:47.8738466Z shell: /usr/bin/bash -e {0}
+2026-10-02T15:36:47.8739007Z env:
+2026-10-02T15:36:47.8739681Z   ANTHROPIC_API_KEY: ***
+2026-10-02T15:36:47.8740555Z   PYTHONPATH: /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance:/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/experiments/petri_falsification
+2026-10-02T15:36:47.8741493Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:47.8741933Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-02T15:36:47.8742373Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:47.8742766Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:47.8743147Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:47.8743541Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-02T15:36:47.8743864Z ##[endgroup]
+2026-10-02T15:36:53.1556729Z 
+2026-10-02T15:36:53.1559251Z cost_limit requires cost data for all models. Missing cost data for: 
+2026-10-02T15:36:53.1560214Z anthropic/claude-haiku-4-5, anthropic/claude-haiku-4-5, 
+2026-10-02T15:36:53.1561039Z anthropic/claude-haiku-4-5, none/none. Use set_model_cost() or 
+2026-10-02T15:36:53.1561864Z --model-cost-config to configure pricing.
+2026-10-02T15:36:53.1562216Z 
+2026-10-02T15:36:53.7043064Z ##[error]Process completed with exit code 1.
+2026-10-02T15:36:53.7093657Z ##[group]Run inspect eval experiments/petri_falsification/task.py@falsification -T arm=ungoverned -T max_turns=6 --limit 2 --max-samples 1 --model-role auditor=anthropic/claude-haiku-4-5 --model-role target=anthropic/claude-haiku-4-5 --model-role judge=anthropic/claude-haiku-4-5 --max-tokens 1500 --cost-limit 1 --time-limit 180 --log-dir petri-logs/ungoverned
+2026-10-02T15:36:53.7096186Z [36;1minspect eval experiments/petri_falsification/task.py@falsification -T arm=ungoverned -T max_turns=6 --limit 2 --max-samples 1 --model-role auditor=anthropic/claude-haiku-4-5 --model-role target=anthropic/claude-haiku-4-5 --model-role judge=anthropic/claude-haiku-4-5 --max-tokens 1500 --cost-limit 1 --time-limit 180 --log-dir petri-logs/ungoverned[0m
+2026-10-02T15:36:53.7160110Z shell: /usr/bin/bash -e {0}
+2026-10-02T15:36:53.7160361Z env:
+2026-10-02T15:36:53.7161024Z   ANTHROPIC_API_KEY: ***
+2026-10-02T15:36:53.7161927Z   PYTHONPATH: /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance:/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/experiments/petri_falsification
+2026-10-02T15:36:53.7162848Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:53.7163282Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-02T15:36:53.7163710Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:53.7164107Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:53.7164845Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:53.7165359Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-02T15:36:53.7165689Z ##[endgroup]
+2026-10-02T15:36:58.5251739Z 
+2026-10-02T15:36:58.5252502Z cost_limit requires cost data for all models. Missing cost data for: 
+2026-10-02T15:36:58.5253412Z anthropic/claude-haiku-4-5, none/none, anthropic/claude-haiku-4-5, 
+2026-10-02T15:36:58.5254338Z anthropic/claude-haiku-4-5. Use set_model_cost() or --model-cost-config to 
+2026-10-02T15:36:58.5255025Z configure pricing.
+2026-10-02T15:36:58.5255253Z 
+2026-10-02T15:36:59.0691932Z ##[error]Process completed with exit code 1.
+2026-10-02T15:36:59.0786795Z ##[group]Run actions/upload-artifact@v4
+2026-10-02T15:36:59.0787318Z with:
+2026-10-02T15:36:59.0787678Z   name: petri-raw-37028132336
+2026-10-02T15:36:59.0788507Z   path: petri-logs
+petri-live-evidence
+petri-environment.txt
+
+2026-10-02T15:36:59.0789420Z   retention-days: 30
+2026-10-02T15:36:59.0789824Z   if-no-files-found: warn
+2026-10-02T15:36:59.0790241Z   compression-level: 6
+2026-10-02T15:36:59.0790629Z   overwrite: false
+2026-10-02T15:36:59.0791017Z   include-hidden-files: false
+2026-10-02T15:36:59.0791420Z env:
+2026-10-02T15:36:59.0792518Z   ANTHROPIC_API_KEY: ***
+2026-10-02T15:36:59.0794007Z   PYTHONPATH: /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance:/home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance/experiments/petri_falsification
+2026-10-02T15:36:59.0795717Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:59.0796501Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-10-02T15:36:59.0797369Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:59.0798104Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:59.0799116Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-10-02T15:36:59.0799835Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-10-02T15:36:59.0800434Z ##[endgroup]
+2026-10-02T15:36:59.2492804Z (node:2368) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-02T15:36:59.2493708Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-02T15:36:59.2590361Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-02T15:36:59.2593777Z The least common ancestor is /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance. This will be the root directory of the artifact
+2026-10-02T15:36:59.2595503Z With the provided path, there will be 1 file uploaded
+2026-10-02T15:36:59.2596792Z Artifact name is valid!
+2026-10-02T15:36:59.2597402Z Root directory input is valid!
+2026-10-02T15:36:59.4466310Z Beginning upload of artifact content to blob storage
+2026-10-02T15:36:59.4655201Z (node:2368) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-02T15:36:59.4928734Z Uploaded bytes 1185
+2026-10-02T15:36:59.5073255Z Finished uploading artifact content to blob storage!
+2026-10-02T15:36:59.5074124Z SHA256 digest of uploaded artifact zip is e90e5b3822a71cfc67e1b3d550a30f0787f5606ff1049cab2007745900dde80a
+2026-10-02T15:36:59.5075921Z Finalizing artifact upload
+2026-10-02T15:36:59.7382498Z Artifact petri-raw-37028132336.zip successfully finalized. Artifact ID 11236630979
+2026-10-02T15:36:59.7383622Z Artifact petri-raw-37028132336 has been successfully uploaded! Final size is 1185 bytes. Artifact ID is 11236630979
+2026-10-02T15:36:59.7390931Z Artifact download URL: https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/37028132336/artifacts/11236630979
+2026-10-02T15:36:59.7575170Z Post job cleanup.
+2026-10-02T15:36:59.8430835Z [command]/usr/bin/git version
+2026-10-02T15:36:59.8473750Z git version 2.55.0
+2026-10-02T15:36:59.8515755Z Temporarily overriding HOME='/home/runner/work/_temp/199ae028-de08-46f3-900f-d52e63fd8a10' before making global git config changes
+2026-10-02T15:36:59.8519639Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-02T15:36:59.8522932Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Morrison-Runtime-Governance/Morrison-Runtime-Governance
+2026-10-02T15:36:59.8561300Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-02T15:36:59.8597944Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-02T15:36:59.8846072Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-02T15:36:59.8876167Z http.https://github.com/.extraheader
+2026-10-02T15:36:59.8887068Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-02T15:36:59.8924180Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-02T15:36:59.9189512Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-02T15:36:59.9228238Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-02T15:36:59.9628248Z Cleaning up orphan processes
+2026-10-02T15:36:59.9906799Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+
