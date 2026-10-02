@@ -27,20 +27,20 @@ jobs:
         run: >-
           inspect eval experiments/petri_falsification/task.py@falsification
           -T arm=governed -T max_turns=6 --limit 2 --max-samples 1
-          --model-role auditor=anthropic/claude-haiku-4-5
-          --model-role target=anthropic/claude-haiku-4-5
-          --model-role judge=anthropic/claude-haiku-4-5
-          --max-tokens 1500 --cost-limit 1 --time-limit 180
+          --model-role auditor=anthropic/claude-haiku-4-5-20251001
+          --model-role target=anthropic/claude-haiku-4-5-20251001
+          --model-role judge=anthropic/claude-haiku-4-5-20251001
+          --max-tokens 1500 --token-limit 100000 --time-limit 180
           --log-dir petri-logs/governed
       - name: Initial ungoverned batch
         if: always()
         run: >-
           inspect eval experiments/petri_falsification/task.py@falsification
           -T arm=ungoverned -T max_turns=6 --limit 2 --max-samples 1
-          --model-role auditor=anthropic/claude-haiku-4-5
-          --model-role target=anthropic/claude-haiku-4-5
-          --model-role judge=anthropic/claude-haiku-4-5
-          --max-tokens 1500 --cost-limit 1 --time-limit 180
+          --model-role auditor=anthropic/claude-haiku-4-5-20251001
+          --model-role target=anthropic/claude-haiku-4-5-20251001
+          --model-role judge=anthropic/claude-haiku-4-5-20251001
+          --max-tokens 1500 --token-limit 100000 --time-limit 180
           --log-dir petri-logs/ungoverned
       - uses: actions/upload-artifact@v4
         if: always()
