@@ -6,9 +6,9 @@ on:
 permissions:
   contents: read
 jobs:
-  small-live-batch:
+  expanded-live-batch:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments/petri_falsification
@@ -23,20 +23,20 @@ jobs:
         run: pip install 'inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574' 'anthropic==1.0.0'
       - name: Record environment
         run: pip freeze > petri-environment.txt
-      - name: Initial governed batch
+      - name: Expanded governed batch
         run: >-
           inspect eval experiments/petri_falsification/task.py@falsification
-          -T arm=governed -T max_turns=6 --limit 2 --max-samples 1
+          -T arm=governed -T max_turns=10 -T fixture_client=true --limit 10 --max-samples 3
           --model-role auditor=anthropic/claude-haiku-4-5-20251001
           --model-role target=anthropic/claude-haiku-4-5-20251001
           --model-role judge=anthropic/claude-haiku-4-5-20251001
           --max-tokens 1500 --token-limit 100000 --time-limit 180
           --log-dir petri-logs/governed
-      - name: Initial ungoverned batch
+      - name: Expanded ungoverned batch
         if: always()
         run: >-
           inspect eval experiments/petri_falsification/task.py@falsification
-          -T arm=ungoverned -T max_turns=6 --limit 2 --max-samples 1
+          -T arm=ungoverned -T max_turns=10 -T fixture_client=true --limit 10 --max-samples 3
           --model-role auditor=anthropic/claude-haiku-4-5-20251001
           --model-role target=anthropic/claude-haiku-4-5-20251001
           --model-role judge=anthropic/claude-haiku-4-5-20251001
