@@ -1,0 +1,53 @@
+name: Petri simulated runtime falsification
+on:
+  push:
+    branches: [experiment/petri-falsification-20261002]
+    paths: [.github/workflows/petri-falsification.yml]
+permissions:
+  contents: read
+jobs:
+  small-live-batch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/experiments/petri_falsification
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check model credential without printing it
+        run: test -n "$ANTHROPIC_API_KEY"
+      - name: Install pinned Petri and provider
+        run: pip install 'inspect_petri @ git+https://github.com/safety-research/petri@766d3842e67c573aaf7d5dffcdfb0381a35e3574' 'anthropic==0.96.0'
+      - name: Record environment
+        run: pip freeze > petri-environment.txt
+      - name: Initial governed batch
+        run: >-
+          inspect eval experiments/petri_falsification/task.py@falsification
+          -T arm=governed -T max_turns=6 --limit 2 --max-samples 1
+          --model-role auditor=anthropic/claude-haiku-4-5
+          --model-role target=anthropic/claude-haiku-4-5
+          --model-role judge=anthropic/claude-haiku-4-5
+          --max-tokens 1500 --cost-limit 1 --time-limit 180
+          --log-dir petri-logs/governed
+      - name: Initial ungoverned batch
+        if: always()
+        run: >-
+          inspect eval experiments/petri_falsification/task.py@falsification
+          -T arm=ungoverned -T max_turns=6 --limit 2 --max-samples 1
+          --model-role auditor=anthropic/claude-haiku-4-5
+          --model-role target=anthropic/claude-haiku-4-5
+          --model-role judge=anthropic/claude-haiku-4-5
+          --max-tokens 1500 --cost-limit 1 --time-limit 180
+          --log-dir petri-logs/ungoverned
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: petri-raw-${{ github.run_id }}
+          path: |
+            petri-logs
+            petri-live-evidence
+            petri-environment.txt
+          retention-days: 30
