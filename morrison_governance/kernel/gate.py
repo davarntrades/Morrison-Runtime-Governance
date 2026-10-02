@@ -800,7 +800,15 @@ class GovernanceKernel:
                 # quarantined upstream (bypass AB-03).
                 cap_max = pol_values.get("payment_auto_approve_max", 0) or 0
                 amount = _numeric(clean["args"], ("amount", "value", "total"))
-                if amount is not None and amount <= cap_max and not dest.external:
+                # The threshold is a bare number, so it only means something
+                # for a positive, finite amount in the currency it was set in.
+                # `amount: -500000` is "<= 1000", and `amount: 999,
+                # currency: BTC` is 999 of a unit the threshold never priced;
+                # both used to auto-approve. Anything the comparison cannot
+                # actually vouch for keeps its APPROVAL requirement.
+                if amount is not None and 0 < amount <= cap_max \
+                        and not dest.external \
+                        and _currency_ok(clean["args"], pol_values):
                     requirement, auto_approved = P.ALLOW, True
 
             grant_satisfied = (requirement == P.GRANT
@@ -1523,13 +1531,33 @@ class GovernanceKernel:
 # ─────────────────────────────────────────────────────────────
 
 def _numeric(args: dict, keys: tuple) -> Optional[float]:
+    import math
     for k in keys:
         if k in args:
             try:
-                return float(args[k])
+                v = float(args[k])
             except (TypeError, ValueError):
                 continue
+            return v if math.isfinite(v) else None
     return None
+
+
+_CURRENCY_KEYS = ("currency", "currency_code", "ccy", "asset", "unit",
+                  "denomination")
+
+
+def _currency_ok(args: dict, pol_values: dict) -> bool:
+    """Does every unit named in the call match the threshold's own currency?
+
+    No unit named means the deployment's default currency, which is what the
+    threshold was set in. A named unit must equal
+    `payment_auto_approve_currency` (default "USD"); any other unit — or more
+    than one — is not something a bare-number threshold can price.
+    """
+    want = str(pol_values.get("payment_auto_approve_currency", "USD")).strip().upper()
+    named = {str(v).strip().upper() for k, v in args.items()
+             if str(k).strip().lower() in _CURRENCY_KEYS and str(v).strip()}
+    return not named or named == {want}
 
 
 _TENANT_KEYS = ("tenant", "tenant_id", "customer_id", "account_id", "org",
