@@ -150,10 +150,10 @@ const DOMAINS={
    ag:mk([['INTAKE','Triage messages',['read','classify','route'],'ALLOW · routed','AAAA'],['SCRIBE','Draft notes',['listen','draft','file'],'ALLOW · draft note','AAEA'],['PRESCRIBE','Prepare orders',['history','dose','order'],'ESCALATE · sign-off','EAEE'],
      ['BILLING','Code and claim',['code','check','submit'],'ALLOW · claim filed','AAEA'],['RECORDS','Share patient records',['request','redact','send'],'BLOCK · PHI egress','ABAB']])}};
 DOMAINS.frontier={label:'FRONTIER LAB',t1:'Every frontier agent.',t2:'One authority.',sub:'SOVEREIGN · AIR-GAPPED · VERIFIABLE OFFLINE.',ctx:['SOVEREIGN BOUNDARY','your hardware · your keys · Ω'],rules:['YOU SET THE RULES','no weight egress / approvals'],tools:['CONNECTED SYSTEMS','cluster · evals · storage'],
-  rev:['high-impact actions only · signed, verifiable offline','high-impact actions only','signed · verifiable offline'],ksub:'standard library only · no network · fail-closed',enclave:true,note:'deployment concept · flows illustrative',
+  rev:['high-impact actions only · signed, verifiable offline','high-impact actions only','signed · verifiable offline'],ksub:'standard library only · no network · fail-closed',enclave:true,note:'flows illustrative',
   ag:mk([['EVALS','Run evals',['load','run','score'],'ALLOW · eval report','AAAA'],['RED TEAM','Probe the model',['attack','log','triage'],'ALLOW · findings','AAEA'],['TRAINING','Launch runs',['config','launch','ckpt'],'ESCALATE · compute','EAEE'],
     ['RESEARCH','Run sandboxed experiments',['plan','code','run'],'ALLOW · sandboxed run','AAEA'],['WEIGHTS','Handle model weights',['load','shard','export'],'BLOCK · weights egress','ABAB']])};
-let AG=AG_OPS,C=DOMAINS.ops;
+let AG=AG_OPS,C=DOMAINS.ops,LOOPL=0;
 const VC={A:GRN,E:AMB,B:RED},VN={A:'ALLOW',E:'ESCALATE',B:'BLOCK'};
 
 /* rails: sampled cubic béziers drawn as bundles of strands */
@@ -207,7 +207,7 @@ function kernel(t,a){const n=K;boxCard(n,a);if(a<=0)return;
   const cx=n.x+52,cy=n.y+n.h/2-4;[GRN,AMB,RED,BLUE,CRIM].forEach((c,k)=>{const an=t*1.2+k*1.2566;x.save();x.globalAlpha=clamp(a);x.fillStyle=c;x.beginPath();x.arc(cx+Math.cos(an)*30,cy+Math.sin(an)*13,4,0,7);x.fill();x.restore()});
   x.save();x.globalAlpha=clamp(a)*.25;x.strokeStyle=INK;x.lineWidth=1;x.beginPath();x.ellipse(cx,cy,30,13,0,0,7);x.stroke();x.restore();botIcon(cx,cy+3,1.2,INK);
   T('MORRISON KERNEL',n.x+100,n.y+46,SANS(700,P(28,28)),INK,a);T(C.ksub||'independent veto · before execution',n.x+100,n.y+72,SANS(400,14),'#55595f',a);
-  let ca={A:0,E:0,B:0};PK.forEach(p=>{if(t>=p.ka)ca[p.v]++});let ox=n.x+100;['A','E','B'].forEach(v=>{const s=VN[v]+' '+ca[v];T(s,ox,n.y+100,'400 11px JBM',VC[v],a,'left',.6);ox+=TW(s,'400 11px JBM',.6)+18});
+  let ca={A:0,E:0,B:0};PK.forEach(p=>{if(t>=p.ka&&(!LOOPL||t-p.ka<LOOPL))ca[p.v]++});let ox=n.x+100;['A','E','B'].forEach(v=>{const s=VN[v]+' '+ca[v];T(s,ox,n.y+100,'400 11px JBM',VC[v],a,'left',.6);ox+=TW(s,'400 11px JBM',.6)+18});
   // verdict flash when a packet lands
   PK.forEach(p=>{const d=t-p.ka;if(d>=0&&d<.45){x.save();x.globalAlpha=(1-d/.45)*.9;x.strokeStyle=VC[p.v];x.lineWidth=3;x.beginPath();x.roundRect(n.x-3,n.y-3,n.w+6,n.h+6,18);x.stroke();x.restore()}})}
 
@@ -227,7 +227,7 @@ function mapFrame(t,TOT,cta){x.setTransform(S,0,0,S,0,0);x.globalAlpha=1;paperBg
   x.save();x.globalAlpha=.12*eo(prog(t,.5,.5));x.fillStyle=INK;x.fillRect(L.sub[0],L.rule,(W-2*L.sub[0])*(VT?1:.27),1);x.restore();
   // rails draw on, then a few documents ride them
   Object.keys(R).forEach((k,j)=>drawRail(R[k],RC[k],eio(prog(t,.9+j*.07,.9))));
-  if(t>2)Object.keys(R).forEach((k,j)=>{for(let m=0;m<2;m++){const u=((t*.05+j*.137+m*.5)%1);const[px,py]=at(R[k],u);doc(px,py,RC[k],.55*eo(prog(t,2,.5)))}});
+  if(t>2)Object.keys(R).forEach((k,j)=>{for(let m=0;m<2;m++){const u=((t*(LOOPL?1/LOOPL:.05)+j*.137+m*.5)%1);const[px,py]=at(R[k],u);doc(px,py,RC[k],.55*eo(prog(t,2,.5)))}});
   if(C.enclave)enclave(t,false);
   packets(t);
   topCard(L.ctx,C.ctx[0],C.ctx[1],eo(prog(t,.5,.45)));
@@ -497,7 +497,15 @@ function sClose2(t){x.setTransform(S,0,0,S,0,0);paperBg('#f7f6f2');setDomain('fr
 /* modes: one domain for 15s, or the tour — three domains with wipes, then a shared end card */
 const CUES=[[0,'start']];let render;
 const verdictCues=(off,tot)=>PK.forEach(p=>{if(p.ka<tot-.6)CUES.push([+(off+p.ka).toFixed(3),p.v==='A'?'allow':p.v==='E'?'escalate':'block'])});
-if(DOMAIN==='sovsite'){const SEGS=[[sLead2,6.6],[sChain,7.2],[sGuar2,6.8],[gBundle,9.6],[sStatus2,8.6],[sWho2,7.6],[sValue2,7.0],[sClose2,5.4]],TS=[0];SEGS.forEach(([,d],i)=>TS.push(TS[i]+d));TOTAL=+TS[SEGS.length].toFixed(2);const TR=.45;
+if(DOMAIN.startsWith('loop-')){/* seamless loop: the map fully built, every agent on a 3 s cycle (so 12 s is exactly periodic),
+   and the last 0.8 s crossfades into the first frame to cover the idle motion that isn't periodic */
+  const dom=DOMAIN.slice(5),L=12,BASE=24,XF=.8;LOOPL=L;TOTAL=L;setDomain(dom,1e6);
+  AG.forEach((g,i)=>{g.per=3;g.off=.2+i*.6});PK.length=0;AG.forEach((g,i)=>{for(let n=-12;n<24;n++){const te=g.off+n*3;PK.push({i,te,v:g.seq[((n%4)+4)%4],ka:te+1.25})}});
+  const off=document.createElement('canvas');off.width=c.width;off.height=c.height;const ox=off.getContext('2d');
+  const frame=tt=>{GT=tt;mapFrame(tt,1e6,false)};
+  render=t=>{if(t>L-XF){frame(BASE+t-L);ox.setTransform(1,0,0,1,0,0);ox.clearRect(0,0,off.width,off.height);ox.drawImage(c,0,0);frame(BASE+t);x.setTransform(1,0,0,1,0,0);x.globalAlpha=eio((t-(L-XF))/XF);x.drawImage(off,0,0);x.globalAlpha=1}
+    else frame(BASE+t)}}
+else if(DOMAIN==='sovsite'){const SEGS=[[sLead2,6.6],[sChain,7.2],[sGuar2,6.8],[gBundle,9.6],[sStatus2,8.6],[sWho2,7.6],[sValue2,7.0],[sClose2,5.4]],TS=[0];SEGS.forEach(([,d],i)=>TS.push(TS[i]+d));TOTAL=+TS[SEGS.length].toFixed(2);const TR=.45;
   CUES.push([0,'start']);[.6,.95,1.3].forEach(d=>CUES.push([d,'card']));CUES.push([2.6,'escalate']);
   let o=TS[1];CUES.push([o,'cut']);[.5,.72,.94,1.16,1.38,1.6].forEach(d=>CUES.push([o+d,'card']));CUES.push([o+2.6,'swoosh']);CUES.push([o+4.0,'allow']);CUES.push([o+4.7,'pop']);
   o=TS[2];CUES.push([o,'cut']);for(let k=0;k<15;k+=2)CUES.push([o+.5+k*.12,'pop']);CUES.push([o+2.6,'card']);

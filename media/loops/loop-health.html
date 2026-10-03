@@ -1,13 +1,13 @@
-<!doctype html><html><head><meta charset="utf-8"><title>One authority, three industries</title><style>
+<!doctype html><html><head><meta charset="utf-8"><title>Loop — health</title><style>
 html,body{margin:0;background:#fff}canvas{display:block;width:100vw;height:auto}
-@font-face{font-family:Inter;font-weight:400;src:url(fonts/inter-latin-400-normal.woff2)}
-@font-face{font-family:Inter;font-weight:500;src:url(fonts/inter-latin-500-normal.woff2)}
-@font-face{font-family:Inter;font-weight:600;src:url(fonts/inter-latin-600-normal.woff2)}
-@font-face{font-family:Inter;font-weight:700;src:url(fonts/inter-latin-700-normal.woff2)}
-@font-face{font-family:Serif;font-style:italic;font-weight:400;src:url(fonts/instrument-serif-latin-400-italic.woff2)}
-@font-face{font-family:SerifR;font-weight:400;src:url(fonts/instrument-serif-latin-400-normal.woff2)}
-@font-face{font-family:JBM;font-weight:400;src:url(fonts/jetbrains-mono-latin-400-normal.woff2)}
-@font-face{font-family:Display;font-weight:800;src:url(fonts/playfair-display-latin-800-normal.woff2)}
+@font-face{font-family:Inter;font-weight:400;src:url(../editorial/fonts/inter-latin-400-normal.woff2)}
+@font-face{font-family:Inter;font-weight:500;src:url(../editorial/fonts/inter-latin-500-normal.woff2)}
+@font-face{font-family:Inter;font-weight:600;src:url(../editorial/fonts/inter-latin-600-normal.woff2)}
+@font-face{font-family:Inter;font-weight:700;src:url(../editorial/fonts/inter-latin-700-normal.woff2)}
+@font-face{font-family:Serif;font-style:italic;font-weight:400;src:url(../editorial/fonts/instrument-serif-latin-400-italic.woff2)}
+@font-face{font-family:SerifR;font-weight:400;src:url(../editorial/fonts/instrument-serif-latin-400-normal.woff2)}
+@font-face{font-family:JBM;font-weight:400;src:url(../editorial/fonts/jetbrains-mono-latin-400-normal.woff2)}
+@font-face{font-family:Display;font-weight:800;src:url(../editorial/fonts/playfair-display-latin-800-normal.woff2)}
 </style></head><body><canvas id="c"></canvas><script>
 // ~20s advert in the editorial style. 16:9 by default, 9:16 with ?format=v. Every frame is a pure function of time.
 // The code is real Morrison usage (morrison_governance/integrations.py); the bento tiles are a concept view of real
@@ -99,7 +99,7 @@ function paperBg(col=PAPER){x.fillStyle=col;x.fillRect(0,0,W,H);x.fillStyle='rgb
 function botIcon(px,py,s=1,col=INK){x.save();x.translate(px,py);x.scale(s,s);rr(-11,-9,22,18,6,col);rr(-7,-4,14,7,3,'#fff');x.fillStyle=col;x.fillRect(-1,-15,2,6);x.beginPath();x.arc(0,-16,2.5,0,7);x.fill();x.restore()}
 function mark(px,py,s=1){x.save();x.translate(px,py);x.scale(s,s);x.fillStyle=INK;x.beginPath();x.arc(-18,0,5,0,7);x.fill();x.fillRect(-12,-1,14,2);x.beginPath();x.roundRect(4,-16,7,32,3.5);x.fill();x.restore()}
 
-const DOMAIN='tour';
+const DOMAIN='loop-health';
 /* ─── "Every agent. One authority." — a living system map (DOMAIN: ops · finance · cyber · health · tour) ───
    Agents propose; every proposal travels to the Morrison kernel; ALLOW continues to the tools, ESCALATE goes to
    human review, BLOCK stops at the kernel. The flows and counts are illustrative of the architecture (kernel verdicts
