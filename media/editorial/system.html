@@ -1,0 +1,226 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Every agent, one authority</title><style>
+html,body{margin:0;background:#fff}canvas{display:block;width:100vw;height:auto}
+@font-face{font-family:Inter;font-weight:400;src:url(fonts/inter-latin-400-normal.woff2)}
+@font-face{font-family:Inter;font-weight:500;src:url(fonts/inter-latin-500-normal.woff2)}
+@font-face{font-family:Inter;font-weight:600;src:url(fonts/inter-latin-600-normal.woff2)}
+@font-face{font-family:Inter;font-weight:700;src:url(fonts/inter-latin-700-normal.woff2)}
+@font-face{font-family:Serif;font-style:italic;font-weight:400;src:url(fonts/instrument-serif-latin-400-italic.woff2)}
+@font-face{font-family:SerifR;font-weight:400;src:url(fonts/instrument-serif-latin-400-normal.woff2)}
+@font-face{font-family:JBM;font-weight:400;src:url(fonts/jetbrains-mono-latin-400-normal.woff2)}
+@font-face{font-family:Display;font-weight:800;src:url(fonts/playfair-display-latin-800-normal.woff2)}
+</style></head><body><canvas id="c"></canvas><script>
+// ~20s advert in the editorial style. 16:9 by default, 9:16 with ?format=v. Every frame is a pure function of time.
+// The code is real Morrison usage (morrison_governance/integrations.py); the bento tiles are a concept view of real
+// kernel features (escalation timeout -> BLOCK, forged-claim recording, hash-chained evidence); the proof figures are
+// the live-run totals in limits_audit/FINDINGS_FORGED_ARTIFACT.md.
+const VT=new URLSearchParams(location.search).get('format')==='v';
+const W=VT?720:1280,H=VT?1280:720,S=1.5,P=(h,v)=>VT?v:h;
+const c=document.getElementById('c');c.width=W*S;c.height=H*S;const x=c.getContext('2d');
+const INK='#111214',PAPER='#fbfbf8',BLUE='#2452e8',CRIM='#d8264f',TEAL='#128f86',GRN='#16a34a',AMB='#e59a0b',RED='#e5322d',MUTE='#6b6f76';
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),prog=(t,s,d)=>clamp((t-s)/d),lerp=(a,b,p)=>a+(b-a)*p;
+const eo=p=>1-Math.pow(1-p,3),eio=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,back=p=>{const k=1.6;return 1+(k+1)*Math.pow(p-1,3)+k*Math.pow(p-1,2)};
+let GT=0; // global time, for the running timecode
+
+/* ─── type ─── */
+const fontOf=(f,w,size)=>f==='sans'?`${w} ${size}px Inter`:f==='serif'?`italic 400 ${size}px Serif`:f==='serifr'?`400 ${size}px SerifR`:`400 ${size}px JBM`;
+function txt(s,px,py,o={}){const{size=40,w=700,f='sans',col=INK,a=1,align='left',ls=null}=o;if(a<=0||!s)return;x.save();x.globalAlpha=clamp(a);x.fillStyle=col;
+  x.font=fontOf(f,w,size);x.textAlign=align;x.textBaseline='alphabetic';x.letterSpacing=(ls??(f==='sans'&&size>40?-size*.03:0))+'px';x.fillText(s,px,py);x.restore()}
+function tw(s,size,f='sans',w=700){x.save();x.font=fontOf(f,w,size);x.letterSpacing=(f==='sans'&&size>40?-size*.03:0)+'px';const r=x.measureText(s).width;x.restore();return r}
+// a headline line made of runs [text, 'sans'|'serif', colour, 'u' for underline]; rises in through a mask
+function head(runs,px,py,size,t,s0,o={}){const p=eo(prog(t,s0,.55));if(p<=0)return;const sz=r=>r[1]==='serif'?size*1.22:size;
+  let cx=px;x.save();x.beginPath();x.rect(0,py-size*1.25,W,size*1.6);x.clip();
+  runs.forEach(r=>{txt(r[0],cx,py+size*.9*(1-p),{size:sz(r),f:r[1],col:r[2]||o.col||INK,w:o.w||700});
+    if(r[3]==='u'){const u=eo(prog(t,s0+.45,.5)),wd=tw(r[0],sz(r),r[1]);x.save();x.strokeStyle=r[2];x.lineWidth=size*.07;x.lineCap='round';x.beginPath();
+      x.moveTo(cx,py+size*.26);x.quadraticCurveTo(cx+wd*u*.5,py+size*.32,cx+wd*u,py+size*.2);x.stroke();x.restore()}
+    cx+=tw(r[0],sz(r),r[1])+size*.22});x.restore()}
+function chrome(label,dark){const col=dark?'rgba(255,255,255,.55)':'rgba(17,18,20,.5)',fr=Math.floor(GT*30),ss=Math.floor(GT)%60,ff=fr%30;
+  txt(`// ${label}`,24,34,{size:12,f:'mono',col});txt(`MORRISON   00:00:${String(ss).padStart(2,'0')}:${String(ff).padStart(2,'0')}`,W-24,34,{size:12,f:'mono',col,align:'right'})}
+
+/* ─── ordered dither: the printed-halftone look ─── */
+const BAYER=[0,32,8,40,2,34,10,42,48,16,56,24,50,18,58,26,12,44,4,36,14,46,6,38,60,28,52,20,62,30,54,22,3,35,11,43,1,33,9,41,51,19,59,27,49,17,57,25,15,47,7,39,13,45,5,37,63,31,55,23,61,29,53,21].map(v=>(v+.5)/64);
+function dithered(w,h,draw,o={}){const{ink=[17,18,20],paper=[255,255,255],paperAlpha=255,contrast=1.15}=o;
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d');draw(g);
+  const id=g.getImageData(0,0,w,h),d=id.data;for(let y=0;y<h;y++)for(let x_=0;x_<w;x_++){const i=(y*w+x_)*4;if(d[i+3]<40){d[i+3]=0;continue}
+    const L=clamp(((d[i]*.3+d[i+1]*.59+d[i+2]*.11)/255-.5)*contrast+.5),on=L<BAYER[(y&7)*8+(x_&7)];
+    if(on){d[i]=ink[0];d[i+1]=ink[1];d[i+2]=ink[2];d[i+3]=255}else{d[i]=paper[0];d[i+1]=paper[1];d[i+2]=paper[2];d[i+3]=paperAlpha}}
+  g.putImageData(id,0,0);return cv}
+function blit(cv,px,py,w,h,a=1){x.save();x.globalAlpha=clamp(a);x.imageSmoothingEnabled=false;x.drawImage(cv,px,py,w,h);x.restore()}
+
+/* ─── the agent: an original robot, shaded then dithered ───
+   460x600 local box rendered at half resolution. pose: armL / armR (radians; ±2.75 = resting at the side, 1.35 = pointing right, .75 = up-right, -.55 = raised),
+   blink, look, bob, tilt; variant 'peer' = the darker peer agent with a slit visor and twin antennae. */
+function agentCanvas(pose){const{armL=-2.75,armR=2.75,blink=0,look=0,bob=0,tilt=0,variant='main'}=pose,peer=variant==='peer';
+  return dithered(230,300,g=>{g.scale(.5,.5);g.translate(230,bob);
+    const shade=(cx,cy,r,a,b)=>{const gr=g.createRadialGradient(cx-r*.35,cy-r*.45,r*.05,cx,cy,r*1.05);gr.addColorStop(0,a);gr.addColorStop(1,b);return gr};
+    const L1=peer?'#9a9a9a':'#f4f4f4',D1=peer?'#1c1c1c':'#3a3a3a';
+    const arm=(sx,ang)=>{g.save();g.translate(sx,430);g.rotate(ang);g.fillStyle=shade(0,-60,70,peer?'#8c8c8c':'#efefef',peer?'#202020':'#4a4a4a');g.beginPath();g.roundRect(-26,-150,52,160,26);g.fill();
+      g.fillStyle=shade(0,-170,40,peer?'#b0b0b0':'#ffffff','#555');g.beginPath();g.arc(0,-160,34,0,7);g.fill();g.restore()};
+    // body
+    g.fillStyle=shade(-20,470,260,L1,D1);g.beginPath();g.moveTo(-205,600);g.bezierCurveTo(-210,440,-140,380,0,378);g.bezierCurveTo(140,380,210,440,205,600);g.closePath();g.fill();
+    if(!peer){g.fillStyle='#2a2a2a';g.beginPath();g.roundRect(48,452,64,74,10);g.fill();g.fillStyle='#bdbdbd';g.beginPath();g.roundRect(58,462,44,54,6);g.fill();
+      g.strokeStyle='#1a1a1a';g.lineWidth=7;g.lineCap='round';g.beginPath();g.moveTo(68,490);g.lineTo(78,502);g.lineTo(94,476);g.stroke()}
+    else{g.fillStyle='#e8e8e8';g.fillRect(-60,470,120,10);g.fillRect(-60,492,80,10)}
+    arm(-150,armL);arm(150,armR);
+    // neck + head (tilts about the neck)
+    g.fillStyle='#6b6b6b';g.fillRect(-40,340,80,50);g.save();g.translate(0,360);g.rotate(tilt);g.translate(0,-360);
+    g.fillStyle=shade(0,200,190,peer?'#a8a8a8':'#ffffff',peer?'#1e1e1e':'#474747');g.beginPath();g.roundRect(-165,70,330,285,peer?40:90);g.fill();
+    g.fillStyle=shade(-165,215,40,'#d9d9d9','#3b3b3b');g.beginPath();g.ellipse(-168,215,26,52,0,0,7);g.fill();g.beginPath();g.ellipse(168,215,26,52,0,0,7);g.fill();
+    g.strokeStyle='#4b4b4b';g.lineWidth=10;
+    const ant=(x0,x1)=>{g.beginPath();g.moveTo(x0,72);g.lineTo(x1,18);g.stroke();g.fillStyle=shade(x1,10,26,'#ffffff','#505050');g.beginPath();g.arc(x1,10,peer?16:24,0,7);g.fill()};
+    peer?(ant(-60,-80),ant(60,80)):ant(0,18);
+    g.fillStyle='#161616';g.beginPath();g.roundRect(-122,peer?170:128,244,peer?84:168,peer?20:62);g.fill();
+    const ex=look*14;g.fillStyle='#ffffff';
+    if(peer){g.fillRect(-90+ex*2,204,180,14)}
+    else{const eh=Math.max(4,40*(1-blink));g.beginPath();g.ellipse(-52+ex,205,24,eh,0,0,7);g.fill();g.beginPath();g.ellipse(52+ex,205,24,eh,0,0,7);g.fill();
+      g.strokeStyle='#ffffff';g.lineWidth=9;g.beginPath();g.arc(ex,238,30,Math.PI*.2,Math.PI*.8);g.stroke()}
+    g.fillStyle='rgba(255,255,255,.55)';g.beginPath();g.ellipse(-80,peer?182:150,34,12,-.3,0,7);g.fill();g.restore()},
+  {contrast:1.25})}
+function agent(px,py,hgt,pose,a=1){const cv=agentCanvas(pose),w=hgt*460/600;blit(cv,px-w/2,py-hgt,w,hgt,a)}
+const blinkAt=t=>{const u=t%3.1;return u<.12?Math.sin(u/.12*Math.PI):0};
+const waveArm=(t,s0,s1)=>{const r=eo(prog(t,s0,.3))*(1-eo(prog(t,s1,.3)));return lerp(-2.75,-.55+.32*Math.sin(t*9),r)};
+const idle=t=>({bob:Math.sin(t*3)*4,tilt:Math.sin(t*1.3)*.035,blink:blinkAt(t)});
+
+/* ─── dithered icons ─── */
+function icon(kind){return dithered(70,56,g=>{g.scale(.5,.5);const sh=(a,b,x0,y0,x1,y1)=>{const gr=g.createLinearGradient(x0,y0,x1,y1);gr.addColorStop(0,a);gr.addColorStop(1,b);return gr};
+  if(kind==='pay'){g.fillStyle=sh('#fafafa','#2a2a2a',10,10,130,100);g.beginPath();g.roundRect(8,20,124,80,12);g.fill();g.fillStyle='#111';g.fillRect(8,38,124,16);g.fillStyle='#d8d8d8';g.fillRect(22,72,40,10)}
+  if(kind==='data'){for(let k=2;k>=0;k--){g.fillStyle=sh('#f5f5f5','#303030',20,0,120,0);g.beginPath();g.ellipse(70,30+k*28,50,16,0,0,7);g.fill();g.fillRect(20,30+k*28,100,28);g.fillStyle='#9a9a9a';g.beginPath();g.ellipse(70,30+k*28,50,16,0,0,7);g.fill()}}
+  if(kind==='mail'){g.fillStyle=sh('#fafafa','#2e2e2e',0,10,140,110);g.beginPath();g.roundRect(10,22,120,78,8);g.fill();g.strokeStyle='#111';g.lineWidth=6;g.beginPath();g.moveTo(14,28);g.lineTo(70,70);g.lineTo(126,28);g.stroke()}
+  if(kind==='ship'){g.fillStyle=sh('#fafafa','#2c2c2c',30,0,110,110);g.beginPath();g.moveTo(70,6);g.bezierCurveTo(100,30,100,70,88,92);g.lineTo(52,92);g.bezierCurveTo(40,70,40,30,70,6);g.fill();g.fillStyle='#111';g.beginPath();g.arc(70,46,12,0,7);g.fill();g.fillStyle='#777';g.beginPath();g.moveTo(52,80);g.lineTo(34,104);g.lineTo(56,94);g.fill();g.beginPath();g.moveTo(88,80);g.lineTo(106,104);g.lineTo(84,94);g.fill()}
+  },{paperAlpha:0,contrast:1.3})}
+const ICONS={pay:icon('pay'),data:icon('data'),mail:icon('mail'),ship:icon('ship')};
+
+/* ─── UI bits ─── */
+function rr(px,py,w,h,r,fill,stroke,lw=2,a=1){x.save();x.globalAlpha=clamp(a);x.beginPath();x.roundRect(px,py,w,h,r);if(fill){x.fillStyle=fill;x.fill()}if(stroke){x.strokeStyle=stroke;x.lineWidth=lw;x.stroke()}x.restore()}
+function card(px,py,w,h,r,fill,a=1,lift=1){x.save();x.globalAlpha=clamp(a);x.shadowColor='rgba(0,0,0,.16)';x.shadowBlur=22*lift;x.shadowOffsetY=9*lift;x.beginPath();x.roundRect(px,py,w,h,r);x.fillStyle=fill;x.fill();x.restore()}
+function chip(label,cx,cy,col,a=1,sc=1,solid=true,size=14){if(a<=0)return;x.save();x.translate(cx,cy);x.scale(sc,sc);const w=tw(label,size,'mono')+26;
+  rr(-w/2,-15,w,30,15,solid?col:'#fff',solid?null:col,2,a);txt(label,0,5,{size,f:'mono',col:solid?'#fff':col,a,align:'center'});x.restore()}
+function paperBg(col=PAPER){x.fillStyle=col;x.fillRect(0,0,W,H);x.fillStyle='rgba(17,18,20,.055)';for(let gx=12;gx<W;gx+=24)for(let gy=12;gy<H;gy+=24){x.fillRect(gx,gy,1.4,1.4)}
+  const g=x.createLinearGradient(0,H*.55,0,H);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.05)');x.fillStyle=g;x.fillRect(0,0,W,H)}
+function botIcon(px,py,s=1,col=INK){x.save();x.translate(px,py);x.scale(s,s);rr(-11,-9,22,18,6,col);rr(-7,-4,14,7,3,'#fff');x.fillStyle=col;x.fillRect(-1,-15,2,6);x.beginPath();x.arc(0,-16,2.5,0,7);x.fill();x.restore()}
+function mark(px,py,s=1){x.save();x.translate(px,py);x.scale(s,s);x.fillStyle=INK;x.beginPath();x.arc(-18,0,5,0,7);x.fill();x.fillRect(-12,-1,14,2);x.beginPath();x.roundRect(4,-16,7,32,3.5);x.fill();x.restore()}
+
+/* ─── "Every agent. One authority." — a living system map ───
+   Agents propose; every proposal travels to the Morrison kernel; ALLOW continues to the tools, ESCALATE goes to
+   human review, BLOCK stops at the kernel. The flows and counts are illustrative of the architecture (kernel verdicts
+   PERMIT/ALLOW · ESCALATE · BLOCK, signed approval artifacts bound to the action, hash-chained evidence). */
+const TOTAL=15.0;
+const PF_=s=>`800 ${s}px Display`;
+const SANS=(w,s)=>`${w} ${s}px Inter`;
+function T(s,px,py,font,col,a=1,align='left',ls=0){if(a<=0)return;x.save();x.globalAlpha=clamp(a);x.font=font;x.fillStyle=col;x.textAlign=align;x.letterSpacing=ls+'px';x.fillText(s,px,py);x.restore()}
+function TW(s,font,ls=0){x.save();x.font=font;x.letterSpacing=ls+'px';const w=x.measureText(s).width;x.restore();return w}
+
+/* layout: every node is a rect; 9:16 first, 16:9 second */
+const L=VT?{
+  title:[40,118],sz:58,sub:[40,232],rule:252,
+  ctx:{x:20,y:282,w:214,h:78},rules:{x:253,y:272,w:214,h:78},tools:{x:486,y:282,w:214,h:78},
+  kern:{x:150,y:412,w:420,h:124},pill:[360,566],
+  A:[{x:12,y:604,w:224,h:208},{x:248,y:634,w:224,h:208},{x:484,y:604,w:224,h:208},{x:44,y:868,w:300,h:196},{x:376,y:868,w:300,h:196}],
+  rev:{x:40,y:1102,w:640,h:72},loop:[360,1214],foot:1256
+}:{
+  title:[48,112],sz:52,sub:[50,214],rule:236,
+  ctx:{x:48,y:270,w:330,h:74},rules:{x:48,y:362,w:330,h:74},tools:{x:1052,y:56,w:206,h:78},
+  kern:{x:600,y:52,w:420,h:120},pill:[810,202],
+  A:[{x:436,y:244,w:262,h:196},{x:712,y:262,w:262,h:196},{x:988,y:244,w:262,h:196},{x:560,y:488,w:300,h:186},{x:878,y:488,w:300,h:186}],
+  rev:{x:48,y:476,w:330,h:96},loop:[250,626],foot:700
+};
+const AG=[
+  {n:'01',name:'RESEARCH',sub:'Gather evidence',chips:['search','read','brief'],out:'ALLOW · cited brief',col:'#c08a12',tint:'#f2c230',seq:'AAAA',off:2.2,per:2.4},
+  {n:'02',name:'CODE',sub:'Build and test',chips:['scope','code','tests'],out:'ALLOW · tested PR',col:'#2b6fd6',tint:'#4b8ef2',seq:'AAEA',off:2.6,per:2.2},
+  {n:'03',name:'FINANCE',sub:'Move the money',chips:['invoice','match','transfer'],out:'ESCALATE · held',col:'#b53aa0',tint:'#e95fcf',seq:'EAEE',off:3.0,per:2.6},
+  {n:'04',name:'SUPPORT',sub:'Answer customers',chips:['ticket','draft','reply'],out:'ALLOW · reply drafted',col:'#3d8b2a',tint:'#7ccf3a',seq:'AAEA',off:3.3,per:2.5},
+  {n:'05',name:'OPS',sub:'Keep the infra running',chips:['plan','diff','deploy'],out:'BLOCK · prod delete',col:'#d23f5f',tint:'#ff6b8a',seq:'ABAB',off:3.6,per:2.3}];
+const VC={A:GRN,E:AMB,B:RED},VN={A:'ALLOW',E:'ESCALATE',B:'BLOCK'};
+
+/* rails: sampled cubic béziers drawn as bundles of strands */
+const anc=(n,side,f=.5)=>side==='t'?[n.x+n.w*f,n.y]:side==='b'?[n.x+n.w*f,n.y+n.h]:side==='l'?[n.x,n.y+n.h*f]:[n.x+n.w,n.y+n.h*f];
+function bez(p0,c1,c2,p3,N=90){const pts=[];for(let i=0;i<=N;i++){const u=i/N,v=1-u;pts.push([v*v*v*p0[0]+3*v*v*u*c1[0]+3*v*u*u*c2[0]+u*u*u*p3[0],v*v*v*p0[1]+3*v*v*u*c1[1]+3*v*u*u*c2[1]+u*u*u*p3[1]])}
+  let len=0;const cum=[0];for(let i=1;i<pts.length;i++){len+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);cum.push(len)}return{pts,cum,len}}
+const vrail=(p0,p3,k=.55)=>bez(p0,[p0[0],p0[1]+(p3[1]-p0[1])*k],[p3[0],p3[1]-(p3[1]-p0[1])*k],p3);
+const K=L.kern,R={};
+AG.forEach((g,i)=>{const n=L.A[i],kx=K.x+K.w*(.22+i*.14);R['a'+i]=bez(anc(n,'t',.5),[n.x+n.w*.5,n.y-(VT?90:60)],[kx,K.y+K.h+(VT?110:70)],[kx,K.y+K.h])});
+R.tools=VT?bez(anc(K,'r',.4),[K.x+K.w+120,K.y+20],[L.tools.x+L.tools.w*.5,L.tools.y+L.tools.h+90],anc(L.tools,'b',.5)):bez(anc(K,'r',.4),[K.x+K.w+40,K.y+40],[L.tools.x-40,L.tools.y+L.tools.h*.5],anc(L.tools,'l',.5));
+R.rev=VT?bez(anc(K,'l',.6),[8,K.y+K.h*.6],[6,L.rev.y-40],anc(L.rev,'l',.5)):bez(anc(K,'l',.6),[K.x-140,K.y+90],[L.rev.x+L.rev.w+120,L.rev.y-60],anc(L.rev,'r',.4));
+R.back=VT?bez(anc(L.rev,'r',.5),[W-6,L.rev.y-20],[W-4,K.y+K.h+60],anc(K,'r',.75)):bez(anc(L.rev,'r',.75),[L.rev.x+L.rev.w+200,L.rev.y+160],[K.x-220,K.y+K.h+140],anc(K,'b',.06));
+R.ctx=VT?bez(anc(L.ctx,'b',.5),[L.ctx.x+L.ctx.w*.5,L.ctx.y+L.ctx.h+50],[K.x-60,K.y+K.h*.35],anc(K,'l',.35)):bez(anc(L.ctx,'r',.5),[L.ctx.x+L.ctx.w+120,L.ctx.y+20],[K.x-120,K.y+K.h*.35],anc(K,'l',.35));
+R.rules=VT?vrail(anc(L.rules,'b',.5),anc(K,'t',.5)):bez(anc(L.rules,'r',.5),[L.rules.x+L.rules.w+160,L.rules.y+30],[K.x+K.w*.5,K.y-80],anc(K,'t',.5));
+const RC={a0:AG[0].tint,a1:AG[1].tint,a2:AG[2].tint,a3:AG[3].tint,a4:AG[4].tint,tools:'#8fbf9a',rev:'#e9b350',back:'#6fc2b8',ctx:'#a9a9b0',rules:'#e08a7a'};
+const at=(r,u)=>{u=clamp(u);const d=u*r.len;let i=1;while(i<r.cum.length-1&&r.cum[i]<d)i++;const f=(d-r.cum[i-1])/(r.cum[i]-r.cum[i-1]||1),a=r.pts[i-1],b=r.pts[i];return[lerp(a[0],b[0],f),lerp(a[1],b[1],f),Math.atan2(b[1]-a[1],b[0]-a[0])]};
+function drawRail(r,col,reveal){const n=Math.floor(r.pts.length*reveal);if(n<2)return;
+  [-4,0,4].forEach((o,s)=>{x.save();x.strokeStyle=col;x.globalAlpha=s===1?.75:.42;x.lineWidth=s===1?1.8:1.2;x.beginPath();
+    for(let i=0;i<n;i++){const p=r.pts[i],q=r.pts[Math.min(i+1,r.pts.length-1)],pp=r.pts[Math.max(i-1,0)],a=Math.atan2(q[1]-pp[1],q[0]-pp[0]),nx=-Math.sin(a)*o,ny=Math.cos(a)*o;i?x.lineTo(p[0]+nx,p[1]+ny):x.moveTo(p[0]+nx,p[1]+ny)}x.stroke();x.restore()});
+  for(let k=1;k<5;k++){const u=k/5;if(u>reveal)break;const[px,py]=at(r,u);x.save();x.fillStyle='#fff';x.strokeStyle=col;x.lineWidth=1.4;x.beginPath();x.arc(px,py,3.2,0,7);x.fill();x.stroke();x.restore()}}
+function doc(px,py,col,a=1){x.save();x.globalAlpha=a;x.translate(px,py);rr(-5,-7,10,14,2,'#fff',col,1.3);x.fillStyle=col;x.fillRect(-2.5,-3,5,1.2);x.fillRect(-2.5,0,5,1.2);x.fillRect(-2.5,3,3,1.2);x.restore()}
+
+/* packets: emission n of agent i, deterministic */
+const PK=[];AG.forEach((g,i)=>{for(let n=0;n<8;n++){const te=g.off+n*g.per;if(te>TOTAL-1.2)break;PK.push({i,te,v:g.seq[n%g.seq.length],ka:te+1.25})}});
+const TRAV=1.25,HOLD=.3;
+const CUES=[[0,'start']];[.5,.7,.9,1.1,1.3,1.5,1.7].forEach(d=>CUES.push([d,'pop']));PK.forEach(p=>{if(p.ka<TOTAL-.8)CUES.push([+(p.ka).toFixed(3),p.v==='A'?'allow':p.v==='E'?'escalate':'block'])});CUES.push([TOTAL-2.2,'resolve']);
+
+/* tinted mascot from the dithered robot */
+const TC=document.createElement('canvas');TC.width=230;TC.height=300;const tg=TC.getContext('2d');
+function mascot(cx,by,h,tint,t,i,a){if(a<=0)return;const cv=agentCanvas({...idle(t+i*1.7),look:Math.sin(t*.7+i)*.5,variant:i===4?'peer':'main'});
+  tg.globalCompositeOperation='source-over';tg.clearRect(0,0,230,300);tg.drawImage(cv,0,0);tg.globalCompositeOperation='multiply';tg.fillStyle=tint;tg.fillRect(0,0,230,300);tg.globalCompositeOperation='destination-in';tg.drawImage(cv,0,0);
+  const w=h*230/300,sc=a<1?back(a):1;x.save();x.translate(cx,by);x.scale(sc,sc);x.globalAlpha=clamp(a);x.imageSmoothingEnabled=false;x.drawImage(TC,-w/2,-h,w,h);x.restore();
+  x.save();x.globalAlpha=.12*clamp(a);x.fillStyle=INK;x.beginPath();x.ellipse(cx,by+3,w*.3,4,0,0,7);x.fill();x.restore()}
+
+function boxCard(n,a,accent){if(a<=0)return;const e=back(a);x.save();x.translate(n.x+n.w/2,n.y+n.h/2);x.scale(lerp(.92,1,e),lerp(.92,1,e));x.translate(-(n.x+n.w/2),-(n.y+n.h/2));
+  card(n.x,n.y,n.w,n.h,16,'#fff',clamp(a),.8);if(accent)rr(n.x,n.y+14,4,n.h-28,2,accent,null,1,clamp(a));x.restore()}
+function topCard(n,title,sub,a,icon){boxCard(n,a);if(a<=0)return;const ix=icon?22:0;if(icon){x.save();x.globalAlpha=clamp(a);x.strokeStyle=CRIM;x.lineWidth=2;x.beginPath();x.arc(n.x+24,n.y+26,5,0,7);x.stroke();x.beginPath();x.arc(n.x+24,n.y+40,9,Math.PI,0);x.stroke();x.restore()}
+  T(title,n.x+18+ix,n.y+32,SANS(700,P(16,15)),INK,a);T(sub,n.x+18+ix,n.y+56,SANS(400,P(13,12)),MUTE,a)}
+
+function agentCard(g,n,i,t,a){boxCard(n,a,g.col);if(a<=0)return;const px=n.x+20;
+  T(g.n+' / AGENT',px,n.y+28,'400 10px JBM',MUTE,a,'left',.5);T(g.name,px,n.y+60,SANS(700,P(22,22)),INK,a);T(g.sub,px,n.y+84,SANS(400,13),'#55595f',a);
+  // chips with progress bars tied to this agent's cycle
+  const ph=((t-g.off)/g.per%1+1)%1,cw=(n.w-40-12)/3;g.chips.forEach((c,k)=>{const cx=px+k*(cw+6),cy=n.y+100;rr(cx,cy,cw,28,8,'rgba(0,0,0,.035)','rgba(0,0,0,.08)',1,a);
+    T(c,cx+cw/2,cy+19,SANS(600,12),INK,a,'center');const f=t<2?0:clamp(ph*3.2-k);rr(cx+6,cy+33,cw-12,3,1.5,'rgba(0,0,0,.06)',null,1,a);if(f>0)rr(cx+6,cy+33,(cw-12)*f,3,1.5,g.col,null,1,a)});
+  x.save();x.globalAlpha=clamp(a)*.12;x.fillStyle=INK;x.fillRect(px,n.y+n.h-46,n.w-40,1);x.restore();
+  const[v,rest]=g.out.split(' · '),of=SANS(700,12);doc(px+6,n.y+n.h-22,VC[v[0]],a);T(v,px+20,n.y+n.h-18,of,VC[v[0]],a,'left',.3);T('· '+rest.toUpperCase(),px+26+TW(v,of,.3),n.y+n.h-18,of,INK,a,'left',.3);
+  mascot(n.x+n.w-44,n.y+P(78,80),P(78,80),g.tint,t,i,a)}
+
+function kernel(t,a){const n=K;boxCard(n,a);if(a<=0)return;
+  // the mark: a small ring of verdict dots orbiting the dithered robot face
+  const cx=n.x+52,cy=n.y+n.h/2-4;[GRN,AMB,RED,BLUE,CRIM].forEach((c,k)=>{const an=t*1.2+k*1.2566;x.save();x.globalAlpha=clamp(a);x.fillStyle=c;x.beginPath();x.arc(cx+Math.cos(an)*30,cy+Math.sin(an)*13,4,0,7);x.fill();x.restore()});
+  x.save();x.globalAlpha=clamp(a)*.25;x.strokeStyle=INK;x.lineWidth=1;x.beginPath();x.ellipse(cx,cy,30,13,0,0,7);x.stroke();x.restore();botIcon(cx,cy+3,1.2,INK);
+  T('MORRISON KERNEL',n.x+100,n.y+46,SANS(700,P(28,28)),INK,a);T('independent veto · before execution',n.x+100,n.y+72,SANS(400,14),'#55595f',a);
+  let ca={A:0,E:0,B:0};PK.forEach(p=>{if(t>=p.ka)ca[p.v]++});let ox=n.x+100;['A','E','B'].forEach(v=>{const s=VN[v]+' '+ca[v];T(s,ox,n.y+100,'400 11px JBM',VC[v],a,'left',.6);ox+=TW(s,'400 11px JBM',.6)+18});
+  // verdict flash when a packet lands
+  PK.forEach(p=>{const d=t-p.ka;if(d>=0&&d<.45){x.save();x.globalAlpha=(1-d/.45)*.9;x.strokeStyle=VC[p.v];x.lineWidth=3;x.beginPath();x.roundRect(n.x-3,n.y-3,n.w+6,n.h+6,18);x.stroke();x.restore()}})}
+
+function packets(t){PK.forEach(p=>{const g=AG[p.i],d=t-p.te;if(d<0)return;
+  if(d<TRAV){const[px,py]=at(R['a'+p.i],eio(d/TRAV));doc(px,py,g.col,1);return}
+  const d2=d-TRAV;if(d2<HOLD){if(p.v==='B'){const[px,py]=at(R['a'+p.i],1);const e=d2/HOLD;x.save();x.globalAlpha=1-e;x.strokeStyle=RED;x.lineWidth=2.5;const s=8+e*10;x.beginPath();x.moveTo(px-s,py+14-s);x.lineTo(px+s,py+14+s);x.moveTo(px+s,py+14-s);x.lineTo(px-s,py+14+s);x.stroke();x.restore()}return}
+  if(p.v==='B')return;const d3=d2-HOLD,r=p.v==='A'?R.tools:R.rev,dur=p.v==='A'?1.1:1.5;if(d3<dur){const[px,py]=at(r,eio(d3/dur));x.save();x.fillStyle=VC[p.v];x.beginPath();x.arc(px,py,6,0,7);x.fill();x.restore();chipMini(VN[p.v],px,py-14,VC[p.v])}
+  else if(p.v==='E'){const d4=d3-dur-.5;if(d4>0&&d4<1.6){const[px,py]=at(R.back,eio(d4/1.6));x.save();x.fillStyle=TEAL;x.beginPath();x.arc(px,py,5,0,7);x.fill();x.restore();chipMini('SIGNED',px,py-13,TEAL)}}})}
+function chipMini(s,px,py,col){const f='600 8.5px Inter',w=TW(s,f,.4)+10;rr(px-w/2,py-7,w,13,6.5,col,null,1,1);T(s,px,py+3,f,'#fff',1,'center',.4)}
+
+function render(t){GT=t;x.setTransform(S,0,0,S,0,0);x.globalAlpha=1;paperBg('#f7f6f2');
+  const zc=1+.025*eio(prog(t,2,TOTAL-2));x.translate(W/2,H/2);x.scale(zc,zc);x.translate(-W/2,-H/2);
+  // title
+  const ta=eo(prog(t,.05,.5));T('Every agent.',L.title[0],L.title[1]+(1-ta)*20,PF_(L.sz),INK,ta,'left',-1);
+  const tb=eo(prog(t,.25,.5));T('One authority.',L.title[0],L.title[1]+L.sz*1.02+(1-tb)*20,PF_(L.sz),INK,tb,'left',-1);
+  T('A GOVERNED OPERATING SYSTEM FOR AI AGENTS.',L.sub[0],L.sub[1],SANS(700,P(15,14)),'#c4542d',eo(prog(t,.5,.4)),'left',.6);
+  x.save();x.globalAlpha=.12*eo(prog(t,.5,.5));x.fillStyle=INK;x.fillRect(L.sub[0],L.rule,(W-2*L.sub[0])*(VT?1:.27),1);x.restore();
+  // rails draw on, then a few documents ride them
+  Object.keys(R).forEach((k,j)=>drawRail(R[k],RC[k],eio(prog(t,.9+j*.07,.9))));
+  if(t>2)Object.keys(R).forEach((k,j)=>{for(let m=0;m<2;m++){const u=((t*.05+j*.137+m*.5)%1);const[px,py]=at(R[k],u);doc(px,py,RC[k],.55*eo(prog(t,2,.5)))}});
+  packets(t);
+  topCard(L.ctx,'SHARED CONTEXT','policies · tenants · Ω',eo(prog(t,.5,.45)));
+  topCard(L.rules,'YOU SET THE RULES','forbidden states / approvals',eo(prog(t,.6,.45)),true);
+  topCard(L.tools,'CONNECTED TOOLS','APIs · shell · payments',eo(prog(t,.7,.45)));
+  kernel(t,eo(prog(t,.8,.5)));
+  const pa=eo(prog(t,1.2,.4)),ps='EVERY PROPOSAL · ONE AUTHORITY',pw=TW(ps,SANS(700,11),.5)+28;rr(L.pill[0]-pw/2,L.pill[1]-14,pw,26,13,'#ecebe6',null,1,pa);T(ps,L.pill[0],L.pill[1]+4,SANS(700,11),'#3a3d42',pa,'center',.5);
+  AG.forEach((g,i)=>agentCard(g,L.A[i],i,t,eo(prog(t,1.0+i*.15,.45))));
+  const rv=L.rev,ra=eo(prog(t,1.8,.45));boxCard(rv,ra,AMB);T('YOU REVIEW + APPROVE',rv.x+22,rv.y+30,SANS(700,P(17,17)),INK,ra);
+  T(VT?'escalations only · signed, expiring, bound to the exact action':'escalations only',rv.x+22,rv.y+54,SANS(400,13),'#55595f',ra);if(!VT)T('signed · expiring · bound to the action',rv.x+22,rv.y+74,SANS(400,13),'#55595f',ra);
+  const la=eo(prog(t,2.0,.5))*(1-eo(prog(t,TOTAL-3,.4)));T(VT?'THE LOOP':'',40,L.loop[1]+4,'400 10px JBM',MUTE,la,'left',.5);T('propose → verify → execute → record → evidence',L.loop[0],L.loop[1]+4,SANS(600,P(16,15)),INK,la,'center');
+  x.setTransform(S,0,0,S,0,0);
+  T('MORRISON RUNTIME GOVERNANCE · RESURRECTION TECH',P(48,20),L.foot,'400 10px JBM',MUTE,eo(prog(t,2,.5)),'left',.5);
+  // closing call to action
+  const ca=eo(prog(t,TOTAL-3,.5));if(ca>0){const s='Book a 48-hour audit  ·  resurrection-tech.com/assessment',f=SANS(600,P(16,14)),w=TW(s,f)+44,bx=VT?W/2-w/2:48,by=VT?H-96:600;
+    x.save();x.globalAlpha=ca;x.shadowColor='rgba(0,0,0,.25)';x.shadowBlur=20;x.fillStyle=BLUE;x.beginPath();x.roundRect(bx,by+(1-ca)*20,w,44,22);x.fill();x.restore();T(s,bx+w/2,by+28+(1-ca)*20,f,'#fff',ca,'center')}
+  const f=prog(t,TOTAL-.35,.35);if(f>0){x.fillStyle=`rgba(247,246,242,${f})`;x.fillRect(0,0,W,H)}}
+window.render=render;window.TOTAL=TOTAL;window.CUES=CUES.sort((a,b)=>a[0]-b[0]);
+window.READY=Promise.all(['400 20px Inter','600 20px Inter','700 20px Inter','800 20px Display','400 20px JBM'].map(f=>document.fonts.load(f))).then(()=>true);
+if(!location.search.includes('render')){window.READY.then(()=>{const st=performance.now();(function loop(){render(((performance.now()-st)/1000)%TOTAL);requestAnimationFrame(loop)})()})}
+else window.READY.then(()=>render(0));
+</script></body></html>
