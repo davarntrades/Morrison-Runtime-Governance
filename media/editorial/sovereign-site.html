@@ -1,0 +1,134 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Guardian OS Sovereign — the page</title><style>
+html,body{margin:0;background:#050608}canvas{display:block;width:100vw;height:auto}
+@font-face{font-family:Geist;font-weight:300;src:url(fonts/geist-latin-300-normal.woff2)}
+@font-face{font-family:Geist;font-weight:400;src:url(fonts/geist-latin-400-normal.woff2)}
+@font-face{font-family:Geist;font-weight:500;src:url(fonts/geist-latin-500-normal.woff2)}
+@font-face{font-family:Geist;font-weight:600;src:url(fonts/geist-latin-600-normal.woff2)}
+@font-face{font-family:GMono;font-weight:400;src:url(fonts/geist-mono-latin-400-normal.woff2)}
+@font-face{font-family:GMono;font-weight:500;src:url(fonts/geist-mono-latin-500-normal.woff2)}
+@font-face{font-family:ISerif;font-weight:400;src:url(fonts/instrument-serif-latin-400-normal.woff2)}
+@font-face{font-family:ISerif;font-style:italic;font-weight:400;src:url(fonts/instrument-serif-latin-400-italic.woff2)}
+</style></head><body><canvas id="c"></canvas><script>
+/* Guardian OS Sovereign, as a film of its own page. Every line of copy is taken from
+   resurrection-tech-enterprise/app/guardian-os/sovereign/page.tsx; colours and type are the site's dark theme
+   (styles/design-system.css .theme-dark: Instrument Serif · Geist · Geist Mono). The evidence chain follows
+   components/iso/figures/EvidenceChain.tsx through the same true-isometric projection. 16:9 default, 9:16 with ?format=v. */
+const VT=new URLSearchParams(location.search).get('format')==='v';
+const W=VT?720:1280,H=VT?1280:720,S=1.5,P=(h,v)=>VT?v:h;
+const c=document.getElementById('c');c.width=W*S;c.height=H*S;const x=c.getContext('2d');
+const BG='#050608',PANEL='#0e1114',INK='#f5f6f7',INK2='#b4bac2',INK3='#878e97',LINE='rgba(255,255,255,0.10)',LINE2='rgba(255,255,255,0.18)',LINE3='rgba(255,255,255,0.32)',ACC='#7c9bff',OK='#4fd39b',OMEGA='#ff6f66',ESC='#f0b94a';
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),prog=(t,s,d)=>clamp((t-s)/d),lerp=(a,b,p)=>a+(b-a)*p,eo=p=>1-Math.pow(1-p,3),eio=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+const F={disp:s=>`400 ${s}px ISerif`,sans:(w,s)=>`${w} ${s}px Geist`,mono:(w,s)=>`${w} ${s}px GMono`};
+function T(s,px,py,font,col,a=1,align='left',ls=0){if(a<=0||!s)return;x.save();x.globalAlpha=clamp(a);x.font=font;x.fillStyle=col;x.textAlign=align;x.letterSpacing=ls+'px';x.fillText(s,px,py);x.restore()}
+function TW(s,font,ls=0){x.save();x.font=font;x.letterSpacing=ls+'px';const w=x.measureText(s).width;x.restore();return w}
+function wrap(s,font,maxW,ls=0){const out=[];let cur='';s.split(' ').forEach(w=>{const n=cur?cur+' '+w:w;if(TW(n,font,ls)>maxW&&cur){out.push(cur);cur=w}else cur=n});if(cur)out.push(cur);return out}
+function hline(x0,y,w,col=LINE,a=1,lw=1){x.save();x.globalAlpha=clamp(a);x.fillStyle=col;x.fillRect(x0,y,w,lw);x.restore()}
+function box(px,py,w,h,stroke,fill,a=1,lw=1){x.save();x.globalAlpha=clamp(a);if(fill){x.fillStyle=fill;x.fillRect(px,py,w,h)}if(stroke){x.strokeStyle=stroke;x.lineWidth=lw;x.strokeRect(px+.5,py+.5,w-1,h-1)}x.restore()}
+const rise=(t,s,d=.5)=>{const p=eo(prog(t,s,d));return{a:p,dy:(1-p)*18}};
+
+/* layout */
+const M=P(72,40),CW=W-2*M,TOP=P(100,118);
+const DS=P(68,60),H2=P(54,54),LEDE=P(20,22),EYE=P(12,14);
+function eyebrow(s,y,t,s0=0){const r=rise(t,s0,.4);T(s.toUpperCase(),M,y+r.dy,F.mono(400,EYE),INK3,r.a,'left',EYE*.26)}
+function display(lines,y,t,s0,size,cols){lines.forEach((l,i)=>{const r=rise(t,s0+i*.12,.55);T(l,M,y+i*size*.98+r.dy,F.disp(size),(cols&&cols[i])||INK,r.a,'left',-size*.028)})}
+function lede(s,y,t,s0,maxW=CW,size=LEDE,col=INK2){const ls=wrap(s,F.sans(400,size),maxW);ls.forEach((l,i)=>{const r=rise(t,s0+i*.05,.45);T(l,M,y+i*size*1.5+r.dy,F.sans(400,size),col,r.a)});return ls.length*size*1.5}
+function chrome(){ // the site header
+  x.fillStyle=BG;x.fillRect(0,0,W,P(70,86));hline(0,P(70,86),W,LINE,1);
+  const cy=P(42,50);T('R',M,cy+4,'italic 400 '+P(30,32)+'px ISerif',INK,1);T('(t)',M+P(24,26),cy+2,F.mono(400,P(16,17)),INK,1);
+  const mw=P(110,120),mx=W-M-mw;box(mx,cy-22,mw,44,LINE2,null,1);[0,6,12].forEach(d=>x.fillRect(mx+18,cy-7+d,P(18,18),1.6));T('MENU',mx+P(48,50),cy+5,F.mono(400,13),INK2,1,'left',2);
+  const aw=P(110,120),ax=mx-aw-12;x.fillStyle=INK;x.fillRect(ax,cy-22,aw,44);T('Assess',ax+aw/2,cy+6,F.sans(500,16),BG,1,'center')}
+function button(label,px,py,w,primary,a){box(px,py,w,P(56,64),primary?null:LINE2,primary?INK:null,a);T(label+'  →',px+w/2,py+P(35,40),F.sans(500,P(18,18)),primary?BG:INK,a,'center')}
+
+/* ─── scenes ─── */
+function sLead(t){eyebrow('Guardian OS Sovereign',TOP+40,t,.1);display(['Sovereignty is incomplete','without execution control.'],TOP+40+P(90,92),t,.2,P(DS,48));
+  const y=TOP+P(270,270);const h=lede('Controlling which models run, and where they run, does not by itself control what those systems are permitted to execute. Execution authority is a separate control, and it can be held inside the boundary.',y,t,.8,P(820,CW));
+  const by=y+h+P(30,40),r=rise(t,1.6,.5);button('Discuss a Sovereign deployment',M,by+r.dy,P(380,CW),true,r.a);const r2=rise(t,1.8,.5);T('What is enforced',VT?W/2:M+P(400,0)+P(120,0),(VT?by+P(0,100)+38:by+36)+r2.dy,F.sans(500,18),INK,r2.a,VT?'center':'left')}
+const SOV=[['Model sovereignty','Which models run, and where their weights sit.'],['Compute sovereignty','Which infrastructure they run on, and under whose jurisdiction.'],['Execution sovereignty','Which proposed transitions are permitted to execute — and who holds that authority.']];
+function sThree(t){eyebrow('The third sovereignty',TOP+40,t,.1);const big=P(58,52);let y=TOP+P(120,130);
+  SOV.forEach(([k],i)=>{const r=rise(t,.3+i*.35,.5),last=i===2;T(k,M,y+r.dy,F.disp(big),last?ACC:INK,r.a,'left',-big*.028);if(i<2){const r2=rise(t,.45+i*.35,.4);T('+',M,y+big*.92+r2.dy,F.disp(big*.8),INK3,r2.a)}y+=big*(i<2?1.85:1)});
+  y+=P(36,50);SOV.forEach(([k,v],i)=>{const r=rise(t,1.6+i*.25,.45),yy=y+i*P(64,112);hline(M,yy-P(28,34),CW,LINE,r.a);T(k,M,yy+r.dy,F.mono(400,P(13,15)),i===2?ACC:INK3,r.a,'left',1.2);
+    if(VT){wrap(v,F.sans(400,20),CW).forEach((l,j)=>T(l,M,yy+30+j*28+r.dy,F.sans(400,20),INK2,r.a))}else T(v,M+300,yy+r.dy,F.sans(400,18),INK2,r.a)})}
+/* the isometric evidence chain */
+const COS30=Math.cos(Math.PI/6),proj=([a,b,z],u,ox,oy)=>[ox+(a-b)*COS30*u,oy+(a+b)*.5*u-z*u];
+const STAGES=['PROPOSAL','POLICY','VERDICT','APPROVAL','EXECUTION','EVIDENCE'];
+function slab(i,u,ox,oy,a,dz,last,lit){const L=1.7,D=1.7,Hh=.28,x0=i*2.15,y0=0,z0=dz;const p=v=>proj(v,u,ox,oy);
+  const top=[[x0,y0,z0+Hh],[x0+L,y0,z0+Hh],[x0+L,y0+D,z0+Hh],[x0,y0+D,z0+Hh]],fr=[[x0,y0+D,z0+Hh],[x0+L,y0+D,z0+Hh],[x0+L,y0+D,z0],[x0,y0+D,z0]],rt=[[x0+L,y0,z0+Hh],[x0+L,y0+D,z0+Hh],[x0+L,y0+D,z0],[x0+L,y0,z0]];
+  const col=last?OK:'rgba(255,255,255,.62)';x.save();x.globalAlpha=clamp(a);
+  [[fr,'rgba(255,255,255,.02)'],[rt,'rgba(255,255,255,.035)'],[top,last&&lit?'rgba(79,211,155,.12)':'rgba(255,255,255,.015)']].forEach(([f,fill])=>{x.beginPath();f.map(p).forEach((q,k)=>k?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));x.closePath();x.fillStyle=fill;x.fill();x.strokeStyle=col;x.lineWidth=1.2;x.stroke()});
+  if(last&&lit){x.strokeStyle='rgba(79,211,155,.5)';x.lineWidth=1;for(let k=1;k<8;k++){const a1=p([x0+L*k/8,y0,z0+Hh]),b1=p([x0,y0+D*k/8,z0+Hh]);x.beginPath();x.moveTo(a1[0],a1[1]);x.lineTo(b1[0],b1[1]);x.stroke()}}
+  x.restore();const c_=p([x0+L*.45,y0+D*.2,z0+Hh+.55]);T(String(i+1).padStart(2,'0'),c_[0],c_[1]-P(15,14),F.mono(400,P(13,12)),last?OK:INK2,a,'center');T(STAGES[i],c_[0],c_[1]+2,F.mono(500,P(15,13)),last?OK:INK,a,'center',1.2);
+  return{l:p([x0,y0+D*.5,z0+Hh]),r:p([x0+L,y0+D*.5,z0+Hh])}}
+function chain(t,t0,cx,cy,u){// floor grid
+  x.save();x.globalAlpha=.6*eo(prog(t,t0,.6));x.strokeStyle='rgba(255,255,255,.06)';x.lineWidth=1;for(let k=-2;k<16;k++){const a1=proj([k,-2,0],u,cx,cy),b1=proj([k,5,0],u,cx,cy);x.beginPath();x.moveTo(a1[0],a1[1]);x.lineTo(b1[0],b1[1]);x.stroke();const c1=proj([-2,k*.5,0],u,cx,cy),d1=proj([14,k*.5,0],u,cx,cy);if(k<10){x.beginPath();x.moveTo(c1[0],c1[1]);x.lineTo(d1[0],d1[1]);x.stroke()}}x.restore();
+  const pts=[];for(let i=0;i<6;i++){const s=t0+.3+i*.22,p=eo(prog(t,s,.45));pts.push(p>0?slab(i,u,cx,cy,p,(1-p)*1.2,i===5,t>t0+2.7):null)}
+  // hash linkage
+  for(let i=0;i<5;i++){if(!pts[i]||!pts[i+1])continue;const la=eo(prog(t,t0+.6+i*.22,.3));const a1=pts[i].r,b1=pts[i+1].l;x.save();x.globalAlpha=la;x.strokeStyle=ACC;x.lineWidth=1.6;x.beginPath();x.moveTo(a1[0],a1[1]);x.lineTo(b1[0],b1[1]);x.stroke();x.restore()}
+  // a verification pulse runs the chain
+  const pp=prog(t,t0+1.8,1.0);if(pp>0&&pp<1){const seg=Math.min(4,Math.floor(pp*5)),f=pp*5-seg;if(pts[seg]&&pts[seg+1]){const a1=pts[seg].l,b1=pts[seg+1].l;x.save();x.fillStyle=ACC;x.shadowColor=ACC;x.shadowBlur=14;x.beginPath();x.arc(lerp(a1[0],b1[0],f),lerp(a1[1],b1[1],f)-4,5,0,7);x.fill();x.restore()}}
+  if(t>t0+2.7&&pts[5]){const a2=eo(prog(t,t0+2.7,.4)),q=proj([5*2.15+.85,1.7,0],u,cx,cy);T('CHAIN VERIFIED',q[0]+P(10,0),q[1]+P(36,40),F.mono(500,P(13,12)),OK,a2,'center',1.6)}}
+function sSame(t){eyebrow('Enforced in the deployment',TOP+40,t,.1);display(['The same kernel.','With the network taken away.'],TOP+40+P(78,80),t,.2,H2);
+  const y=TOP+P(230,250);const h=lede('The deployment profile changes where enforcement runs, who signs policy and who holds the evidence. It does not change the control contract.',y,t,.6,P(520,CW));
+  if(VT)chain(t,1.0,120,y+h+110,44);else chain(t,1.0,760,300,40)}
+const GUAR=['Signed local policy bundles','Ed25519 signature verification','Signing key outside the protected environment','No required external control plane','No required cloud database','No required network','Local evidence generation','Local evidence rendering','Fail-closed operation','Tamper refusal','Customer-controlled execution authority','Customer-controlled evidence custody','Isolated deployment','Sovereign deployment profile','Air-gapped operation'];
+const PROFILES=['cloud','hybrid','private cloud','on prem','sovereign','air gapped'];
+function sGuar(t){eyebrow('What is enforced',TOP+40,t,.1);const cols=VT?1:2,rh=P(44,50),y0=TOP+P(80,80),cw=VT?CW:(CW-30)/2,per=Math.ceil(GUAR.length/cols);
+  box(M,y0-6,VT?CW:CW,rh*per+12,LINE,PANEL,eo(prog(t,.2,.4)));
+  GUAR.forEach((g,i)=>{const col=Math.floor(i/per),row=i%per,s=.35+i*.11,r=rise(t,s,.35),xx=M+col*(cw+30),yy=y0+row*rh;if(row)hline(xx,yy,cw,LINE,r.a);
+    const hl=i===14||i===5;T(String(i+1).padStart(2,'0'),xx+18,yy+rh*.62+r.dy*.4,F.mono(400,P(13,13)),INK3,r.a);T(g,xx+P(60,62),yy+rh*.64+r.dy*.4,F.sans(400,P(17,18)),hl&&t>2.4?INK:INK,r.a);
+    if(hl){const ha=eo(prog(t,2.4,.4));x.save();x.globalAlpha=ha;x.fillStyle=OK;x.fillRect(xx,yy+6,3,rh-12);x.restore()}});
+  const py=y0+rh*per+P(46,60),pa=eo(prog(t,2.2,.4));box(M,py,CW,P(118,190),LINE,null,pa);T('DEPLOYMENT PROFILES',M+26,py+P(36,40),F.mono(400,12),INK3,pa,'left',3);
+  let bx=M+26,by=py+P(56,62);PROFILES.forEach((p,i)=>{const s=p.toUpperCase(),f=F.mono(400,P(15,15)),w=TW(s,f,3)+40;if(bx+w>M+CW-20){bx=M+26;by+=P(56,62)}const a=eo(prog(t,2.4+i*.1,.3)),air=i>=4;
+    box(bx,by,w,P(44,50),air&&t>3.3?OK:LINE3,air&&t>3.3?'rgba(79,211,155,.08)':null,a);T(s,bx+20,by+P(28,32),f,air&&t>3.3?OK:INK2,a,'left',3);bx+=w+12})}
+const PROVEN=['External network access removed during sovereign CI execution.','Signed local policy bundles enforced without a database, control plane or network connection.','Offline-clean interface with zero required external fonts, analytics, embeds or telemetry loads.','Governance evidence, attestations and control mappings generated locally.','Tampered policy bundles fail closed and load zero active policies.','Acceptance tooling verifies a live unauthorised action and its resulting evidence chain.'];
+const NOTYET=['No deployment has run on customer hardware yet. The install media, images and acceptance suite exist; a witnessed site record does not.','No third-party accreditation. No Common Criteria evaluation, no NCSC assurance, no FedRAMP authorisation, no ATO.','No independent penetration test of the codebase has been commissioned.','No identity provider of our own — Guardian OS sits behind the estate’s existing IdP.'];
+function list(items,y,t,s0,stagger,bar,size,maxW,xx=M,off=0){let yy=y;items.forEach((s,i)=>{const r=rise(t,s0+i*stagger,.4),ls=wrap(s,F.sans(400,size),maxW-P(90,80)),h=ls.length*size*1.42+P(30,32);
+    hline(xx,yy,maxW,LINE,r.a);if(bar){x.save();x.globalAlpha=r.a;x.fillStyle=bar;x.fillRect(xx,yy,3,h);x.restore()}
+    T(String(i+1+off).padStart(2,'0'),xx+P(24,22),yy+P(36,38)+r.dy*.4,F.mono(400,P(13,15)),INK3,r.a);ls.forEach((l,j)=>T(l,xx+P(80,74),yy+P(36,38)+j*size*1.42+r.dy*.4,F.sans(400,size),INK2,r.a));yy+=h});return yy}
+function sStatus(t){eyebrow('Current status',TOP+40,t,.1);display(['Acceptance-testable.','Not yet field-validated.'],TOP+40+P(78,80),t,.2,H2,[INK,INK3]);
+  const y=TOP+P(220,240),r=rise(t,.7,.4);T('Verified in CI',M,y+r.dy,F.sans(500,P(24,30)),INK,r.a);hline(M,y+P(22,26),VT?CW:CW,LINE3,r.a,1.5);
+  if(VT)list(PROVEN,y+50,t,.9,.32,INK,21,CW);else{list(PROVEN.slice(0,3),y+40,t,.9,.32,INK,17,CW/2-15);list(PROVEN.slice(3),y+40,t,1.86,.32,INK,17,CW/2-15,M+CW/2+15,3)}}
+function sNotYet(t){eyebrow('Current status',TOP+40,t,.05);const r=rise(t,.15,.4),y=TOP+P(90,100);T('Not done yet',M,y+r.dy,F.sans(500,P(26,32)),INK,r.a);hline(M,y+P(22,26),CW,LINE3,r.a,1.5);
+  let yy;if(VT)yy=list(NOTYET,y+50,t,.4,.4,null,21,CW);else{list(NOTYET.slice(0,2),y+40,t,.4,.4,null,17,CW/2-15);yy=list(NOTYET.slice(2),y+40,t,1.2,.4,null,17,CW/2-15,M+CW/2+15,2);yy=y+40+P(250,0)}
+  const by=yy+P(30,40),ba=eo(prog(t,2.4,.5)),bh=P(150,360);box(M,by,CW,bh,LINE2,null,ba);x.save();x.globalAlpha=ba;x.fillStyle=INK;x.fillRect(M,by,3,bh);x.restore();
+  T('CLAIM BOUNDARY',M+P(40,50),by+P(40,58),F.mono(400,13),INK3,ba,'left',3.5);
+  const txt='Guardian OS Sovereign is acceptance-testable, not field-validated. Everything in the left column is enforced by code and asserted by a test in CI. Everything in the right column is work that has not been done. No accreditation is claimed until one is held.';
+  const fs=P(18,22),fN=F.sans(400,fs),fB=F.sans(600,fs),maxW=CW-P(80,100),words=txt.split(' ').map((w,i)=>[w,i>=4&&i<=6]);let line=0,cx0=M+P(40,50),cx=cx0;
+  words.forEach(([w,b_],i)=>{const f=b_?fB:fN,ww=TW(w+' ',f);if(cx+ww-cx0>maxW){line++;cx=cx0}const a=eo(prog(t,2.6+line*.08,.35));T(w,cx,by+P(76,104)+line*P(28,34),f,b_?INK:INK2,a);cx+=ww})}
+const AUD=[['National government','Departments and central authorities deploying governed AI across public administration, national programmes and shared services.'],['Defence and national security','Organisations operating under mission, security, isolation and evidence requirements that cannot depend on public-cloud assumptions.'],['Critical infrastructure','Operators responsible for energy, communications, transport, water and other nationally important systems.'],['Public-sector healthcare','National and regional healthcare bodies requiring controlled AI operation, traceable evidence and protected deployment boundaries.'],['Sovereign technology programmes','Programmes establishing national AI capability while retaining policy authority, evidence custody and operational control inside the jurisdiction.'],['Highly regulated institutions','Organisations whose governance or security requirements demand private, on-premises or air-gapped deployment.']];
+const PACKS=[['National Security','Mission-specific policy, approval, evidence and reporting structures for national-security operating environments.'],['Defence Operations','Governance content for controlled workflows, delegated authority, constrained execution and evidence preservation.'],['Critical Infrastructure','Domain controls for nationally important systems where availability, reachability and operational boundaries must remain explicit.'],['Public Sector','Reusable governance workflows, accountability structures and executive reporting for departments, agencies and public programmes.'],['National Healthcare','Governance content for national and regional healthcare systems, including controlled data use, evidence mapping and human oversight.']];
+function mapRows(rows,y,t,s0,st,size){let yy=y;const gap=P(28,26);rows.forEach(([k,v],i)=>{const r=rise(t,s0+i*st,.4);
+    if(VT){T(k,M,yy+r.dy,F.sans(500,24),INK,r.a);const ls=wrap(v,F.sans(400,18),CW-40);T('\u2192',M,yy+38+r.dy,F.sans(400,19),INK3,r.a);ls.forEach((l,j)=>T(l,M+36,yy+38+j*26+r.dy,F.sans(400,18),INK2,r.a));yy+=38+ls.length*26+gap;hline(M,yy-gap/2-2,CW,LINE,r.a)}
+    else{T(k,M,yy+r.dy,F.sans(500,19),INK,r.a);T('\u2192',M+340,yy+r.dy,F.sans(400,18),INK3,r.a);const ls=wrap(v,F.sans(400,size),CW-380);ls.forEach((l,j)=>T(l,M+380,yy+j*size*1.4+r.dy,F.sans(400,size),INK2,r.a));yy+=Math.max(1,ls.length)*size*1.4+gap;hline(M,yy-gap+8,CW,LINE,r.a)}});return yy}
+function sWho(t){eyebrow('Who this is for',TOP+40,t,.1);display(['Institutions that must retain','control of how AI operates.'],TOP+40+P(78,80),t,.2,P(H2,44));mapRows(AUD,TOP+P(230,250),t,.7,.32,P(16,17))}
+function sPacks(t){eyebrow('Sovereign Intelligence Packs',TOP+40,t,.1);display(['Mission domains','without a second platform.'],TOP+40+P(78,80),t,.2,H2);
+  const y=TOP+P(220,240),h=lede('Sovereign Intelligence Packs add domain policies, workflows, evidence mappings and reporting structures while preserving one Runtime Governance kernel.',y,t,.6,P(820,CW),P(18,18));
+  mapRows(PACKS,y+h+P(30,40),t,1.1,.32,P(16,17))}
+const VALUE=[['Time to capability','2–4 year platform programme','Platform available today'],['Illustrative engineering investment','£5M–£30M+ depending on scope and organisation size','Configure and integrate an existing platform'],['Governance kernel','Build, validate and maintain internally','Runtime Governance kernel already implemented'],['Specialist capability','Recruit and retain specialist engineering teams','Existing platform plus configuration and integration'],['Operating responsibility','Ongoing platform ownership and redevelopment','Ongoing platform operation, policy configuration and assurance']];
+function sValue(t){eyebrow('Programme position',TOP+40,t,.1);display(['Configure a platform that exists,','or build one first.'],TOP+40+P(78,80),t,.2,P(H2,40));
+  const y=TOP+P(214,230),h=lede('The figures below are illustrative rather than quoted programme costs. Actual investment varies materially by scope, accreditation, deployment boundary and organisation size.',y,t,.6,P(900,CW),P(17,17));
+  let yy=y+h+P(20,30);const ta=eo(prog(t,1.0,.4));
+  if(!VT){const cw=[340,370,CW-710];box(M,yy,CW,46+VALUE.length*58,LINE2,null,ta);['CAPABILITY','BUILD INTERNALLY','GUARDIAN OS'].forEach((h_,i)=>T(h_,M+20+(i?cw[0]+(i>1?cw[1]:0):0),yy+30,F.mono(400,12),INK3,ta,'left',3));
+    VALUE.forEach((r_,i)=>{const a=eo(prog(t,1.2+i*.3,.4)),ry=yy+46+i*58;hline(M,ry,CW,LINE,a);r_.forEach((v,j)=>{const xx=M+20+(j?cw[0]+(j>1?cw[1]:0):0);wrap(v,F.sans(j===0?500:400,15),cw[j]-30).forEach((l,k)=>T(l,xx,ry+26+k*20,F.sans(j===0?500:400,15),j===2?INK:(j===0?INK:INK2),a))})});yy+=46+VALUE.length*58}
+  else{VALUE.slice(0,3).forEach((r_,i)=>{const a=eo(prog(t,1.2+i*.45,.4)),bh=196;box(M,yy,CW,bh,LINE2,null,a);T('CAPABILITY',M+24,yy+30,F.mono(400,11),INK3,a,'left',3);T(r_[0],M+24,yy+56,F.sans(500,18),INK,a);
+      T('BUILD INTERNALLY',M+24,yy+92,F.mono(400,11),INK3,a,'left',3);T(wrap(r_[1],F.sans(400,16),CW-48)[0],M+24,yy+116,F.sans(400,16),INK2,a);T('GUARDIAN OS',M+24,yy+150,F.mono(400,11),INK3,a,'left',3);T(r_[2],M+24,yy+174,F.sans(400,16),INK,a);yy+=bh-1})}
+  const na=eo(prog(t,P(2.8,2.6),.4));wrap('This compares a multi-year internal platform programme with configuring an existing governed operating architecture. It is not a guaranteed savings claim.',F.sans(400,P(15,15)),CW).forEach((l,j)=>T(l,M,yy+P(34,36)+j*22,F.sans(400,P(15,15)),INK3,na))}
+function sClose(t){const cy=P(H*.4,H*.42),sz=P(76,58),r=rise(t,.15,.6),r2=rise(t,.3,.6);T('Keep execution authority',W/2,cy+r.dy,F.disp(sz),INK,r.a,'center',-sz*.028);T('inside the boundary.',W/2,cy+sz*.98+r2.dy,F.disp(sz),INK,r2.a,'center',-sz*.028);
+  const bw=P(460,CW),bx=W/2-bw/2,by=cy+sz*.98+P(70,80),b1=rise(t,.9,.5),b2=rise(t,1.1,.5);button('Discuss a Sovereign deployment',bx,by+b1.dy,bw,true,b1.a);button('Explore Guardian OS',bx,by+P(70,80)+b2.dy,bw,false,b2.a);
+  T('resurrection-tech.com/guardian-os/sovereign',W/2,by+P(170,196),F.mono(400,P(14,14)),INK3,eo(prog(t,1.6,.4)),'center',1)}
+
+/* ─── the scroll: each section rises into place as the page scrolls ─── */
+const SC=[[sLead,5.2],[sThree,5.6],[sSame,6.6],[sGuar,5.6],[sStatus,6.4],[sNotYet,6.6],[sWho,6.0],[sValue,6.6],[sPacks,6.0],[sClose,5.0]];
+const TS=[0];SC.forEach(([,d],i)=>TS.push(TS[i]+d));const TOTAL=+TS[SC.length].toFixed(2),TR=.7;
+const CUES=[[0,'start']];SC.forEach(([,d],i)=>{if(i)CUES.push([TS[i],'swoosh']);CUES.push([TS[i]+.3,'pop'])});
+[1.3,1.52,1.74,1.96,2.18,2.4].forEach(d=>CUES.push([TS[2]+d,'card']));CUES.push([TS[2]+2.8,'count']);CUES.push([TS[2]+3.7,'allow']);
+CUES.push([TS[3]+2.4,'pop']);CUES.push([TS[3]+3.3,'allow']);[.9,1.22,1.54,1.86,2.18,2.5].forEach(d=>CUES.push([TS[4]+d,'card']));CUES.push([TS[5]+2.4,'escalate']);CUES.push([TS[9]+.9,'resolve']);
+function scene(k,lt,dy){x.save();x.translate(0,dy);x.fillStyle=BG;x.fillRect(0,0,W,H);SC[k][0](lt);x.restore()}
+function render(t){x.setTransform(S,0,0,S,0,0);x.globalAlpha=1;let k=0;for(let i=0;i<SC.length;i++)if(t>=TS[i])k=i;const lt=t-TS[k];
+  if(k>0&&lt<TR){const e=eio(lt/TR);scene(k-1,SC[k-1][1]-.001,-H*.55*e);x.save();x.globalAlpha=e;scene(k,lt,H*.35*(1-e));x.restore()}else scene(k,lt,0);
+  x.setTransform(S,0,0,S,0,0);chrome();
+  const f=prog(t,TOTAL-.4,.4);if(f>0){x.fillStyle=`rgba(5,6,8,${f})`;x.fillRect(0,0,W,H)}}
+window.render=render;window.TOTAL=TOTAL;window.CUES=CUES.sort((a,b)=>a[0]-b[0]);
+window.READY=Promise.all(['300 20px Geist','400 20px Geist','500 20px Geist','600 20px Geist','400 20px GMono','500 20px GMono','400 20px ISerif','italic 400 20px ISerif'].map(f=>document.fonts.load(f))).then(()=>true);
+if(!location.search.includes('render')){window.READY.then(()=>{const st=performance.now();(function loop(){render(((performance.now()-st)/1000)%TOTAL);requestAnimationFrame(loop)})()})}
+else window.READY.then(()=>render(0));
+</script></body></html>

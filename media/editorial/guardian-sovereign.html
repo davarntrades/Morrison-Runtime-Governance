@@ -363,7 +363,7 @@ function stackEnd(t){x.setTransform(S,0,0,S,0,0);paperBg('#f7f6f2');setDomain('f
 const NAVY='#2a3b55';
 function gFoot(t,s){x.setTransform(S,0,0,S,0,0);T(s,P(48,20),L.foot,'400 10px JBM',MUTE,eo(prog(t,.6,.4)),'left',.5)}
 function gLayers(t){x.setTransform(S,0,0,S,0,0);paperBg('#f7f6f2');heading(t,'Sovereign AI','has three layers.','GUARDIAN OS SOVEREIGN');
-  const R=[['01','MODEL SOVEREIGNTY','Which models run, and where their weights sit.'],['02','INFRASTRUCTURE SOVEREIGNTY','Which infrastructure they run on, and under whose jurisdiction.'],['03','EXECUTION SOVEREIGNTY','Which proposed transitions are permitted to execute — and who holds that authority.']];
+  const R=[['01','MODEL SOVEREIGNTY','Which models run, and where their weights sit.'],['02','COMPUTE SOVEREIGNTY','Which infrastructure they run on, and under whose jurisdiction.'],['03','EXECUTION SOVEREIGNTY','Which proposed transitions are permitted to execute — and who holds that authority.']];
   R.forEach(([n,h,d],i)=>{const a=eo(prog(t,.6+i*.35,.4)),hl=i===2?eo(prog(t,2.6,.5)):0,bx=P(50,40),by=P(260,300)+i*P(118,170),bw=P(820,640),bh=P(100,150);if(a<=0)return;
     card(bx,by+(1-a)*20,bw,bh,16,hl>.5?BLUE:'#fff',a,.7);const tc=hl>.5?'#fff':INK,mc=hl>.5?'rgba(255,255,255,.75)':MUTE;
     T(n,bx+24,by+P(40,44)+(1-a)*20,'400 12px JBM',mc,a,'left',.8);T(h,bx+P(70,24),by+P(40,74)+(1-a)*20,SANS(800,P(20,21)),tc,a,'left',.6);
