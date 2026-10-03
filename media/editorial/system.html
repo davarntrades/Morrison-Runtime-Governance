@@ -298,10 +298,80 @@ function sovEnd(t){x.setTransform(S,0,0,S,0,0);paperBg('#f7f6f2');setDomain('fro
   const ca=eo(prog(t,1.5,.45)),s='Book a 48-hour audit  ·  resurrection-tech.com/assessment',ff=SANS(600,P(16,14)),w=TW(s,ff)+44,cy2=cy+P(206,262);
   x.save();x.globalAlpha=ca;x.shadowColor='rgba(0,0,0,.25)';x.shadowBlur=20;x.fillStyle=BLUE;x.beginPath();x.roundRect(W/2-w/2,cy2+(1-ca)*16,w,44,22);x.fill();x.restore();T(s,W/2,cy2+28+(1-ca)*16,ff,'#fff',ca,'center');
   T('MORRISON RUNTIME GOVERNANCE · RESURRECTION TECH',W/2,cy2+P(84,92),'400 10px JBM',MUTE,eo(prog(t,1.7,.4)),'center',.5)}
+
+/* ─── the sovereign stack: leases at the resource, and tiers that can each say no ─── */
+function heading(t,l1,l2,sub){const tx=P(50,40),ty=P(112,130),sz=P(52,54);T(l1,tx,ty+(1-eo(prog(t,.05,.5)))*16,PF_(sz),INK,eo(prog(t,.05,.5)),'left',-1);
+  if(l2)T(l2,tx,ty+sz*1.02+(1-eo(prog(t,.2,.5)))*16,PF_(sz),INK,eo(prog(t,.2,.5)),'left',-1);T(sub,tx,P(214,250),SANS(700,P(15,14)),'#c4542d',eo(prog(t,.4,.4)),'left',.6)}
+function node(n,title,sub,a,col,hl){if(a<=0)return;card(n.x,n.y,n.w,n.h,14,'#fff',a,.7);rr(n.x,n.y+12,4,n.h-24,2,col,null,1,a);if(hl>0)rr(n.x-3,n.y-3,n.w+6,n.h+6,16,null,hl>1?RED:GRN,3,Math.min(1,hl%2||1)*a);
+  T(title,n.x+20,n.y+P(42,40),SANS(700,P(20,20)),INK,a);T(sub,n.x+20,n.y+P(68,66),'400 '+P(12,12)+'px JBM',MUTE,a)}
+function leases(t){x.setTransform(S,0,0,S,0,0);paperBg('#f7f6f2');heading(t,'Authority','that travels.','SIGNED LEASES, CHECKED AT THE RESOURCE ITSELF.');
+  const N=VT?[{x:40,y:300,w:400,h:96},{x:40,y:440,w:400,h:96},{x:40,y:580,w:400,h:96},{x:40,y:720,w:400,h:96}]:[{x:50,y:270,w:250,h:100},{x:360,y:270,w:250,h:100},{x:670,y:270,w:250,h:100},{x:980,y:270,w:250,h:100}];
+  const ctr=n=>[n.x+n.w/2,n.y+n.h/2],a=eo(prog(t,.5,.5));
+  // links
+  for(let i=0;i<3;i++){const[p,q]=[ctr(N[i]),ctr(N[i+1])];x.save();x.globalAlpha=a*.35;x.strokeStyle=INK;x.lineWidth=2;x.setLineDash([5,6]);x.beginPath();x.moveTo(p[0],p[1]);x.lineTo(q[0],q[1]);x.stroke();x.restore()}
+  // beats: 0 legit, 1 bypass, 2 replay, 3 verify-one-forward-another
+  const B=[[1.0,'ok'],[3.6,'bypass'],[5.6,'replay'],[7.5,'swap']],hit=[0,0,0,0];
+  B.forEach(([t0,k],bi)=>{const d=t-t0;if(d<0)return;let path=k==='bypass'?[0,2]:[0,1,2,3];if(k!=='ok'&&k!=='bypass')path=[0,2];
+    const legs=path.length-1,dur=k==='ok'?2.2:1.0,u=clamp(d/dur);let seg=Math.min(legs-1,Math.floor(u*legs)),f=u*legs-seg;if(u>=1){seg=legs-1;f=1}
+    const stopAt=k==='ok'?legs:legs; // refused cases stop at the gateway
+    const p=ctr(N[path[seg]]),q=ctr(N[path[seg+1]]);let px=lerp(p[0],q[0],eio(f)),py=lerp(p[1],q[1],eio(f));
+    if(k==='bypass'&&!VT){py-=Math.sin(Math.PI*f)*120}else if(k==='bypass'&&VT){px+=Math.sin(Math.PI*f)*200}
+    if(d<dur+.1){x.save();x.fillStyle=k==='ok'?BLUE:RED;x.beginPath();x.arc(px,py,8,0,7);x.fill();x.restore();
+      const lab=k==='ok'?(seg>=1?'request + lease':'proposal'):k==='bypass'?'request · no lease':k==='replay'?'request + used lease':'lease(read) · request(delete)';chipMini(lab.toUpperCase(),px,py-18,k==='ok'?BLUE:RED)}
+    if(u>=1){const hd=d-dur;if(k==='ok'){hit[2]=Math.max(hit[2],hd<1.2?1:0);hit[3]=1}else if(hd<1.6)hit[2]=2}});
+  node(N[0],'AGENT','proposes only',a,'#6b6f76',0);node(N[1],'MORRISON KERNEL','decides · mints the lease',a,BLUE,0);
+  node(N[2],'GATEWAY',VT?'LeaseVerifier · a separate process':'LeaseVerifier · separate process',a,'#2a3b55',hit[2]);node(N[3],'RESOURCE',hit[3]?'executed once ✓':'cluster · weights · data',a,GRN,0);
+  // the lease token
+  const la=eo(prog(t,1.9,.4));if(la>0){const L_=VT?{x:460,y:430,w:230,h:150}:{x:360,y:400,w:300,h:150};card(L_.x,L_.y,L_.w,L_.h,12,'#14161a',la,.8);
+    T('EXECUTION LEASE',L_.x+16,L_.y+28,SANS(800,12),'#9db4ff',la,'left',1);['signed · single-use','expires in 60 s','bound to action hash','principal · tenant · session'].forEach((l,i)=>T(l,L_.x+16,L_.y+56+i*22,'400 12px JBM','#e8e8e8',la))}
+  // the attack log
+  const G=VT?{x:40,y:860,w:640,h:300}:{x:690,y:400,w:540,h:250},ga=eo(prog(t,3.4,.4));if(ga>0){card(G.x,G.y,G.w,G.h,14,'#fff',ga,.7);T('// attacks at the resource',G.x+20,G.y+30,'400 12px JBM',MUTE,ga);
+    [['skip the kernel, send no lease','REFUSED','L-01',4.7],['replay a redeemed lease','REFUSED','L-02',6.7],['verify one request, forward another','REFUSED','L-04',8.6]].forEach(([l,v,id,s],i)=>{const a2=eo(prog(t,s,.3));const yy=G.y+P(72,76)+i*P(56,66);
+      T(l,G.x+20,yy,SANS(600,P(15,16)),INK,a2);chip(v,G.x+G.w-P(70,74),yy-6,RED,a2,back(prog(t,s,.3)),true,11);T(id+' · test_mediation.py',G.x+20,yy+P(20,22),'400 11px JBM',MUTE,a2)})}
+  x.setTransform(S,0,0,S,0,0);T('kernel/mediation.py · the lease key is separate from the approval key',P(48,20),L.foot,'400 10px JBM',MUTE,eo(prog(t,.6,.4)),'left',.5)}
+function tiers(t){x.setTransform(S,0,0,S,0,0);paperBg('#f7f6f2');heading(t,'Every tier','can say no.','HIERARCHY · QUORUM · HUMAN VETO.');
+  const PN=VT?[{x:40,y:290,w:640,h:280},{x:40,y:590,w:640,h:250},{x:40,y:860,w:640,h:300}]:[{x:40,y:250,w:390,h:400},{x:445,y:250,w:390,h:400},{x:850,y:250,w:390,h:400}];
+  const pa=i=>eo(prog(t,.5+i*.15,.4));
+  // 1 · hierarchy
+  let n=PN[0],a=pa(0);card(n.x,n.y,n.w,n.h,16,'#fff',a,.7);T('01 · HIERARCHY',n.x+20,n.y+30,'400 11px JBM',MUTE,a,'left',.8);T('local → regional → global',n.x+20,n.y+58,SANS(700,18),INK,a);
+  const TV=[['LOCAL','PERMIT',GRN,1.2],['REGIONAL','BLOCK',RED,1.8],['GLOBAL','PERMIT',GRN,2.4]];
+  TV.forEach(([tn,v,c,s],i)=>{const yy=VT?n.y+100+i*44:n.y+110+i*62,xx=n.x+20,w=n.w-40,ia=eo(prog(t,s,.3));rr(xx,yy-22,w,P(48,36),10,'rgba(0,0,0,.035)',null,1,a);T(tn,xx+14,yy+P(8,2),SANS(700,14),INK,a);if(ia>0)chip(v,xx+w-50,yy+P(2,-4),c,ia,back(prog(t,s,.3)),true,11)});
+  const ra=eo(prog(t,3.0,.35));if(ra>0){const yy=VT?n.y+n.h-36:n.y+n.h-60;T('→ BLOCK',n.x+20,yy,SANS(800,22),RED,ra);T(VT?'any tier that blocks decides · all tiers still audited':'any tier that blocks decides',n.x+20,yy+P(26,22),'400 12px JBM',MUTE,ra);if(!VT)T('all tiers still audited',n.x+20,yy+42,'400 12px JBM',MUTE,ra)}
+  // 2 · quorum
+  n=PN[1];a=pa(1);card(n.x,n.y,n.w,n.h,16,'#fff',a,.7);T('02 · DENY-BY-DEFAULT QUORUM',n.x+20,n.y+30,'400 11px JBM',MUTE,a,'left',.8);T('one corrupted replica changes nothing',n.x+20,n.y+58,SANS(700,P(16,18)),INK,a);
+  [0,1,2].forEach(i=>{const cx=VT?n.x+110+i*200:n.x+80+i*115,cy=VT?n.y+108:n.y+160,s=3.8+i*.25,ia=eo(prog(t,s,.3)),bad=i===1;botIcon(cx,cy,2.2,bad&&t>4.4?RED:INK);
+    if(bad&&t>4.4){const g=Math.floor(t*14)%2;T('compromised',cx,cy+44,'400 11px JBM',RED,.6+.4*g,'center')}
+    if(ia>0)chip(bad?'PERMIT':'BLOCK',cx,cy+P(70,62),bad?AMB:RED,ia,back(prog(t,s,.3)),true,11)});
+  const qa=eo(prog(t,5.2,.35));if(qa>0){const yy=n.y+n.h-P(56,34);T('→ BLOCK',n.x+20,yy,SANS(800,22),RED,qa);T(VT?'permit needs every replica · BLOCK is the safe direction':'permit needs every replica',n.x+20,yy+P(22,22),'400 12px JBM',MUTE,qa);if(!VT)T('BLOCK is the safe direction',n.x+20,yy+40,'400 12px JBM',MUTE,qa)}
+  // 3 · human
+  n=PN[2];a=pa(2);card(n.x,n.y,n.w,n.h,16,'#fff',a,.7);T('03 · INSTITUTIONAL',n.x+20,n.y+30,'400 11px JBM',MUTE,a,'left',.8);T('people keep the last word',n.x+20,n.y+58,SANS(700,18),INK,a);
+  const H=[['A human can always add a veto.','no special authority needed',GRN,6.2],['Overriding a BLOCK needs a scoped,','signed authorization',AMB,7.0],['Every override is hash-chained.','tamper-evident record',BLUE,7.8]];
+  H.forEach(([l1,l2,c,s],i)=>{const ia=eo(prog(t,s,.35)),yy=n.y+P(108,104)+i*P(88,62);if(ia<=0)return;rr(n.x+20,yy-20,5,P(48,44),2,c,null,1,ia);T(l1,n.x+36,yy,SANS(600,15),INK,ia);T(l2,n.x+36,yy+22,'400 12px JBM',MUTE,ia)});
+  x.setTransform(S,0,0,S,0,0);T('global_governance/ · in-process mechanisms, tested — not a distributed consensus protocol',P(48,20),L.foot,'400 10px JBM',MUTE,eo(prog(t,.6,.4)),'left',.5)}
+function stackEnd(t){x.setTransform(S,0,0,S,0,0);paperBg('#f7f6f2');setDomain('frontier',15);
+  const cy=P(170,360);AG.forEach((g,i)=>mascot(W/2+(i-2)*P(118,112),cy,P(88,86),g.tint,t,i,eo(prog(t,.1+i*.08,.4))));
+  const sz=P(60,50),a1=eo(prog(t,.4,.5));T('Sovereign by design.',W/2,cy+P(84,88)+(1-a1)*16,PF_(sz),INK,a1,'center',-1);
+  const a2=eo(prog(t,.8,.5));T('Morrison enforces the decision. The enclave enforces the route.',W/2,cy+P(122,128),VT?'italic 400 21px Serif':'italic 400 25px Serif',BLUE,a2,'center');
+  const items=['STANDARD LIBRARY ONLY','SIGNED EXECUTION LEASES','DENY-BY-DEFAULT EGRESS','VERIFIABLE OFFLINE','EVERY TIER CAN VETO'],f=SANS(700,12);
+  const rows=VT?[items.slice(0,2),items.slice(2,4),items.slice(4)]:[items.slice(0,3),items.slice(3)];rows.forEach((row,r)=>{const tw_=row.reduce((a,s)=>a+TW(s,f,.6)+30,0)+(row.length-1)*10;let bx=W/2-tw_/2;const by=cy+P(176,186)+r*42;
+    row.forEach((s,i)=>{const a=eo(prog(t,1.0+(r*3+i)*.1,.35)),w=TW(s,f,.6)+30;rr(bx,by-17,w,32,16,'#fff','#2a3b55',1.6,a);T(s,bx+w/2,by+4,f,'#2a3b55',a,'center',.6);bx+=w+10})});
+  const ca=eo(prog(t,1.8,.45)),s='Book a 48-hour audit  ·  resurrection-tech.com/assessment',ff=SANS(600,P(16,14)),w=TW(s,ff)+44,cy2=cy+P(176,186)+rows.length*42+P(14,18);
+  x.save();x.globalAlpha=ca;x.shadowColor='rgba(0,0,0,.25)';x.shadowBlur=20;x.fillStyle=BLUE;x.beginPath();x.roundRect(W/2-w/2,cy2+(1-ca)*16,w,44,22);x.fill();x.restore();T(s,W/2,cy2+28+(1-ca)*16,ff,'#fff',ca,'center');
+  T('MORRISON RUNTIME GOVERNANCE · RESURRECTION TECH',W/2,cy2+P(80,88),'400 10px JBM',MUTE,eo(prog(t,2.0,.4)),'center',.5)}
 /* modes: one domain for 15s, or the tour — three domains with wipes, then a shared end card */
 const CUES=[[0,'start']];let render;
 const verdictCues=(off,tot)=>PK.forEach(p=>{if(p.ka<tot-.6)CUES.push([+(off+p.ka).toFixed(3),p.v==='A'?'allow':p.v==='E'?'escalate':'block'])});
-if(DOMAIN==='sovereign'){const D=[15,9.6,4.6],TS=[0,15,24.6],TR=.45,ACC2=['#2a3b55','#2a3b55',BLUE];TOTAL=+(TS[2]+D[2]).toFixed(2);setDomain('frontier',D[0]);
+if(DOMAIN==='sovstack'){const SEGS=[[t=>{setDomain('frontier',12);mapFrame(t,12,false)},12],[leases,10],[evidence,9.6],[tiers,10],[stackEnd,5.2]],TS=[0];SEGS.forEach(([,d],i)=>TS.push(TS[i]+d));TOTAL=+TS[SEGS.length].toFixed(2);const TR=.45;
+  setDomain('frontier',12);[.5,.7,.9,1.1,1.3,1.5,1.7].forEach(d=>CUES.push([d,'pop']));verdictCues(0,12);
+  let o=TS[1];CUES.push([o,'cut']);[.5,.65,.8,.95].forEach(d=>CUES.push([o+d,'card']));CUES.push([o+1.9,'pop']);CUES.push([o+3.2,'allow']);[4.6,6.6,8.5].forEach(d=>CUES.push([o+d,'block']));
+  o=TS[2];CUES.push([o,'cut']);[.6,.72,.84,.96,1.08].forEach(d=>CUES.push([o+d,'card']));[1.5,1.95,2.4].forEach(d=>CUES.push([o+d,'allow']));CUES.push([o+5.0,'thud']);CUES.push([o+5.9,'allow']);CUES.push([o+6.35,'block']);CUES.push([o+6.8,'block']);CUES.push([o+7.3,'escalate']);
+  o=TS[3];CUES.push([o,'cut']);[1.2,2.4].forEach(d=>CUES.push([o+d,'allow']));CUES.push([o+1.8,'block']);CUES.push([o+3.0,'thud']);[3.8,4.3].forEach(d=>CUES.push([o+d,'pop']));CUES.push([o+4.05,'escalate']);CUES.push([o+5.2,'thud']);[6.2,7.0,7.8].forEach(d=>CUES.push([o+d,'card']));
+  o=TS[4];CUES.push([o,'cut']);CUES.push([o+.9,'resolve']);
+  const ACC3=['#2a3b55','#2a3b55','#2a3b55','#2a3b55',BLUE];
+  render=t=>{GT=t;let k=0;for(let i=0;i<SEGS.length;i++)if(t>=TS[i])k=i;const lt=t-TS[k];
+    if(k>0&&lt<TR){const e=eio(lt/TR),edge=W*(1-e);SEGS[k-1][0](SEGS[k-1][1]-.001);x.setTransform(S,0,0,S,0,0);x.save();x.beginPath();x.rect(edge,0,W-edge,H);x.clip();SEGS[k][0](lt);x.restore();x.setTransform(S,0,0,S,0,0);x.fillStyle=ACC3[k];x.fillRect(edge-14,0,14,H)}
+    else SEGS[k][0](lt);const f=prog(t,TOTAL-.35,.35);if(f>0){x.setTransform(S,0,0,S,0,0);x.fillStyle=`rgba(247,246,242,${f})`;x.fillRect(0,0,W,H)}}}
+else if(DOMAIN==='sovereign'){const D=[15,9.6,4.6],TS=[0,15,24.6],TR=.45,ACC2=['#2a3b55','#2a3b55',BLUE];TOTAL=+(TS[2]+D[2]).toFixed(2);setDomain('frontier',D[0]);
   [.5,.7,.9,1.1,1.3,1.5,1.7].forEach(d=>CUES.push([d,'pop']));verdictCues(0,D[0]);CUES.push([2.4,'escalate']);
   CUES.push([TS[1],'cut']);[.6,.72,.84,.96,1.08].forEach(d=>CUES.push([TS[1]+d,'card']));[1.5,1.95,2.4].forEach(d=>CUES.push([TS[1]+d,'allow']));CUES.push([TS[1]+2.9,'pop']);CUES.push([TS[1]+5.0,'thud']);CUES.push([TS[1]+5.0,'swoosh']);
   CUES.push([TS[1]+5.9,'allow']);CUES.push([TS[1]+6.35,'block']);CUES.push([TS[1]+6.8,'block']);CUES.push([TS[1]+7.3,'escalate']);CUES.push([TS[2],'cut']);CUES.push([TS[2]+.9,'resolve']);
