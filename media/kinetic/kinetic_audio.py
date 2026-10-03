@@ -47,6 +47,7 @@ def key():
 
 
 cut = [t for t, k in CUES if k == "cut"]
+sub = [t for t, k in CUES if k == "sub"]
 drop = next(t for t, k in CUES if k == "drop")
 # bed: sub on every beat until the drop, offbeat hats, a minor stab per bar
 beat = .5
@@ -60,6 +61,8 @@ for b in range(int(drop / beat) + 1):
         st = T(.5); put(lp(sum(np.sign(np.sin(2 * np.pi * f * 4 * m * st)) for m in (1, 1.189, 1.498)), 1400) * np.exp(-st * 6) * .25, t0, .35, pan=-.2)
 for t0 in cut:
     put(kick(), t0, .9); put(rustle(), t0, .5, pan=rng.uniform(-.4, .4))
+for t0 in sub:  # the in-burst changes: a lighter paper flick, no kick
+    put(rustle(.08), t0, .28, pan=rng.uniform(-.5, .5))
 put(whoosh(.7), 0, .6)
 put(whoosh(.5), drop - .5, .7)
 put(kick(.8) * 1.3, drop, 1.0)
