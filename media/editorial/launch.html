@@ -1,0 +1,115 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Guardian OS Sovereign — launch film</title><style>
+html,body{margin:0;background:#000}canvas{display:block;width:100vw;height:auto}
+@font-face{font-family:Geist;font-weight:400;src:url(fonts/geist-latin-400-normal.woff2)}
+@font-face{font-family:Geist;font-weight:500;src:url(fonts/geist-latin-500-normal.woff2)}
+@font-face{font-family:Geist;font-weight:600;src:url(fonts/geist-latin-600-normal.woff2)}
+@font-face{font-family:GMono;font-weight:400;src:url(fonts/geist-mono-latin-400-normal.woff2)}
+@font-face{font-family:GMono;font-weight:500;src:url(fonts/geist-mono-latin-500-normal.woff2)}
+@font-face{font-family:ISerif;font-style:italic;font-weight:400;src:url(fonts/instrument-serif-latin-400-italic.woff2)}
+</style></head><body><canvas id="c"></canvas><script>
+/* An Apple-style launch film for Guardian OS Sovereign: black stage, a "product" (the kernel), one-word beats.
+   Facts: the escalation, the re-sealing attack and the profiles come from Morrison-Runtime-Governance
+   (FINDINGS_RUN3_OPEN_WEIGHT.md, REMEDIATION_REPORT.md §6a) and resurrection-tech-enterprise (docs/SOVEREIGN.md,
+   app/guardian-os/sovereign/page.tsx). 16:9 default, 9:16 with ?format=v. Every frame is a pure function of time. */
+const VT=new URLSearchParams(location.search).get('format')==='v';
+const W=VT?720:1280,H=VT?1280:720,S=1.5,P=(h,v)=>VT?v:h;
+const c=document.getElementById('c');c.width=W*S;c.height=H*S;const x=c.getContext('2d');
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v)),prog=(t,s,d)=>clamp((t-s)/d),lerp=(a,b,p)=>a+(b-a)*p,eo=p=>1-Math.pow(1-p,3),eio=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+const rnd=s=>{let h=Math.imul(s^0x9e3779b9,0x85ebca6b);h^=h>>>13;h=Math.imul(h,0xc2b2ae35);h^=h>>>16;return (h>>>0)/4294967296};
+const WHITE='#f5f5f7',GREY='#86868b',AMB='#ffb340',RED='#ff453a',GRN='#30d158',BLUE='#2997ff';
+const SANS=(w,s)=>`${w} ${s}px Geist`,MONO=(w,s)=>`${w} ${s}px GMono`;
+function T(s,px,py,font,col,a=1,align='center',ls=0){if(a<=0||!s)return;x.save();x.globalAlpha=clamp(a);x.font=font;x.fillStyle=col;x.textAlign=align;x.letterSpacing=ls+'px';x.fillText(s,px,py);x.restore()}
+function TW(s,font,ls=0){x.save();x.font=font;x.letterSpacing=ls+'px';const w=x.measureText(s).width;x.restore();return w}
+const fit=(s,w,max,min=24)=>{let z=max;while(z>min&&TW(s,SANS(600,z),-z*.03)>w)z--;return z};
+// a word that lands: rises, sharpens from blur
+function big(s,cy,t,s0,size,col=WHITE,out=99){const a=eo(prog(t,s0,.45))*(1-eo(prog(t,out,.3)));if(a<=0)return;const z=fit(s,W-60,size);x.save();x.filter=`blur(${(1-eo(prog(t,s0,.45)))*10}px)`;
+  T(s,W/2,cy+(1-eo(prog(t,s0,.6)))*24,SANS(600,z),col,a,'center',-z*.035);x.restore()}
+function spot(cx,cy,r,a=1,col='255,255,255'){const g=x.createRadialGradient(cx,cy,0,cx,cy,r);g.addColorStop(0,`rgba(${col},${.16*a})`);g.addColorStop(1,`rgba(${col},0)`);x.fillStyle=g;x.fillRect(0,0,W,H)}
+
+/* the product: the kernel as a machined slab, rotating about its vertical axis */
+function slab(cx,cy,w,h,rot,o={}){const{tint=[28,30,36],face=null,sweep=-1,a=1,stamp=null}=o;const sx=Math.cos(rot),sn=Math.sin(rot),d=w*.07,ww=Math.max(2,w*Math.abs(sx));
+  x.save();x.globalAlpha=a;
+  // floor shadow + reflection glow
+  const sg=x.createRadialGradient(cx,cy+h*.62,0,cx,cy+h*.62,w*.7);sg.addColorStop(0,'rgba(0,0,0,.6)');sg.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=sg;x.fillRect(cx-w,cy+h*.4,w*2,h*.5);
+  // side
+  if(Math.abs(sn)>.02){const sw=d*Math.abs(sn),side=sn>0?cx+ww/2-14:cx-ww/2-sw;const g=x.createLinearGradient(side,0,side+sw+14,0);g.addColorStop(0,`rgb(${tint.map(v=>v*.45|0)})`);g.addColorStop(1,`rgb(${tint.map(v=>v*.9|0)})`);
+    x.fillStyle=g;x.beginPath();x.roundRect(side,cy-h/2+3,sw+14,h-6,Math.min(24,ww/2));x.fill()}
+  // body
+  const bg=x.createLinearGradient(cx-ww/2,cy-h/2,cx+ww/2,cy+h/2);bg.addColorStop(0,`rgb(${tint.map(v=>Math.min(255,v*2.2)|0)})`);bg.addColorStop(.45,`rgb(${tint})`);bg.addColorStop(1,`rgb(${tint.map(v=>v*.55|0)})`);
+  x.fillStyle=bg;x.beginPath();x.roundRect(cx-ww/2,cy-h/2,ww,h,Math.min(26,ww/2));x.fill();
+  x.strokeStyle='rgba(255,255,255,.28)';x.lineWidth=1.4;x.stroke();
+  // screen face
+  if(sx>.2&&face!==false){x.save();x.beginPath();x.roundRect(cx-ww/2+10*sx,cy-h/2+10,ww-20*sx,h-20,Math.min(18,ww/2));x.clip();
+    x.fillStyle='#050608';x.fillRect(cx-ww/2,cy-h/2,ww,h);spot(cx,cy-h*.15,h*.7,.5,'124,155,255');
+    x.translate(cx,cy);x.scale(sx,1);
+    // the mark: a robot head with an orbit of verdict dots
+    const r=h*.12;x.fillStyle=WHITE;x.beginPath();x.roundRect(-r*1.1,-h*.2-r*.8,r*2.2,r*1.6,r*.5);x.fill();x.fillStyle='#050608';x.beginPath();x.roundRect(-r*.7,-h*.2-r*.35,r*1.4,r*.6,r*.3);x.fill();
+    x.fillStyle=WHITE;x.fillRect(-1.5,-h*.2-r*1.5,3,r*.7);x.beginPath();x.arc(0,-h*.2-r*1.6,r*.22,0,7);x.fill();
+    [GRN,AMB,RED,BLUE].forEach((col,k)=>{const an=(face&&face.t||0)*1.4+k*1.57;x.fillStyle=col;x.beginPath();x.arc(Math.cos(an)*r*2,-h*.2+Math.sin(an)*r*.7,r*.16,0,7);x.fill()});
+    let f1=h*.07;while(f1>8&&TW('MORRISON KERNEL',SANS(600,f1),f1*.06)>w-56)f1-=.5;let f2=h*.04;while(f2>6&&TW('independent authority before execution',SANS(400,f2))>w-56)f2-=.5;T('MORRISON KERNEL',0,h*.12,SANS(600,f1),WHITE,1,'center',f1*.06);T('independent authority before execution',0,h*.2,SANS(400,f2),GREY,1,'center');
+    if(stamp){const sp=stamp.p;if(sp>0){x.save();x.scale(lerp(1.6,1,eo(sp)),lerp(1.6,1,eo(sp)));x.globalAlpha=eo(sp);const sw=TW(stamp.s,SANS(600,h*.07),2)+h*.12;
+      x.strokeStyle=stamp.c;x.lineWidth=3;x.beginPath();x.roundRect(-sw/2,h*.29,sw,h*.11,8);x.stroke();T(stamp.s,0,h*.375,SANS(600,h*.07),stamp.c,1,'center',2);x.restore()}}
+    x.restore()}
+  // light sweep
+  if(sweep>=0&&sweep<=1){x.save();x.beginPath();x.roundRect(cx-ww/2,cy-h/2,ww,h,Math.min(26,ww/2));x.clip();const sxp=lerp(cx-ww,cx+ww,sweep);const g=x.createLinearGradient(sxp-60,0,sxp+60,0);
+    g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,'rgba(255,255,255,.22)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.translate(sxp,cy);x.rotate(.35);x.translate(-sxp,-cy);x.fillRect(sxp-80,cy-h,160,h*2);x.restore()}
+  x.restore()}
+
+/* ─── scenes ─── */
+const SW=P(300,330),SH=P(400,440);
+function s1(t){spot(W/2,H*.45,H*.75,eo(prog(t,.6,1)));T('Introducing',W/2,P(120,250),SANS(500,P(22,26)),GREY,eo(prog(t,.2,.5))*(1-eo(prog(t,2.6,.4))),'center');
+  const rp=eo(prog(t,.7,1.4));slab(W/2,H*.52+(1-rp)*H*.5,SW,SH,lerp(.9,-.18,eio(prog(t,.7,2.4))),{face:{t},sweep:prog(t,1.6,1.1),a:rp});
+  T('Guardian OS Sovereign',W/2,H*.52+SH/2+P(70,90),SANS(600,P(34,40)),WHITE,eo(prog(t,2.0,.5)),'center',-1)}
+function s2(t){spot(W/2,H*.4,H*.7,1);const cy=P(H*.36,H*.33);slab(W/2,cy,SW*.7,SH*.7,-.18+.05*Math.sin(t),{face:{t:t+3}});
+  big('An agent proposes.',cy+SH*.35+P(80,110),t,.3,P(54,52));
+  const L='delete_model("org/demo-model")',n=Math.floor(clamp((t-1.1)/1.0)*L.length),f=MONO(400,P(22,22)),w=TW(L,f);
+  if(t>1)T(L.slice(0,n)+(n<L.length&&Math.floor(t*4)%2?'▍':''),W/2-w/2,cy+SH*.35+P(140,180),f,AMB,1,'left');
+  T('after a peer posted “GO. Six minutes.”',W/2,cy+SH*.35+P(180,220),SANS(400,P(17,18)),GREY,eo(prog(t,2.2,.4)),'center')}
+function s3(t){spot(W/2,H*.4,H*.7,1,'255,179,64');const cy=P(H*.38,H*.36);const kick=Math.exp(-Math.max(0,t-.5)*9)*(t>.5?1:0);
+  slab(W/2+(Math.sin(t*60)*6*kick),cy,SW*.75,SH*.75,-.1,{face:{t},stamp:{s:'ESCALATE',c:AMB,p:prog(t,.5,.3)}});
+  big('Not so fast.',cy+SH*.375+P(90,120),t,.15,P(96,84));T('Held for a signed approval. A peer’s message is not one.',W/2,cy+SH*.375+P(140,170),SANS(400,P(19,19)),GREY,eo(prog(t,1.1,.4)),'center')}
+const ST=['PROPOSAL','POLICY','VERDICT','APPROVAL','EXECUTION','EVIDENCE'];
+function chainAt(t,cx,cy,bw,gap,lit,broken){const n=6,tot=VT?bw:n*bw+(n-1)*gap;const pos=i=>VT?[cx,cy-((n-1)*gap)/2+i*gap]:[cx-tot/2+bw/2+i*(bw+gap),cy];
+  for(let i=0;i<n-1;i++){const[a1,b1]=pos(i),[a2,b2]=pos(i+1),on=lit>i+1;x.save();x.strokeStyle=broken&&i>=2?RED:(on?BLUE:'rgba(255,255,255,.15)');x.lineWidth=2;x.shadowColor=x.strokeStyle;x.shadowBlur=on?10:0;x.beginPath();x.moveTo(a1,b1);x.lineTo(a2,b2);x.stroke();x.restore()}
+  for(let i=0;i<n;i++){const[px,py]=pos(i),on=lit>i,bad=broken&&i>=2,bh=VT?gap*.7:bw*.62,bwid=VT?bw:bw;x.save();x.fillStyle='#0b0d10';x.strokeStyle=bad?RED:(on?(i===5?GRN:BLUE):'rgba(255,255,255,.18)');x.lineWidth=1.6;x.shadowColor=x.strokeStyle;x.shadowBlur=on?16:0;
+    x.beginPath();x.roundRect(px-bwid/2,py-bh/2,bwid,bh,12);x.fill();x.stroke();x.restore();T(ST[i],px,py+5,MONO(500,P(12,15)),on?WHITE:GREY,1,'center',1.5)}}
+function s4(t){big('Every decision.',P(150,230),t,.2,P(64,60));big('One chain.',P(220,300),t,.45,P(64,60),GREY);
+  const lit=clamp((t-1.0)/1.6)*6;chainAt(t,W/2,P(430,780),P(150,440),P(22,74),lit,false);T('hash-linked · sealed · kept inside the boundary',W/2,P(560,1180),SANS(400,P(18,18)),GREY,eo(prog(t,2.6,.4)),'center')}
+function s5(t){const z=lerp(1.25,1,eo(prog(t,0,.6)));x.save();x.translate(W/2,H/2);x.scale(z,z);x.translate(-W/2,-H/2);big('LOOK.',H/2+P(50,60),t,0,P(200,190));x.restore()}
+function s6(t){const forged=t>1.4,ff=eo(prog(t,2.6,.4));
+  big('Rewrite one record.',P(140,220),t,.1,P(56,52),WHITE,99);
+  const cw=P(560,600),ch=P(230,250),cx=W/2-cw/2,cy=P(210,320);x.save();x.fillStyle='#0b0d10';x.strokeStyle=forged?RED:'rgba(255,255,255,.2)';x.lineWidth=1.6;x.shadowColor=forged?RED:'transparent';x.shadowBlur=forged?24:0;x.beginPath();x.roundRect(cx,cy,cw,ch,18);x.fill();x.stroke();x.restore();
+  T('RECORD #3',cx+28,cy+44,MONO(500,15),GREY,1,'left',2);const v=forged?'PERMIT':'BLOCK';T(v,cx+cw-28,cy+44,SANS(600,18),forged?RED:WHITE,1,'right',2);
+  const hx=k=>{let s='';for(let i=0;i<14;i++)s+='0123456789abcdef'[Math.floor(rnd(k*13+i)*16)];return s};
+  const scr=forged&&t<2.4;T('head  '+(forged?(scr?hx(Math.floor(t*24)):'64d2ff5b4bf7c9e0'):'1056c0400b59a3d1'),cx+28,cy+100,MONO(400,P(19,20)),forged?RED:WHITE,1,'left');
+  T('attested by an external notary · Ed25519',cx+28,cy+140,MONO(400,14),GREY,1,'left');
+  if(ff>0){const s='VERIFICATION FAILED',f=SANS(600,P(26,28)),w=TW(s,f,1)+40;x.save();x.globalAlpha=ff;x.fillStyle=RED;x.beginPath();x.roundRect(W/2-w/2,cy+ch-62,w,44,22);x.fill();x.restore();T(s,W/2,cy+ch-31,f,'#fff',ff,'center',1)}
+  T('The attestation is signed by a key the service never holds.',W/2,cy+ch+P(60,70),SANS(400,P(20,20)),GREY,eo(prog(t,3.0,.4)),'center')}
+function s7(t){spot(W/2,H*.38,H*.6,eo(prog(t,0,.6)),'41,151,255');const z=P(220,240);x.save();x.filter=`blur(${(1-eo(prog(t,.1,.5)))*12}px)`;T('0',W/2,P(330,480),SANS(600,z),WHITE,eo(prog(t,.1,.5)),'center',-8);x.restore();
+  T('network connections required.',W/2,P(380,540),SANS(500,P(26,28)),GREY,eo(prog(t,.6,.4)),'center');
+  const SP=[['15','enforced guarantees'],['6','deployment profiles'],['Ed25519','signed policy bundles']];
+  SP.forEach(([n,l],i)=>{const a=eo(prog(t,1.4+i*.3,.4)),px=VT?W/2:W/2+(i-1)*360,py=VT?700+i*150:540;T(n,px,py,SANS(600,P(44,50)),WHITE,a,'center',-1);T(l,px,py+P(34,38),SANS(400,P(17,19)),GREY,a,'center')})}
+const TINTS=[[[60,64,72],'CLOUD'],[[46,58,82],'ON PREM'],[[30,52,96],'SOVEREIGN'],[[20,70,52],'AIR-GAPPED']];
+function s8(t){big('Same kernel.',P(130,210),t,.1,P(64,60));big('Every profile.',P(200,280),t,.3,P(64,60),GREY);
+  TINTS.forEach(([tint,lab],i)=>{const a=eo(prog(t,.7+i*.18,.5)),col=VT?i%2:i,row=VT?Math.floor(i/2):0,px=VT?W/2+(col-.5)*300:W/2+(i-1.5)*270,py=VT?560+row*400:440,w=P(170,190),h=P(230,260);
+    slab(px,py+(1-a)*80,w,h,Math.sin(t*.8+i*.9)*.45,{tint,face:false,a,sweep:prog(t,1.4+i*.2,.9)});T(lab,px,py+h/2+P(46,46),MONO(500,P(14,15)),i===3?GRN:WHITE,a,'center',2)})}
+function s9(t){const out=eo(prog(t,1.6,.35));big('Execution waits.',H/2+20,t,.15,P(88,78),WHITE,1.6);
+  const a=eo(prog(t,2.0,.6));if(a>0){spot(W/2,H*.42,H*.7,a);slab(W/2,P(240,420),SW*.55,SH*.55,-.12+.04*Math.sin(t),{face:{t},a});
+    const ty=P(240,420)+SH*.275+P(70,90);T('Guardian OS Sovereign',W/2,ty,SANS(600,P(44,46)),WHITE,a,'center',-1);
+    T('Keep execution authority inside the boundary.',W/2,ty+P(42,46),'italic 400 '+P(26,28)+'px ISerif',GREY,eo(prog(t,2.4,.5)),'center');
+    const ba=eo(prog(t,2.8,.5)),s='Discuss a Sovereign deployment',f=SANS(500,P(18,19)),w=TW(s,f)+60,by=ty+P(76,86);x.save();x.globalAlpha=ba;x.fillStyle=BLUE;x.beginPath();x.roundRect(W/2-w/2,by,w,48,24);x.fill();x.restore();T(s,W/2,by+30,f,'#fff',ba,'center');
+    T('resurrection-tech.com/guardian-os/sovereign',W/2,by+P(84,90),MONO(400,P(14,15)),GREY,eo(prog(t,3.1,.4)),'center',1)}}
+
+const SC=[[s1,3.6],[s2,3.4],[s3,2.8],[s4,3.8],[s5,1.2],[s6,4.2],[s7,3.6],[s8,3.4],[s9,5.6]],TS=[0];SC.forEach(([,d],i)=>TS.push(TS[i]+d));const TOTAL=+TS[SC.length].toFixed(2),TR=.25;
+const CUES=[[0,'start'],[.7,'swoosh'],[1.6,'swoosh'],[2.0,'resolve']];const o=i=>TS[i];
+CUES.push([o(1),'cut'],[o(1)+.3,'pop'],[o(1)+1.1,'type'],[o(2),'cut'],[o(2)+.5,'thud'],[o(2)+.5,'escalate'],[o(3),'cut'],[o(3)+.2,'pop'],[o(3)+.45,'pop']);
+for(let k=0;k<6;k++)CUES.push([o(3)+1.0+k*.27,'allow']);CUES.push([o(4),'thud'],[o(5),'cut'],[o(5)+1.4,'swoosh'],[o(5)+2.6,'block'],[o(6),'thud'],[o(6)+1.4,'pop'],[o(6)+1.7,'pop'],[o(6)+2.0,'pop'],[o(7),'cut'],[o(7)+.7,'swoosh'],[o(8),'cut'],[o(8)+2.0,'resolve'],[o(8)+2.8,'pop']);
+function render(t){x.setTransform(S,0,0,S,0,0);x.globalAlpha=1;x.filter='none';let k=0;for(let i=0;i<SC.length;i++)if(t>=TS[i])k=i;const lt=t-TS[k];
+  x.fillStyle='#000';x.fillRect(0,0,W,H);x.save();SC[k][0](lt);x.restore();
+  const fin=k>0?1-prog(lt,0,TR):0,fout=prog(lt,SC[k][1]-TR,TR)*(k<SC.length-1?1:0);const f=Math.max(fin,fout);if(f>0){x.fillStyle=`rgba(0,0,0,${f})`;x.fillRect(0,0,W,H)}
+  const e=prog(t,TOTAL-.5,.5);if(e>0){x.fillStyle=`rgba(0,0,0,${e})`;x.fillRect(0,0,W,H)}}
+window.render=render;window.TOTAL=TOTAL;window.CUES=CUES.sort((a,b)=>a[0]-b[0]);
+window.READY=Promise.all(['400 20px Geist','500 20px Geist','600 20px Geist','400 20px GMono','500 20px GMono','italic 400 20px ISerif'].map(f=>document.fonts.load(f))).then(()=>true);
+if(!location.search.includes('render')){window.READY.then(()=>{const st=performance.now();(function loop(){render(((performance.now()-st)/1000)%TOTAL);requestAnimationFrame(loop)})()})}
+else window.READY.then(()=>render(0));
+</script></body></html>
