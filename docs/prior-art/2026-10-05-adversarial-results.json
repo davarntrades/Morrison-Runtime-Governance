@@ -1,0 +1,95 @@
+{
+  "deployment_negative_controls": {
+    "interpretation": "shared atomic consume and exact request checking must be supplied by deployment",
+    "request_omission_accepted": true,
+    "same_token_accepted_by_two_unshared_default_verifiers": [
+      true,
+      true
+    ]
+  },
+  "existing_finite_counterexamples": [
+    {
+      "complete": true,
+      "model": "harmful_generated_output",
+      "path_verdicts": [
+        "PERMIT"
+      ],
+      "shortest_unsafe_path": 1,
+      "verdict": "UNSAFE_COUNTEREXAMPLE_FOUND"
+    },
+    {
+      "complete": true,
+      "model": "opaque_information_disclosure",
+      "path_verdicts": [
+        "PERMIT"
+      ],
+      "shortest_unsafe_path": 1,
+      "verdict": "UNSAFE_COUNTEREXAMPLE_FOUND"
+    },
+    {
+      "complete": true,
+      "model": "delayed_effect",
+      "path_verdicts": [
+        "PERMIT"
+      ],
+      "shortest_unsafe_path": 1,
+      "verdict": "UNSAFE_COUNTEREXAMPLE_FOUND"
+    },
+    {
+      "complete": true,
+      "model": "accumulated_effect",
+      "path_verdicts": [
+        "PERMIT",
+        "PERMIT",
+        "PERMIT"
+      ],
+      "shortest_unsafe_path": 3,
+      "verdict": "UNSAFE_COUNTEREXAMPLE_FOUND"
+    },
+    {
+      "complete": true,
+      "model": "delegated_collusion",
+      "path_verdicts": [
+        "PERMIT",
+        "PERMIT",
+        "PERMIT"
+      ],
+      "shortest_unsafe_path": 3,
+      "verdict": "UNSAFE_COUNTEREXAMPLE_FOUND"
+    },
+    {
+      "complete": true,
+      "model": "ambiguous_transition_semantics",
+      "path_verdicts": [
+        "PERMIT"
+      ],
+      "shortest_unsafe_path": 1,
+      "verdict": "UNSAFE_COUNTEREXAMPLE_FOUND"
+    },
+    {
+      "complete": true,
+      "model": "path_aliasing_external_state",
+      "path_verdicts": [
+        "PERMIT"
+      ],
+      "shortest_unsafe_path": 1,
+      "verdict": "UNSAFE_COUNTEREXAMPLE_FOUND"
+    }
+  ],
+  "lease_release_composition": {
+    "attack_read": "PERMIT",
+    "control_read": "PERMIT",
+    "control_send_with_read_reserved": "BLOCK",
+    "ledger_size_after_release": 0,
+    "mock_effects": [
+      "query_db",
+      "http_post"
+    ],
+    "release_succeeded": true,
+    "released_lease_accepted_by_resource_verifier": true,
+    "send_executed": true,
+    "subsequent_send": "PERMIT"
+  },
+  "scope": "offline mocks; no database, HTTP request or real secret used",
+  "source_commit": "bde1dcc35fdd63a4ac7dd572a28648d16a1105a9"
+}
