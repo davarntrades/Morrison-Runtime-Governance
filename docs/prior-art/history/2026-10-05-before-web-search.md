@@ -6,21 +6,17 @@
 
 ---
 
-**Search update (5 October 2026):** [Element-by-element supplement, dates, sources and search record](docs/prior-art/2026-10-05-search-supplement.md). The [pre-update text](docs/prior-art/history/2026-10-05-before-web-search.md) is preserved verbatim, including its earlier findings and limitations. The supplement corrects the authority framing and separates disclosure from demonstration.
-
 ## Executive position
 
 Morrison should not claim novelty for runtime enforcement, policy engines, reference monitors, safe sets, reachability, shielding, runtime monitoring, tool-call validation, information-flow controls, pre-execution blocking, or audit logging individually. Each has substantial prior art.
 
-The current bounded search result is:
+The current search supports a narrower and more technically important position:
 
-> **No single reference has yet been verified as disclosing the complete narrow combination.**
-
-This does not establish novelty. Close disclosures remain open for further comparison, especially PACE, Provenact/MasuGate and L-DREA. Separately, the inspected demonstration evidence has not established the complete target under an independently verified deployment boundary; that observation must not be used to dismiss a technical disclosure.
+> **We have not identified prior work demonstrating local and global admissibility combined with unavoidable execution authority in a general-purpose AI-agent environment.**
 
 This is a result of the search, **not a universal claim**. A single qualifying reference could overturn it.
 
-The target being compared is **local + global safety for autonomous systems**, expressed as a bounded runtime-governance architecture in which:
+The strongest Morrison position is therefore **local + global safety for autonomous systems**, implemented as a bounded runtime-governance architecture in which:
 
 1. a bounded **Admissible Operating Envelope (AOE)** is defined;
 2. local admissibility is evaluated at the individual action / transition boundary;
@@ -63,22 +59,15 @@ Makes and applies a decision inside the agent process, framework or proxy. It ha
 ### G — Guardrail
 Filters, classifies, monitors, advises or returns a policy verdict. Another component ultimately decides whether execution occurs.
 
-This distinction matters. A component being described as able to “block” or “enforce” does not establish execution authority. **Representation of authority is not authority.** Classify the actual deployment boundary, not its packaging: a protected proxy or framework executor can be mandatory on a declared path, while calling software a kernel does not establish complete mediation. History-aware policy is compatible with any placement; authority and expressiveness are separate axes.
+This distinction matters. A component being described as able to “block” or “enforce” does not establish execution authority. **Representation of authority is not authority.**
 
 ---
 
 ## 3. Prior-art result
 
-### Disclosure question and current verification status
+### No single pre-priority reference identified with all seven elements
 
-**No single reference has yet been verified as disclosing the complete narrow combination.** This is a search-status statement, not an anticipation or patentability determination. Morrison's claim-specific priority dates remain unconfirmed in this review.
-
-Two questions must be answered independently:
-
-1. **Prior-art/disclosure:** Does an earlier qualifying reference disclose the complete claimed combination?
-2. **Demonstration:** Has a system actually demonstrated the complete property under its stated assumptions?
-
-A missing deployment experiment is not evidence of missing disclosure. Conversely, specifying an enforcement architecture does not establish that its complete property was demonstrated. The original search's stronger wording is retained in the historical snapshot, not adopted as a current legal conclusion.
+The search found no single pre-priority reference disclosing all seven claimed elements together.
 
 However, the individual elements and many combinations are old and well established. Strong references include:
 
@@ -97,7 +86,7 @@ Therefore, broad claims such as “invented runtime safety,” “invented pre-e
 
 ## 4. Strong obviousness pressure
 
-The original analysis raised **strong obviousness pressure** from combining established mechanisms. That concern is preserved as a technical review lead, not a legal conclusion; this update does not decide anticipation or inventive step.
+No anticipation was identified in the search, but a **strong obviousness combination exists**.
 
 A particularly strong combination is:
 
@@ -116,7 +105,7 @@ The remaining distinction must therefore be framed around **semantic autonomous-
 
 The October analysis attacked the apparent residue rather than stopping after the first novelty-positive search.
 
-The narrower implementation features requiring continued comparison are:
+The most defensible remaining features are:
 
 1. **Denied actions as semantic trajectory state** — a refused action can alter later admissibility, rather than merely incrementing a rate counter.
 2. **Reservation-aware global checks over general autonomous-agent actions** — pending/reserved transitions participate in a reachability-style global decision before execution.
@@ -124,7 +113,7 @@ The narrower implementation features requiring continued comparison are:
 4. **Evidence bound to the decision** — action identity, ruleset version and trajectory state are bound into the decision/evidence object.
 5. **Exhaustive environment-state verification** in a declared finite bounded environment, rather than only sampled benchmark trajectories.
 
-The original report recorded that it had not located a single pre-2026 document combining these features. This historical result is preserved, but the current supplement adds later and older references and does not establish that any listed feature is novel. In particular, PACE specifies reservations and bound evidence; Provenact protects shared state and holds; L-DREA combines node/class vetoes. The narrow features are comparison questions, not extra requirements retroactively added to the seven-element target.
+The report found no single pre-2026 document combining the targeted local/global decision, reservation/denial-aware semantic trajectory and bound evidence in one general-agent decision path. But this residue is **thin and application-specific**, and obviousness remains a serious issue.
 
 ---
 
@@ -139,25 +128,23 @@ Several demonstrate trajectory-level decision logic for bounded property classes
 - history-dependent multi-agent rules;
 - cross-call flows.
 
-**Correction from the 5 October web search:** history-aware enforcement and OS-level authority can coexist. CamQuery performs provenance-based checks inside Linux security hooks before actions; ActPlane enforces cross-event information-flow and temporal rules at the OS boundary. Evaluating at each call does not imply evaluating only that call's arguments.
+The important remaining authority distinction is:
 
-Authority placement and policy expressiveness must therefore be evaluated independently. Neither trajectory awareness nor framework/proxy packaging determines whether a protected deployment path is unavoidable.
+> Systems reviewed that reason over trajectories generally run inside the agent process/framework or depend on proxy routing; systems with unavoidable execution authority generally enforce capabilities or per-call requests rather than a separate local + global semantic trajectory decision.
 
-The expanded comparison adds **PACE, Provenact/MasuGate, L-DREA, Controlled Agentic AI Systems, ActPlane, CamQuery and KedgeFlow**, plus **US20260127298A1 and US20260142827A1**. The [supplement](docs/prior-art/2026-10-05-search-supplement.md) maps each against all seven elements and the narrower implementation features. The full narrow combination remains unverified; this is not a claim that relevant systems lack local/global safety logic.
+The search therefore did **not** support “nobody else has local/global safety logic.” It supported the narrower finding that the reviewed work did not combine that logic with unavoidable execution authority in a general-purpose AI-agent environment.
 
 ---
 
 ## 7. Closest authority-side systems
 
-Relevant authority-side references include both implemented controls and specified architectures; their demonstration status must be checked separately:
+The closest systems with strong execution authority include:
 
 - **aiAuthZ (2026):** credential broker keeps API secrets away from the agent; per-call authorization, but no identified trajectory/AOE semantics.
 - **AWS AgentCore Gateway + Policy (2025–26):** intercepts agent-to-tool requests outside agent code and can hold backend credentials; per-call Cedar policy, no identified trajectory check.
-- **ActPlane (2026):** OS/eBPF enforcement with history-dependent information flow and temporal gates. The exact separate local/global semantic-reachability and evidence combination is **not established from the inspected material**.
-- **CamQuery (2018):** in-kernel whole-system provenance analysis before protected actions. Its userspace/distributed mode has a different prevention boundary; see the supplement.
-- **PACE, Provenact/MasuGate, L-DREA and KedgeFlow:** additional authority-side architectural disclosures, with implementation and deployment qualifications assessed separately in the supplement.
+- **ActPlane (2026):** OS/eBPF enforcement with history-dependent information flow; not semantic reachability over Ω.
 - **Simplex / ASTM F3269:** authority over actuator selection and system-state envelope, but not general tool-using agents.
-- **seL4 / reference-monitor architectures:** foundational mediation and capability authority. These categories do not impose a stateless-policy limit; the exact Morrison combination is not established from the previously inspected examples.
+- **seL4 / reference-monitor architectures:** strong mediation and capability authority, but capability-level rather than Morrison's semantic transition model.
 
 This is why the key Morrison question is not “can software block an action?” It is:
 
@@ -200,11 +187,7 @@ No amount of kernel decision testing establishes mediation completeness. It is a
 
 ### Prior-art positioning
 
-> **No single reference has yet been verified as disclosing the complete narrow combination. This is a bounded search result, not a novelty claim; qualifying dates and close disclosures remain under review.**
-
-### Demonstration positioning
-
-> **Whether any system has demonstrated the complete target under its stated assumptions is evaluated separately from what its documents disclose. This review has not independently reproduced the candidate systems or established their full deployment properties.**
+> **Our adversarial prior-art search did not identify prior work demonstrating local and global admissibility combined with unavoidable execution authority in a general-purpose AI-agent environment. This is a search result, not a universal claim, and we are actively seeking independent falsification.**
 
 ### Validation positioning
 
@@ -240,7 +223,7 @@ The analysis identified several close 2026 publications:
 - Ray, *What Can Be Enforced?* — enforceability of multi-step policies by deterministic gates.
 - ChainCaps / *One Gate Is Not Enough* — composition of locally acceptable calls into unsafe behavior.
 
-The supplement adds the requested nine reference entries and separates publication, filing and priority information. Relevance depends on the confirmed priority date and claim allocation of the relevant Morrison filing. Publication dates, filing dates, continuation-family dates and the dates of later documentation are not interchangeable.
+Whether any of these are prior art depends on the confirmed priority date of the relevant Morrison filing. Their existence also demonstrates rapid convergence of the field and increases obviousness pressure.
 
 ---
 
@@ -262,18 +245,16 @@ A failed claim is useful evidence. The purpose of the programme is falsification
 
 ---
 
-## 13. Current search verdict
+## 13. Current novelty verdict
 
-**Disclosure:** No single reference has yet been verified as disclosing the complete narrow combination.  
-**Novelty:** not established or claimed.  
-**Demonstration:** assessed separately; no independent reproduction or complete deployment-boundary validation was performed in this review.  
-**Authority framing:** unavoidable enforcement is not inherently stateless; history-aware kernel enforcement exists.  
-**Close references:** PACE, Provenact/MasuGate, L-DREA, CAIS, ActPlane, CamQuery, KedgeFlow and the two listed patent publications require the scoped comparisons in the supplement.  
-**Narrow features:** reservation/denial-aware semantic trajectories, distinct local/global verdicts and action/ruleset/trajectory evidence remain comparison targets; unverified does not mean absent.  
-**Dates:** Morrison priority and reference qualification remain unresolved.  
-**Earlier evidence:** retained in sections 3–5 and 11, the original PDF, git history and the verbatim historical snapshot.  
-**Independent validation:** still required, including for Morrison.
-
+**Individual primitives:** established prior art.  
+**Local + global safety logic:** established antecedents exist in runtime assurance, multi-agent shielding, workflow/security and control systems.  
+**General-purpose AI-agent demonstrations:** trajectory-level bounded decision logic exists, generally with hybrid/deployment-dependent authority.  
+**Unavoidable execution authority for AI agents:** deployed examples exist for capabilities and per-call authorization.  
+**Combination not identified in this search:** local + global admissibility + semantic trajectory/reachability + unavoidable execution authority + bound evidence in a general-purpose AI-agent environment.  
+**Obviousness risk:** strong.  
+**Most defensible residue:** denial/reservation-aware semantic trajectories, separate local/global reachability verdicts in one pre-execution authority, exhaustive bounded environment-state verification, and decision-bound trajectory evidence.  
+**Independent validation:** still required.
 
 ---
 
