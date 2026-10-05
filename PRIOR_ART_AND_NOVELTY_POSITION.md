@@ -1,579 +1,278 @@
 # Prior Art & Novelty Position — Morrison Runtime Governance
 
-**Date:** 24 August 2026  
-**Status:** Internal technical-positioning audit — not a legal patentability opinion, not an exhaustive literature review  
-**Question:** *How much of Morrison is unique versus known runtime-policy, control, formal-method, and agent-guardrail techniques assembled in a new way?*
+**Updated:** 5 October 2026  
+**Status:** Internal technical-positioning analysis for counsel and independent falsification. Not legal advice or a patentability opinion.  
+**Primary analysis:** *Adversarial Prior-Art Analysis — Local–Global Admissible Operating Envelope Enforcement* (2 October 2026), covering patents, academic literature, standards, open-source systems and deployed architectures from 1972–2026.
 
 ---
 
-## Executive answer
+## Executive position
 
-Morrison should **not** claim novelty for the individual ingredients of runtime enforcement, policy decision points, safe sets, reachability, shielding, runtime monitoring, tool-call validation, taint/information-flow ideas, or audit logging. Those all have substantial prior art.
+Morrison should not claim novelty for runtime enforcement, policy engines, reference monitors, safe sets, reachability, shielding, runtime monitoring, tool-call validation, information-flow controls, pre-execution blocking, or audit logging individually. Each has substantial prior art.
 
-The strongest defensible novelty position is narrower:
+The current search supports a narrower and more technically important position:
 
-> **Morrison is an integrated runtime-assurance architecture for tool-using autonomous systems that combines trajectory-level pre-execution governance, bounded Safety Envelope claims over declared deployment conditions, explicit non-inheritance of assurance outside the tested envelope, provider-normalised execution mediation, and evidence/provenance around each canonical decision.**
+> **We have not identified prior work demonstrating local and global admissibility combined with unavoidable execution authority in a general-purpose AI-agent environment.**
 
-That is best described today as a **distinct operational synthesis and assurance architecture** with potentially novel claim structure — not as proof that every underlying mathematical or enforcement primitive is new.
+This is a result of the search, **not a universal claim**. A single qualifying reference could overturn it.
 
-The most promising candidate for genuinely distinctive intellectual contribution is not “runtime blocking” by itself. It is the combination of:
+The strongest Morrison position is therefore **local + global safety for autonomous systems**, implemented as a bounded runtime-governance architecture in which:
 
-1. **trajectory/reachability-based action governance at the agent-tool boundary**;
-2. a **declared local Safety Envelope** parameterised by real deployment configuration;
-3. **OBSERVED LOCAL SAFETY vs UNVALIDATED** as an explicit epistemic state;
-4. **no assurance inheritance** after material configuration change;
-5. canonical runtime decisions kept separate from downstream causal/regulatory interpretation;
-6. tamper-evident evidence supporting the bounded claim.
+1. a bounded **Admissible Operating Envelope (AOE)** is defined;
+2. local admissibility is evaluated at the individual action / transition boundary;
+3. global admissibility is evaluated separately over composed state / trajectory;
+4. a sequence of individually admissible transitions is prevented from reaching a globally inadmissible state through the governed path;
+5. governance is separated from the model or agent;
+6. authority is exercised before execution through **PERMIT / ESCALATE / BLOCK** (or equivalent ALLOW / ESCALATE / BLOCK semantics);
+7. evidence binds the decision to action identity, ruleset and trajectory state.
 
-A full novelty determination would require deeper literature, product, patent, and code review by independent specialists. This document deliberately stops short of “first,” “unprecedented,” or formal patentability claims.
-
----
-
-## 1. Comparison frame
-
-Morrison sits near several mature traditions that must be acknowledged rather than collapsed into “ordinary AI guardrails”:
-
-- runtime verification
-- security automata / enforceable security policies
-- reference-monitor / policy-decision-point architectures
-- policy-as-code engines
-- information-flow / taint tracking
-- shielding / runtime enforcement
-- reachability analysis
-- invariant safe sets / control barrier functions
-- AI-agent tool guardrails
-- agent orchestration / approvals
-- audit and decision logging
-
-The question is therefore not whether Morrison has antecedents. It clearly does.
-
-The useful question is:
-
-> **What object is Morrison constructing that is not already supplied by any one of these neighbouring approaches?**
+The novelty question is not whether these seven ideas each existed. They did. The question is whether the **claimed combination, authority placement and evidence semantics** were disclosed together before the relevant priority date.
 
 ---
 
-## 2. Prior-art family: runtime verification
+## 1. The claim tested
 
-### Established idea
+| # | Claimed element |
+|---|---|
+| 1 | Defines a bounded Admissible Operating Envelope (AOE) for an AI/agent system |
+| 2 | Evaluates and enforces local admissibility at individual execution boundaries, actions, agents, components or transitions |
+| 3 | Separately evaluates and enforces global admissibility of the composed system state or execution trajectory |
+| 4 | Prevents a sequence of individually admissible transitions from reaching a globally inadmissible state through the governed path |
+| 5 | Places enforcement at an independent runtime authority, not solely in the model or agent |
+| 6 | Exercises authority before execution, with veto/block or escalation |
+| 7 | Produces evidence showing whether local and global execution stayed within the AOE |
 
-Runtime verification is a mature field concerned with checking execution traces against specified properties while a system runs. The classic survey by Leucker & Schallhart distinguishes runtime verification from model checking and testing and discusses contract enforcement.
-
-Reference:
-- Martin Leucker & Christian Schallhart, **“A Brief Account of Runtime Verification”** (2009): https://doi.org/10.1016/j.jlap.2008.08.004
-
-### Overlap with Morrison
-
-- observes / evaluates runtime traces
-- properties can be checked on execution prefixes
-- can support enforcement or contract-like behaviour
-- naturally produces trace-level evidence
-
-### Difference / possible Morrison contribution
-
-Morrison's stronger current positioning is not merely “monitor a property at runtime.” It attaches runtime decisions to a **deployment-scoped Safety Envelope** over tools, permissions, policies, planners, trust boundaries, horizon, and reachable states, with explicit status when that envelope no longer applies.
-
-**Conclusion:** runtime verification is important prior art; “runtime monitoring” is not novel.
+**Element 4 is central:** individually admissible transitions must not compose into a globally inadmissible state.
 
 ---
 
-## 3. Prior-art family: enforceable security policies / security automata
+## 2. Authority classes
 
-### Established idea
+The prior-art analysis separates systems by architecture rather than marketing terminology.
 
-The security-monitor literature asks which properties can be enforced by observing execution and aborting or otherwise mediating it. Schneider's security-automata work is foundational to this area, and later surveys explicitly describe traces as sequences of atomic actions and runtime monitors as enforcement mechanisms.
+### K — Kernel / reference monitor
+Sits on the execution path and controls the only credential, OS/network route or executor. The governed action cannot occur through that path without authorization, and the agent cannot override the verdict.
 
-Reference:
-- Survey: **“Which security policies are enforceable by runtime monitors?”** https://doi.org/10.1016/j.entcs.2012.01.014
+### H — Hybrid
+Makes and applies a decision inside the agent process, framework or proxy. It has kernel authority only when deployment guarantees complete mediation.
 
-### Overlap with Morrison
+### G — Guardrail
+Filters, classifies, monitors, advises or returns a policy verdict. Another component ultimately decides whether execution occurs.
 
-- execution mediation
-- action sequence / trace as a first-class object
-- stop/block capability
-- policy external to the governed program/model
-
-### Difference / possible Morrison contribution
-
-Morrison applies that general enforcement logic to **agent-generated tool trajectories** with an explicit state/reachability representation and a bounded assurance envelope rather than only a policy language over traces.
-
-**Conclusion:** “external monitor that can block execution” has strong prior art.
+This distinction matters. A component being described as able to “block” or “enforce” does not establish execution authority. **Representation of authority is not authority.**
 
 ---
 
-## 4. Prior-art family: policy engines / policy-as-code
+## 3. Prior-art result
 
-### Established idea
+### No single pre-priority reference identified with all seven elements
 
-Open Policy Agent (OPA) is a general-purpose policy engine that separates policy decision-making from enforcement. Applications submit structured data; OPA returns policy decisions. OPA also supports decision logs for auditing.
+The search found no single pre-priority reference disclosing all seven claimed elements together.
 
-References:
-- OPA documentation: https://www.openpolicyagent.org/docs
-- OPA deployment / PDP-PEP model: https://www.openpolicyagent.org/docs/deploy
-- OPA decision logs: https://www.openpolicyagent.org/docs/management-decision-logs
+However, the individual elements and many combinations are old and well established. Strong references include:
 
-### Overlap with Morrison
+- Schneider (2000) and Ligatti, Bauer & Walker (2005): step-by-step pre-execution enforcement of trace/security properties.
+- NCSC TNI (1987) + TCSEC audit: global policy partitioned into component reference monitors with mandatory mediation/audit.
+- Simplex / ASTM F3269: runtime assurance and switching before leaving a safety envelope.
+- ModelPlex: per-step monitoring connected to trajectory safety.
+- Alshiekh et al. (2018): preemptive shielding.
+- ElSayed-Aly et al. (2021): local/factored and centralized/global multi-agent shields.
+- Mehmood et al. (2020/21): per-agent runtime assurance composing to global multi-agent safety.
+- CaMeL and Invariant Guardrails (2025): agent/tool-call and cross-call/flow controls, but with deployment-dependent authority.
 
-- external policy decision point
-- structured input
-- policy separated from application/model
-- low-latency runtime decision
-- audit/decision logging
-- can be deployed near enforcement points
-
-### Difference / possible Morrison contribution
-
-OPA is domain-general policy evaluation. It does not by itself define Morrison's specific machinery of:
-
-- agent trajectory prefix evaluation,
-- reachable forbidden regions Ω,
-- declared Safety Envelope validity,
-- assurance non-inheritance after configuration change,
-- canonical agent execution evidence package.
-
-Those could theoretically be implemented *using* a policy engine, which is why Morrison should not claim that externalised policy evaluation itself is novel.
-
-**Conclusion:** policy-decision architecture is prior art; Morrison's claim must live above that layer.
+Therefore, broad claims such as “invented runtime safety,” “invented pre-execution blocking,” or “invented local/global safety” are not defensible.
 
 ---
 
-## 5. Prior-art family: shield synthesis / runtime enforcement
+## 4. Strong obviousness pressure
 
-### Established idea
+No anticipation was identified in the search, but a **strong obviousness combination exists**.
 
-Shield synthesis attaches a component to a system that monitors behaviour and corrects unsafe outputs at runtime so specified safety properties remain satisfied. Bloem et al. introduced shield synthesis for reactive systems; later work formalised variants and extensions.
+A particularly strong combination is:
 
-References:
-- R. Bloem et al., **“Shield Synthesis: Runtime Enforcement for Reactive Systems”**: https://arxiv.org/abs/1501.02573
-- Extended open-access treatment: https://link.springer.com/article/10.1007/s10703-017-0276-9
+- an established reference monitor / runtime enforcement mechanism;
+- local + global or history-aware policy;
+- reservation/pending-state treatment;
+- decision logging and tamper-evident evidence.
 
-### Overlap with Morrison
+Payment-card authorization is especially damaging to broad claims because systems documented from the 1990s already combine per-transaction checks with cumulative/velocity checks, count pending holds, can count declined attempts, and log authorization decisions.
 
-- external safety layer
-- runtime intervention
-- specified safety properties
-- aim to prevent unsafe system output from becoming effective behaviour
-- can be model-independent relative to the protected component
-
-### Difference / possible Morrison contribution
-
-Morrison currently does not synthesise a formally verified shield from a complete reactive-system specification. Its reachability and Safety Envelope are empirical/structural and deployment-scoped.
-
-Where Morrison differs operationally is the application to **LLM/agent tool-use trajectories**, provider normalisation, enterprise execution surfaces, explicit tested-envelope status, and evidence/audit semantics.
-
-**Conclusion:** “runtime shield” is not a new concept. Morrison should explicitly position itself as adjacent to, but less formally complete than, verified shield synthesis — while potentially more directly operationalised for heterogeneous agent-tool stacks.
+The remaining distinction must therefore be framed around **semantic autonomous-agent trajectories, reachability, authority placement and evidence binding**, not generic “local + global checks.”
 
 ---
 
-## 6. Prior-art family: safe sets, invariance, control barrier functions
+## 5. Residue after adversarial attack
 
-### Established idea
+The October analysis attacked the apparent residue rather than stopping after the first novelty-positive search.
 
-Control theory has long represented safety through state-space sets and invariance. Control Barrier Functions (CBFs) provide conditions under which a safe set remains forward invariant under control inputs.
+The most defensible remaining features are:
 
-Reference:
-- A. D. Ames, X. Xu, J. W. Grizzle, P. Tabuada, **“Control Barrier Function Based Quadratic Programs for Safety Critical Systems”**: https://doi.org/10.1109/TAC.2016.2638961
+1. **Denied actions as semantic trajectory state** — a refused action can alter later admissibility, rather than merely incrementing a rate counter.
+2. **Reservation-aware global checks over general autonomous-agent actions** — pending/reserved transitions participate in a reachability-style global decision before execution.
+3. **Two verdicts in one authority** — a local check and a separate global reachability/environment-state check, with the strictest applicable verdict controlling execution.
+4. **Evidence bound to the decision** — action identity, ruleset version and trajectory state are bound into the decision/evidence object.
+5. **Exhaustive environment-state verification** in a declared finite bounded environment, rather than only sampled benchmark trajectories.
 
-The core established idea is:
-
-```text
-start inside a safe set
-+ satisfy the required control condition
-=> remain inside the safe set
-```
-
-### Overlap with Morrison
-
-- safety represented geometrically / as a set
-- unsafe/forbidden region
-- state transitions and trajectories
-- admissible control/action constraints
-- boundary crossing as a meaningful safety event
-
-### Difference / possible Morrison contribution
-
-Morrison's Safety Envelope is not currently a CBF proof or a continuous-time invariant set. It is an **environment-bounded empirical assurance region** for an agentic deployment whose dimensions include software/organisational variables such as tools, permissions, planner, policy, trust boundary, and horizon.
-
-**Conclusion:** safe-set/invariance geometry is established mathematics. Morrison's possible contribution is the translation and operationalisation of bounded safety-envelope semantics into agentic runtime governance, not invention of safe sets.
+The report found no single pre-2026 document combining the targeted local/global decision, reservation/denial-aware semantic trajectory and bound evidence in one general-agent decision path. But this residue is **thin and application-specific**, and obviousness remains a serious issue.
 
 ---
 
-## 7. Prior-art family: reachability analysis
+## 6. General-purpose AI-agent comparison
 
-### Established idea
+Public systems reviewed include CaMeL, FIDES, Agent-C, FORGE, ContrAgent, AgentLTL, CaMeLoT, Pro2Guard, AgentSpec, Progent, Invariant Guardrails, ShieldAgent and QuadSentinel.
 
-Reachability analysis asks which states a dynamical system can reach under its dynamics and constraints; Hamilton-Jacobi methods are a well-developed example used for safety and reach-avoid problems.
+Several demonstrate trajectory-level decision logic for bounded property classes:
 
-Recent work continues to use backward reachable sets/tubes and safety filters in autonomous systems, including real-time and learned variants.
+- information flow;
+- temporal ordering;
+- history-dependent multi-agent rules;
+- cross-call flows.
 
-Examples:
-- Hamilton-Jacobi reachability for contingency planning: https://arxiv.org/abs/2603.26995
-- Data-driven safe-set construction / reachability: https://arxiv.org/abs/2504.03233
+The important remaining authority distinction is:
 
-### Overlap with Morrison
+> Systems reviewed that reason over trajectories generally run inside the agent process/framework or depend on proxy routing; systems with unavoidable execution authority generally enforce capabilities or per-call requests rather than a separate local + global semantic trajectory decision.
 
-- reachable-state sets
-- forbidden region Ω
-- safety question framed as whether unsafe states are reachable
-- horizon and environmental assumptions matter
-
-### Difference / possible Morrison contribution
-
-Morrison's reachability machinery is not equivalent to exhaustive HJ reachability over a known physical dynamics model. It uses a software/action-state abstraction over tool trajectories and organisational execution context.
-
-**Conclusion:** reachability itself is not novel. The candidate novelty lies in the *agentic action-state representation, runtime insertion point, bounded assurance semantics, and evidence layer*.
+The search therefore did **not** support “nobody else has local/global safety logic.” It supported the narrower finding that the reviewed work did not combine that logic with unavoidable execution authority in a general-purpose AI-agent environment.
 
 ---
 
-## 8. Prior-art family: current AI-agent guardrails
+## 7. Closest authority-side systems
 
-### OpenAI Agents SDK
+The closest systems with strong execution authority include:
 
-Current OpenAI Agents SDK documentation includes **tool input guardrails** that can run immediately before custom function-tool execution and reject or raise an exception. It also includes human approval, sessions, tracing, and multi-agent orchestration.
+- **aiAuthZ (2026):** credential broker keeps API secrets away from the agent; per-call authorization, but no identified trajectory/AOE semantics.
+- **AWS AgentCore Gateway + Policy (2025–26):** intercepts agent-to-tool requests outside agent code and can hold backend credentials; per-call Cedar policy, no identified trajectory check.
+- **ActPlane (2026):** OS/eBPF enforcement with history-dependent information flow; not semantic reachability over Ω.
+- **Simplex / ASTM F3269:** authority over actuator selection and system-state envelope, but not general tool-using agents.
+- **seL4 / reference-monitor architectures:** strong mediation and capability authority, but capability-level rather than Morrison's semantic transition model.
 
-References:
-- Guardrails: https://openai.github.io/openai-agents-python/guardrails/
-- Agents SDK: https://openai.github.io/openai-agents-python/
+This is why the key Morrison question is not “can software block an action?” It is:
 
-Important overlap:
-
-- pre-tool-execution checks
-- block/reject semantics
-- per-tool validation
-- accumulated run data / tracing
-- approval workflows
-
-Important limitation relative to Morrison's stated scope:
-
-The OpenAI tool-guardrail pipeline is SDK/tool-specific and documentation focuses on validation around custom function-tool calls. It does not itself present Morrison's declared Safety Envelope / reachability / non-inheritance assurance model.
-
-### NVIDIA NeMo Guardrails
-
-NeMo Guardrails has execution rails controlling tool/action invocations, and current IORails functionality can validate model-emitted tool calls before they reach the application. Its tool-call rails can fail closed on invalid names/arguments.
-
-References:
-- Tool calling: https://docs.nvidia.com/nemo/guardrails/configure-guardrails/guardrail-catalog/tool-calling
-- Rail types / execution rails: https://docs.nvidia.com/nemo/guardrails/about-nemo-guardrails-library/rail-types
-
-Important overlap:
-
-- execution rails around actions/tools
-- input/output validation
-- fail-closed tool-call validation
-- external guardrail layer around LLM applications
-
-Important difference:
-
-NeMo's documented tool-call validation focuses heavily on declared tool/schema correctness and configurable rails. Morrison's stronger differentiated claim must therefore be **trajectory/reachability and assurance-envelope semantics**, not merely “we govern tool calls before execution.”
-
-**Conclusion:** by 2026, pre-execution tool guardrails are clearly not unique. Any Morrison novelty claim that reduces to “blocks unsafe tool calls before they execute” is too broad.
+> **Can an independent runtime authority enforce both local and global admissibility over semantic autonomous-system trajectories before execution, with the relevant path completely mediated and the decision evidenced?**
 
 ---
 
-## 9. Feature-by-feature novelty matrix
+## 8. Morrison's current authority status
 
-Legend:
-- **Known** = substantial prior art exists
-- **Differentiated** = known ingredients, but Morrison's particular operational combination is meaningfully distinct
-- **Candidate novelty** = warrants deeper literature/patent review; do not call “first” yet
+Morrison must not overstate this.
 
-| Morrison element | Status | Reason |
-|---|---|---|
-| External pre-execution enforcement | **Known** | Security monitors, reference monitors, shields, policy engines |
-| ALLOW / BLOCK decision | **Known** | Standard policy/runtime enforcement pattern |
-| ESCALATE / human review | **Known** | Approval / HITL systems |
-| Structured tool-call mediation | **Known** | Agent SDKs, NeMo, policy middleware |
-| Fail-closed execution gate | **Known** | Standard safety/security design |
-| Runtime trace evaluation | **Known** | Runtime verification |
-| Audit / decision logging | **Known** | OPA and many governance systems |
-| Hash-linked evidence | **Known primitive** | Hash chains / tamper-evident logs long established |
-| Taint across action sequences | **Known family** | Information-flow / taint tracking |
-| Reachability of forbidden states | **Known mathematics** | Reachability / safety verification |
-| Safe / admissible state region | **Known mathematics** | Invariance / viability / barrier-function traditions |
-| Provider-normalised governance boundary | **Differentiated** | Common adapter pattern, but directly applied to heterogeneous agent-tool governance |
-| Full agent trajectory prefix as governance object | **Differentiated** | Stronger than isolated tool validation; adjacent to trace/runtime verification |
-| Safety Envelope parameterised by tools + permissions + planner + trust boundaries + horizon | **Candidate novelty** | Specific assurance object may be distinctive; needs exhaustive review |
-| OBSERVED LOCAL SAFETY vs UNVALIDATED | **Candidate novelty** | Explicit epistemic distinction around tested deployment envelope |
-| No safety-claim inheritance outside declared envelope | **Candidate novelty** | Particularly strong assurance semantics; needs prior-art search |
-| Canonical verdict separated from causal/regulatory overlays | **Differentiated** | Strong architecture/evidence discipline; individual pieces known |
-| Runtime evidence package binding trajectory + decision + envelope context | **Differentiated / candidate novelty** | Integration may be distinctive even though logging is not |
-| Shadow → Guarded Pilot → Enforced operational progression | **Known pattern / differentiated packaging** | Shadow/enforce deployment modes exist elsewhere |
-| Causal Information Sufficiency programme | **Separate research programme** | Not established by runtime-governance prior art; requires its own literature audit |
+The library's PDP + execution path is **hybrid unless the deployment satisfies complete mediation**. Resource-side lease verification is the route toward kernel-class authority, but Morrison's own analysis treats complete mediation as an open deployment assumption until it is independently tested.
+
+A credible containment claim requires all three of the following to survive falsification:
+
+### 1. AOE completeness
+Did the bounded model include every relevant state and transition?
+
+Failure: a relevant harmful state/transition exists outside the model or Ω.
+
+### 2. Decision soundness
+For transitions that reach Morrison, does it decide correctly against the AOE?
+
+Failure: a transition that should be refused is permitted.
+
+### 3. Mediation completeness
+Can any relevant transition occur without Morrison-issued authority?
+
+Failure: any bypass path exists through credentials, raw network access, another SDK/executor, or a compromised connector.
+
+No amount of kernel decision testing establishes mediation completeness. It is a deployment property and must be tested in each environment.
 
 ---
 
-## 10. The strongest candidate novelty: assurance non-inheritance
+## 9. What Morrison can defensibly say
 
-One of Morrison's most defensible differentiators is the refusal to let a safety claim silently transfer when the configuration changes.
+### Primary technical positioning
 
-A useful abstract formulation is:
+> **Morrison Runtime Governance is designed to provide local and global safety for autonomous systems by separating proposal from execution authority and evaluating proposed transitions against both local and global admissibility conditions before execution.**
 
-```text
-Let E = declared validated envelope
-Let C = current deployment configuration
-Let V(E, C) = whether C is inside validated conditions
+### Prior-art positioning
 
-if V(E, C) == true:
-    bounded safety evidence may apply
-else:
-    status = UNVALIDATED
-    no safety claim is inherited from E
-```
+> **Our adversarial prior-art search did not identify prior work demonstrating local and global admissibility combined with unavoidable execution authority in a general-purpose AI-agent environment. This is a search result, not a universal claim, and we are actively seeking independent falsification.**
 
-This is stronger than a normal runtime rule saying “call allowed” or “call blocked.” It is a statement about the **validity domain of the assurance claim itself**.
+### Validation positioning
 
-That distinction should be formalised further because it may be more original than the low-level enforcement mechanism.
-
-Potential research/legal-review phrase:
-
-> **configuration-indexed runtime assurance with explicit non-inheritance across unsupported state-space / deployment-envelope changes**
-
-Do not treat this phrase as a patent claim without professional review.
+> **The next objective is independent stress testing of AOE completeness, decision soundness and mediation completeness in a bounded external deployment.**
 
 ---
 
-## 11. The second strong candidate: trajectory + envelope + evidence as one assurance object
+## 10. What Morrison should not claim
 
-Morrison can be framed as constructing an assurance object:
+Do not claim:
 
-```text
-A = (
-    trajectory,
-    environment/configuration,
-    reachable-set estimate,
-    forbidden region Ω,
-    canonical decision,
-    execution outcome,
-    Safety Envelope status,
-    provenance/evidence
-)
-```
+- Morrison invented runtime enforcement.
+- Morrison invented safety envelopes / admissible regions.
+- Morrison invented reachability.
+- Morrison invented reference monitors.
+- Morrison invented local/global safety as a general concept.
+- Morrison is the first system to block tool calls before execution.
+- Morrison already proves universal safety.
+- Morrison currently has unavoidable authority in every deployment.
+- No other company or research system has relevant prior art.
 
-The claim is then not:
-
-```text
-"model safe"
-```
-
-but something closer to:
-
-```text
-"under configuration C and evaluated horizon H,
-trajectory τ was governed against Ω,
-its execution outcome was controlled,
-and the resulting local-safety claim is valid only inside E."
-```
-
-This integration of *what happened*, *what could be reached*, *what was allowed to execute*, and *where the claim remains valid* is the part worth testing against the literature most aggressively.
+The stronger position is narrower and falsifiable.
 
 ---
 
-## 12. What Morrison should stop claiming or avoid claiming
+## 11. 2026 references and priority-date sensitivity
 
-Avoid unqualified statements such as:
+The analysis identified several close 2026 publications:
 
-- “Morrison invented runtime AI safety.”
-- “Morrison invented safety envelopes.”
-- “Morrison invented reachability-based safety.”
-- “Morrison is the first pre-execution guardrail.”
-- “No other system blocks tool calls before execution.”
-- “Morrison formally proves autonomous systems safe.”
-- “Morrison is a verified shield.”
+- Open Agent Passport — deterministic pre-action authorization, fail-closed behavior and signed decision records.
+- CAVA — canonical action hashes, approval binding and receipts.
+- Proof of Execution — authorization/path/no-effect/history guarantees and attestation.
+- Ray, *What Can Be Enforced?* — enforceability of multi-step policies by deterministic gates.
+- ChainCaps / *One Gate Is Not Enough* — composition of locally acceptable calls into unsafe behavior.
 
-Those claims are either false, too broad, or currently unsupported.
+Whether any of these are prior art depends on the confirmed priority date of the relevant Morrison filing. Their existence also demonstrates rapid convergence of the field and increases obviousness pressure.
 
 ---
 
-## 13. What Morrison can defensibly say now
+## 12. Independent falsification target
 
-A strong current positioning is:
+The strongest external test is not “does Morrison look novel?” It is whether its claimed properties survive attempts to break them.
 
-> **Morrison Runtime Governance operationalises bounded runtime assurance for tool-using autonomous systems by governing normalised action trajectories before execution, evaluating reachable forbidden states under a declared deployment configuration, explicitly refusing to inherit safety claims outside the tested Safety Envelope, and preserving evidence around the canonical execution decision.**
+A bounded independent evaluation should test:
 
-Shorter version:
+1. **AOE completeness** — search for unmodelled dimensions, states and transitions.
+2. **Decision soundness** — adversarially search for false permits and incorrect escalation/block behavior.
+3. **Local/global composition** — construct sequences where each transition is locally admissible but the composition reaches a globally inadmissible state.
+4. **Reservation and denial semantics** — test whether pending and refused transitions correctly affect later admissibility.
+5. **Mediation completeness** — attempt to reach protected resources without a valid Morrison-issued authorization.
+6. **Evidence integrity** — verify that verdict, action identity, ruleset and trajectory state can be independently reconstructed and checked.
+7. **Environment-state verification** — where the environment is finite, enumerate governed versus ungoverned reachable states.
 
-> **Morrison combines trajectory-level runtime control with configuration-bounded assurance: safe here under these tested conditions; unvalidated outside them.**
-
-This acknowledges prior art while preserving the genuinely interesting contribution.
-
----
-
-## 14. What would upgrade “distinct synthesis” to a stronger novelty claim?
-
-### A. Exhaustive scholarly prior-art review
-
-Search systematically across:
-
-- runtime assurance
-- Simplex architectures
-- runtime verification
-- shield synthesis
-- predictive safety filters
-- reachability-based safety
-- AI control
-- agent tool governance
-- policy-as-code
-- information-flow security
-- safety cases / dynamic assurance cases
-- autonomous-agent governance
-- runtime monitors for LLM agents
-- configuration-aware certification / assurance envelopes
-
-### B. Patent landscape
-
-Search granted/pending patents for:
-
-- pre-execution AI-agent tool governance
-- trajectory-level policy enforcement
-- runtime reachability over agent actions
-- safety-envelope validity over AI deployment configuration
-- revalidation on tool/permission/planner changes
-- evidence-bound runtime safety claims
-
-### C. Formalise the claim boundary
-
-Define mathematically:
-
-- envelope dimensions,
-- envelope membership,
-- configuration equivalence,
-- when assurance inheritance is permitted,
-- when status must become UNVALIDATED,
-- what evidence is necessary/sufficient for a local claim.
-
-### D. Independent reproduction
-
-A third party should implement the envelope semantics from the specification without using Morrison's implementation and compare outputs.
-
-### E. Head-to-head benchmark
-
-Compare Morrison against:
-
-- isolated per-tool guardrails,
-- a general policy engine,
-- NeMo execution rails,
-- an OpenAI Agents SDK tool-guardrail implementation,
-- a trace/runtime-verification baseline.
-
-Use trajectories where **every individual call is locally acceptable but the composition becomes unsafe**. This is where Morrison's trajectory thesis should either earn its differentiation or fail.
+A failed claim is useful evidence. The purpose of the programme is falsification, not confirmation.
 
 ---
 
-## 15. Recommended benchmark for the novelty claim
+## 13. Current novelty verdict
 
-Create a held-out corpus with four classes:
-
-### Class A — isolated forbidden calls
-
-Any competent tool guardrail should catch these.
-
-Expected result: Morrison should not claim differentiation here.
-
-### Class B — schema/argument violations
-
-Tool-schema validators should perform strongly.
-
-Expected result: Morrison should not claim differentiation here either.
-
-### Class C — safe individual calls, unsafe trajectory composition
-
-Examples:
-
-```text
-read approved data
-→ transform/store
-→ external egress
-```
-
-or:
-
-```text
-read financial state
-→ obtain/accumulate authority
-→ excessive transfer
-```
-
-This is a key Morrison differentiation test.
-
-### Class D — configuration change outside validated envelope
-
-Change one of:
-
-- tool set,
-- permission set,
-- planner,
-- trust boundary,
-- horizon,
-- policy version.
-
-Then ask whether each system continues to emit an assurance claim or explicitly withdraws it.
-
-This is the key test for **assurance non-inheritance**.
+**Individual primitives:** established prior art.  
+**Local + global safety logic:** established antecedents exist in runtime assurance, multi-agent shielding, workflow/security and control systems.  
+**General-purpose AI-agent demonstrations:** trajectory-level bounded decision logic exists, generally with hybrid/deployment-dependent authority.  
+**Unavoidable execution authority for AI agents:** deployed examples exist for capabilities and per-call authorization.  
+**Combination not identified in this search:** local + global admissibility + semantic trajectory/reachability + unavoidable execution authority + bound evidence in a general-purpose AI-agent environment.  
+**Obviousness risk:** strong.  
+**Most defensible residue:** denial/reservation-aware semantic trajectories, separate local/global reachability verdicts in one pre-execution authority, exhaustive bounded environment-state verification, and decision-bound trajectory evidence.  
+**Independent validation:** still required.
 
 ---
 
-## 16. Current novelty verdict
+## 14. Recommended next steps
 
-### Not novel by itself
-
-- runtime enforcement
-- policy mediation
-- blocking tool calls
-- safe sets
-- reachability
-- shielding
-- audit logs
-- fail-closed design
-
-### Meaningfully differentiated
-
-- provider-normalised trajectory governance for heterogeneous agent stacks
-- whole-trajectory / prefix-aware policy evaluation at the execution boundary
-- integration of reachability-style reasoning with enterprise agent-tool mediation
-- canonical decision separated from analytical overlays
-- evidence tied to the runtime governance event
-
-### Strongest candidate novelty requiring deeper review
-
-> **A configuration-indexed local Safety Envelope for autonomous-agent runtime governance, with explicit assurance validity/non-inheritance semantics and evidence-bound pre-execution decisions.**
-
-### Overall grade
-
-**ENGINEERING SYNTHESIS: STRONG**  
-**OPERATIONAL DIFFERENTIATION: STRONG**  
-**THEORETICAL NOVELTY: NOT YET ESTABLISHED**  
-**SPECIFIC ASSURANCE-SEMANTICS NOVELTY: PLAUSIBLE / REQUIRES EXHAUSTIVE REVIEW**  
-**“FIRST IN THE WORLD” CLAIM: NOT SUPPORTED AT THIS STAGE**
+1. Confirm the priority date and claim allocation for each Morrison filing.
+2. Obtain and review full text for the closest academic and patent references.
+3. Commission professional full-text patent searches in the relevant classifications.
+4. Continue attacking the remaining residue, especially payment authorization, Kubernetes admission/audit, information-flow taint and workflow reference monitors.
+5. Centre any future claim work on the narrow residue rather than broad runtime-governance primitives.
+6. Run a complete-mediation test in a real bounded deployment with resource-side authorization verification and default-deny bypass controls.
+7. Commission an independent red team to attack AOE completeness and decision soundness.
+8. Publish the falsification protocol separately from commercial positioning so external evaluators can reproduce the claimed properties.
 
 ---
 
-## 17. Sources reviewed for this audit
+## Interpretation rule
 
-### Morrison repository
+Morrison's credibility increases when the strongest prior art is stated precisely.
 
-- `README.md`
-- `CRITICAL_EVALUATION.md`
-- `morrison_governance/integrations.py`
-- `runtime_eval/frontier/ARCHITECTURE.md`
-- `runtime_eval/frontier/provider_registry.py`
-- `runtime_eval/frontier/README.md`
-- `runtime_eval/tests/test_frontier_containment.py`
-- `living-boundary/README.md`
-
-### External references
-
-- Leucker & Schallhart, Runtime Verification: https://doi.org/10.1016/j.jlap.2008.08.004
-- Runtime-monitor enforceability survey: https://doi.org/10.1016/j.entcs.2012.01.014
-- Open Policy Agent: https://www.openpolicyagent.org/docs
-- OPA deployment architecture: https://www.openpolicyagent.org/docs/deploy
-- OPA decision logs: https://www.openpolicyagent.org/docs/management-decision-logs
-- Bloem et al., Shield Synthesis: https://arxiv.org/abs/1501.02573
-- Shield synthesis extended treatment: https://link.springer.com/article/10.1007/s10703-017-0276-9
-- Ames et al., Control Barrier Functions: https://doi.org/10.1109/TAC.2016.2638961
-- OpenAI Agents SDK guardrails: https://openai.github.io/openai-agents-python/guardrails/
-- NVIDIA NeMo Guardrails tool calling: https://docs.nvidia.com/nemo/guardrails/configure-guardrails/guardrail-catalog/tool-calling
-- NVIDIA NeMo execution rails: https://docs.nvidia.com/nemo/guardrails/about-nemo-guardrails-library/rail-types
-
----
-
-**Interpretation rule:** Morrison's credibility increases, not decreases, when known prior art is named precisely. The strongest claim is the one that survives comparison.
+**The goal is not to claim that every ingredient is new. The goal is to identify exactly what combination remains unlocated, define it narrowly, and invite independent attempts to falsify it.**
