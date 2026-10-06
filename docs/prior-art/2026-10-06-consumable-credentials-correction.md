@@ -1,5 +1,7 @@
 # Consumable Credentials: autonomous-agent scope correction
 
+> **Combination assessment qualification, 6 October 2026:** subsequent evidence audit withdraws an established strong/short motivated combination characterization. Component mechanisms remain relevant; qualifying timeline, contemporaneous motivation and integrated target remain unestablished. See [controlling combination audit](2026-10-06-combination-evidence-audit.md). Earlier text is preserved as search history.
+
 **Review date:** 2026-10-06. **Corrected commit:** `fc5201dab5ba31380cce3140fdaf5e722a0ad1af`.
 
 The “complete technical match” conclusion is withdrawn. The review broadened the requested target, treating an authorization client as an autonomous proposing component and consumable-resource accounting as the required bounded agent trajectory. Those substitutions require justification from the reference; adaptability is insufficient. This correction does not establish novelty, non-obviousness or Morrison's operational safety.

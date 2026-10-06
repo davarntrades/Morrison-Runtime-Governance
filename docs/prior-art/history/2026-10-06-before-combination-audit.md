@@ -97,17 +97,20 @@ Therefore, broad claims such as “invented runtime safety,” “invented pre-e
 
 ---
 
-## 4. Combination pressure: candidate synthesis, not an established inventive-step case
+## 4. Strong obviousness pressure
 
-**Correction dated 6 October 2026:** the earlier “particularly strong combination” and subsequent assertion that autonomous-agent shields plus proof-gated authorization leave a short, motivated consistency bridge overstated the inspected evidence. The [combination evidence audit](docs/prior-art/2026-10-06-combination-evidence-audit.md) is controlling. The [preceding position](docs/prior-art/history/2026-10-06-before-combination-audit.md) and earlier review remain preserved.
+The original analysis raised **strong obviousness pressure** from combining established mechanisms. That concern is preserved as a technical review lead, not a legal conclusion; this update does not decide anticipation or inventive step.
 
-The smallest concrete candidate examined here is **Safe Multi-Agent Reinforcement Learning via Shielding (2021) + Consumable Credentials in Logic-Based Access Control (2006)**. The 2017 single-agent shield is its documented antecedent, not an additional necessary ingredient. This is a proposed synthesis, not an architecture disclosed in combination by those references.
+A particularly strong combination is:
 
-The shield actually supplies autonomous proposals, a finite model, temporal/joint-state safety enforcement and a mandatory shield-output path in its stated mathematical architecture. Consumable Credentials actually supplies distributed consumption accounting and proof-bound authorization for resource access. Substituting that authorization protocol for the shield-to-environment interface requires adaptation. Separate local/global predicates for the same agent action, execution-side validation of the exact adjudicated transition, policy/history evidence binding and delay/concurrency/recovery consistency remain unestablished for the combined target.
+- an established reference monitor / runtime enforcement mechanism;
+- local + global or history-aware policy;
+- reservation/pending-state treatment;
+- decision logging and tamper-evident evidence.
 
-Neither qualifying pre-priority status relative to Morrison's unverified claim-specific priority nor contemporaneous motivation to combine this pair has been established. The sources motivate their own mechanisms; that does not prove motivation for this synthesis. The remaining steps have not been shown to be either routine assembly or inventive contributions. Older monitors, escrow, payment authorization and policy composition remain component leads; the prior categorical payment-card claim is not carried forward as a verified agent-architecture comparison.
+Payment-card authorization is especially damaging to broad claims because systems documented from the 1990s already combine per-transaction checks with cumulative/velocity checks, count pending holds, can count declined attempts, and log authorization decisions.
 
-This correction does not establish non-obviousness. It withdraws an unsupported strength assessment and identifies the evidence needed to test the candidate.
+No surviving distinction is assumed. The new review tests specific small combinations, their engineering residue and the possibility that one reference already supplies the core mechanism. Neither semantic terminology nor failure to locate one document establishes a non-obvious difference. The preceding payment-card paragraph is a retained lead from the original analysis, not a newly verified complete reference.
 
 ---
 
@@ -268,7 +271,7 @@ A failed claim is useful evidence. The purpose of the programme is falsification
 | Question | Current conclusion |
 |---|---|
 | Prior art | **Unresolved.** C06 complete match withdrawn; complete earlier autonomous-agent disclosure not verified by this correction. |
-| Combination/obviousness pressure | MARL shielding (2021) plus Consumable Credentials (2006) is a concrete candidate synthesis requiring adaptation. Qualifying timeline, contemporaneous motivation, integrated local/global predicates, mediation and evidence/consistency protocol remain unestablished; see the combination evidence audit. |
+| Combination/obviousness pressure | Consumable Credentials plus trace enforcement remains a component combination lead. An autonomous proposer, bounded semantic model, complete effect mediation and action/rules-state/trajectory evidence integration still require an evidenced mapping. |
 | External demonstration | Complete property **not verified** here. Formal specification, prototype, simulation, production and independent reproduction remain separate. |
 | Morrison demonstration | 134 selected tests passed; seven all-PERMIT unsafe finite-model counterexamples and a new lease-release composition failure reproduced. Complete deployed property not established. |
 

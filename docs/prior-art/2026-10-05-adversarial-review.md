@@ -1,5 +1,7 @@
 # Adversarial disclosure and demonstration review — 5 October 2026
 
+> **Combination assessment qualification, 6 October 2026:** subsequent evidence audit withdraws an established strong/short motivated combination characterization. Component mechanisms remain relevant; qualifying timeline, contemporaneous motivation and integrated target remain unestablished. See [controlling combination audit](2026-10-06-combination-evidence-audit.md). Earlier text is preserved as search history.
+
 > **Correction dated 6 October 2026 — historical analysis below:** The C06/C07 “complete technical match” and one-reference sufficiency findings are withdrawn for the autonomous-agent target. Generic clients and consumable-resource history were substituted for required architectural elements. The [correction](2026-10-06-consumable-credentials-correction.md) supplies the controlling element classifications. Other full-target assertions below (including KedgeFlow and conditional recent specifications) are not established for the corrected target by these charts alone. Mechanism evidence, dates and the separate Morrison reproduction remain available; the original text is preserved below to make the error and its correction traceable.
 
 
