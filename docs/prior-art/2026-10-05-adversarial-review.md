@@ -1,5 +1,8 @@
 # Adversarial disclosure and demonstration review — 5 October 2026
 
+> **Correction dated 6 October 2026 — historical analysis below:** The C06/C07 “complete technical match” and one-reference sufficiency findings are withdrawn for the autonomous-agent target. Generic clients and consumable-resource history were substituted for required architectural elements. The [correction](2026-10-06-consumable-credentials-correction.md) supplies the controlling element classifications. Other full-target assertions below (including KedgeFlow and conditional recent specifications) are not established for the corrected target by these charts alone. Mechanism evidence, dates and the separate Morrison reproduction remain available; the original text is preserved below to make the error and its correction traceable.
+
+
 **Reviewed Morrison revision:** `bde1dcc35fdd63a4ac7dd572a28648d16a1105a9`.  
 **Method:** seek counterexamples, not support for the previous conclusion. Technical assessment, not a determination of patent validity or priority entitlement.  
 **History:** the [preceding supplement](2026-10-05-search-supplement.md) remains unchanged; the [preceding main document](history/2026-10-05-before-adversarial-search.md) is preserved verbatim. Those conclusions are historical, not the conclusions of this pass.  

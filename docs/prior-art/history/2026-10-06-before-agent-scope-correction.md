@@ -1,12 +1,12 @@
 # Prior Art & Novelty Position — Morrison Runtime Governance
 
-**Updated:** 6 October 2026  
+**Updated:** 5 October 2026  
 **Status:** Internal technical-positioning analysis for counsel and independent falsification. Not legal advice or a patentability opinion.  
 **Primary analysis:** *Adversarial Prior-Art Analysis — Local–Global Admissible Operating Envelope Enforcement* (2 October 2026), covering patents, academic literature, standards, open-source systems and deployed architectures from 1972–2026.
 
 ---
 
-**Scope correction (6 October 2026):** The Consumable Credentials “complete technical match” conclusion is **withdrawn for the autonomous-agent target**. The earlier review substituted generic clients, resource bounds and credential history for elements that required an actual architectural disclosure. See the [element-by-element correction](docs/prior-art/2026-10-06-consumable-credentials-correction.md). The [preceding main document](docs/prior-art/history/2026-10-06-before-agent-scope-correction.md), [second-pass review](docs/prior-art/2026-10-05-adversarial-review.md), [first supplement](docs/prior-art/2026-10-05-search-supplement.md) and earlier snapshots preserve the search history. The independent [Morrison reproduction](docs/prior-art/reproduce_adversarial_2026_10_05.py) and [results](docs/prior-art/2026-10-05-adversarial-results.json) are unaffected.
+**Adversarial update (5 October 2026, second pass):** [Full review, 11-element charts, dates, backward citations and four conclusions](docs/prior-art/2026-10-05-adversarial-review.md). **The previous “no single reference verified” conclusion is withdrawn under the terminology-neutral target.** The [first search supplement](docs/prior-art/2026-10-05-search-supplement.md), [original snapshot](docs/prior-art/history/2026-10-05-before-web-search.md), and [main document before this pass](docs/prior-art/history/2026-10-05-before-adversarial-search.md) remain historical records. A new [offline reproduction](docs/prior-art/reproduce_adversarial_2026_10_05.py) and [results](docs/prior-art/2026-10-05-adversarial-results.json) document a Morrison lease-path counterexample.
 
 ## Executive position
 
@@ -14,9 +14,9 @@ Morrison should not claim novelty for runtime enforcement, policy engines, refer
 
 The current bounded search result is:
 
-> **No single reference has yet been verified as disclosing the complete narrow autonomous-agent combination. The overall earlier-disclosure question remains unresolved. Consumable Credentials is component prior art and combination pressure, not a verified complete match.**
+> **A complete technical mechanism match was found in the 2006 consumable-credentials report, corroborated by its 2007 successor, under the stated terminology-neutral interpretation. Whether it is a qualifying earlier disclosure remains unresolved pending Morrison's confirmed priority and claim scope.**
 
-This is a bounded verification status, not an exhaustive negative finding. The earlier terminology-neutral ratings, including conditional complete-match claims for other references, cannot establish the exact autonomous-agent target without a fresh claim-specific mapping. Missing experiments do not negate disclosure; architectural intent does not establish demonstration.
+The [adversarial review](docs/prior-art/2026-10-05-adversarial-review.md) explains the mapping and alternative interpretations. It also identifies complete conditional recent specifications. Missing deployment experiments cannot be used to reject disclosure. External complete-property demonstration was not verified here; Morrison itself has both reproduced bounded results and reproduced failures.
 
 The target being compared is **local + global safety for autonomous systems**, expressed as a bounded runtime-governance architecture in which:
 
@@ -26,10 +26,9 @@ The target being compared is **local + global safety for autonomous systems**, e
 4. a sequence of individually admissible transitions is prevented from reaching a globally inadmissible state through the governed path;
 5. governance is separated from the model or agent;
 6. authority is exercised before execution through **PERMIT / ESCALATE / BLOCK** (or equivalent ALLOW / ESCALATE / BLOCK semantics);
-7. decision-bound evidence is associated with the action, governing rules/state and relevant trajectory;
-8. an autonomous decision-making component produces the proposed actions. A generic requester is not automatically such a component.
+7. evidence is bound to the decision and action; binding the complete ruleset and relevant trajectory basis is additionally compared as the narrower evidence feature.
 
-The novelty question is not whether these individual ideas each existed. They did. The question is whether the **claimed combination, authority placement and evidence semantics** were disclosed together before the relevant priority date.
+The novelty question is not whether these seven ideas each existed. They did. The question is whether the **claimed combination, authority placement and evidence semantics** were disclosed together before the relevant priority date.
 
 ---
 
@@ -43,8 +42,7 @@ The novelty question is not whether these individual ideas each existed. They di
 | 4 | Prevents a sequence of individually admissible transitions from reaching a globally inadmissible state through the governed path |
 | 5 | Places enforcement at an independent runtime authority, not solely in the model or agent |
 | 6 | Exercises authority before execution, with veto/block or escalation |
-| 7 | Produces decision-bound evidence associated with action, governing rules/state and relevant trajectory |
-| 8 | Includes an autonomous decision-making component producing proposed actions |
+| 7 | Produces decision-bound evidence; full action/ruleset/trajectory binding is separately compared in the narrower-feature chart |
 
 **Element 4 is central:** individually admissible transitions must not compose into a globally inadmissible state.
 
@@ -71,7 +69,7 @@ This distinction matters. A component being described as able to “block” or 
 
 ### Disclosure question and current verification status
 
-**The 2006 complete-match finding is withdrawn.** Its disclosed mechanisms remain relevant, but adaptation is not disclosure of the autonomous-agent combination. The 2007 successor cannot fill gaps in the 2006 reference or backdate later additions. Other complete-match assertions in the second pass are not adopted for the exact target until assessed against the corrected scope. Morrison's claim-specific priority and historical public availability remain separate questions.
+**The preceding no-single-reference finding does not survive this adversarial pass under the explicit terminology-neutral reading.** See the complete mechanism matches, remaining near-misses and primary-source locators in the [new review](docs/prior-art/2026-10-05-adversarial-review.md). Morrison's claim-specific priority dates remain unconfirmed; technical disclosure and legal qualification are distinct.
 
 Four questions must be answered independently:
 
@@ -126,7 +124,7 @@ The narrower implementation features requiring continued comparison are:
 4. **Evidence bound to the decision** — action identity, ruleset version and trajectory state are bound into the decision/evidence object.
 5. **Exhaustive environment-state verification** in a declared finite bounded environment, rather than only sampled benchmark trajectories.
 
-The original report recorded that it had not located a single pre-2026 document combining these features. That is preserved as history, not adopted here. The new charts assess each narrower feature independently. For this review, action/rules-state/trajectory evidence belongs to the expressly stated target. Analogy cannot substitute for autonomous-agent architectural disclosure; this corrects the second pass rather than adding a device to exclude an inconvenient reference.
+The original report recorded that it had not located a single pre-2026 document combining these features. That is preserved as history, not adopted here. The new charts assess each narrower feature independently. They must not be retroactively added to the core target to dismiss an otherwise complete match.
 
 ---
 
@@ -145,7 +143,7 @@ Several demonstrate trajectory-level decision logic for bounded property classes
 
 Authority placement and policy expressiveness must therefore be evaluated independently. Neither trajectory awareness nor framework/proxy packaging determines whether a protected deployment path is unavoidable.
 
-The expanded comparison includes **PACE, Provenact/MasuGate, L-DREA, Controlled Agentic AI Systems, ActPlane, CamQuery and KedgeFlow**, plus **US20260127298A1 and US20260142827A1**. The [second-pass charts](docs/prior-art/2026-10-05-adversarial-review.md) retain useful mechanism comparisons, but their complete-target ratings are qualified by the [scope correction](docs/prior-art/2026-10-06-consumable-credentials-correction.md). Older references were traced backwards rather than excluded for lacking AI branding.
+The expanded comparison includes **PACE, Provenact/MasuGate, L-DREA, Controlled Agentic AI Systems, ActPlane, CamQuery and KedgeFlow**, plus **US20260127298A1 and US20260142827A1**. Use the [second-pass charts](docs/prior-art/2026-10-05-adversarial-review.md), which supersede the first supplement's ratings where they differ. Older references were traced backwards rather than excluded for lacking AI branding.
 
 ---
 
@@ -204,7 +202,7 @@ No amount of kernel decision testing establishes mediation completeness. It is a
 
 ### Prior-art positioning
 
-> **No single reference has yet been verified as disclosing the complete narrow autonomous-agent combination. Earlier-disclosure status remains unresolved; this does not establish novelty or non-obviousness.**
+> **Complete technical disclosures have been identified under the review's explicit interpretation. Date-qualified prior-art status remains unresolved; no patentability conclusion follows from this technical search alone.**
 
 ### Demonstration positioning
 
@@ -270,12 +268,12 @@ A failed claim is useful evidence. The purpose of the programme is falsification
 
 | Question | Current conclusion |
 |---|---|
-| Prior art | **Unresolved.** C06 complete match withdrawn; complete earlier autonomous-agent disclosure not verified by this correction. |
-| Combination/obviousness pressure | Consumable Credentials plus trace enforcement remains a component combination lead. An autonomous proposer, bounded semantic model, complete effect mediation and action/rules-state/trajectory evidence integration still require an evidenced mapping. |
+| Prior art | Complete technical mechanism disclosure found; qualifying earlier status **unresolved** pending priority and claim scope. Previous no-single-reference statement withdrawn. |
+| Combination/obviousness pressure | One-reference core match on the stated reading; otherwise strong two-reference trace-monitor/consumable-authorization combination, with integration obligations identified. No legal obviousness determination. |
 | External demonstration | Complete property **not verified** here. Formal specification, prototype, simulation, production and independent reproduction remain separate. |
 | Morrison demonstration | 134 selected tests passed; seven all-PERMIT unsafe finite-model counterexamples and a new lease-release composition failure reproduced. Complete deployed property not established. |
 
-Primary citations, all element ratings, version/date qualifications, assumptions and reproduction commands are in the [adversarial review](docs/prior-art/2026-10-05-adversarial-review.md). Earlier evidence and conclusions remain in the historical snapshots, unchanged first supplement, original PDF and git history. The 6 October correction governs current interpretation.
+Primary citations, all element ratings, version/date qualifications, assumptions and reproduction commands are in the [adversarial review](docs/prior-art/2026-10-05-adversarial-review.md). Earlier evidence and conclusions remain in the two snapshots, unchanged first supplement, original PDF and git history.
 
 
 ---
@@ -283,7 +281,7 @@ Primary citations, all element ratings, version/date qualifications, assumptions
 ## 14. Recommended next steps
 
 1. Confirm the priority date and claim allocation for each Morrison filing.
-2. Resolve the explicit claim-construction and historical-publication questions for the candidate references; follow the remaining full-text leads in the new review.
+2. Resolve the explicit claim-construction and historical-publication questions for the mechanism matches; follow the remaining full-text leads in the new review.
 3. Commission professional full-text patent searches in the relevant classifications.
 4. Continue attacking the remaining residue, especially payment authorization, Kubernetes admission/audit, information-flow taint and workflow reference monitors.
 5. Assess any proposed residue against the updated charts; do not assume it survives.
