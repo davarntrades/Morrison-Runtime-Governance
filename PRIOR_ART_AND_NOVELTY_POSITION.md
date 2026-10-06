@@ -89,7 +89,7 @@ However, the individual elements and many combinations are old and well establis
 - Simplex / ASTM F3269: runtime assurance and switching before leaving a safety envelope.
 - ModelPlex: per-step monitoring connected to trajectory safety.
 - Alshiekh et al. (2018): preemptive shielding.
-- ElSayed-Aly et al. (2021): local/factored and centralized/global multi-agent shields.
+- ElSayed-Aly et al. (2021): factored and centralized multi-agent shields; these alternatives do not alone establish separate local/global adjudication.
 - Mehmood et al. (2020/21): per-agent runtime assurance composing to global multi-agent safety.
 - CaMeL and Invariant Guardrails (2025): agent/tool-call and cross-call/flow controls, but with deployment-dependent authority.
 
