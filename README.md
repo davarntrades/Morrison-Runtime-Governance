@@ -49,6 +49,17 @@ The same runs exposed a gap in our own audit trail — a forged
 fixed (`be0e389`) and re-verified live, and the cheat sheet now points at
 the next version of the same attack rather than calling it closed.
 
+## Independent external reproduction — Kalaris Labs (October 2026)
+
+Sayan Chowdhury of Kalaris Labs independently reran selected Morrison Runtime Governance experiments at pinned commit [`fba06b75dd6b16fb6e093364eee67359afa3942b`](https://github.com/davarntrades/Morrison-Runtime-Governance/tree/fba06b75dd6b16fb6e093364eee67359afa3942b) and published the methodology and limitations.
+
+- **[Independent research reproduction — Morrison Runtime Governance: A Bounded Reproduction](https://kalarislabs.com/research/morrison-agent-execution-boundary).** Reports **154 selected passing tests** (not the entire suite), three finite-state control-versus-governed scenarios with **zero unsafe governed states within their declared models**, and reproduced negative findings: seven investigator-supplied synthetic all-PERMIT unsafe paths, a released-lease continuity counterexample, and token redemption across verifiers without a shared consume store.
+- **[External architecture analysis — Can the Agent Bypass the Gate?](https://kalarislabs.com/blog/can-the-agent-bypass-the-gate).** Examines complete mediation across shell, MCP, credentials, and network egress, including the deployment requirements for an unavoidable resource-side execution boundary.
+
+**Scope:** This is independent reproduction of repository-supplied tests, models, and offline mocks—not a production deployment audit, certification, or proof of universal safety. The negative findings and mediation dependencies remain part of the published evidence. The linked articles are independently authored by Kalaris Labs.
+
+---
+
 ## Try Morrison now
 
 Choose the path that matches how deeply you want to inspect the system.
