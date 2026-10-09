@@ -67,11 +67,15 @@ now enforces and what the evidence actually supports.
 | `a ∈ A` | a proposed action |
 | `𝔄` | the **agent's derivable closure** — everything the agent can compute from what it holds: its inputs, its code paths, and any credential in its reach |
 | `K` | the governance kernel: the sole issuer of authorization |
-| `k` | the lease signing secret (`lease_signing_key`), held by `K` and by resource-side verifiers |
+| `k` | the external issuer’s Ed25519 private key; resource verifiers hold only its public key |
 | `h(a)` | the byte-canonical action hash (`kernel.canonical.action_hash`) |
 | `hₛ(a)` | the semantic action hash, used for policy and approval binding |
 | `Λ(a)` | an authorization artifact bound to `a` (`ExecutionLease`) |
 | `Effect(a)` | an external effect of `a` at a governed resource |
+
+The original mrl1 implementation used HMAC, optional binding and a local
+redemption default. Those failures remain historical findings. This section
+describes mrl2; see [migration and scope](docs/security/lease-v2-migration.md).
 
 ### 2.2 The artifact
 
@@ -81,7 +85,7 @@ now enforces and what the evidence actually supports.
 Λ(a) = ⟨ ℓ, h(a), hₛ(a), principal, tenant, session, decision_id,
           family, iat, exp, σ ⟩
 
-        σ = HMAC-SHA256_k( payload )
+        σ = Ed25519.Sign_k( domain-separated payload )
 ```
 
 ### 2.3 The separation
@@ -125,9 +129,10 @@ something that does not depend on its cooperation.
 ### 2.5 What P1 rests on
 
 `k ∉ 𝔄` is a **key-custody condition**, not a theorem. An agent that can read
-`lease_signing_key` mints its own authority and every property above collapses.
-`lease_signing_key` is deliberately distinct from the approval `signing_key`: a
-gateway must verify leases and has no business minting approvals.
+the issuer’s private signing key can sign leases. Redemption also requires
+issuer registration in the shared atomic registry. A verifier holds only the
+public key; it cannot produce issuer signatures. Approval `signing_key` custody
+is a separate trust requirement.
 
 ---
 

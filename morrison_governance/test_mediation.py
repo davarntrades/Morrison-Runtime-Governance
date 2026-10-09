@@ -42,17 +42,36 @@ import base64
 import json
 import threading
 import time
+import hashlib
 
 import pytest
 
 from morrison_governance import GovernanceLayer, OmegaDomain
 from morrison_governance.kernel import (
     ExecutionLease, GovernanceKernel, LeaseVerifier, MediationReport,
-    MediationSurface, Principal, SecurityContext,
+    MediationSurface, Principal, SecurityContext, SQLiteLeaseStore,
 )
 from morrison_governance.kernel import capabilities as C
 
-LEASE_KEY = b"resource-gateway-shared-secret"
+from morrison_governance._ed25519_test_signer import public_key, sign
+
+LEASE_SEED = hashlib.sha256(b"disposable-test-lease-issuer").digest()
+LEASE_PUBLIC = public_key(LEASE_SEED)
+_STORE = None
+
+
+def _signer(message):
+    return sign(LEASE_SEED, message)
+
+
+@pytest.fixture(autouse=True)
+def lease_store(tmp_path):
+    global _STORE
+    _STORE = SQLiteLeaseStore(tmp_path / "leases.sqlite")
+
+
+def _verifier(public=LEASE_PUBLIC):
+    return LeaseVerifier(public, _STORE)
 
 MANIFEST = {
     "read_file": [C.CAP_DATA_READ],
@@ -65,7 +84,7 @@ REQUEST = {"tool": "read_file", "args": {"path": "/app/report.csv"}}
 def _ctx(**kw) -> SecurityContext:
     base = dict(
         principal=Principal(id="agent-svc", tenant="acme"),
-        signing_key=b"approval-key", lease_signing_key=LEASE_KEY,
+        signing_key=b"approval-key", lease_signer=_signer, lease_store=_STORE,
         internal_url_hosts=("acme.internal",),
         internal_email_domains=("acme.com",), tool_manifest=MANIFEST,
     )
@@ -94,7 +113,7 @@ def _permitted_lease(ttl_s: float = 60.0):
 def test_l01_a_request_without_a_lease_is_refused_at_the_resource():
     """L-01 — the whole point. An agent that bypassed the kernel carries
     nothing, and the resource refuses it without consulting Morrison."""
-    verifier = LeaseVerifier(key=LEASE_KEY)
+    verifier = _verifier()
 
     ok, reason = verifier.verify("", REQUEST)
     assert ok is False
@@ -108,7 +127,7 @@ def test_l01_a_request_without_a_lease_is_refused_at_the_resource():
 def test_l02_a_lease_is_single_use_at_the_resource():
     """L-02 — redemption is consumed by the verifier, not by the kernel, so a
     replayed request is refused at the boundary that would perform it."""
-    verifier = LeaseVerifier(key=LEASE_KEY)
+    verifier = _verifier()
     _, _, token = _permitted_lease()
 
     assert verifier.verify(token, REQUEST)[0] is True
@@ -119,18 +138,18 @@ def test_l02_a_lease_is_single_use_at_the_resource():
 
 @pytest.mark.parametrize("key", [None, b"guessed-key"])
 def test_l03_an_agent_cannot_mint_or_resign_a_lease(key):
-    """L-03 — forging one requires the gateway secret."""
+    """L-03 — forging one requires the issuer’s private key."""
     forged = ExecutionLease(
-        lease_id="f" * 32, action_hash="deadbeef", semantic_hash="s",
+        lease_id="f" * 32, action_hash="d" * 64, semantic_hash="e" * 64,
         principal="agent-svc", tenant="acme", session_id="s",
         decision_id="d", tool_family="file_read",
         issued_at=time.time(), expires_at=time.time() + 60)
     if key is not None:
-        forged = forged.sign(key)
+        forged = forged.sign(lambda message: sign(hashlib.sha256(key).digest(), message))
 
-    ok, reason = LeaseVerifier(key=LEASE_KEY).verify(forged.encode(), None)
+    ok, reason = _verifier().verify(forged.encode(), REQUEST)
     assert ok is False
-    assert "signature invalid" in reason
+    assert "signature invalid" in reason or "malformed" in reason
 
 
 def test_l03b_an_unsigned_lease_cannot_be_created_at_all():
@@ -141,7 +160,7 @@ def test_l03b_an_unsigned_lease_cannot_be_created_at_all():
             lease_id="x" * 32, action_hash="h", semantic_hash="s",
             principal="p", tenant="t", session_id="s", decision_id="d",
             tool_family="f", issued_at=0.0, expires_at=1.0).sign(b"")
-    assert "empty key" in str(exc.value)
+    assert "external Ed25519 signer" in str(exc.value)
 
 
 def test_l04_verify_one_request_and_forward_another_is_refused():
@@ -151,7 +170,7 @@ def test_l04_verify_one_request_and_forward_another_is_refused():
     verified nothing, so the lease binds the canonical action hash and the
     verifier re-derives it from the request it is about to forward.
     """
-    verifier = LeaseVerifier(key=LEASE_KEY)
+    verifier = _verifier()
     _, _, token = _permitted_lease()
 
     substituted = {"tool": "read_file", "args": {"path": "/etc/shadow"}}
@@ -164,8 +183,8 @@ def test_l04_verify_one_request_and_forward_another_is_refused():
 
 def test_l05_payload_tampering_invalidates_the_signature():
     """L-05 — extending the expiry by editing the encoded payload."""
-    kernel, decision, _ = _permitted_lease()
-    lease = kernel.mint_lease(decision)
+    _, _, token = _permitted_lease()
+    lease = ExecutionLease.decode(token)
 
     outer = json.loads(base64.urlsafe_b64decode(
         lease.encode() + "=" * 4).decode())
@@ -175,7 +194,7 @@ def test_l05_payload_tampering_invalidates_the_signature():
     tampered = base64.urlsafe_b64encode(
         json.dumps(outer, separators=(",", ":")).encode()).decode().rstrip("=")
 
-    ok, reason = LeaseVerifier(key=LEASE_KEY).verify(tampered, None)
+    ok, reason = _verifier().verify(tampered, REQUEST)
     assert ok is False
     assert "signature invalid" in reason
 
@@ -191,7 +210,7 @@ def test_l06_only_a_permitted_reserved_decision_can_mint_a_lease():
     assert refused.verdict != "PERMIT"
     with pytest.raises(ValueError) as exc:
         kernel.mint_lease(refused)
-    assert "only a PERMIT decision" in str(exc.value)
+    assert "verdict is" in str(exc.value)
 
     speculative = kernel.preview(REQUEST)
     assert speculative.verdict == "PERMIT"
@@ -210,27 +229,27 @@ def test_l07_expiry_holds_and_skew_never_exceeds_the_lease_lifetime():
     """
     _, _, short = _permitted_lease(ttl_s=0.01)
     time.sleep(0.05)
-    ok, reason = LeaseVerifier(key=LEASE_KEY).verify(short, None)
+    ok, reason = _verifier().verify(short, REQUEST)
     assert ok is False
     assert "expired" in reason
 
     # A long-lived lease still gets its skew allowance.
     _, _, normal = _permitted_lease(ttl_s=60.0)
-    assert LeaseVerifier(key=LEASE_KEY).verify(normal, None)[0] is True
+    assert _verifier().verify(normal, REQUEST)[0] is True
 
 
 def test_l08_an_unkeyed_verifier_fails_closed():
     """L-08 — a gateway with no secret cannot distinguish a real lease from a
     forged one, so the honest answer is that verification is unavailable."""
     _, _, token = _permitted_lease()
-    ok, reason = LeaseVerifier(key=b"").verify(token, REQUEST)
+    ok, reason = _verifier(b"").verify(token, REQUEST)
     assert ok is False
     assert "DISABLED" in reason
 
 
 def test_l09_concurrent_redemption_resolves_to_exactly_one():
     """L-09 — the double-spend, at the resource boundary."""
-    verifier = LeaseVerifier(key=LEASE_KEY)
+    verifier = _verifier()
     _, _, token = _permitted_lease()
     outcomes: list[bool] = []
     lock = threading.Lock()
@@ -251,7 +270,7 @@ def test_l09_concurrent_redemption_resolves_to_exactly_one():
 
 def test_l10_a_malformed_token_fails_closed():
     """A resource that cannot understand a lease has not been shown one."""
-    verifier = LeaseVerifier(key=LEASE_KEY)
+    verifier = _verifier()
     for junk in ("not-base64!!", base64.urlsafe_b64encode(b"{}").decode(),
                  base64.urlsafe_b64encode(b'{"p":"{}","s":"x"}').decode()):
         ok, reason = verifier.verify(junk, REQUEST)

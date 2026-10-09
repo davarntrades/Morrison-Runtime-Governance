@@ -44,7 +44,7 @@ from morrison_governance.kernel.canonical import (
 )
 from morrison_governance.kernel.normalize import normalize_action
 from morrison_governance.kernel.continuity import (
-    BLOCK_POLICY, DENIED, EXECUTED, RESERVED, UNCONFIRMED,
+    BLOCK_POLICY, DENIED, EXECUTED, EXPORTED, RESERVED, UNCONFIRMED,
     LedgerEntry, default_store, resolve_continuity,
 )
 from morrison_governance.kernel.destinations import classify_destination
@@ -300,7 +300,7 @@ class Attempt:
         leaves only by an explicit `release`, which deletes the entry, or by
         ageing past the retention window. `now` is retained for callers.
         """
-        return self.state in (EXECUTED, RESERVED, UNCONFIRMED)
+        return self.state in (EXECUTED, EXPORTED, RESERVED, UNCONFIRMED)
 
 
 class GovernanceKernel:
@@ -361,7 +361,8 @@ class GovernanceKernel:
             extra={"capability_policy": P.CAPABILITY_POLICY,
                    "policy_values": {**P.DEFAULT_POLICY_VALUES,
                                      **(context.policy_values or {})},
-                   "unknown_tool_policy": context.unknown_tool_policy})
+                   "unknown_tool_policy": context.unknown_tool_policy,
+                   "reject_untrusted_authority_claims": context.reject_untrusted_authority_claims})
 
     # ── history ──────────────────────────────────────────────
     @property
@@ -385,7 +386,7 @@ class GovernanceKernel:
                         state=self._effective_state(e), decision_id=e.decision_id,
                         expires_at=e.expires_at)
                 for e in self.store.entries(self.continuity_key)
-                if horizon is None or (e.wall_timestamp or e.timestamp) >= horizon]
+                if e.state == EXPORTED or horizon is None or (e.wall_timestamp or e.timestamp) >= horizon]
 
     @staticmethod
     def _effective_state(entry) -> str:
@@ -504,6 +505,27 @@ class GovernanceKernel:
         with self._lock, self._critical_section():
             if not self.continuity_key:
                 return False
+            exported = next((e for e in self.store.entries(self.continuity_key)
+                             if e.decision_id == decision.decision_id and e.state == EXPORTED), None)
+            if exported is not None:
+                from morrison_governance.kernel.mediation import lease_id_for
+                registry = self.ctx.lease_store
+                # Cancel atomically before erasing history; a spent token cannot be cancelled.
+                if registry is None or registry.cancel(lease_id_for(decision)) is not True:
+                    return False
+                if not self.store.set_state(self.continuity_key, decision.decision_id,
+                                            RESERVED, time.time()):
+                    return False
+                dropped = self.store.drop(self.continuity_key, decision.decision_id)
+                if dropped:
+                    decision.reserved = False
+                    self.chain.append(EvidenceRecord(
+                        seq=0, timestamp=time.time(), actor=self.ctx.principal.id,
+                        tenant=self.ctx.principal.tenant, action_hash=decision.action_hash,
+                        proposed=decision.action, decision=BLOCK, layer="lease_lifecycle",
+                        rule="exported_lease_cancelled", reason="resource registry cancelled unredeemed lease",
+                        ruleset_hash=self._live_ruleset_hash(), engine_version=self.engine_version))
+                return dropped
             self.store.consume(self.continuity_key,
                                f"decision:{decision.decision_id}")
             # Only a live reservation may be withdrawn. Once the lease has
@@ -578,21 +600,50 @@ class GovernanceKernel:
 
     def mint_lease(self, decision: "Decision", ttl_s: float = 60.0,
                    key: Optional[bytes] = None) -> Any:
-        """Mint a resource-redeemable lease for a permitted decision.
+        """Export authority once, retaining history until atomic cancellation.
 
-        The portable form of an authorisation. A resource-side enforcement
-        point verifies it WITHOUT calling Morrison, so an agent that skips the
-        kernel arrives at the resource carrying nothing and is refused there —
-        by a process that is not the agent and does not depend on its
-        cooperation.
-
-        This does not make complete mediation true. It makes it enforceable at
-        each boundary a deployment chooses to enforce, and turns the unenforced
-        set into an explicit list. See `kernel.mediation`.
+        The resource registry arbitrates redemption versus cancellation. Unknown
+        remote outcomes remain history even beyond ordinary retention.
         """
-        from morrison_governance.kernel.mediation import mint_lease
-        signing = key if key is not None else self.ctx.lease_signing_key
-        return mint_lease(decision, signing, ttl_s=ttl_s)
+        from morrison_governance.kernel.mediation import mint_lease, lease_token_hash
+        import math
+        if key is not None:
+            raise ValueError("symmetric lease keys are unsupported; configure an external lease_signer")
+        if not callable(self.ctx.lease_signer):
+            raise ValueError("an external Ed25519 lease_signer is required")
+        if self.ctx.lease_store is None:
+            raise ValueError("a shared atomic lease_store is required")
+        if type(ttl_s) not in (int, float) or not math.isfinite(ttl_s) or ttl_s <= 0:
+            raise ValueError("lease TTL must be finite and positive")
+        with self._lock, self._critical_section():
+            snapshot = deepcopy(decision)
+            now = time.time()
+            problem = self._lease_problem(snapshot, now)
+            if problem is not None:
+                raise ValueError(f"cannot export execution lease: {problem}")
+            held = self._reservation(snapshot.decision_id)
+            if held is None or not snapshot.reserved:
+                raise ValueError("this decision holds no trajectory reservation")
+            if action_hash(snapshot.action) != snapshot.action_hash or action_hash(held.action) != snapshot.action_hash:
+                raise ValueError("cannot export a decision with mutated action binding")
+            # Persist history and spend local execution BEFORE exporting authority.
+            # Any dependency failure retains conservative history.
+            if not self.store.set_state(self.continuity_key, snapshot.decision_id, EXPORTED, now):
+                raise ValueError("cannot persist exported trajectory history")
+            if not self.store.consume(self.continuity_key, f"decision:{snapshot.decision_id}"):
+                raise ValueError("decision already used")
+            snapshot.authorization = {**snapshot.authorization, "tenant": self.ctx.principal.tenant}
+            lease = mint_lease(snapshot, self.ctx.lease_signer,
+                               ttl_s=min(ttl_s, self.decision_ttl_s), now=now)
+            if self.ctx.lease_store.register(lease.lease_id, lease_token_hash(lease)) is not True:
+                raise ValueError("cannot register exported lease")
+            self.chain.append(EvidenceRecord(
+                seq=0, timestamp=now, actor=self.ctx.principal.id,
+                tenant=self.ctx.principal.tenant, action_hash=snapshot.action_hash,
+                proposed=snapshot.action, decision=PERMIT, layer="lease_lifecycle",
+                rule="execution_authority_exported", reason=f"Ed25519 lease {lease.lease_id} registered; local decision spent",
+                ruleset_hash=self._live_ruleset_hash(), engine_version=self.engine_version))
+            return lease
 
     def unconfirmed(self) -> list["Attempt"]:
         """Dispatches whose outcome is unknown, for an operator to reconcile."""
@@ -779,8 +830,9 @@ class GovernanceKernel:
         # Membership OR shape. An exact-name set only catches the spellings
         # someone thought of, and `approval_id` was not one of them.
         approval_claims = [c for c in forged
-                           if c in _APPROVAL_CLAIMS or is_authority_shaped(c)]
-        dest_claims = [c for c in forged if c in _DESTINATION_CLAIMS]
+                           if c.rsplit("/", 1)[-1] in _APPROVAL_CLAIMS
+                           or is_authority_shaped(c.rsplit("/", 1)[-1])]
+        dest_claims = [c for c in forged if c.rsplit("/", 1)[-1] in _DESTINATION_CLAIMS]
 
         # ── capability policy is resolved BEFORE the engine runs, because the
         #    engine's own rules read an `authorized` flag and the kernel is the
@@ -810,7 +862,7 @@ class GovernanceKernel:
         # uncorroborated and material — i.e. the action genuinely needs the
         # authority being asserted. A claim on an action that requires no
         # approval is noise: it is recorded as evidence and nothing more.
-        uncorroborated = []
+        uncorroborated = list(forged) if self.ctx.reject_untrusted_authority_claims else []
         if approval_claims and approval is None and requirement == P.APPROVAL:
             uncorroborated += approval_claims
         if dest_claims and dest.external:
@@ -1172,7 +1224,7 @@ class GovernanceKernel:
             tool_family=norm.tool,
             decision_id=uuid.uuid4().hex, semantic_hash=shash,
             session_id=self.session_id, principal_id=self.ctx.principal.id,
-            ruleset_hash=self._ruleset_hash, issued_at=now,
+            ruleset_hash=self._live_ruleset_hash(), issued_at=now,
             expires_at=now + self.decision_ttl_s,
             issued_wall=time.time(),
             continuity_scope=self.continuity_scope)
@@ -1184,7 +1236,7 @@ class GovernanceKernel:
                 proposed=clean, decision=verdict, layer=layer, rule=rule,
                 omega_domain=domain, reason=reason, capabilities=sorted(caps),
                 requirement=requirement, authorization=authorization,
-                forged_authority_claims=forged, ruleset_hash=self._ruleset_hash,
+                forged_authority_claims=forged, ruleset_hash=self._live_ruleset_hash(),
                 engine_version=self.engine_version, trajectory_hash=traj_hash))
 
         # Recomputed AFTER sealing so `decision_time_ms` covers the whole
@@ -1374,7 +1426,7 @@ class GovernanceKernel:
             seq=0, timestamp=time.time(), actor=self.ctx.principal.id,
             tenant=self.ctx.principal.tenant, action_hash=action_hash(target),
             proposed=target, decision=BLOCK, layer=layer, rule=rule,
-            reason=reason, ruleset_hash=self._ruleset_hash,
+            reason=reason, ruleset_hash=self._live_ruleset_hash(),
             engine_version=self.engine_version))
         self._file(target, BLOCK, DENIED, reason, time.time(),
                    capabilities=C.classify(target, self.ctx.tool_manifest),
@@ -1433,7 +1485,7 @@ class GovernanceKernel:
         values = self.ctx.policy_values or {}
         return (id(self.layer.rules), len(self.layer.rules),
                 repr(sorted(values.items(), key=lambda kv: str(kv[0]))),
-                self.ctx.unknown_tool_policy)
+                self.ctx.unknown_tool_policy, self.ctx.reject_untrusted_authority_claims)
 
     def _live_ruleset_hash(self) -> str:
         """The hash of the ruleset IN FORCE RIGHT NOW.
@@ -1454,7 +1506,8 @@ class GovernanceKernel:
             extra={"capability_policy": P.CAPABILITY_POLICY,
                    "policy_values": {**P.DEFAULT_POLICY_VALUES,
                                      **(self.ctx.policy_values or {})},
-                   "unknown_tool_policy": self.ctx.unknown_tool_policy})
+                   "unknown_tool_policy": self.ctx.unknown_tool_policy,
+                   "reject_untrusted_authority_claims": self.ctx.reject_untrusted_authority_claims})
         self._ruleset_cache = (fingerprint, digest)
         return digest
 
@@ -1506,7 +1559,8 @@ class GovernanceKernel:
             extra={"capability_policy": P.CAPABILITY_POLICY,
                    "policy_values": {**P.DEFAULT_POLICY_VALUES,
                                      **(self.ctx.policy_values or {})},
-                   "unknown_tool_policy": self.ctx.unknown_tool_policy})
+                   "unknown_tool_policy": self.ctx.unknown_tool_policy,
+                   "reject_untrusted_authority_claims": self.ctx.reject_untrusted_authority_claims})
         return self._ruleset_hash
 
     # ── reporting ────────────────────────────────────────────
@@ -1514,7 +1568,7 @@ class GovernanceKernel:
         ok, problems = self.chain.verify()
         return {"evidence_verified": ok, "problems": problems,
                 "records": len(self.chain.records),
-                "ruleset_hash": self._ruleset_hash,
+                "ruleset_hash": self._live_ruleset_hash(),
                 "head": self.chain.head[:16]}
 
 

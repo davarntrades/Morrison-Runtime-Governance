@@ -67,6 +67,7 @@ from typing import Any, Iterable, Optional, Protocol
 
 DENIED = "denied"
 RESERVED = "reserved"
+EXPORTED = "exported"  # portable authority may execute outside the kernel
 EXECUTED = "executed"
 # A reservation whose lease lapsed without ever being released or confirmed.
 # It is NOT an abandoned plan: the caller held a PERMIT and may have run it —
@@ -464,8 +465,12 @@ class FileContinuityStore:
         return True
 
     def drop(self, key: str, decision_id: str) -> bool:
-        self._write({"op": "drop", "key": key, "decision_id": decision_id})
-        return True
+        with self.transaction(key):
+            entry = next((e for e in self.entries(key) if e.decision_id == decision_id), None)
+            if entry is None or entry.state not in (RESERVED, UNCONFIRMED):
+                return False
+            self._write({"op": "drop", "key": key, "decision_id": decision_id})
+            return True
 
     def consume(self, key: str, token: str) -> bool:
         """Atomic across processes: read-then-write inside the file lock."""

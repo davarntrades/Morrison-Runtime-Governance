@@ -256,3 +256,11 @@ python3 -m pytest morrison_governance/test_integrations.py -q          # adapter
 python3 -m pytest morrison_governance/test_governed_execution_veto.py -q  # adversarial acceptance suite
 python3 morrison_governance/demo_integrations.py                      # runnable walk-through
 ```
+
+## Exported authority migration
+
+Detached mrl2 leases require external Ed25519 signing, actual request binding
+and a shared atomic issuer/redemption registry. Use `LeaseVerifier.execute()`
+to verify and dispatch the same snapshot. See
+[lease migration](../docs/security/lease-v2-migration.md) for compatibility,
+continuity and deployment scope.
