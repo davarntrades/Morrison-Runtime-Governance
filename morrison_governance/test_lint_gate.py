@@ -153,6 +153,7 @@ def test_every_third_party_import_is_accounted_for_in_the_lint_environment():
                    # They are first-party files in this repository, not
                    # third-party packages that a lint job would have to install.
                    "agents", "board", "mock_service", "run_experiment",
+                       "experiments",
                    "estimate_cost", "offline_selftest"}
 
     # Collected via the AST, not a regex. A text scan over source also matches

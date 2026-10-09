@@ -196,7 +196,7 @@ def test_estimated_figures_are_labelled_as_estimates():
 
 # ── the suite count, verified by collection ────────────────────────
 
-_COUNT = re.compile(r"Repository test suite \| \*\*([\d,]+) passing\*\*")
+_COUNT = re.compile(r"Repository test suite \| \*\*([\d,]+) collected\*\*")
 _CHILD = "MRG_EVIDENCE_CONSISTENCY_CHILD"
 
 
@@ -211,7 +211,7 @@ def test_readme_suite_count_matches_a_real_collection():
     env = {**os.environ, _CHILD: "1"}
     proc = subprocess.run(
         [sys.executable, "-m", "pytest", "--collect-only", "-q",
-         "-p", "no:cacheprovider"],
+         "-p", "no:cacheprovider", "--ignore=experiments/petri_falsification"],
         cwd=ROOT, env=env, capture_output=True, text=True, timeout=600)
     tail = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else ""
     got = re.search(r"(\d+) tests? collected", tail)
@@ -220,10 +220,10 @@ def test_readme_suite_count_matches_a_real_collection():
 
     # The skipped recursion guard is not collected in the child, so allow it.
     assert abs(collected - published) <= 1, (
-        f"README publishes {published:,} passing; the suite actually collects "
+        f"README publishes {published:,} collected; the suite actually collects "
         f"{collected:,}. One of them is wrong, and it is not the suite.")
-    assert abs(facts()["suite"]["passing"] - collected) <= 1, (
-        f"facts.json records {facts()['suite']['passing']:,}; the suite "
+    assert abs(facts()["suite"]["collected"] - collected) <= 1, (
+        f"facts.json records {facts()['suite']['collected']:,}; the suite "
         f"collects {collected:,}")
 
 

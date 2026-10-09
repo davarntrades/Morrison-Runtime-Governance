@@ -46,7 +46,7 @@ from morrison_governance.kernel.continuity import (
     reset_default_store, resolve_continuity,
 )
 from morrison_governance.kernel.mediation import (
-    ExecutionLease, LeaseVerifier, MediationReport, MediationSurface,
+    ExecutionLease, LeaseVerifier, LeaseStore, SQLiteLeaseStore, MediationReport, MediationSurface,
     mint_lease,
 )
 from morrison_governance.kernel.trust import (
@@ -64,7 +64,7 @@ __all__ = [
     "ALL_CATEGORIES", "classify_sensitivity",
     "ALLOW", "APPROVAL", "CAPABILITY_POLICY", "DENY", "GRANT",
     "requirement_for",
-    "ExecutionLease", "LeaseVerifier", "MediationReport",
+    "ExecutionLease", "LeaseVerifier", "LeaseStore", "SQLiteLeaseStore", "MediationReport",
     "MediationSurface", "mint_lease",
     "ContinuityKey", "ContinuityStatus", "ContinuityStore",
     "FileContinuityStore", "InMemoryContinuityStore", "LedgerEntry",

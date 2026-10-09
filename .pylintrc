@@ -36,10 +36,12 @@ init-hook = 'import sys, os; _root = os.path.dirname(os.path.abspath("setup.py" 
 
 # Optional/heavy third-party deps that are not installed in the lint job. Their
 # absence says nothing about this repository's correctness.
+# inspect_ai/inspect_petri are optional experiment dependencies, separately tested.
 # Third-party deps not installed in the lint job, plus the SIBLING REPOSITORY's
 # modules (kernel_config, *_rules). Those live in resurrection-tech-enterprise;
 # their absence here is expected and says nothing about this repository.
 ignored-modules = torch,transformers,numpy,matplotlib,fastapi,pydantic,uvicorn,httpx,starlette,
+                  inspect_ai,inspect_petri,
                   bitsandbytes,accelerate,datasets,vllm,pytest,openai,anthropic,huggingface_hub,
                   kernel_config,cyber_rules,finance_rules,coverage_rules,domain_rules,
                   sector_rules,healthcare_rules,operations_rules,dynamic_rules,escalation,

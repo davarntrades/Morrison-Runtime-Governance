@@ -177,13 +177,27 @@ def quarantine_authority(call: dict) -> tuple[dict, dict]:
     important about itself, and we record it rather than discarding it.
     """
     canon = canonicalize(call)
-    args = dict(canon.get("args") or {})
     quarantined: dict[str, Any] = {}
-    for key in list(args.keys()):
-        if str(key).strip().lower() in AUTHORITY_FIELDS \
-                or is_authority_shaped(key):
-            quarantined[key] = args.pop(key)
-    return {"tool": canon["tool"], "args": args}, quarantined
+
+    def escape(key):
+        return str(key).replace("~", "~0").replace("/", "~1")
+
+    def walk(value, path=()):
+        if isinstance(value, dict):
+            clean = {}
+            for key, child in value.items():
+                label = str(key)
+                if label.strip().lower() in AUTHORITY_FIELDS or is_authority_shaped(label):
+                    evidence_key = label if not path else "/" + "/".join((*path, escape(label)))
+                    quarantined[evidence_key] = child
+                else:
+                    clean[key] = walk(child, (*path, escape(label)))
+            return clean
+        if isinstance(value, list):
+            return [walk(child, (*path, str(index))) for index, child in enumerate(value)]
+        return value
+
+    return {"tool": canon["tool"], "args": walk(canon.get("args") or {})}, quarantined
 
 
 def forged_authority_claims(quarantined: dict) -> list[str]:
@@ -193,7 +207,8 @@ def forged_authority_claims(quarantined: dict) -> list[str]:
     out = []
     for k, v in quarantined.items():
         kl = str(k).strip().lower()
-        if kl not in _FORGERY_SIGNIFICANT and not is_authority_shaped(kl):
+        leaf = kl.rsplit("/", 1)[-1].replace("~1", "/").replace("~0", "~") if kl.startswith("/") else kl
+        if leaf not in _FORGERY_SIGNIFICANT and not is_authority_shaped(leaf):
             continue
         if isinstance(v, bool) and not v:
             continue
@@ -338,6 +353,8 @@ class SecurityContext:
     # Policy for tools with no declared capability manifest entry.
     # "escalate" (default) | "block" | "permit"
     unknown_tool_policy: str = "escalate"
+    # Strict envelopes reject even nonmaterial caller authority assertions.
+    reject_untrusted_authority_claims: bool = False
     # Declared tool manifest: {tool_name: [capability, ...]}
     tool_manifest: dict = field(default_factory=dict)
 
@@ -373,10 +390,10 @@ class SecurityContext:
     # high-value workloads; the cost is more escalations, not less safety.
     continuity_window_s: float = 3600.0
 
-    # Secret shared with the resource-side enforcement points that verify
-    # execution leases. Separate from `signing_key` (approvals) because the
-    # verifier is a DIFFERENT trust domain: a gateway needs to check leases and
-    # has no business being able to mint approvals.
+    # Deprecated: mrl1 keys are retained for configuration compatibility only.
+    # Export requires an external Ed25519 signer and shared atomic registry.
+    lease_signer: Any = None
+    lease_store: Any = None
     lease_signing_key: bytes = b""
 
     # How many authorisations one identity may hold reserved-but-unexecuted.
