@@ -1,0 +1,36 @@
+{
+  "source_commit": "a8ff47a619082cd096c2741eeb1da6dffaa4a6aa",
+  "python": "3.12.14",
+  "pytest": "8.3.5",
+  "runs": [
+    {
+      "command": "python -m pytest -q experiments/local_global_admissibility multi_agent_eval/tests",
+      "passed": 43,
+      "exit_code": 0
+    },
+    {
+      "command": "python -m pytest -q",
+      "status": "interrupted during Living Boundary tests",
+      "exit_code": 130,
+      "complete_suite_pass": false
+    },
+    {
+      "command": "python -m pytest -q --ignore=living-boundary",
+      "attempt": 1,
+      "passed": 1268,
+      "failed": 1,
+      "skipped": 8,
+      "exit_code": 1,
+      "failure": "published suite count stale after 27 added tests"
+    },
+    {
+      "command": "python -m pytest -q --ignore=living-boundary",
+      "attempt": 2,
+      "passed": 1269,
+      "failed": 0,
+      "skipped": 8,
+      "seconds": 42.71,
+      "exit_code": 0
+    }
+  ]
+}

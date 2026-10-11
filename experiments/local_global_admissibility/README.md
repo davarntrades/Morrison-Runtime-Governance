@@ -6,7 +6,7 @@ Hierarchical enforcement executes the first three and blocks the fourth before
 protected record mutation, leaving 90. That fourth action receives local PERMIT
 and global BLOCK from separate authentic governance calls.
 
-Source pinned at `c61c0b5a00ce138185b9ca0f598cc3aac582dabe`.
+Source pinned at `a8ff47a619082cd096c2741eeb1da6dffaa4a6aa`.
 Base repository commit: `b73ad36ca9975e9dce4a2367cdfdfbf83f9ecbc5`.
 Fixture: `synthetic-record-budget-v1`; proposer: `fixed-scripted-proposer-v1`;
 library: 0.4.1; observed runtime: Python 3.12; pytest 8.3.5.
@@ -16,15 +16,16 @@ library: 0.4.1; observed runtime: Python 3.12; pytest 8.3.5.
 From the repository root (Python 3.9+):
 
 ```sh
-git checkout c61c0b5a00ce138185b9ca0f598cc3aac582dabe
+git checkout a8ff47a619082cd096c2741eeb1da6dffaa4a6aa
 python -m pip install pytest==8.3.5
 python -m experiments.local_global_admissibility.experiment --output /tmp/record-budget-evidence
 python -m pytest -q experiments/local_global_admissibility multi_agent_eval/tests
-python -m pytest -q
+python -m pytest -q --ignore=living-boundary
 ```
 
 The source commit includes the complete fixture and tests. The subsequent
-artifact commit adds this report and recorded evidence. No production policy
+artifact commit refreshes this report and recorded evidence. The repository README and facts registry collection count were updated from
+1,590 to 1,617 to include the 27 new tests. No production policy
 files or defaults changed. No model, network, credentials or real records are
 used by the experiment itself.
 
@@ -75,6 +76,12 @@ In the local-only arm global verdict is explicitly NOT_EVALUATED.
 
 Focused recorded run: **43 passed**, including existing multi-agent regression
 tests. See `evidence/focused-tests.xml` for individual cases and actual timing.
+The initial full repository run was interrupted (exit 130) during slow unrelated
+Living Boundary experiments; it is not reported as passing. The final regression run excluding `living-boundary` completed with
+**1,269 passed, 8 skipped in 42.71 seconds**; see `evidence/regression-tests.xml`.
+The first such run exposed a stale published collection count (1 failed,
+1,268 passed, 8 skipped). Updating the README and facts registry to include
+the 27 new tests resolved that failure. No failing assertion was removed.
 
 * Positive controls: 1 and 40 records execute in both arms; 41 is locally blocked.
 * Global boundary: 40+40+20 reaches exactly 100 and executes; 40+40+21 blocks
