@@ -1,3 +1,8 @@
+> Current repaired implementation and evidence: [repair_evidence/REPORT.md](repair_evidence/REPORT.md).
+> The v1 results below and `evidence/` are retained as historical evidence.
+> The legacy validation file has a known per-run attribution defect; corrected
+> historical unknowns and new contemporaneous provenance are in the repair package.
+
 # Local versus global admissibility: bounded falsification experiment
 
 **Observed result: supported in this fixture.** Four identical 30-record proposals

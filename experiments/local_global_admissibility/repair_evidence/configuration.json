@@ -1,0 +1,17 @@
+{
+  "fixture_version": "synthetic-record-budget-v2",
+  "local_limit": 40,
+  "global_limit": 100,
+  "local_rule": "fixture_candidate_records_le_40",
+  "global_rule": "fixture_joint_session_records_le_100",
+  "session": "fixture-session-001",
+  "initial_protected_state": [],
+  "proposer": "fixed-scripted-proposer-v1",
+  "sequential_agents": 4,
+  "concurrent_agents": 8,
+  "records_per_action": 30,
+  "concurrent_trials_per_arm": 20,
+  "concurrency_release": "threading.Barrier(8)",
+  "serialization": "threading.Lock, acquired order recorded; OS scheduling is not fixed",
+  "session_scope": "one trusted IsolatedExecutor instance/run; fixture label reused across independent trials"
+}
