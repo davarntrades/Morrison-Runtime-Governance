@@ -1,0 +1,29 @@
+Preserved findings from the preceding PR #36 adversarial review in this conversation.
+Artifact head reviewed: f5b1d321aef33030b2ddfd4d5c6a0a7c53365d86.
+Fresh source checkout used: a8ff47a619082cd096c2741eeb1da6dffaa4a6aa.
+The complete original review command transcripts are retained in the conversation,
+not an original standalone log file. This is a recovered finding record, not a
+claim of contemporaneously captured per-run provenance.
+
+Observed: identical actions, principals, protected records, local/joint histories
+and used action IDs at all four authority entries; same executor method and lock;
+reversed arm order reproduced identical decision/state traces; independently
+reconstructed protected states matched; all five manifest hashes verified;
+eight CSV records agreed with JSON; all 43 focused tests passed.
+
+Observed concurrent workload: 8 distinct agents, 30 records per action, one
+8-thread barrier. Twenty trials per arm: local-only total 240 in every trial;
+hierarchical total 90 in every trial. Lock order was not fixed.
+
+Defect 1 reproduced: local authority returned PERMIT; subsequent global authority
+exception produced final BLOCK and zero protected mutation, but recorded local
+verdict was NOT_EVALUATED.
+Defect 2: one top-level repaired SHA in validation.json was used for historical
+failed and repaired regression runs without separate contemporaneous source state.
+Defect 3 reproduced: changing source attribution and observed summary totals left
+both standalone decision-row chain verifications passing. The existing retained
+Git package and file manifest detected changed bytes; the row verifier alone did not.
+
+Primary result assessment: supported at tested scope; no execution-condition
+confound found. Evidence defects did not change the reproduced 120 versus 90
+transition distinction. No deployment-level complete mediation or novelty claim.

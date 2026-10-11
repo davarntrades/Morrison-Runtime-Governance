@@ -1,0 +1,7 @@
+Preserved assertion excerpt from the original tool output. The full original failed-run stdout file and contemporaneous source snapshot were not retained.
+
+Command: python -m pytest -q --ignore=living-boundary
+Failed test: morrison_governance/test_evidence_consistency.py::test_readme_suite_count_matches_a_real_collection
+E       AssertionError: README publishes 1,590 collected; the suite actually collects 1,617. One of them is wrong, and it is not the suite.
+Observed original summary: 1 failed, 1268 passed, 8 skipped in 40.97s
+Root cause: published collection count had not incorporated the 27 added experiment tests.

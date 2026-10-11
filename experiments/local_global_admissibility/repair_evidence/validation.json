@@ -1,0 +1,638 @@
+{
+  "schema": "per-run-validation-v2",
+  "current_evidence_source_commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+  "runs": [
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "experiments.local_global_admissibility.review",
+        "--output",
+        "/tmp/pr36-repair-package/adversarial-full.json"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:42:15.211113+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:42:15.886356+00:00",
+      "exit_code": 0,
+      "test_counts": {},
+      "stdout_sha256": "7f7107b11bd3b8fa37d2c21998e3e05738f752341bcd7ae4dfbd92a8edbb3d1c",
+      "run_id": "adversarial",
+      "provenance": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "working_tree_after": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "complete_record_path": "runs/adversarial/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "experiments.local_global_admissibility.review",
+        "--output",
+        "/tmp/pr36-repair-package/adversarial-full-final.json"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:51:16.475716+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:51:17.124194+00:00",
+      "exit_code": 0,
+      "test_counts": {},
+      "stdout_sha256": "7f7107b11bd3b8fa37d2c21998e3e05738f752341bcd7ae4dfbd92a8edbb3d1c",
+      "run_id": "final-adversarial",
+      "provenance": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "working_tree_after": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "complete_record_path": "runs/final-adversarial/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "--junitxml=/tmp/pr36-repair-package/full-final.xml"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:51:59.513642+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:58:32.840554+00:00",
+      "exit_code": 0,
+      "test_counts": {
+        "passed": 1647,
+        "skipped": 8
+      },
+      "stdout_sha256": "2c1ae1360a0c1c7861e3248ddc860c9f73e2c18a9b8f53ab1f5a0dcfc20e8869",
+      "run_id": "final-full",
+      "provenance": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "working_tree_after": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": false,
+        "status_porcelain": " M living-boundary/artifacts/lb0-seed42-f3a5c318/evidence_chain.jsonl\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/provenance.json\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/report.md\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/run_manifest.json\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/evidence_chain.jsonl\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/report.md\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/run_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/candidate_extensions.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/collision_analysis.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/dataset_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/falsification_results.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/held_out_metrics.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/observational_cohorts.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/provenance.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/report.md\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/run_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/uncertainty_analysis.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/candidates.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/competing_hypotheses.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/dataset_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/environment_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/falsification_results.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/invariance_results.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/provenance.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/replication.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/report.md\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/role_models.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/run_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/transfer_matrix.json\u0000",
+        "tracked_diff_sha256": "ac4e237678ababa0bc8ed6cb963efb4e838af4c57b80f9a60adc77721dc59d29",
+        "source_snapshot_sha256": "7a17dbc814f0fa71bdbdb3d4beaf807ea19a8d7ae1df7c88fc4384fe4a5f269f"
+      },
+      "complete_record_path": "runs/final-full/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "experiments/local_global_admissibility/test_experiment.py",
+        "multi_agent_eval/tests",
+        "--junitxml=/tmp/pr36-repair-package/original-focused-final.xml"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:51:14.781866+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:51:15.437117+00:00",
+      "exit_code": 0,
+      "test_counts": {
+        "passed": 43
+      },
+      "stdout_sha256": "7b9c1531414b201da0498e95fe45daef00e8f970793d8201988ae89366e141e9",
+      "run_id": "final-original-focused",
+      "provenance": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "working_tree_after": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "complete_record_path": "runs/final-original-focused/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "experiments.local_global_admissibility.experiment",
+        "--output",
+        "/tmp/pr36-repair-package"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:51:14.535374+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:51:14.728505+00:00",
+      "exit_code": 0,
+      "test_counts": {},
+      "stdout_sha256": "0a21bc238deab5bbee10b2e4853782c6d83b55ffa19436f01e72479dfe43ae80",
+      "run_id": "final-primary",
+      "provenance": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "working_tree_after": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "complete_record_path": "runs/final-primary/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "--ignore=living-boundary",
+        "--junitxml=/tmp/pr36-repair-package/regression-final.xml"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:51:17.177247+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:51:59.456270+00:00",
+      "exit_code": 0,
+      "test_counts": {
+        "passed": 1306,
+        "skipped": 8
+      },
+      "stdout_sha256": "ba37b5f899b46bbfabe665d5c5034bbfeaee1ca7d12348d032109350b7e14f85",
+      "run_id": "final-regression",
+      "provenance": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "working_tree_after": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "complete_record_path": "runs/final-regression/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "experiments/local_global_admissibility/test_repairs.py",
+        "--junitxml=/tmp/pr36-repair-package/repairs-final.xml"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:51:15.491914+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:51:16.418825+00:00",
+      "exit_code": 0,
+      "test_counts": {
+        "passed": 37
+      },
+      "stdout_sha256": "f723c6db9dab5126cbf6b96fae9477df48fd0c23c5fc7fbe7f734f2f840a5246",
+      "run_id": "final-repairs",
+      "provenance": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "working_tree_after": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "complete_record_path": "runs/final-repairs/run.json"
+    },
+    {
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "--junitxml=/tmp/pr36-repair-package/full.xml"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:43:01.936315+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:49:30.091503+00:00",
+      "exit_code": 0,
+      "test_counts": {
+        "passed": 1643,
+        "skipped": 8
+      },
+      "stdout_sha256": "6c777b43315d2e1714889c0c48f9568e0ea2f148022120ffbdb55ddd518be350",
+      "run_id": "full",
+      "provenance": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "working_tree_after": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": false,
+        "status_porcelain": " M living-boundary/artifacts/lb0-seed42-f3a5c318/evidence_chain.jsonl\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/provenance.json\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/report.md\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/run_manifest.json\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/evidence_chain.jsonl\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/report.md\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/run_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/candidate_extensions.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/collision_analysis.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/dataset_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/falsification_results.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/held_out_metrics.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/observational_cohorts.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/provenance.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/report.md\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/run_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/uncertainty_analysis.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/candidates.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/competing_hypotheses.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/dataset_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/environment_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/falsification_results.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/invariance_results.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/provenance.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/replication.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/report.md\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/role_models.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/run_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/transfer_matrix.json\u0000",
+        "tracked_diff_sha256": "921274ba3425fa10c114e1585290c047100509d1af30ce08a5f17007908c2eab",
+        "source_snapshot_sha256": "8dfdd3caeb0f81ea5af28b738269a0a3d27c16b3a40be165200bbc2085493838"
+      },
+      "complete_record_path": "runs/full/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-c",
+        "import json\nfrom experiments.local_global_admissibility.experiment import IsolatedExecutor, candidate, send\nfrom multi_agent_eval.governance_modes import Decision\ne=IsolatedExecutor()\ne.mode.global_.decide=lambda *args: Decision('shared_global', True, 'PERMIT', 'fixture', None, None, object())\ntry:\n    send(e,candidate(0))\n    error=None\nexcept Exception as failure:\n    error=type(failure).__name__+': '+str(failure)\nprint(json.dumps({'error':error,'protected_total':len(e.snapshot()),'decision_records':len(e.trace())}))\nassert len(e.snapshot()) == 30 and e.trace() == []\n"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:48:51.827907+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:48:51.957706+00:00",
+      "exit_code": 0,
+      "test_counts": {},
+      "stdout_sha256": "9d2719ee67e66f605a26afdbf9f157cf95fd9080820e87842915577cd876ad35",
+      "run_id": "malformed-metadata-counterexample",
+      "provenance": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": false,
+        "status_porcelain": " M living-boundary/artifacts/lb0-seed42-f3a5c318/evidence_chain.jsonl\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/provenance.json\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/report.md\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/run_manifest.json\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/evidence_chain.jsonl\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/report.md\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/run_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/candidate_extensions.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/collision_analysis.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/dataset_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/falsification_results.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/held_out_metrics.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/observational_cohorts.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/provenance.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/report.md\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/run_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/uncertainty_analysis.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/candidates.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/competing_hypotheses.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/dataset_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/environment_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/falsification_results.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/invariance_results.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/provenance.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/replication.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/report.md\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/role_models.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/run_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/transfer_matrix.json\u0000",
+        "tracked_diff_sha256": "921274ba3425fa10c114e1585290c047100509d1af30ce08a5f17007908c2eab",
+        "source_snapshot_sha256": "8dfdd3caeb0f81ea5af28b738269a0a3d27c16b3a40be165200bbc2085493838"
+      },
+      "working_tree_after": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": false,
+        "status_porcelain": " M living-boundary/artifacts/lb0-seed42-f3a5c318/evidence_chain.jsonl\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/provenance.json\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/report.md\u0000 M living-boundary/artifacts/lb0-seed42-f3a5c318/run_manifest.json\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/evidence_chain.jsonl\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/report.md\u0000 M living-boundary/artifacts/lb1-seed42-dbf6eb03/run_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/candidate_extensions.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/collision_analysis.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/dataset_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/falsification_results.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/held_out_metrics.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/observational_cohorts.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/provenance.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/report.md\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/run_manifest.json\u0000?? living-boundary/artifacts/lb2/lb2-seed42-b00839b0/uncertainty_analysis.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/candidates.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/competing_hypotheses.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/dataset_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/environment_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/falsification_results.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/invariance_results.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/provenance.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/replication.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/report.md\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/role_models.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/run_manifest.json\u0000?? living-boundary/artifacts/lb3/lb3-seed42-242f2d07/transfer_matrix.json\u0000",
+        "tracked_diff_sha256": "921274ba3425fa10c114e1585290c047100509d1af30ce08a5f17007908c2eab",
+        "source_snapshot_sha256": "8dfdd3caeb0f81ea5af28b738269a0a3d27c16b3a40be165200bbc2085493838"
+      },
+      "complete_record_path": "runs/malformed-metadata-counterexample/run.json",
+      "observation": "REPRODUCED FAILURE: 30 records committed, zero decision evidence; probe assertion confirms failure rather than safety."
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-c",
+        "import json\nfrom experiments.local_global_admissibility.experiment import IsolatedExecutor, candidate, send\nfrom multi_agent_eval.governance_modes import Decision\ne=IsolatedExecutor()\ne.mode.global_.decide=lambda *args: Decision('shared_global', True, 'PERMIT', 'fixture', None, None, object())\nrow=send(e,candidate(0))\nassert len(e.snapshot()) == 0 and len(e.trace()) == 1\nassert row['local_verdict']['verdict'] == 'PERMIT' and row['global_verdict']['verdict'] == 'ERROR'\nassert row['execution_decision']['verdict'] == 'BLOCK'\nprint(json.dumps({'protected_total':len(e.snapshot()),'decision_records':len(e.trace()),'local':row['local_verdict']['verdict'],'global':row['global_verdict']['verdict'],'final':row['execution_decision']['verdict']}))\n"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:52:11.130895+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:52:11.320824+00:00",
+      "exit_code": 0,
+      "test_counts": {},
+      "stdout_sha256": "e3a81007dd39ec7441c3324024aa4d453a6db91253ccedf1c9739fb713fc1033",
+      "run_id": "malformed-metadata-postfix",
+      "provenance": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "working_tree_after": {
+        "commit": "7bd0b2259296f077f5d8b79dc795572a7b927a31",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "8afad0f4ec588d6bf361e5a5a2ca28f1b97ad89deccc84e9d0c41d4418a714f8"
+      },
+      "complete_record_path": "runs/malformed-metadata-postfix/run.json",
+      "observation": "REPAIRED: local PERMIT, global ERROR, final BLOCK, zero records, one decision trace."
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "experiments/local_global_admissibility/test_experiment.py",
+        "multi_agent_eval/tests",
+        "--junitxml=/tmp/pr36-repair-package/original-focused.xml"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:42:13.518568+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:42:14.129776+00:00",
+      "exit_code": 0,
+      "test_counts": {
+        "passed": 43
+      },
+      "stdout_sha256": "f56b92e208e19f3dd13502f166759d3e02b2638256e910ed11e17ddea29c60c7",
+      "run_id": "original-focused",
+      "provenance": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "working_tree_after": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "complete_record_path": "runs/original-focused/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "experiments.local_global_admissibility.experiment",
+        "--output",
+        "/tmp/pr36-repair-package"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:42:13.247422+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:42:13.468249+00:00",
+      "exit_code": 0,
+      "test_counts": {},
+      "stdout_sha256": "d83f3721f8b54dbb2af642e842d193548a1572eb8432ca775efc5c25c7e81b30",
+      "run_id": "primary",
+      "provenance": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "working_tree_after": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "complete_record_path": "runs/primary/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "--ignore=living-boundary",
+        "--junitxml=/tmp/pr36-repair-package/regression.xml"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:42:15.935070+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:42:58.507841+00:00",
+      "exit_code": 0,
+      "test_counts": {
+        "passed": 1302,
+        "skipped": 8
+      },
+      "stdout_sha256": "72fea087cc75bc6ce0e4c4d9aae4d1e5b36c304de31f517e5707dfb4114d0e6d",
+      "run_id": "regression",
+      "provenance": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "working_tree_after": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "complete_record_path": "runs/regression/run.json"
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "experiments/local_global_admissibility/test_repairs.py",
+        "--junitxml=/tmp/pr36-repair-package/repairs.xml"
+      ],
+      "cwd": "/workspace/scratch/4bc085f98680/Morrison-Runtime-Governance",
+      "started_at": "2026-10-11T06:42:14.180132+00:00",
+      "environment": {
+        "python": "3.12.14",
+        "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+        "pytest": "8.3.5",
+        "selected_environment": {
+          "PYTHONHASHSEED": null,
+          "TZ": null
+        }
+      },
+      "ended_at": "2026-10-11T06:42:15.155340+00:00",
+      "exit_code": 0,
+      "test_counts": {
+        "passed": 33
+      },
+      "stdout_sha256": "8fef6d2cb62407b5be9546a31228d638b6c6a057de98f8c4d500bbe37b3d1ade",
+      "run_id": "repairs",
+      "provenance": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "working_tree_after": {
+        "commit": "7314cda0b2a21843b06c5104edeecb9ddd745752",
+        "branch": "experiment/local-global-record-budget",
+        "clean": true,
+        "status_porcelain": "",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_snapshot_sha256": "58402ae2818d02e0ed732b6d842e794193f4bffdbdaa94075a3489854fd47412"
+      },
+      "complete_record_path": "runs/repairs/run.json"
+    }
+  ],
+  "historical_records": "historical-provenance.json",
+  "baseline_review": "baseline-review.json.gz",
+  "baseline_original_focused_log": "baseline-original-focused.log",
+  "baseline_focused_timestamps": "Not separately captured; baseline source f5b1d321aef33030b2ddfd4d5c6a0a7c53365d86 and clean state captured by the enclosing pre-modification baseline process."
+}
