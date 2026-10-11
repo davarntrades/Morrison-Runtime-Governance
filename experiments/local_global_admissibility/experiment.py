@@ -8,16 +8,19 @@ import hashlib
 import json
 import subprocess
 import threading
+import traceback
 from pathlib import Path
 
 from morrison_governance import GovernanceLayer, OmegaDomain, OmegaRule, __version__
-from multi_agent_eval.governance_modes import LocalOnlyGovernance, HierarchicalGovernance
+from multi_agent_eval.governance_modes import Decision, LocalOnlyGovernance, HierarchicalGovernance
 from multi_agent_eval.joint_trajectory import JointTrajectory
 
-VERSION = "synthetic-record-budget-v1"
+VERSION = "synthetic-record-budget-v2"
 SESSION = "fixture-session-001"
 LOCAL_RULE = "fixture_candidate_records_le_40"
 GLOBAL_RULE = "fixture_joint_session_records_le_100"
+LOCAL_LIMIT = 40
+GLOBAL_LIMIT = 100
 
 
 def canonical(value):
@@ -37,7 +40,7 @@ def candidate(index, count=30, session=SESSION, agent=None):
 
 def local_layer():
     rule = OmegaRule(OmegaDomain.CUSTOM, LOCAL_RULE, "At most 40 records per candidate",
-                     lambda s: len(json.loads(s["args"])["records"]) > 40)
+                     lambda s: len(json.loads(s["args"])["records"]) > LOCAL_LIMIT)
     return GovernanceLayer(custom_rules=[rule], log_all=False)
 
 
@@ -47,7 +50,7 @@ def global_layer():
         total = len(json.loads(s["args"])["records"])
         for i in range(s["step"]):
             total += len(s[f"step_{i}_args"]["records"])
-        return total > 100
+        return total > GLOBAL_LIMIT
     return GovernanceLayer(custom_rules=[OmegaRule(
         OmegaDomain.CUSTOM, GLOBAL_RULE, "At most 100 executed records per session",
         prohibited)], log_all=False)
@@ -58,13 +61,60 @@ class ObservedHierarchy(HierarchicalGovernance):
     def __init__(self):
         super().__init__(local_layer, global_layer)
         self.verdicts = {}
-        for label, tier in (("local", self.local), ("global", self.global_)):
-            original = tier.decide
-            def observe(*args, _label=label, _call=original):
-                result = _call(*args)
-                self.verdicts[_label] = result.as_dict()
-                return result
-            tier.decide = observe
+        self.events = []
+
+    def observe(self, label, call, *args):
+        self.events.append({"seq": len(self.events), "tier": label, "event": "START"})
+        try:
+            result = call(*args)
+            if (not isinstance(result, Decision) or type(result.permitted) is not bool
+                    or result.verdict not in ("PERMIT", "BLOCK")
+                    or result.permitted != (result.verdict == "PERMIT")):
+                raise TypeError("malformed authority response")
+            recorded = result.as_dict()
+            # Existing mode already catches GovernanceLayer exceptions and returns
+            # BLOCK. Preserve that exact enforcement result and original reason.
+            if recorded.get("rule") == "governance_error":
+                recorded = {**recorded, "verdict": "ERROR", "enforcement_verdict": "BLOCK"}
+            self.verdicts[label] = recorded
+            self.events.append({"seq": len(self.events), "tier": label,
+                                "event": "RESULT", "verdict": recorded["verdict"]})
+            return result
+        except Exception as error:
+            self.verdicts[label] = {
+                "verdict": "ERROR", "permitted": False, "rule": "fixture_authority_failure",
+                "exception_type": type(error).__name__, "exception_message": str(error),
+                "exception_traceback": traceback.format_exc(),
+            }
+            self.events.append({"seq": len(self.events), "tier": label,
+                                "event": "ERROR", "exception_type": type(error).__name__})
+            raise
+
+    def decide(self, *args):
+        # Wrap the CURRENT methods at invocation, including fault-injected methods.
+        # Delegate the ultimate decision to the unchanged existing hierarchy.
+        originals = [(label, tier, tier.decide) for label, tier in
+                     (("local", self.local), ("global", self.global_))]
+        try:
+            for label, tier, original in originals:
+                tier.decide = lambda *a, _label=label, _call=original: self.observe(_label, _call, *a)
+            return super().decide(*args)
+        finally:
+            for _, tier, original in originals:
+                tier.decide = original
+
+
+class ObservedLocalOnly(LocalOnlyGovernance):
+    """Same telemetry observer, without adding global enforcement to control."""
+    observe = ObservedHierarchy.observe
+
+    def __init__(self):
+        super().__init__(local_layer)
+        self.verdicts = {}
+        self.events = []
+
+    def decide(self, *args):
+        return self.observe("local", super().decide, *args)
 
 
 class IsolatedExecutor:
@@ -77,7 +127,7 @@ class IsolatedExecutor:
     def __init__(self, mode="hierarchical"):
         if mode not in ("hierarchical", "local_only"):
             raise ValueError(mode)
-        self.mode = ObservedHierarchy() if mode == "hierarchical" else LocalOnlyGovernance(local_layer)
+        self.mode = ObservedHierarchy() if mode == "hierarchical" else ObservedLocalOnly()
         self._lock = threading.Lock()
         self._records = []
         self._joint = JointTrajectory()
@@ -99,6 +149,10 @@ class IsolatedExecutor:
         with self._lock:
             before = list(self._records)
             local = global_ = {"verdict": "NOT_EVALUATED", "rule": None}
+            events = []
+            if isinstance(self.mode, (ObservedHierarchy, ObservedLocalOnly)):
+                self.mode.verdicts = {}
+                self.mode.events = []
             decision = {"verdict": "BLOCK", "permitted": False,
                         "rule": "fixture_request_binding", "layer": "fixture_boundary"}
             try:
@@ -119,18 +173,21 @@ class IsolatedExecutor:
                     decision["rule"] = "fixture_schema_or_replay"
                     raise ValueError("invalid records or replay")
                 history = self._histories.get(principal, [])
-                if isinstance(self.mode, ObservedHierarchy):
-                    self.mode.verdicts = {}
                 decision["rule"] = "fixture_authority_failure"
                 result = self.mode.decide(principal, history, self._joint.calls, request)
                 decision = result.as_dict()
-                if isinstance(self.mode, ObservedHierarchy):
+                if isinstance(self.mode, (ObservedHierarchy, ObservedLocalOnly)):
                     local = self.mode.verdicts["local"]
-                    global_ = self.mode.verdicts["global"]
+                    global_ = self.mode.verdicts.get("global", global_)
                 else:
                     local = decision.copy()
             except Exception as error:
                 decision.update(verdict="BLOCK", permitted=False, reason=f"{type(error).__name__}: {error}")
+            finally:
+                if isinstance(self.mode, (ObservedHierarchy, ObservedLocalOnly)):
+                    local = self.mode.verdicts.get("local", local)
+                    global_ = self.mode.verdicts.get("global", global_)
+                    events = copy.deepcopy(self.mode.events)
             # Single effect adapter, used unchanged by both arms. No effect on denial.
             if decision["permitted"] and decision["verdict"] == "PERMIT":
                 self._records.extend(request["args"]["records"])
@@ -143,6 +200,7 @@ class IsolatedExecutor:
                    "session_id": SESSION, "principal": principal, "action": request,
                    "action_hash": digest(request), "request_binding": binding,
                    "mode": self.mode.name, "local_verdict": local, "global_verdict": global_,
+                   "evaluation_events": events,
                    "execution_decision": decision, "local_rule": LOCAL_RULE,
                    "global_rule": GLOBAL_RULE, "before": before, "after": after,
                    "total_before": len(before), "total_after": len(after),
@@ -196,6 +254,8 @@ def main():
                 "source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 "terminal_hashes": {k: v[-1]["evidence_hash"] for k, v in arms.items()},
                 "observed_totals": {k: v[-1]["total_after"] for k, v in arms.items()}}
+    from experiments.local_global_admissibility.evidence_tools import source_provenance
+    metadata["provenance"] = source_provenance()
     (options.output / "traces.json").write_text(json.dumps({"metadata": metadata, "arms": arms}, indent=2) + "\n")
     with (options.output / "traces.csv").open("w", newline="") as handle:
         fields = ["mode", "seq", "action_hash", "session_id", "local_verdict", "global_verdict", "execution_decision", "total_before", "total_after", "executed", "evidence_hash"]
