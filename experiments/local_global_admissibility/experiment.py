@@ -72,6 +72,15 @@ class ObservedHierarchy(HierarchicalGovernance):
                     or result.permitted != (result.verdict == "PERMIT")):
                 raise TypeError("malformed authority response")
             recorded = result.as_dict()
+            required = {"mode", "permitted", "verdict", "layer", "rule", "omega_domain", "reason"}
+            invalid = [key for key in ("mode", "verdict", "layer", "reason")
+                       if not isinstance(recorded.get(key), str)]
+            invalid += [key for key in ("rule", "omega_domain")
+                        if recorded.get(key) is not None and not isinstance(recorded.get(key), str)]
+            if set(recorded) != required or invalid:
+                raise TypeError(f"malformed authority metadata: {', '.join(invalid)}")
+            # Establish evidence serializability BEFORE returning permit to the gate.
+            canonical(recorded)
             # Existing mode already catches GovernanceLayer exceptions and returns
             # BLOCK. Preserve that exact enforcement result and original reason.
             if recorded.get("rule") == "governance_error":

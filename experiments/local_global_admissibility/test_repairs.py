@@ -30,6 +30,22 @@ def test_local_permit_preserved_on_global_failure(kind):
     assert row['execution_decision']['verdict'] == 'BLOCK'
 
 
+@pytest.mark.parametrize('field', ['reason', 'layer', 'rule', 'omega_domain'])
+def test_nonserializable_authority_metadata_blocks_before_effect(field):
+    from multi_agent_eval.governance_modes import Decision
+    executor = IsolatedExecutor()
+    response = Decision('shared_global', True, 'PERMIT', 'fixture', None, None, 'valid')
+    setattr(response, field, object())
+    executor.mode.global_.decide = lambda *args: response
+    row = send(executor, candidate(0))
+    assert row['local_verdict']['verdict'] == 'PERMIT'
+    assert row['global_verdict']['verdict'] == 'ERROR'
+    assert field in row['global_verdict']['exception_message']
+    assert row['execution_decision']['verdict'] == 'BLOCK'
+    assert row['before'] == row['after'] == executor.snapshot() == []
+    assert len(executor.trace()) == 1
+
+
 def test_local_failure_global_genuinely_not_evaluated():
     executor = IsolatedExecutor()
     def failed(*args):
