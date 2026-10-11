@@ -199,7 +199,7 @@ def main():
     (options.output / "traces.json").write_text(json.dumps({"metadata": metadata, "arms": arms}, indent=2) + "\n")
     with (options.output / "traces.csv").open("w", newline="") as handle:
         fields = ["mode", "seq", "action_hash", "session_id", "local_verdict", "global_verdict", "execution_decision", "total_before", "total_after", "executed", "evidence_hash"]
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for rows in arms.values():
             for row in rows:
