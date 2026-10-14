@@ -1,0 +1,61 @@
+name: AgentDojo HF Access Diagnosis
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/agentdojo-hf-access-check]
+    paths: [.github/workflows/agentdojo-hf-access-check.yml]
+permissions:
+  contents: read
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Diagnose authenticated model access without inference
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os,json,re,urllib.request,urllib.error,pathlib
+          token=os.environ.get("HF_TOKEN","")
+          model="huihui-ai/Qwen3-32B-abliterated"
+          revision="7a754614e9172cd416b4652342084bea8b5c98b0"
+          report={"key_present":bool(token),"paid_calls":0}
+          def safe(value):
+              text=json.dumps(value)
+              if token: text=text.replace(token,"[REDACTED]")
+              text=re.sub(r"hf_[A-Za-z0-9]{8,}","[REDACTED]",text)
+              return json.loads(text)
+          def get(path):
+              req=urllib.request.Request("https://huggingface.co"+path,headers={"Authorization":"Bearer "+token})
+              try:
+                  with urllib.request.urlopen(req,timeout=30) as r: return r.status,json.load(r)
+              except urllib.error.HTTPError as e:
+                  body=e.read().decode(errors="replace")
+                  return e.code,{"error":safe(body[:2000]),"error_message":safe(e.headers.get("X-Error-Message",""))}
+          status,who=get("/api/whoami-v2")
+          report["authentication_status"]=status
+          if status==200:
+              report["account"]=who.get("name")
+              auth=who.get("auth",{}).get("accessToken",{})
+              report["token_role"]=auth.get("role")
+              fine=auth.get("fineGrained",{})
+              report["global_permissions"]=fine.get("global",[])
+              report["scoped_permissions"]=[{"entity":x.get("entity",{}).get("name"),"permissions":x.get("permissions",[])} for x in fine.get("scoped",[])]
+          for label,path in [("repository_access","/api/models/"+model+"/auth-check"),("gated_config","/"+model+"/resolve/"+revision+"/config.json")]:
+              status,data=get(path)
+              report[label]={"http_status":status}
+              if status!=200: report[label]["denial"]=data
+          report=safe(report)
+          pathlib.Path("access-check").mkdir(exist_ok=True)
+          pathlib.Path("access-check/access.json").write_text(json.dumps(report,indent=2))
+          print(json.dumps(report,indent=2))
+          
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: hf-access-${{ github.run_id }}
+          path: access-check
