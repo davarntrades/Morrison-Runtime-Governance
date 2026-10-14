@@ -571,7 +571,9 @@ def test_execution_outcome_is_a_new_sealed_record_not_a_mutation():
     before = len(k.chain.records)
     d, executed, _ = k.submit(call, rt)
     assert executed is True
-    assert len(k.chain.records) == before + 2      # decision + execution
+    # decision + intent sealed before dispatch (E10) + execution outcome
+    assert len(k.chain.records) == before + 3
+    assert [r.layer for r in k.chain.records[-2:]] == ["execution_intent", "execution"]
     assert k.chain.records[-1].layer == "execution"
     assert k.integrity()["evidence_verified"] is True
 

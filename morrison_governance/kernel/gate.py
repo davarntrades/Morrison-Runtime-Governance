@@ -307,6 +307,10 @@ class Attempt:
 # artifact authorises one committed transition, whoever presents it.
 APPROVALS_NAMESPACE = "__approvals__"
 
+# Shared-resource history (see SecurityContext.resource_scopes): live steps on
+# a resource, from every principal, filed under "__resource__/<scope>".
+RESOURCE_NAMESPACE = "__resource__"
+
 
 def approval_replay_token(approval) -> str:
     """What makes an approval artifact single-use. Its nonce when it has one;
@@ -333,6 +337,7 @@ class GovernanceKernel:
         # Executions whose outcome record could not be sealed (see
         # `_record_execution_outcome`): committed effects missing evidence.
         self.evidence_failures: list[dict] = []
+        self._pending_outcomes: list[tuple] = []
         self.engine_version = engine_version
         self.session_id = session_id or uuid.uuid4().hex
         self.decision_ttl_s = float(decision_ttl_s)
@@ -451,6 +456,75 @@ class GovernanceKernel:
         # wall time — otherwise a model-clock session prunes everything.
         return [a.action for a in self.ledger if a.live(self._clock_basis())]
 
+    # ── shared resources (G1) ────────────────────────────────
+    def _scope_keys(self, action: dict) -> list[str]:
+        """Continuity keys of the shared resources `action` acts on. Raises if
+        the deployment's resolver fails; callers treat that as fail-closed."""
+        resolver = getattr(self.ctx, "resource_scopes", None)
+        if resolver is None:
+            return []
+        scopes = resolver(action) or ()
+        if isinstance(scopes, str):
+            scopes = (scopes,)
+        keys = set()
+        for s in scopes:
+            if not isinstance(s, str) or not s.strip():
+                raise ValueError(f"resource scope {s!r} is not a resource id")
+            keys.add(f"{RESOURCE_NAMESPACE}/{s}")
+        return sorted(keys)
+
+    def _shared_history(self, keys: list[str]) -> list[dict]:
+        """Live actions OTHER decisions hold on these shared resources, from
+        any principal, in the order they were taken. This principal's own
+        entries are already in its history and are not repeated."""
+        if not keys:
+            return []
+        own = {e.decision_id for e in self.store.entries(self.continuity_key)} \
+            if self.continuity_key else set()
+        window = float(getattr(self.ctx, "continuity_window_s", 0.0) or 0.0)
+        horizon = (time.time() - window) if window > 0 else None
+        seen, rows = set(), []
+        for key in keys:
+            for e in self.store.entries(key):
+                if e.decision_id in own or e.decision_id in seen:
+                    continue
+                if not (e.state == EXPORTED or horizon is None
+                        or (e.wall_timestamp or e.timestamp) >= horizon):
+                    continue
+                att = Attempt(action=e.action, verdict=e.verdict, reason=e.reason,
+                              actor=e.actor, timestamp=e.timestamp,
+                              capabilities=frozenset(e.capabilities),
+                              state=self._effective_state(e),
+                              decision_id=e.decision_id, expires_at=e.expires_at)
+                # Another kernel's clock is wall time unless proven otherwise;
+                # a lapsed reservation stays live as UNCONFIRMED either way.
+                if att.live(time.time()):
+                    seen.add(e.decision_id)
+                    rows.append((e.wall_timestamp or e.timestamp, e.seq, e.action))
+        return [a for _, _, a in sorted(rows, key=lambda r: (r[0], r[1]))]
+
+    def _governed_prefix(self, clean: dict, scope_keys: list[str]) -> list[dict]:
+        """The trajectory a decision is evaluated against: every live step on
+        the shared resources it touches, then this principal's own history,
+        then the candidate."""
+        return self._shared_history(scope_keys) + self.executed_history + [clean]
+
+    def _scope_mirror(self, action: Optional[dict], op: Callable[[str], Any]) -> None:
+        """Apply one state change to the shared-resource copies of an entry.
+        Best effort by design: a copy left behind is a reservation that still
+        counts, which over-counts a budget and never under-counts it."""
+        if action is None:
+            return
+        try:
+            keys = self._scope_keys(action)
+        except Exception:                            # noqa: BLE001
+            return
+        for key in keys:
+            try:
+                op(key)
+            except Exception:                        # noqa: BLE001
+                pass
+
     def _clock_basis(self) -> float:
         """The clock this session is actually being driven on.
 
@@ -489,13 +563,22 @@ class GovernanceKernel:
                    for a in self.ledger)
 
     # ── reservations ─────────────────────────────────────────
-    def _reserve(self, decision: "Decision", now: float) -> None:
-        """Take this decision's slot in the trajectory before it executes."""
+    def _reserve(self, decision: "Decision", now: float,
+                 scope_keys: tuple = ()) -> None:
+        """Take this decision's slot in the trajectory before it executes,
+        and on every shared resource it acts on. The shared copy is written
+        before the decision is marked reserved: if it cannot be written the
+        error propagates and no executable PERMIT leaves this method."""
         self._file(decision.action, PERMIT, RESERVED, decision.reason, now,
                    capabilities=decision.capabilities,
                    decision_id=decision.decision_id,
                    semantic_hash=decision.semantic_hash,
                    expires_at=decision.expires_at)
+        if scope_keys and self.continuity_key:
+            entry = next(e for e in self.store.entries(self.continuity_key)
+                         if e.decision_id == decision.decision_id)
+            for key in scope_keys:
+                self.store.append(key, entry)
         decision.reserved = True
 
     def _reservation(self, decision_id: str) -> Optional[Attempt]:
@@ -509,6 +592,8 @@ class GovernanceKernel:
         if self.continuity_key:
             self.store.set_state(self.continuity_key, decision_id, EXECUTED,
                                  now, action)
+            self._scope_mirror(action, lambda k: self.store.set_state(
+                k, decision_id, EXECUTED, now, action))
 
     def release(self, decision: "Decision") -> bool:
         """Abandon a PERMIT the caller has decided not to execute.
@@ -533,6 +618,8 @@ class GovernanceKernel:
                     return False
                 dropped = self.store.drop(self.continuity_key, decision.decision_id)
                 if dropped:
+                    self._scope_mirror(decision.action, lambda k: self.store.drop(
+                        k, decision.decision_id))
                     decision.reserved = False
                     self.chain.append(EvidenceRecord(
                         seq=0, timestamp=time.time(), actor=self.ctx.principal.id,
@@ -556,6 +643,9 @@ class GovernanceKernel:
             if held is None:
                 return False
             dropped = self.store.drop(self.continuity_key, decision.decision_id)
+            if dropped:
+                self._scope_mirror(decision.action, lambda k: self.store.drop(
+                    k, decision.decision_id))
             decision.reserved = False if dropped else decision.reserved
             return dropped
 
@@ -598,8 +688,12 @@ class GovernanceKernel:
             if executed:
                 self.store.set_state(self.continuity_key,
                                      decision.decision_id, EXECUTED, now)
+                self._scope_mirror(decision.action, lambda k: self.store.set_state(
+                    k, decision.decision_id, EXECUTED, now))
             else:
                 self.store.drop(self.continuity_key, decision.decision_id)
+                self._scope_mirror(decision.action, lambda k: self.store.drop(
+                    k, decision.decision_id))
             self.chain.append(EvidenceRecord(
                 seq=0, timestamp=now, actor=self.ctx.principal.id,
                 tenant=self.ctx.principal.tenant,
@@ -645,6 +739,8 @@ class GovernanceKernel:
             # Any dependency failure retains conservative history.
             if not self.store.set_state(self.continuity_key, snapshot.decision_id, EXPORTED, now):
                 raise ValueError("cannot persist exported trajectory history")
+            self._scope_mirror(snapshot.action, lambda k: self.store.set_state(
+                k, snapshot.decision_id, EXPORTED, now))
             if not self.store.consume(self.continuity_key, f"decision:{snapshot.decision_id}"):
                 raise ValueError("decision already used")
             snapshot.authorization = {**snapshot.authorization, "tenant": self.ctx.principal.tenant}
@@ -739,7 +835,22 @@ class GovernanceKernel:
         because nothing held the trajectory steady between the two calls.
         """
         with self._lock, self._critical_section():
-            return self._authorize_locked(call, now, reserve)
+            # Resolve the shared resources first and hold their part of the
+            # store's lock too, so two principals acting on one resource
+            # serialise their read-modify-write exactly as two sessions of one
+            # principal already do. A resolver failure is a governance failure
+            # and refuses (below), never an unscoped evaluation.
+            try:
+                scope_keys, scope_error = self._scope_keys(canonicalize(call)), None
+            except Exception as e:                   # noqa: BLE001
+                scope_keys, scope_error = [], f"{type(e).__name__}: {e}"
+            with contextlib.ExitStack() as held:
+                transaction = getattr(self.store, "transaction", None)
+                if transaction is not None:
+                    for key in scope_keys:
+                        held.enter_context(transaction(key))
+                return self._authorize_locked(call, now, reserve,
+                                              scope_keys, scope_error)
 
     def preview(self, call: dict, now: Optional[float] = None) -> Decision:
         """Non-reserving, non-executable evaluation. See `authorize`."""
@@ -764,7 +875,8 @@ class GovernanceKernel:
         return transaction(self.continuity_key)
 
     def _authorize_locked(self, call: dict, now: Optional[float],
-                          reserve: bool) -> Decision:
+                          reserve: bool, scope_keys: tuple = (),
+                          scope_error: Optional[str] = None) -> Decision:
         _t0 = time.perf_counter()
         _sw = _Stopwatch()
         now = time.time() if now is None else now
@@ -969,7 +1081,13 @@ class GovernanceKernel:
         if "amount_threshold" in pol_values:
             trusted["threshold"] = pol_values["amount_threshold"]
 
-        prefix = self.executed_history + [clean]
+        if scope_error:
+            candidates.append((BLOCK, "fail_closed",
+                               f"shared-resource scope could not be resolved "
+                               f"({scope_error}); a decision on a shared "
+                               f"resource is never taken without its history",
+                               "resource_scope_unresolved", None))
+        prefix = self._governed_prefix(clean, list(scope_keys))
         try:
             with _sw("trajectory_analysis"):
                 res = self._evaluate_with_context(prefix, trusted)
@@ -1162,6 +1280,9 @@ class GovernanceKernel:
         xt = _cross_tenant(clean, self.ctx, quarantined)
         if xt:
             candidates.append((BLOCK, "tenancy", xt, "cross_tenant", None))
+        owner = _resource_owner_problem(proposed, self.ctx)
+        if owner:
+            candidates.append((BLOCK, "tenancy", owner[1], owner[0], None))
 
         _sw.totals["policy_evaluation"] = (
             _sw.totals.get("policy_evaluation", 0.0)
@@ -1225,7 +1346,7 @@ class GovernanceKernel:
                 try:
                     with _sw("trajectory_analysis"):
                         hyp = self._evaluate_with_context(
-                            self.executed_history + [clean], hyp_ctx)
+                            self._governed_prefix(clean, list(scope_keys)), hyp_ctx)
                     if hyp.permitted:
                         verdict = ESCALATE
                         layer = "capability_policy"
@@ -1305,7 +1426,7 @@ class GovernanceKernel:
                                          "approval_already_consumed",
                                          decision.reason)
                     return decision
-            self._reserve(decision, now)
+            self._reserve(decision, now, scope_keys)
         else:
             self._file(proposed, verdict, DENIED, reason, now,
                        capabilities=caps, decision_id=decision.decision_id,
@@ -1427,6 +1548,15 @@ class GovernanceKernel:
                     f"match authorised {decision.action_hash[:12]}…")
                 return False, "refused: action mutated after authorisation"
 
+            # E10. Evidence BEFORE effect. The execution record used to be
+            # written only after the executor returned, so a recorder that
+            # failed in between left a committed effect with no execution
+            # evidence. A sealed intent naming this decision is now written
+            # first; if it cannot be written, nothing is consumed and nothing
+            # runs (the exception reaches `execute`, which refuses).
+            self._flush_pending_outcomes()
+            intent = self._record_intent(decision, target)
+
             # Past this point the decision is spent whatever happens next. An
             # executor that raises may still have had effects, so the lease is
             # burned and the reservation committed rather than released — a
@@ -1435,7 +1565,8 @@ class GovernanceKernel:
                                       f"decision:{decision.decision_id}"):
                 self._record_refusal(
                     decision, target, "lease", "decision_lease_invalid",
-                    "execution refused: decision has already been used")
+                    "execution refused: decision has already been used "
+                    f"(intent {intent.record_hash[:12]}… void)")
                 return False, ("refused: decision has already been used")
             self._commit(decision.decision_id, now, target)
 
@@ -1461,11 +1592,27 @@ class GovernanceKernel:
             self._record_execution_outcome(decision, "ok")
         return True, result
 
+    def _record_intent(self, decision: "Decision", target: dict) -> EvidenceRecord:
+        """Seal 'decision D is about to dispatch action A' before any effect.
+        Not marked executed: it records a commitment, not an outcome."""
+        return self.chain.append(EvidenceRecord(
+            seq=0, timestamp=time.time(), actor=self.ctx.principal.id,
+            tenant=self.ctx.principal.tenant, action_hash=action_hash(target),
+            proposed=target, decision=PERMIT, layer="execution_intent",
+            rule="dispatch", reason=f"dispatching decision {decision.decision_id}",
+            authorization={**(decision.authorization or {}),
+                           "decision_id": decision.decision_id},
+            ruleset_hash=decision.ruleset_hash or self._live_ruleset_hash(),
+            engine_version=self.engine_version))
+
     def _record_execution_outcome(self, decision: "Decision", note: str) -> None:
         """Seal the execution outcome. The effect has ALREADY been committed
         when this runs, so a failure here must not be reported as a refusal:
         that told the caller nothing ran while the resource had changed. The
-        failure is kept on `evidence_failures` for the operator instead."""
+        failure is kept on `evidence_failures` for the operator, and the
+        outcome is queued and sealed by the next execution (or by
+        `flush_evidence`). The intent record written before dispatch already
+        links the effect to its decision in the meantime."""
         try:
             self.chain.record_execution(decision.evidence, True, note)
         except Exception as e:                       # noqa: BLE001
@@ -1474,6 +1621,28 @@ class GovernanceKernel:
                 "action_hash": decision.action_hash,
                 "error": f"{type(e).__name__}: {e}",
                 "at": time.time()})
+            if decision.evidence is not None:
+                self._pending_outcomes.append((decision, note))
+
+    def _flush_pending_outcomes(self) -> int:
+        """Seal outcomes that could not be recorded when they happened."""
+        sealed = 0
+        while self._pending_outcomes:
+            decision, note = self._pending_outcomes[0]
+            try:
+                self.chain.record_execution(
+                    decision.evidence, True, f"{note} (sealed late after an "
+                    f"evidence failure)")
+            except Exception:                        # noqa: BLE001
+                break
+            self._pending_outcomes.pop(0)
+            sealed += 1
+        return sealed
+
+    def flush_evidence(self) -> int:
+        """Operator hook: retry sealing outcomes that failed to record."""
+        with self._lock:
+            return self._flush_pending_outcomes()
 
     def _record_refusal(self, decision: Decision, target: dict, layer: str,
                         rule: str, reason: str) -> None:
@@ -1510,7 +1679,7 @@ class GovernanceKernel:
                 raise ValueError("decision cannot be recorded as executed: "
                                  "it has already been used")
             if self._reservation(decision.decision_id) is not None:
-                self._commit(decision.decision_id, stamp)
+                self._commit(decision.decision_id, stamp, decision.action)
             else:
                 self._file(decision.action, PERMIT, EXECUTED, decision.reason,
                            stamp, capabilities=decision.capabilities,
@@ -1644,6 +1813,52 @@ def _numeric(args: dict, keys: tuple) -> Optional[float]:
 
 _TENANT_KEYS = ("tenant", "tenant_id", "customer_id", "account_id", "org",
                 "org_id", "organization_id", "workspace", "workspace_id")
+
+
+def _resource_owner_problem(call: dict, ctx: SecurityContext
+                            ) -> Optional[tuple[str, str]]:
+    """Check the resources a call acts ON against the trusted ownership
+    registry. Returns (rule, reason) for a refusal, or None.
+
+    Only tools listed in `owned_resource_args` are checked, and only the
+    arguments listed for them. For those, the owner must be known and must be
+    the principal's tenant: an unknown owner fails closed, because "not in the
+    registry" is exactly what an id from another tenant looks like to a
+    registry that is incomplete.
+    """
+    names = (ctx.owned_resource_args or {}).get(call.get("tool"))
+    if not names:
+        return None
+    own = (ctx.principal.tenant or "").strip()
+    registry = ctx.resource_tenants
+    args = call.get("args") or {}
+    for name in names:
+        if name not in args:
+            return ("resource_owner_unknown",
+                    f"{call.get('tool')} must name the resource it acts on in "
+                    f"{name!r}; ownership cannot be established")
+        rid = args[name]
+        if not isinstance(rid, str) or not rid:
+            return ("resource_owner_unknown",
+                    f"{name}={rid!r} is not a resource id; ownership cannot be "
+                    f"established")
+        try:
+            owner = (registry(rid) if callable(registry)
+                     else (registry or {}).get(rid))
+        except Exception as e:                       # noqa: BLE001 — fail closed
+            return ("resource_owner_unknown",
+                    f"resource ownership registry failed for {name}={rid!r}: "
+                    f"{type(e).__name__}")
+        if not owner:
+            return ("resource_owner_unknown",
+                    f"{name}={rid!r} is not in the resource ownership registry; "
+                    f"an unregistered resource is not assumed to be the "
+                    f"principal's own")
+        if not own or str(owner).strip() != own:
+            return ("cross_tenant",
+                    f"cross-tenant access: {name}={rid!r} belongs to tenant "
+                    f"{owner!r}, principal belongs to tenant {own!r}")
+    return None
 
 
 def _cross_tenant(call: dict, ctx: SecurityContext,

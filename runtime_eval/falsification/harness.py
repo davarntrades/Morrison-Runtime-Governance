@@ -102,11 +102,25 @@ def separation_of_duties_rule(roles: frozenset) -> OmegaRule:
                      f"No principal may hold all of {sorted(roles)}", check)
 
 
+def account_scopes(call: dict) -> list:
+    """Shared-resource scope of a ledger call: the account it debits."""
+    if call.get("tool") == "transfer":
+        src = (call.get("args") or {}).get("from")
+        if not isinstance(src, str) or not src:
+            raise ValueError("transfer names no debited account")
+        return [f"account:{src}"]
+    return []
+
+
 # ── kernel construction ───────────────────────────────────────────────────
 def make_kernel(principal: str = "agent-a", tenant: str = "acme",
                 store=None, rules=(), auto_approve_max: int = 10_000,
                 signing_key: bytes = b"", session_id: str = "",
-                decision_ttl_s: Optional[float] = None) -> GovernanceKernel:
+                decision_ttl_s: Optional[float] = None,
+                resource_scopes=None, owners=None) -> GovernanceKernel:
+    """`resource_scopes` and `owners` switch on the G1 and E12 repairs:
+    shared-resource history keyed on the debited account, and a trusted
+    account -> tenant registry checked for the debited account."""
     ctx = SecurityContext(
         principal=Principal(id=principal, tenant=tenant),
         continuity_store=store if store is not None else InMemoryContinuityStore(),
@@ -115,6 +129,9 @@ def make_kernel(principal: str = "agent-a", tenant: str = "acme",
         policy_values={"payment_auto_approve_max": auto_approve_max},
         signing_key=signing_key,
         trusted_issuers=frozenset({APPROVER_ID}) if signing_key else frozenset(),
+        resource_scopes=resource_scopes,
+        owned_resource_args={"transfer": ("from",)} if owners is not None else {},
+        resource_tenants=owners,
     )
     layer = GovernanceLayer(domains=list(GOVERNED_DOMAINS),
                             custom_rules=list(rules), log_all=False)

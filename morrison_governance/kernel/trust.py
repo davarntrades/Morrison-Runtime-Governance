@@ -418,6 +418,32 @@ class SecurityContext:
     # internal, whatever this is set to.
     trust_private_networks: bool = False
 
+    # SHARED RESOURCES: whose history a decision is evaluated against.
+    #
+    # Governed history is filed per principal, so a rule such as "outflow from
+    # account X must not exceed N" saw only the acting principal's own steps.
+    # Two agents, each within the limit on its own, jointly exceeded it (G1).
+    # `resource_scopes(call)` names the shared resources a call acts on, e.g.
+    # ["account:OPS"]. Every live reservation or execution on a scope is filed
+    # under that scope as well, and a decision on the scope is evaluated
+    # against all of it, whichever principal took it. It is trusted deployment
+    # configuration: every kernel that can act on the resource must share the
+    # continuity store and the same resolver, and resource ids must be the
+    # resource's own canonical ids.
+    resource_scopes: Any = None
+
+    # RESOURCE OWNERSHIP: which tenant owns the resource a call acts on.
+    #
+    # Tenancy used to be inferred from the shape of identifiers (`tenant_b`,
+    # `tenant_id=...`), so an opaque account id owned by another tenant passed
+    # (E12). `owned_resource_args` maps a tool to the argument names that name
+    # a resource the principal acts ON (the debited account, not the payee);
+    # `resource_tenants` is the trusted registry, a mapping or a callable
+    # `id -> tenant | None`. Once a tool is declared, a resource whose owner is
+    # unknown is refused, never assumed to be the principal's own.
+    owned_resource_args: dict = field(default_factory=dict)
+    resource_tenants: Any = None
+
     _used_nonces: set = field(default_factory=set)
 
     # ── approvals ────────────────────────────────────────────
