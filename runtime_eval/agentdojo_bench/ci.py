@@ -257,3 +257,24 @@ def summary_markdown(root: Path) -> str:
               f"{len(ver.get('evidence_chains', {}).get('failed', []))}",
               f"Credential redactions: {len(ver.get('redactions', {}))} file(s)"]
     return "\n".join(lines)
+
+
+def export_to_log(root: Path, chunk: int = 4000) -> int:
+    """Print the (already redacted) evidence directory as a gzipped tar,
+    base64-encoded between markers, with its SHA-256, so it can be rebuilt
+    byte for byte from the job log where artifact storage is unreachable."""
+    import base64
+    import hashlib
+    import io
+    import tarfile
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tar:
+        tar.add(root, arcname=root.name)
+    data = buf.getvalue()
+    text = base64.b64encode(data).decode()
+    print(f"EVIDENCE-EXPORT-BEGIN sha256={hashlib.sha256(data).hexdigest()} "
+          f"bytes={len(data)} lines={(len(text) + chunk - 1) // chunk}")
+    for i in range(0, len(text), chunk):
+        print(text[i:i + chunk])
+    print("EVIDENCE-EXPORT-END")
+    return 0

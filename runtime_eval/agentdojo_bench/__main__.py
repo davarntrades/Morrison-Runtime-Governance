@@ -124,6 +124,16 @@ def _verify(args) -> int:
     return status
 
 
+def _analyze(args) -> int:
+    from runtime_eval.agentdojo_bench.analyze import main as analyze_main
+    return analyze_main(args.output)
+
+
+def _export(args) -> int:
+    from runtime_eval.agentdojo_bench.ci import export_to_log
+    return export_to_log(args.output)
+
+
 def _model_settings_args(sp) -> None:
     sp.add_argument("--max-tokens", type=int, default=16000,
                     help="per-request max_tokens (thinking counts toward it)")
@@ -173,10 +183,17 @@ def main(argv: list[str] | None = None) -> int:
     ver = sub.add_parser("verify", help="redact credentials, re-verify "
                                         "evidence chains, check matched arms")
     ver.add_argument("--output", type=Path, required=True)
+    ana = sub.add_parser("analyze", help="outcome analysis: attempted vs "
+                                         "executed vs verified effects")
+    ana.add_argument("--output", type=Path, required=True)
+    exp = sub.add_parser("export-log", help="print the redacted evidence "
+                                            "directory as base64 to stdout")
+    exp.add_argument("--output", type=Path, required=True)
 
     args = p.parse_args(argv)
     return {"oracle": _oracle, "live": _live, "preflight": _preflight,
-            "verify": _verify}[args.mode](args)
+            "verify": _verify, "analyze": _analyze,
+            "export-log": _export}[args.mode](args)
 
 
 if __name__ == "__main__":

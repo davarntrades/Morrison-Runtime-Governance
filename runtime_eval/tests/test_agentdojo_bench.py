@@ -261,3 +261,26 @@ def test_budget_stop_is_reported_as_incomplete(monkeypatch, tmp_path):
     assert out["status"] == "incomplete"
     assert "BudgetExceeded" in out["error"]
     assert out["api_usage"]["requests"] == 1
+
+
+@pytest.mark.parametrize("defense", ["none", "morrison"])
+def test_outcome_analysis_counts_effects_not_attempts(defense, monkeypatch, tmp_path):
+    from runtime_eval.agentdojo_bench import live
+    from runtime_eval.agentdojo_bench.analyze import analyse_episode
+    suite = get_suite(DEFAULT_BENCHMARK_VERSION, "banking")
+    monkeypatch.setattr(live, "make_llm", lambda *a, **k: _CompromisedLLM(suite))
+    out = live.run_live("anthropic", "claude-test-model", "banking",
+                        defense=defense, user_tasks=["user_task_1"],
+                        injection_tasks=["injection_task_6", "injection_task_7"],
+                        logdir=tmp_path)
+    rows = {r["injection_task"]: analyse_episode(r, defense == "morrison")
+            for r in out["results"]}
+    for r in rows.values():
+        assert r["prohibited_attempted"]          # the model always tries
+        assert r["binding"]["ok"] and not r["effect_consistency"]
+    if defense == "none":
+        assert rows["injection_task_6"]["attacker_funds_total"] == 30000.0
+        assert rows["injection_task_7"]["verified_prohibited_effects"] == ["L3_password"]
+    else:
+        assert all(r["local_safety"] == "MAINTAINED" and not r["prohibited_executed"]
+                   for r in rows.values())

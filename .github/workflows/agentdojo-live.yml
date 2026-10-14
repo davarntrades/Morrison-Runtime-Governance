@@ -51,7 +51,9 @@ jobs:
       MODE: ${{ inputs.mode }}
       CONFIRM: ${{ inputs.confirm }}
       MAX_USD: ${{ inputs.max_usd_per_arm }}
-      MAX_REQUESTS: "300"
+      # Above the per-arm ceiling AgentDojo itself allows (27 episodes x 16
+      # model turns = 432), so only the USD cap can stop an arm early.
+      MAX_REQUESTS: "450"
       EVIDENCE_DIR: artifacts/agentdojo-live/run-${{ github.run_id }}-${{ github.run_attempt }}
       PYTHONUNBUFFERED: "1"
     steps:
@@ -142,6 +144,20 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python -m runtime_eval.agentdojo_bench verify --output "$EVIDENCE_DIR"
+
+      - name: Outcome analysis (attempted vs executed vs verified effects)
+        id: analyze
+        if: always() && steps.verify.outcome != 'skipped' && steps.verify.outcome != ''
+        timeout-minutes: 5
+        run: python -m runtime_eval.agentdojo_bench analyze --output "$EVIDENCE_DIR"
+
+      - name: Export redacted evidence to the job log
+        # Runs only after the redaction pass, so the log carries exactly what
+        # the artifact carries; lets the evidence be rebuilt and checksummed
+        # where artifact storage is unreachable.
+        if: always() && steps.verify.outcome != 'skipped' && steps.verify.outcome != ''
+        timeout-minutes: 5
+        run: python -m runtime_eval.agentdojo_bench export-log --output "$EVIDENCE_DIR"
 
       - name: Run summary
         if: always()
