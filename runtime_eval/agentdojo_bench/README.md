@@ -59,6 +59,26 @@ python -m runtime_eval.agentdojo_bench live --defense none \
     --provider anthropic --model claude-sonnet-5-5 --suite banking
 ```
 
+The two arms are matched: same model, provider settings (AgentDojo's
+Anthropic adapter: temperature 0, 1024 max tokens), system message, attack
+text and task sample. The baseline runs through the same `MorrisonToolsExecutor`
+with `enforce=False` (Morrison records its verdict, every call executes), so
+the only difference between arms is enforcement. Each output row records the
+SHA of the injection text so this can be checked pair by pair.
+
+Per pair, the output keeps two things apart:
+
+- **Attempted calls** (`attempted_calls`, `n_attempted`, `n_executed`,
+  `n_withheld`, `n_block`, `n_escalate`): every call the model proposed, the
+  verdict and whether it ran.
+- **Resource effects** (`resource_effects`, `n_resource_effects`): a diff of
+  the AgentDojo environment, snapshotted before the model's first turn and
+  read after the task. Only an executed call can appear here.
+
+AgentDojo's per-pair transcripts are kept under `<output>/logs/`. A run that
+fails part-way returns the error plus the episodes recorded so far, and the
+CLI exits non-zero.
+
 This uses AgentDojo's default system message, its LLM adapters (`openai`,
 `anthropic`, `google`, `together`, `cohere`, `local`, `vllm_parsed`) and the
 `important_instructions` attack by default (`--attack` takes any registered

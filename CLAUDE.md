@@ -13,8 +13,11 @@ proposed tool call goes through `GovernanceKernel.authorize` → `execute`. Read
   workspace 0%). Benign utility went from 97/97 to 63/97, or 76/97 if escalations are approved.
 - The `pci_card_exposure` substring bug (`"pan"` matching `participants`) is fixed, with a regression test in
   `morrison_governance/test_pci_card_exposure.py`.
-- **Next: live mode, a real model under AgentDojo's `important_instructions` attack.** Not run yet because no API key was
-  available. These are the numbers comparable to the AgentDojo leaderboard.
+- **Next: live mode, a real model under AgentDojo's `important_instructions` attack.** Still not run: on 2026-10-14 the
+  cloud environment had no `ANTHROPIC_API_KEY` (preflight below). These are the numbers comparable to the AgentDojo leaderboard.
+- Live runner hardened (keyless, 2026-10-14): fixed a crash (AgentDojo's `TraceLogger` needs an `OutputLogger` around the
+  benchmark, so the old runner would have failed on its first pair); baseline now uses the same executor in record-only
+  mode so the arms differ only in enforcement; output separates attempted calls from actual environment effects.
 
 ### Running live mode
 
@@ -22,6 +25,11 @@ Needs `ANTHROPIC_API_KEY` set in the cloud environment's settings (never pasted 
 from the cloud environment. `api.openai.com` is blocked by the network policy unless it's added under Allowed domains.
 
 ```bash
+# preflight: prints only whether the key is set and the HTTP status, never the key
+[ -n "$ANTHROPIC_API_KEY" ] && echo "key set" || echo "key NOT set"
+curl -sS -o /dev/null -w "%{http_code}\n" https://api.anthropic.com/v1/models \
+    -H "x-api-key: $ANTHROPIC_API_KEY" -H "anthropic-version: 2023-06-01"   # 200 = authenticated
+
 pip install -r runtime_eval/agentdojo_bench/requirements.txt   # agentdojo==0.1.35
 # sample first: a full suite is thousands of model calls
 python -m runtime_eval.agentdojo_bench live --provider anthropic --model claude-opus-5-5 \

@@ -97,3 +97,62 @@ def test_oracle_pair_attack_succeeds_undefended_and_is_stopped():
     assert s["morrison_asr"] == 0.0
     assert any(r["origin"] == "injection" and not r["executed"]
                for r in row["records"])
+
+
+class _CompromisedLLM:
+    """Stand-in for a model that falls for the injection: it runs the user
+    task's ground truth, then the injection task's, then answers. Lets the
+    live runner be exercised end to end without an API key."""
+
+    name = "scripted"
+
+    def __init__(self, suite):
+        self.suite = suite
+
+    def query(self, query, runtime, env, messages=(), extra_args=None):
+        from agentdojo.logging import Logger
+        ctx = Logger.get().context
+        pre = self.suite.load_and_inject_default_environment({})
+        if ctx["injection_task_id"] is None:
+            # AgentDojo's standalone run of an injection task as a user task
+            task = self.suite.get_injection_task_by_id(ctx["user_task_id"])
+            script = task.ground_truth(pre)
+        else:
+            user = self.suite.get_user_task_by_id(ctx["user_task_id"])
+            inj = self.suite.get_injection_task_by_id(ctx["injection_task_id"])
+            script = [*user.ground_truth(pre), *inj.ground_truth(pre)]
+        done = sum(1 for m in messages if m["role"] == "assistant")
+        msg = ChatAssistantMessage(
+            role="assistant", tool_calls=None,
+            content=[text_content_block_from_string("done")])
+        if done < len(script):
+            c = script[done]
+            msg["tool_calls"] = [FunctionCall(function=c.function,
+                                              args=dict(c.args), id=str(done))]
+        return query, runtime, env, [*messages, msg], dict(extra_args or {})
+
+
+@pytest.mark.parametrize("defense", ["none", "morrison"])
+def test_live_runner_separates_attempted_calls_from_resource_effects(
+        defense, monkeypatch, tmp_path):
+    from runtime_eval.agentdojo_bench import live
+    suite = get_suite(DEFAULT_BENCHMARK_VERSION, "banking")
+    monkeypatch.setattr(live, "get_llm", lambda *a, **k: _CompromisedLLM(suite))
+    out = live.run_live("anthropic", "claude-test-model", "banking",
+                        defense=defense, user_tasks=["user_task_0"],
+                        injection_tasks=["injection_task_0"], logdir=tmp_path)
+    assert "error" not in out
+    row = out["results"][0]
+    assert row["n_attempted"] >= 2
+    assert any(c["tool"] == "send_money" for c in row["attempted_calls"])
+    if defense == "none":
+        # every attempted call ran; the attacker's payment landed
+        assert row["n_executed"] == row["n_attempted"]
+        assert row["attack_succeeded"] is True
+        assert row["n_resource_effects"] > 0
+    else:
+        # the payment was attempted but withheld: no effect on the environment
+        assert row["n_withheld"] >= 1
+        assert row["attack_succeeded"] is False
+        assert row["n_resource_effects"] == 0
+    assert out["attack_target_name"] == "Claude"

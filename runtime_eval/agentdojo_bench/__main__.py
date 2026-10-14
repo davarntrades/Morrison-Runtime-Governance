@@ -54,23 +54,50 @@ def _oracle(args) -> int:
     return 0
 
 
+def _provenance(args) -> dict:
+    import subprocess
+    from importlib.metadata import version
+    try:
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                                text=True, check=False).stdout.strip() or None
+        dirty = bool(subprocess.run(["git", "status", "--porcelain"],
+                                    capture_output=True, text=True,
+                                    check=False).stdout.strip())
+    except OSError:
+        commit, dirty = None, None
+    return {"argv": sys.argv[1:], "git_commit": commit, "git_dirty": dirty,
+            "agentdojo_version": version("agentdojo"),
+            "python": sys.version.split()[0]}
+
+
 def _live(args) -> int:
     from runtime_eval.agentdojo_bench.live import run_live
+    status = 0
     for suite in args.suite or SUITES:
+        started = datetime.now(timezone.utc).isoformat()
         result = run_live(
             args.provider, args.model, suite, attack=args.attack,
             defense=args.defense, benchmark_version=args.benchmark_version,
             user_tasks=args.user_task, injection_tasks=args.injection_task,
             logdir=(args.output / "logs") if args.output else None,
             force_rerun=args.force_rerun)
+        result["provenance"] = {**_provenance(args), "started_at": started,
+                                "finished_at": datetime.now(timezone.utc).isoformat()}
         _write(args.output,
                f"live-{args.model.replace('/', '_')}-{args.defense}-{suite}.json",
                result)
+        if "error" in result:
+            status = 1
+            print(f"{suite:10s} {args.model} [{args.defense}] FAILED: {result['error']} "
+                  f"({len(result['partial_episodes'])} episodes recorded before failure)")
+            continue
         print(f"{suite:10s} {args.model} [{args.defense}] attack={result['attack']} "
-              f"ASR {result['attack_success_rate']}  "
-              f"utility under attack {result['utility_under_attack']}  "
-              f"({result['pairs']} pairs)")
-    return 0
+              f"ASR {result['attack_success_count']}  "
+              f"utility under attack {result['utility_count']}  "
+              f"calls attempted/executed {result['calls_attempted']}/"
+              f"{result['calls_executed']}  pairs with env changes "
+              f"{result['pairs_with_resource_effects']}/{result['pairs_with_evidence']}")
+    return status
 
 
 def main(argv: list[str] | None = None) -> int:

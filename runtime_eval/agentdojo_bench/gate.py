@@ -14,6 +14,7 @@ separately so that cost is visible.
 
 from __future__ import annotations
 
+import copy
 import time
 from ast import literal_eval
 from collections.abc import Callable, Sequence
@@ -22,6 +23,7 @@ from dataclasses import dataclass
 from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
 from agentdojo.agent_pipeline.tool_execution import tool_result_to_str
 from agentdojo.functions_runtime import EmptyEnv, Env, FunctionsRuntime
+from agentdojo.logging import Logger
 from agentdojo.types import ChatMessage, ChatToolResultMessage, text_content_block_from_string
 
 from morrison_governance import GovernanceLayer, OmegaDomain
@@ -93,6 +95,70 @@ def _denial_text(rec: GateRecord) -> str:
             f"({rec.layer}{'/' + rec.rule if rec.rule else ''}). {rec.reason}")
 
 
+def _dump_env(env: Env) -> object:
+    dump = getattr(env, "model_dump", None)
+    return copy.deepcopy(dump(mode="json")) if dump else None
+
+
+def env_diff(before: object, after: object, path: str = "") -> list[dict]:
+    """Every leaf that differs between two environment dumps, by JSON path.
+
+    This is what actually changed in the environment, as opposed to what the
+    model attempted: a withheld call leaves no entry here.
+    """
+    if isinstance(before, dict) and isinstance(after, dict):
+        out = []
+        for k in sorted(set(before) | set(after), key=str):
+            out += env_diff(before.get(k, "<absent>"), after.get(k, "<absent>"),
+                            f"{path}.{k}" if path else str(k))
+        return out
+    if (isinstance(before, list) and isinstance(after, list)
+            and len(before) == len(after)):
+        out = []
+        for i, (b, a) in enumerate(zip(before, after)):
+            out += env_diff(b, a, f"{path}[{i}]")
+        return out
+    if before == after:
+        return []
+    if isinstance(before, list) and isinstance(after, list):
+        # Length changed (an item added or removed): report the list's tail.
+        n = min(len(before), len(after))
+        return [{"path": f"{path}[{n}:]", "before": before[n:], "after": after[n:]}]
+    return [{"path": path, "before": before, "after": after}]
+
+
+def _episode_key() -> tuple[str, str] | None:
+    """(user_task_id, injection_task_id) of the AgentDojo task now running."""
+    context = getattr(Logger.get(), "context", None) or {}
+    if "user_task_id" not in context:
+        return None
+    return (str(context["user_task_id"]), str(context.get("injection_task_id")))
+
+
+@dataclass
+class Episode:
+    """Evidence for one AgentDojo task run: every call the model attempted and
+    the environment before the first call, kept next to a live reference to
+    the environment so the actual effect can be diffed at the end."""
+    attempted: list[dict]
+    env_before: object
+    env: Env
+
+    def as_dict(self) -> dict:
+        effects = env_diff(self.env_before, _dump_env(self.env))
+        executed = [c for c in self.attempted if c["executed"]]
+        return {
+            "attempted_calls": self.attempted,
+            "n_attempted": len(self.attempted),
+            "n_executed": len(executed),
+            "n_withheld": len(self.attempted) - len(executed),
+            "n_block": sum(c["verdict"] == "BLOCK" for c in self.attempted),
+            "n_escalate": sum(c["verdict"] == "ESCALATE" for c in self.attempted),
+            "resource_effects": effects,
+            "n_resource_effects": len(effects),
+        }
+
+
 class MorrisonToolsExecutor(BasePipelineElement):
     """AgentDojo `ToolsExecutor` with Morrison's kernel as the only path to
     the tool runtime.
@@ -114,6 +180,20 @@ class MorrisonToolsExecutor(BasePipelineElement):
         self.enforce = enforce
         self.kernel: GovernanceKernel | None = None
         self.records: list[GateRecord] = []
+        # Per AgentDojo task (keyed by user/injection task id, read from the
+        # TraceLogger the benchmark opens around each task): what the model
+        # attempted and what the environment actually changed.
+        self.episodes: dict[tuple[str, str], Episode] = {}
+        self._episode: Episode | None = None
+
+    def start_episode(self, env: Env) -> None:
+        """Open the evidence record for the task now running: snapshot the
+        environment before the model can act. `EpisodeStart` calls this ahead
+        of the first model turn so tasks with no tool call are recorded too."""
+        self._episode = Episode([], _dump_env(env), env)
+        key = _episode_key()
+        if key is not None:
+            self.episodes[key] = self._episode
 
     def reset(self) -> None:
         self.kernel = build_kernel(self.profile)
@@ -177,11 +257,17 @@ class MorrisonToolsExecutor(BasePipelineElement):
             return query, runtime, env, messages, extra_args
         if not any(m["role"] == "tool" for m in messages):
             self.reset()
+            if self._episode is None or self._episode.env is not env:
+                self.start_episode(env)
 
         known = {tool.name for tool in runtime.functions.values()}
         results = []
         for tool_call in tool_calls:
             if tool_call.function not in known:
+                if self._episode is not None:
+                    self._episode.attempted.append({
+                        "tool": tool_call.function, "args": dict(tool_call.args),
+                        "verdict": "INVALID_TOOL", "executed": False})
                 results.append(ChatToolResultMessage(
                     role="tool", content=[text_content_block_from_string("")],
                     tool_call_id=tool_call.id, tool_call=tool_call,
@@ -190,8 +276,11 @@ class MorrisonToolsExecutor(BasePipelineElement):
             for k, v in tool_call.args.items():
                 if isinstance(v, str) and _is_string_list(v):
                     tool_call.args[k] = literal_eval(v)
-            _, result, error = self.gate(runtime, env, tool_call.function,
-                                         dict(tool_call.args))
+            rec, result, error = self.gate(runtime, env, tool_call.function,
+                                           dict(tool_call.args))
+            if self._episode is not None:
+                self._episode.attempted.append({
+                    **rec.as_dict(), "tool_error": error})
             results.append(ChatToolResultMessage(
                 role="tool",
                 content=[text_content_block_from_string(
@@ -200,3 +289,17 @@ class MorrisonToolsExecutor(BasePipelineElement):
         extra_args = {**extra_args,
                       "morrison_records": [r.as_dict() for r in self.records]}
         return query, runtime, env, [*messages, *results], extra_args
+
+
+class EpisodeStart(BasePipelineElement):
+    """Pipeline element placed before the first model call. It changes
+    nothing; it lets the executor snapshot the environment for this task."""
+
+    name = "episode_start"
+
+    def __init__(self, executor: MorrisonToolsExecutor) -> None:
+        self.executor = executor
+
+    def query(self, query, runtime, env=EmptyEnv(), messages=(), extra_args=None):
+        self.executor.start_episode(env)
+        return query, runtime, env, messages, dict(extra_args or {})
