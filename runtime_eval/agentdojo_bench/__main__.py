@@ -81,7 +81,8 @@ def _live(args) -> int:
             user_tasks=args.user_task, injection_tasks=args.injection_task,
             logdir=(args.output / "logs") if args.output else None,
             force_rerun=args.force_rerun, max_usd=args.max_usd,
-            max_requests=args.max_requests, settings=_settings(args))
+            max_requests=args.max_requests, settings=_settings(args),
+            benign=args.benign)
         result["provenance"] = {**_provenance(args), "started_at": started,
                                 "finished_at": datetime.now(timezone.utc).isoformat()}
         _write(args.output,
@@ -169,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
                            "spend reaches this (Anthropic only)")
     live.add_argument("--max-requests", type=int, default=10**9,
                       help="stop the arm before its Nth+1 model request")
+    live.add_argument("--benign", action="store_true",
+                      help="also run the same user tasks with no injection")
     _model_settings_args(live)
 
     pre = sub.add_parser("preflight", help="verify API auth and model access "

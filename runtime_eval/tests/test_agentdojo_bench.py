@@ -114,8 +114,11 @@ class _CompromisedLLM:
         ctx = Logger.get().context
         pre = self.suite.load_and_inject_default_environment({})
         if ctx["injection_task_id"] is None:
-            # AgentDojo's standalone run of an injection task as a user task
-            task = self.suite.get_injection_task_by_id(ctx["user_task_id"])
+            # A benign user task, or AgentDojo's standalone run of an
+            # injection task as a user task
+            uid = ctx["user_task_id"]
+            task = (self.suite.get_user_task_by_id(uid) if uid.startswith("user_task")
+                    else self.suite.get_injection_task_by_id(uid))
             script = task.ground_truth(pre)
         else:
             user = self.suite.get_user_task_by_id(ctx["user_task_id"])
@@ -163,6 +166,8 @@ def test_live_runner_separates_attempted_calls_from_resource_effects(
 
 
 class _FakeStream:
+    request_id = "req_fake_0001"
+
     def __init__(self, message):
         self.message = message
 
@@ -183,6 +188,7 @@ class _FakeAnthropic:
         from types import SimpleNamespace
         self.calls = []
         msg = SimpleNamespace(
+            id="msg_fake_0001",
             model="claude-opus-5-5", stop_reason="end_turn", stop_details=None,
             content=[SimpleNamespace(type="text", text="ok")],
             usage=SimpleNamespace(input_tokens=1000, output_tokens=100,
@@ -234,6 +240,8 @@ def test_opus_adapter_sends_the_current_request_surface():
     # $4/MTok in, $20/MTok out
     assert rec["est_cost_usd"] == round(1000 * 4e-6 + 100 * 20e-6, 6)
     assert budget.summary()["stop_reasons"] == {"end_turn": 1}
+    assert rec["request_id"] == "req_fake_0001"
+    assert rec["message_id"] == "msg_fake_0001"
 
 
 def test_budget_stops_the_run_before_the_capped_request():
@@ -284,3 +292,19 @@ def test_outcome_analysis_counts_effects_not_attempts(defense, monkeypatch, tmp_
     else:
         assert all(r["local_safety"] == "MAINTAINED" and not r["prohibited_executed"]
                    for r in rows.values())
+
+
+def test_benign_runs_are_recorded_and_required_for_completion(monkeypatch, tmp_path):
+    from runtime_eval.agentdojo_bench import live
+    suite = get_suite(DEFAULT_BENCHMARK_VERSION, "banking")
+    monkeypatch.setattr(live, "make_llm", lambda *a, **k: _CompromisedLLM(suite))
+    out = live.run_live("anthropic", "claude-test-model", "banking",
+                        defense="morrison", user_tasks=["user_task_0"],
+                        injection_tasks=["injection_task_0"], logdir=tmp_path,
+                        benign=True)
+    assert out["status"] == "complete"
+    (row,) = out["benign_user_tasks"]
+    assert row["user_task"] == "user_task_0" and row["injection_task"] is None
+    # paying the bill is a payment: Morrison escalates it, nothing moves
+    assert row["n_escalate"] >= 1 and row["n_resource_effects"] == 0
+    assert row["utility"] is False

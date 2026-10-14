@@ -29,7 +29,9 @@ from agentdojo.agent_pipeline.agent_pipeline import (
 from agentdojo.agent_pipeline.basic_elements import InitQuery, SystemMessage
 from agentdojo.agent_pipeline.tool_execution import ToolsExecutionLoop
 from agentdojo.attacks.attack_registry import load_attack
-from agentdojo.benchmark import benchmark_suite_with_injections
+from agentdojo.benchmark import (
+    benchmark_suite_with_injections, benchmark_suite_without_injections,
+)
 from agentdojo.logging import OutputLogger
 from agentdojo.attacks.base_attacks import get_model_name_from_pipeline
 from agentdojo.models import MODEL_NAMES
@@ -117,7 +119,8 @@ def run_live(provider: str, model: str, suite_name: str, *,
              force_rerun: bool = False,
              max_usd: float = float("inf"),
              max_requests: int = 10**9,
-             settings: RequestSettings | None = None) -> dict:
+             settings: RequestSettings | None = None,
+             benign: bool = False) -> dict:
     suite = get_suite(benchmark_version, suite_name)
     settings = settings or RequestSettings(model=model)
     budget = Budget(model, max_usd, max_requests)
@@ -155,6 +158,9 @@ def run_live(provider: str, model: str, suite_name: str, *,
                                     "thinking_budget_tokens")}),
         "tool_loop_max_iters": pipeline.elements[4].max_iters,
         "pairs_requested": len(pairs),
+        # Supplementary: the same user tasks with no injection, to measure
+        # legitimate completion and blocking of legitimate actions.
+        "benign_requested": benign,
         "pairs_requested_list": [list(p) for p in pairs],
         "injection_sha_by_pair": {f"{u}|{i}": _sha(injections[(u, i)])
                                   for (u, i) in pairs},
@@ -171,6 +177,10 @@ def run_live(provider: str, model: str, suite_name: str, *,
                 force_rerun=force_rerun, user_tasks=user_tasks,
                 injection_tasks=injection_tasks, verbose=False,
                 benchmark_version=benchmark_version)
+            benign_results = (benchmark_suite_without_injections(
+                pipeline, suite, logdir=logdir, force_rerun=force_rerun,
+                user_tasks=user_tasks, benchmark_version=benchmark_version)
+                if benign else None)
     except Exception as exc:  # keep whatever ran before the failure
         return {**header, **usage(), "status": "incomplete",
                 "error": f"{type(exc).__name__}: {exc}",
@@ -197,7 +207,19 @@ def run_live(provider: str, model: str, suite_name: str, *,
     def total(key: str) -> int:
         return sum(r[key] for r in ran)
 
-    complete = (len(security) == len(pairs) and len(ran) == len(rows))
+    benign_rows = []
+    if benign_results is not None:
+        for key, ok in sorted(benign_results["utility_results"].items()):
+            u = key[0] if isinstance(key, tuple) else key
+            ep = executor.episodes.get((u, "None"))
+            benign_rows.append({"user_task": u, "injection_task": None,
+                                "utility": bool(ok),
+                                **(ep.as_dict() if ep else {"evidence": None})})
+    complete = (len(security) == len(pairs) and len(ran) == len(rows)
+                and (not benign or (len(benign_rows) == len(
+                    user_tasks or list(suite.user_tasks)) and all(
+                        r.get("evidence", True) is not None
+                        for r in benign_rows))))
     return {
         **header,
         **usage(),
@@ -223,6 +245,7 @@ def run_live(provider: str, model: str, suite_name: str, *,
         "results": rows,
         # AgentDojo also runs each injection task alone, as a plain user task,
         # to check the model can do it at all. Same arm, same gating.
+        "benign_user_tasks": benign_rows,
         "injection_tasks_standalone": [
             {"injection_task": i, "utility": bool(ok),
              **(executor.episodes[(i, "None")].as_dict()

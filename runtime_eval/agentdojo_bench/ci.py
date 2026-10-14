@@ -22,6 +22,7 @@ _KEY_PATTERNS = [
 REDACTED = "[REDACTED]"
 # Settings and inputs that must be identical across the two arms.
 _MATCHED_FIELDS = ("suite", "benchmark_version", "provider", "model", "attack",
+                   "benign_requested",
                    "attack_target_name", "llm_settings", "tool_loop_max_iters",
                    "pairs_requested_list", "injection_sha_by_pair")
 _MATCHED_PROVENANCE = ("git_commit", "agentdojo_version", "python")
@@ -154,7 +155,8 @@ def load_arms(root: Path) -> dict[str, dict]:
 
 def _episodes(arm: dict) -> list[dict]:
     return [*(arm.get("results") or []), *(arm.get("partial_episodes") or []),
-            *(arm.get("injection_tasks_standalone") or [])]
+            *(arm.get("injection_tasks_standalone") or []),
+            *(arm.get("benign_user_tasks") or [])]
 
 
 def verify(root: Path, secret: str = "") -> int:

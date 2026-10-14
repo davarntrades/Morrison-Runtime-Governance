@@ -84,7 +84,8 @@ class Budget:
             raise BudgetExceeded(
                 f"spend cap reached: est ${self.spent_usd:.2f} >= ${self.max_usd:.2f}")
 
-    def record(self, completion, latency_s: float) -> None:
+    def record(self, completion, latency_s: float,
+               request_id: str | None = None) -> None:
         usage = completion.usage
         price = PRICES_PER_MTOK.get(self.model)
         tokens = {
@@ -103,7 +104,11 @@ class Budget:
                     + tokens["cache_read_input_tokens"] * price["cache_read"]) / 1e6
         extra = getattr(completion, "model_extra", None) or {}
         self.requests.append({
-            "request_id": getattr(completion, "_request_id", None),
+            # The final message of a stream carries no `_request_id`; the id
+            # comes from the stream's `request-id` response header.
+            "request_id": request_id or getattr(completion, "_request_id", None),
+            "message_id": getattr(completion, "id", None),
+            "episode": _episode_label(),
             "served_model": completion.model,
             "stop_reason": completion.stop_reason,
             "stop_details": _plain(getattr(completion, "stop_details", None)),
@@ -137,7 +142,20 @@ class Budget:
             "served_models": sorted({str(r["served_model"]) for r in reqs}),
             "requests_with_input_transformations":
                 sum(1 for r in reqs if r["input_transformations"]),
+            "requests_with_request_id": sum(1 for r in reqs if r["request_id"]),
         }
+
+
+def _episode_label() -> str | None:
+    """`user_task|injection_task` of the AgentDojo task now running."""
+    try:
+        from agentdojo.logging import Logger
+        ctx = getattr(Logger.get(), "context", None) or {}
+    except Exception:  # noqa: BLE001 - labelling must never break a request
+        return None
+    if "user_task_id" not in ctx:
+        return None
+    return f'{ctx["user_task_id"]}|{ctx.get("injection_task_id")}'
 
 
 def _plain(obj):
@@ -188,7 +206,8 @@ async def _request(client: AsyncAnthropic, settings: RequestSettings,
         betas=[THINKING_BINDING_BETA],
     ) as stream:
         completion = await stream.get_final_message()
-    budget.record(completion, time.perf_counter() - t0)
+        request_id = getattr(stream, "request_id", None)
+    budget.record(completion, time.perf_counter() - t0, request_id)
     return completion
 
 
