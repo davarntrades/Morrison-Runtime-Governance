@@ -130,3 +130,29 @@ def test_hf_pipeline_has_same_executor_except_enforcement(monkeypatch, tmp_path)
     assert ea.enforce is False and eb.enforce is True
     assert a.elements[3].settings == b.elements[3].settings
     assert register_model_name('hf', MODEL) == 'Qwen'
+
+
+def test_repository_download_denial_does_not_block_hosted_canary(monkeypatch):
+    from runtime_eval.agentdojo_bench import hf_adapter as hf
+    monkeypatch.setenv('HF_TOKEN', 'offline-placeholder')
+    def metadata(url, token=None):
+        if 'expand=sha' in url:
+            return {'id':CHECKPOINT, 'sha':hf.SOURCE_REVISION, 'gated':'auto',
+                    'inferenceProviderMapping':{'featherless-ai':{'status':'live','providerId':CHECKPOINT}}}
+        if 'api.featherless.ai' in url:
+            return {'id':CHECKPOINT,'status':'active','features':{'tool_use':True},
+                    'pricing':{'prompt':0.000000408,'completion':0.000001972}}
+        if 'whoami-v2' in url:
+            return {'name':'Davarn11'}
+        return {'data':[{'id':MODEL}]}
+    monkeypatch.setattr(hf, 'get_json', metadata)
+    class FileClient:
+        def __init__(self, **kwargs): pass
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def get(self, *args, **kwargs): return type('Reply', (), {'status_code':403})()
+    monkeypatch.setattr(hf.httpx, 'Client', FileClient)
+    report = hf.preflight()
+    assert report['ok'] is True
+    assert report['repository_file_http_status'] == 403
+    assert report['inference_access'] == 'UNVERIFIED until paid canary'

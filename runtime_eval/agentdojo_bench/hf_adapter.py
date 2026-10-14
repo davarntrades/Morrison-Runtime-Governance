@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -158,7 +159,14 @@ class HFLLM(BasePipelineElement):
         except Exception as exc:
             rec.update(status='failed', error_type=type(exc).__name__,
                        http_status=getattr(exc, 'status_code', None) if isinstance(exc, APIStatusError) else None)
-            # Never store raw error text/headers; they can contain credentials.
+            if isinstance(exc, APIStatusError):
+                # Retain bounded, redacted API denial diagnostics, never headers.
+                detail = exc.response.text[:4000]
+                token = os.environ.get('HF_TOKEN', '')
+                if token:
+                    detail = detail.replace(token, '[REDACTED]')
+                detail = re.sub(r'hf_[A-Za-z0-9]+|(?i:Bearer)\s+[^\s\"<>]+', '[REDACTED]', detail)
+                rec['api_error_redacted'] = detail
             raise RuntimeError(f'HF request failed ({type(exc).__name__}); no automatic retry') from None
         finally:
             rec['latency_s'] = round(time.monotonic() - start, 3)
@@ -210,11 +218,12 @@ def preflight():
     with httpx.Client(timeout=30) as client:
         gate = client.get(f'https://huggingface.co/{CHECKPOINT}/resolve/{SOURCE_REVISION}/config.json',
                           headers={'Authorization': f'Bearer {token}'})
-        if gate.status_code not in (200, 302, 307):
-            raise RuntimeError(f'gated config access denied (HTTP {gate.status_code})')
+        report['repository_file_http_status'] = gate.status_code
+        report['repository_download_access'] = ('allowed' if gate.status_code in (200, 302, 307) else 'denied_or_unavailable')
+        report['repository_access_scope'] = 'Hub file access only; does not establish hosted inference authorization'
     models = get_json(BASE_URL + '/models', token)
     if not any(m.get('id') in (CHECKPOINT, MODEL) for m in models.get('data', [])):
         raise RuntimeError('exact checkpoint absent from HF router catalogue')
-    report.update(ok=True, gate_access='verified by authenticated config-file request',
+    report.update(ok=True, inference_access='UNVERIFIED until paid canary',
                   router_auth='verified by authenticated model catalogue; paid canary still required')
     return report

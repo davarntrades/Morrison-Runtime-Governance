@@ -1,0 +1,100 @@
+name: AgentDojo HF API resume authorized $4
+
+on:
+  push:
+    branches: [codex/agentdojo-hf-api-resume]
+    paths: [.github/workflows/agentdojo-hf-api-resume.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agentdojo-hf-qwen-initial
+  cancel-in-progress: false
+
+jobs:
+  experiment:
+    if: github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      EVIDENCE_DIR: artifacts/agentdojo-hf/${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONUNBUFFERED: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies (CPU, no model weights)
+        run: python -m pip install -r runtime_eval/agentdojo_bench/hf-requirements.lock
+      - name: Offline adapter and existing executor validation (no secrets)
+        run: python -m pytest -q runtime_eval/tests/test_agentdojo_hf.py runtime_eval/tests/test_agentdojo_bench.py
+      - name: Authenticated metadata preflight (no generation)
+        id: preflight
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python -m runtime_eval.agentdojo_bench.hf_runner preflight --output "$EVIDENCE_DIR"
+      - name: Paid canary and paired experiment (total estimated ceiling $4)
+        id: paid
+        if: success()
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          CONFIRM: RUN-HF-UP-TO-4-USD
+          EXPAND: 'true'
+        run: |
+          if [ "$CONFIRM" != 'RUN-HF-UP-TO-4-USD' ]; then
+            echo '::error::Paid execution requires explicit dispatch confirmation.'
+            exit 1
+          fi
+          extra=()
+          if [ "$EXPAND" = true ]; then extra=(--expand); fi
+          python -m runtime_eval.agentdojo_bench.hf_runner benchmark --output "$EVIDENCE_DIR" "${extra[@]}"
+      - name: Redact, verify, classify and generate report
+        id: finalize
+        if: always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if true; then
+            set +e
+            python -m runtime_eval.agentdojo_bench.hf_runner finalize --output "$EVIDENCE_DIR"
+            status=$?
+            if [ -f "$EVIDENCE_DIR/redaction.json" ]; then echo 'redacted=true' >> "$GITHUB_OUTPUT"; fi
+            exit "$status"
+          else
+            python - <<'PY'
+          import os
+          from pathlib import Path
+          from runtime_eval.agentdojo_bench.ci import redact_tree
+          redact_tree(Path(os.environ['EVIDENCE_DIR']), os.environ.get('HF_TOKEN', ''))
+          PY
+            echo 'redacted=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Concise run summary
+        if: always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && steps.finalize.outputs.redacted == 'true'
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          root = Path(os.environ['EVIDENCE_DIR'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write('Exact checkpoint: huihui-ai/Qwen3-32B-abliterated; backend Featherless via HF.\n\n')
+              out.write('Served revision UNVERIFIED. Shared multi-agent global safety NOT_TESTED.\n\n')
+              for p in root.glob('*/RESEARCH_REPORT.md'):
+                  out.write(p.read_text() + '\n')
+              for name in ('preflight.json', 'blocker.json', 'execution-status.json'):
+                  p = root / name
+                  if p.exists(): out.write('```json\n' + p.read_text() + '\n```\n')
+          PY
+      - name: Downloadable redacted evidence
+        if: always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && steps.finalize.outputs.redacted == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: agentdojo-hf-qwen-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIR }}
+          retention-days: 30
+          if-no-files-found: warn
