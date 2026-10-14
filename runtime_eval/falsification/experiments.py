@@ -643,11 +643,14 @@ def g4_stale_state_race(ctx: Ctx, n: int = 4) -> dict:
     calls = {f"agent-{i}": [T("SHARED", f"PAYEE-{i}", 4_000)] for i in range(n)}
     prior = [T("SHARED", "PRIOR-1", 9_000), T("SHARED", "PRIOR-2", 9_000)]
     out = {}
-    for name in ("multi_agent_eval_hierarchical_global_tier", "morrison_shared_principal_continuity"):
+    for name in ("multi_agent_eval_hierarchical_global_tier",
+                 "multi_agent_eval_hierarchical_atomic_admission",
+                 "morrison_shared_principal_continuity"):
         for mode in ("sequential", "simultaneous"):
             L, tok = ctx.ledger({"SHARED": ("acme", 100_000)})
             if name.startswith("multi_agent"):
-                recs = _hierarchical_with_prior(L, tok, calls, limit, mode == "simultaneous", prior)
+                recs = _hierarchical_with_prior(L, tok, calls, limit, mode == "simultaneous", prior,
+                                                atomic=name.endswith("atomic_admission"))
             else:
                 store = InMemoryContinuityStore()
                 seed = GovernedGateway(make_kernel(principal="ops-team", store=store,
@@ -669,21 +672,33 @@ def g4_stale_state_race(ctx: Ctx, n: int = 4) -> dict:
             "violated": any(v["prohibited_state_reached"] for v in out.values())}
 
 
-def _hierarchical_with_prior(L, tok, calls, limit, concurrent, prior):
-    """As _hierarchical, with `prior` already committed to the joint history."""
+def _hierarchical_with_prior(L, tok, calls, limit, concurrent, prior, atomic=False):
+    """As _hierarchical, with `prior` already committed to the joint history.
+    atomic=True admits through AtomicJointAdmission (decide-and-reserve)."""
+    from multi_agent_eval.governance_modes import AtomicJointAdmission
     mode = HierarchicalGovernance(
         lambda: GovernanceLayer(log_all=False, custom_rules=[aggregate_outflow_rule("SHARED", limit)]),
         lambda: GovernanceLayer(log_all=False, custom_rules=[aggregate_outflow_rule("SHARED", limit)]))
     joint, lock, recs = [], threading.Lock(), []
+    gate = AtomicJointAdmission(mode) if atomic else None
     for c in prior:
         L.apply(tok, c, "seed", "prior")
         joint.append(c)
+        if gate is not None:
+            _, t = gate.admit("seed", [], c)
+            gate.commit(t)
     barrier = threading.Barrier(len(calls)) if concurrent else None
 
     def one(agent, call):
-        d = mode.decide(agent, [], list(joint), call)
-        if barrier is not None:
-            barrier.wait()
+        token = None
+        if gate is not None:
+            if barrier is not None:
+                barrier.wait()
+            d, token = gate.admit(agent, [], call)
+        else:
+            d = mode.decide(agent, [], list(joint), call)
+            if barrier is not None:
+                barrier.wait()
         rec = {"principal": agent, "call": call, "verdict": d.verdict, "rule": d.rule,
                "executed": False}
         if d.permitted:
@@ -691,6 +706,8 @@ def _hierarchical_with_prior(L, tok, calls, limit, concurrent, prior):
             rec["executed"] = True
             with lock:
                 joint.append(call)
+            if token is not None:
+                gate.commit(token)
         recs.append(rec)
 
     if not concurrent:
@@ -739,11 +756,13 @@ def stress(ctx: Ctx, reps: int = 30) -> dict:
         "G1_per_principal_kernels_concurrent": lambda: g1_cross_agent_budget(ctx, True)["arms"]["morrison_per_principal_kernels"]["joint_outflow"],
         "G4_hierarchical_stale_state": lambda: g4_stale_state_race(ctx)["arms"]["multi_agent_eval_hierarchical_global_tier/simultaneous"]["joint_outflow"],
         "G4_kernel_shared_principal_stale_state": lambda: g4_stale_state_race(ctx)["arms"]["morrison_shared_principal_continuity/simultaneous"]["joint_outflow"],
+        "G4_hierarchical_atomic_admission_stale_state": lambda: g4_stale_state_race(ctx)["arms"]["multi_agent_eval_hierarchical_atomic_admission/simultaneous"]["joint_outflow"],
     }
     limits = {"G2_32_workers_shared_principal": 25_000, "E6_32_threads_one_decision": 1,
               "E7_8_principals_one_approval": 1, "G1_hierarchical_global_tier_concurrent": 25_000,
               "G1_per_principal_kernels_concurrent": 25_000,
-              "G4_hierarchical_stale_state": 25_000, "G4_kernel_shared_principal_stale_state": 25_000}
+              "G4_hierarchical_stale_state": 25_000, "G4_kernel_shared_principal_stale_state": 25_000,
+              "G4_hierarchical_atomic_admission_stale_state": 25_000}
     for name, fn in runs.items():
         vals = [fn() for _ in range(reps)]
         out[name] = {"reps": reps, "values": vals, "limit": limits[name],
