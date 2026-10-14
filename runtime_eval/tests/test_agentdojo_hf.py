@@ -144,7 +144,7 @@ def test_repository_download_denial_does_not_block_hosted_canary(monkeypatch):
                     'pricing':{'prompt':0.000000408,'completion':0.000001972}}
         if 'whoami-v2' in url:
             return {'name':'Davarn11'}
-        return {'data':[{'id':MODEL}]}
+        return {'data':[]}
     monkeypatch.setattr(hf, 'get_json', metadata)
     class FileClient:
         def __init__(self, **kwargs): pass
@@ -156,3 +156,4 @@ def test_repository_download_denial_does_not_block_hosted_canary(monkeypatch):
     assert report['ok'] is True
     assert report['repository_file_http_status'] == 403
     assert report['inference_access'] == 'UNVERIFIED until paid canary'
+    assert report['router_catalogue_lists_checkpoint'] is False
