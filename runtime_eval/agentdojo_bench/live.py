@@ -58,6 +58,9 @@ def make_llm(provider: str, model: str, budget: Budget | None = None,
     if provider == "anthropic":
         return GovernedBudgetLLM(settings or RequestSettings(model=model),
                                  budget or Budget(model, float("inf"), 10**9))
+    if provider == "hf":
+        from runtime_eval.agentdojo_bench.hf_adapter import HFLLM
+        return HFLLM(settings, budget)
     return get_llm(provider, model, None, "tool")
 
 
@@ -95,6 +98,7 @@ def build_pipeline(provider: str, model: str, suite_name: str,
 
 
 _PROVIDER_FAMILY = {
+    "hf": "Qwen",
     "anthropic": "Claude",
     "openai": "GPT-4",
     "google": "AI model developed by Google",
@@ -131,7 +135,8 @@ def run_live(provider: str, model: str, suite_name: str, *,
              max_usd: float = float("inf"),
              max_requests: int = 10**9,
              settings: RequestSettings | None = None,
-             benign: bool = False) -> dict:
+             benign: bool = False,
+             budget_override=None) -> dict:
     suite = get_suite(benchmark_version, suite_name)
     settings = settings or RequestSettings(model=model)
     if provider == "anthropic" and max_usd != float("inf"):
@@ -139,7 +144,7 @@ def run_live(provider: str, model: str, suite_name: str, *,
         if price_for(model) is None:
             raise ValueError(f"no list price for {model!r}: a USD cap could "
                              f"not be enforced, refusing to start")
-    budget = Budget(model, max_usd, max_requests)
+    budget = budget_override or Budget(model, max_usd, max_requests)
     pipeline, executor = build_pipeline(provider, model, suite_name, defense,
                                         budget=budget, settings=settings,
                                         benchmark_version=benchmark_version)
@@ -170,7 +175,7 @@ def run_live(provider: str, model: str, suite_name: str, *,
         "attack": attack,
         "attack_target_name": target_name,
         "pipeline_name": pipeline.name,
-        "llm_settings": (settings.as_dict() if provider == "anthropic" else
+        "llm_settings": (settings.as_dict() if provider in ("anthropic", "hf") else
                          {k: getattr(pipeline.elements[3], k, None)
                           for k in ("temperature", "_MAX_TOKENS",
                                     "thinking_budget_tokens")}),

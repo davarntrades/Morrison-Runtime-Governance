@@ -20,6 +20,8 @@ _KEY_PATTERNS = [
     re.compile(r"sk-ant-[A-Za-z0-9_\-]{8,}"),
     re.compile(r"(?i)(x-api-key[\"']?\s*[:=]\s*[\"']?)([^\s\"',}]{8,})"),
 ]
+_KEY_PATTERNS += [re.compile(r"hf_[A-Za-z0-9]{8,}"),
+                  re.compile(r"(?i)Bearer\s+[A-Za-z0-9_.-]{8,}")]
 REDACTED = "[REDACTED]"
 # Settings and inputs that must be identical across the two arms.
 _MATCHED_FIELDS = ("suite", "benchmark_version", "provider", "model", "attack",
@@ -144,6 +146,9 @@ def redact_tree(root: Path, secret: str = "") -> dict:
         n += k
         text, k = _KEY_PATTERNS[1].subn(lambda m: m.group(1) + REDACTED, text)
         n += k
+        for pattern in _KEY_PATTERNS[2:]:
+            text, k = pattern.subn(REDACTED, text)
+            n += k
         if n:
             path.write_text(text, encoding="utf-8")
             found[str(path.relative_to(root))] = n

@@ -194,6 +194,8 @@ class Episode:
                 c.get("executed_via") == "baseline_bypass"
                 and c["verdict"] != "PERMIT" for c in self.attempted),
             "verdicts_by_layer": layers,
+            "resource_state_before": self.env_before,
+            "resource_state_after": _dump_env(self.env),
             "resource_effects": effects,
             "n_resource_effects": len(effects),
             "evidence_chain": self.evidence(),
