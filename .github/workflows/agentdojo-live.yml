@@ -41,6 +41,11 @@ on:
         type: choice
         options: [sample, full]
         default: sample
+      attack:
+        description: "AgentDojo attack"
+        type: choice
+        options: [important_instructions, tool_knowledge]
+        default: important_instructions
       arms:
         description: "Which arms to run"
         type: choice
@@ -51,7 +56,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: agentdojo-live-${{ inputs.model }}
+  group: agentdojo-live-${{ inputs.model }}-${{ inputs.attack }}
   cancel-in-progress: false
 
 defaults:
@@ -62,6 +67,7 @@ env:
   MODEL: ${{ inputs.model }}
   MODE: ${{ inputs.mode }}
   SCOPE: ${{ inputs.scope }}
+  ATTACK: ${{ inputs.attack }}
   MAX_USD: ${{ inputs.max_usd_per_arm }}
   # Above AgentDojo's own per-arm ceiling for the full suite
   # (169 episodes x 16 model turns), so only the USD cap can stop an arm.
@@ -193,7 +199,7 @@ jobs:
           fi
           python -m runtime_eval.agentdojo_bench live \
             --provider anthropic --model "$MODEL" --suite banking \
-            "${tasks[@]}" --defense "$DEFENSE" --benign \
+            "${tasks[@]}" --defense "$DEFENSE" --benign --attack "$ATTACK" \
             --max-usd "$MAX_USD" --max-requests "$MAX_REQUESTS" \
             --output "$EVIDENCE_DIR"
 
@@ -265,7 +271,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "Model: $MODEL | scope: $SCOPE | cap per arm: \$${MAX_USD}"
+            echo "Model: $MODEL | scope: $SCOPE | attack: $ATTACK | cap per arm: \$${MAX_USD}"
             if [ -f "$EVIDENCE_DIR/SUMMARY.md" ]; then cat "$EVIDENCE_DIR/SUMMARY.md"; fi
             echo
             echo "Arm job results: ${{ needs.arm.result }} | verify: ${{ steps.verify.outcome }}"
