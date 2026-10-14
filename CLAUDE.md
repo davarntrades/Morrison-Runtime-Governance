@@ -24,7 +24,7 @@ from the cloud environment. `api.openai.com` is blocked by the network policy un
 ```bash
 pip install -r runtime_eval/agentdojo_bench/requirements.txt   # agentdojo==0.1.35
 # sample first: a full suite is thousands of model calls
-python -m runtime_eval.agentdojo_bench live --provider anthropic --model claude-sonnet-5-5 \
+python -m runtime_eval.agentdojo_bench live --provider anthropic --model claude-opus-5-5 \
     --suite banking --user-task user_task_0 --user-task user_task_1 --output artifacts/agentdojo-live
 # same command with --defense none gives the undefended baseline; always run both
 ```
