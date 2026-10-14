@@ -181,6 +181,70 @@ def t3_privilege_composition(ctx: Ctx) -> dict:
             "arms": arms}
 
 
+def t3b_payment_separation_of_duties(ctx: Ctx) -> dict:
+    """T3 with an entitlement pair that is locally admissible under approval
+    (T3's key_admin is refused by a built-in single-step rule even when
+    approved, so T3's pre-existing-role arm never reached the question).
+    Every grant carries its own valid approval up front."""
+    roles = frozenset({"payment_submitter", "payment_releaser"})
+    seq = [G("svc-bot", "payment_submitter"), G("svc-bot", "payment_releaser")]
+    key = secrets.token_bytes(32)
+    svc = ApprovalService(key, lambda c: (True, "individually acceptable entitlement"))
+    arms = {}
+    L, tok = ctx.ledger({"OPS": ("acme", 0)})
+    arms["ungoverned"] = {"records": _run_seq(UngovernedExecutor(L, tok), seq),
+                          "final_roles": L.snapshot()["roles"]}
+    for name, rules, pre in (
+            ("morrison_no_sod_rule", [], ()),
+            ("morrison_declared_sod_rule", [separation_of_duties_rule(roles)], ()),
+            ("morrison_declared_sod_rule_submitter_preexisting",
+             [separation_of_duties_rule(roles)], (("svc-bot", "payment_submitter"),))):
+        L, tok = ctx.ledger({"OPS": ("acme", 0)}, roles=pre)
+        k = make_kernel(rules=rules, signing_key=key)
+        g = GovernedGateway(k, L, tok)
+        calls = seq[1:] if pre else seq
+        arms[name] = {"records": [g.submit(c, approvals=(svc.request(c),)) for c in calls],
+                      "final_roles": L.snapshot()["roles"], "chain": _chain_check(k)}
+    # Mitigation by configuration: the gateway supplies the resource's CURRENT
+    # entitlements as a trusted fact on every request, and the rule reads it.
+    import dataclasses
+    from morrison_governance import OmegaDomain, OmegaRule
+    from runtime_eval.falsification.harness import _current
+
+    def sod_with_state(state):
+        tool, args = _current(state)
+        if tool != "grant_role":
+            return False
+        held = set((state.get("held_entitlements") or {}).get(args.get("subject"), []))
+        return roles <= held | {args.get("entitlement")}
+
+    L, tok = ctx.ledger({"OPS": ("acme", 0)}, roles=(("svc-bot", "payment_submitter"),))
+    k = make_kernel(rules=[separation_of_duties_rule(roles),
+                           OmegaRule(OmegaDomain.CUSTOM, "separation_of_duties_resource_state",
+                                     "SoD over the resource's current entitlements", sod_with_state)],
+                    signing_key=key)
+    g = GovernedGateway(k, L, tok)
+    recs = []
+    for c in seq[1:]:
+        held: dict = {}
+        for who, ent in L.snapshot()["roles"]:
+            held.setdefault(who, []).append(ent)
+        k.ctx = dataclasses.replace(k.ctx, trusted_facts={"held_entitlements": held})
+        recs.append(g.submit(c, approvals=(svc.request(c),)))
+    arms["morrison_sod_rule_reading_resource_state_via_trusted_facts"] = {
+        "records": recs, "final_roles": L.snapshot()["roles"], "chain": _chain_check(k)}
+    for a in arms.values():
+        held = {r for p_, r in a["final_roles"] if p_ == "svc-bot"}
+        a["prohibited_state_reached"] = roles <= held
+    local = [{"call": c, "verdict_with_approval": "PERMIT expected"} for c in seq]
+    return {"id": "T3b", "property": "trajectory",
+            "title": "Approved payment entitlements composing into a separation-of-duties breach",
+            "initial_state": {"roles": [] , "preexisting_arm": [["svc-bot", "payment_submitter"]]},
+            "local_property": "each grant carries a valid approval (locally admissible)",
+            "prohibited_state": "svc-bot holds both payment_submitter and payment_releaser",
+            "sequence": seq, "local_admissibility_each_action": local, "arms": arms}
+
+
 # ══ G: global (multi-agent, shared resource) ══════════════════════════════
 def _joint(arms_runner, ctx: Ctx, limit: int) -> dict:
     out = {}
@@ -775,6 +839,7 @@ def stress(ctx: Ctx, reps: int = 30) -> dict:
 
 
 ALL = [t1_aggregate_outflow, t2_layered_path, t3_privilege_composition,
+       t3b_payment_separation_of_duties,
        lambda c: g1_cross_agent_budget(c, False), lambda c: g1_cross_agent_budget(c, True),
        g2_simultaneous_same_principal, g3_cross_process,
        e1_action_substitution, e2_principal_and_session_substitution,
