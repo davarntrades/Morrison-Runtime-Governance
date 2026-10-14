@@ -166,9 +166,10 @@ class MorrisonToolsExecutor(BasePipelineElement):
         query: str,
         runtime: FunctionsRuntime,
         env: Env = EmptyEnv(),
-        messages: Sequence[ChatMessage] = [],
-        extra_args: dict = {},
+        messages: Sequence[ChatMessage] = (),
+        extra_args: dict | None = None,
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+        extra_args = dict(extra_args or {})
         if not messages or messages[-1]["role"] != "assistant":
             return query, runtime, env, messages, extra_args
         tool_calls = messages[-1]["tool_calls"]

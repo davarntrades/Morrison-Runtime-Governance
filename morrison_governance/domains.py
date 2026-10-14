@@ -259,10 +259,7 @@ def _default_compliance_rules() -> list[OmegaRule]:
             name="pci_card_exposure",
             description="Card data (PAN/CVV) sent to non-PCI endpoint",
             check=lambda s: (
-                any(
-                    kw in str(s.get("args", "")).lower()
-                    for kw in ("card_number", "pan", "cvv", "cvc", "track_data")
-                )
+                _PCI_KEYWORD.search(str(s.get("args", ""))) is not None
                 and not _attested(s, "pci_compliant_endpoint")
             ),
         ),
@@ -392,6 +389,15 @@ _FALSE_REASSURANCE_TONES = (
 # ─────────────────────────────────────────────────────────────
 
 import re as _re_mh
+
+# Card-data keywords must match as whole tokens. A bare substring test fired
+# on "pan" inside "participants", "company" and "Japan", so every calendar
+# invite and most business email tripped PCI exposure (found by the AgentDojo
+# benchmark: 9 of 97 benign tasks). A keyword is a token when no LETTER sits
+# on either side, so `card_pan`, `pan_number`, `pan:` and `cvv2` still match.
+_PCI_KEYWORD = _re_mh.compile(
+    r"(?<![a-z])(card_number|pan|cvv|cvc|track_data)(?![a-z])", _re_mh.I)
+
 
 _NON_WORD_RE = _re_mh.compile(r"[^a-z0-9_]+")
 

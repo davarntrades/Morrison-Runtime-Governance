@@ -73,9 +73,10 @@ class CompromisedAgentOracle(BasePipelineElement):
         query: str,
         runtime: FunctionsRuntime,
         env: Env = EmptyEnv(),
-        messages: Sequence[ChatMessage] = [],
-        extra_args: dict = {},
+        messages: Sequence[ChatMessage] = (),
+        extra_args: dict | None = None,
     ) -> tuple[str, FunctionsRuntime, Env, Sequence[ChatMessage], dict]:
+        extra_args = dict(extra_args or {})
         self.executor.reset()
         # Ground truth is a function of the environment the agent starts in,
         # exactly as AgentDojo's GroundTruthPipeline computes it.
