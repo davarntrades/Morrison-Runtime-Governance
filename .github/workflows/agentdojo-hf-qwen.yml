@@ -108,11 +108,20 @@ jobs:
                   p = root / name
                   if p.exists(): out.write('```json\n' + p.read_text() + '\n```\n')
           PY
+      - name: Package redacted evidence (portable archive)
+        if: always() && steps.finalize.outputs.redacted == 'true'
+        run: |
+          python - <<'PYCODE'
+          import os
+          from pathlib import Path
+          from runtime_eval.agentdojo_bench.hf_runner import package_evidence
+          package_evidence(Path(os.environ['EVIDENCE_DIR']))
+          PYCODE
       - name: Downloadable redacted evidence
         if: always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && steps.finalize.outputs.redacted == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: agentdojo-hf-qwen-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.EVIDENCE_DIR }}
+          path: ${{ env.EVIDENCE_DIR }}.zip
           retention-days: 30
           if-no-files-found: warn

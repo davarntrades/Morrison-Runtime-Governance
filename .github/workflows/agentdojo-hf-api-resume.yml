@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   experiment:
-    if: github.run_attempt == 1
+    if: ${{ false }} # Paid run finished; budget is unreconciled. No replay.
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
