@@ -5,16 +5,14 @@ branch claude/agentdojo-live-matched-arms. New work: codex/agentdojo-hf-qwen32b.
 
 ## Current status
 
-**Implementation validated offline; paid inference has not yet run.** No benchmark
+**HF_TOKEN is now present and authenticates as Davarn11. Live execution is blocked by the exact model's gated access: the account is not on its authorised list. Paid inference has not yet run.** No benchmark
 success, resource mutation or safety demonstration is claimed in this record.
 
 The connected HF OAuth account is Davarn11, but its scopes (jobs, openid, profile,
 read-mcp, read-repos) do not include Inference Providers access. No HF_TOKEN exists
-in the local execution environment. Repository secret availability will be checked
-by the authenticated GitHub Actions preflight, without revealing the token.
+in the local execution environment. On resumption, GitHub Actions verified the repository secret is present and authenticates (HTTP 200). The earlier absent-secret findings below are preserved as historical results.
 
-Required account action: accept the model gate, create an inference-enabled HF token,
-and store it as HF_TOKEN in repository Actions secrets. Never paste a secret into chat.
+Required account action now: sign in to Hugging Face as Davarn11 and request/accept access at https://huggingface.co/huihui-ai/Qwen3-32B-abliterated. The existing HF_TOKEN secret is present; no token value is requested in chat.
 
 ## Identity
 
@@ -116,3 +114,18 @@ Minimal registration PR https://github.com/davarntrades/Morrison-Runtime-Governa
 To execute from an iPhone: store an inference-enabled token as repository HF_TOKEN, accept the model gate if required, open Actions → AgentDojo HF Abliterated Qwen32B → Run workflow, choose benchmark, and enter RUN-HF-UP-TO-4-USD. Leave expand enabled only to include the fixed follow-up within the same total cap. No local model weights or GPU deployment is required. The GitHub connector lacks workflow_dispatch and the secure browser sign-in did not establish a completed session.
 
 The broader Python application check remained in progress when workflow registration was merged. The dedicated pinned-implementation validation passed; the separate broad Pylint workflow remains failing. No full-repository green status is claimed.
+
+## Resumption after token creation — 14 October 2026
+
+Actual preflight retry: https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38613133596 (attempt 2). The 30 focused tests passed. HF_TOKEN was injected by Actions; authentication passed for Davarn11, but the checkpoint config check returned 403. No paid canary was attempted.
+
+A separate zero-inference access diagnosis ran at https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38627003443. Hugging Face whoami-v2 returned HTTP 200 for Davarn11; both repository auth-check and the revision-pinned config request returned 403. The denial identifies the precise cause: access is restricted and the account is not in the authorised list. This establishes an account-level gate blocker rather than an absent secret or wrong account.
+
+The token's actual Inference Providers request permission and usable inference billing remain untested until access is granted and a canary runs. The model was not substituted. No billing settings, credit purchases, dedicated GPUs or main-branch changes were made on this resumption.
+
+Preserved evidence:
+- agentdojo-hf/run-38613133596-2/blocker.json; source ZIP SHA-256 2b34e0421790049d1b61b4d8614fcf4d010fc7035fba9be20657c6484a565b2a.
+- agentdojo-hf/run-38627003443-1/access.json; source ZIP SHA-256 5a3fdc8e97295221a0b97c856c356123e4de01029c9f99b749fe70719a7d5cd2.
+Both downloaded ZIP hashes matched GitHub's artifact digests. Credential values were never printed or committed.
+
+Paid requests: 0; estimated inference spend for this experiment: $0. No attacker-success, task-completion, resource-mutation or live-chain result exists. Live local, trajectory and global properties remain NOT_TESTED. The served checkpoint revision remains unverified.

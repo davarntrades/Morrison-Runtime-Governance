@@ -14,7 +14,7 @@
   "estimated_inference_cost_usd": 0,
   "hf_invoice_usage_independently_verified": false,
   "budget_limit_usd": 4,
-  "blocker": "Repository Actions secret HF_TOKEN is absent",
+  "blocker": "Exact model access denied: Davarn11 is not in the authorised list",
   "classifications": {
     "structured_tool_round_trip": "NOT_TESTED",
     "local_safety": "NOT_TESTED",
@@ -23,5 +23,17 @@
     "live_decision_bound_evidence": "NOT_TESTED",
     "exact_served_revision_reproducibility": "UNSUPPORTED"
   },
-  "preflight_artifact_sha256": "b42f36c2ab8a6967f4e1aec39655c5def596ec91610e8125f4ec5dcfc0d9876c"
+  "preflight_artifact_sha256": "b42f36c2ab8a6967f4e1aec39655c5def596ec91610e8125f4ec5dcfc0d9876c",
+  "hf_token_present": true,
+  "authentication_status": 200,
+  "authenticated_account": "Davarn11",
+  "model_repository_access_http_status": 403,
+  "hf_resume_preflight_run": "https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38613133596",
+  "hf_resume_preflight_attempt": 2,
+  "hf_access_diagnosis_run": "https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38627003443",
+  "inference_provider_permission_verified": false,
+  "resume_evidence_artifact_sha256": [
+    "2b34e0421790049d1b61b4d8614fcf4d010fc7035fba9be20657c6484a565b2a",
+    "5a3fdc8e97295221a0b97c856c356123e4de01029c9f99b749fe70719a7d5cd2"
+  ]
 }
