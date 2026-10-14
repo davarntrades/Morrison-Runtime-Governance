@@ -180,3 +180,67 @@ def test_e10_outcome_failure_after_commit_leaves_intent_and_is_sealed_later():
     assert k.flush_evidence() == 1
     assert len([r for r in k.chain.records if r.layer == "execution"]) == 1
     assert k.chain.verify()[0]
+
+
+def test_r2_concurrent_executions_keep_the_evidence_chain_intact():
+    """R2: the intent record (sealed under the kernel lock) and outcome records
+    (sealed after the executor returns) were appended concurrently, and the
+    chain lost its links. Executions overlap here, as they do with real I/O."""
+    import sys
+    import time
+    old = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    try:
+        for _ in range(10):
+            k = _kernel("agent-a", InMemoryContinuityStore(), scoped=False)
+            k.ctx.max_outstanding_reservations = 0
+            ds = [k.authorize(T("OPS", f"E{i}", 1)) for i in range(16)]
+            barrier = threading.Barrier(len(ds))
+
+            def go(d):
+                barrier.wait()
+                k.execute(d, lambda a: time.sleep(0.001))
+            ts = [threading.Thread(target=go, args=(d,)) for d in ds]
+            for t in ts:
+                t.start()
+            for t in ts:
+                t.join()
+            assert k.chain.verify()[0]
+    finally:
+        sys.setswitchinterval(old)
+
+
+def test_g1_limit_is_rolling_by_default_and_lifetime_with_window_zero():
+    """V-G1c: shared history older than continuity_window_s (default 3600 s)
+    leaves the trajectory, so the default limit is a rolling one. With
+    continuity_window_s=0 nothing ages out and the limit holds for life."""
+    import time as _time
+    from morrison_governance.kernel import gate as gate_mod
+
+    def run(window):
+        store, effects = InMemoryContinuityStore(), []
+        a = _kernel("agent-a", store)
+        a.ctx.continuity_window_s = window
+        for dst in ("A1", "A2"):
+            _run(a, T("SHARED", dst, 9_000), effects)
+        real = _time.time
+
+        class _Later:
+            def __getattr__(self, name):
+                return getattr(_time, name)
+
+            @staticmethod
+            def time():
+                return real() + 3_601.0
+        saved, gate_mod.time = gate_mod.time, _Later()
+        try:
+            b = _kernel("agent-b", store)
+            b.ctx.continuity_window_s = window
+            for dst in ("B1", "B2"):
+                _run(b, T("SHARED", dst, 9_000), effects)
+        finally:
+            gate_mod.time = saved
+        return sum(e["args"]["amount"] for e in effects)
+
+    assert run(3_600.0) == 36_000          # documented rolling window
+    assert run(0.0) <= LIMIT               # lifetime limit

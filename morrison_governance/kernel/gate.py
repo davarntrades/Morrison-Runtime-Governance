@@ -1685,6 +1685,16 @@ class GovernanceKernel:
                            stamp, capabilities=decision.capabilities,
                            decision_id=decision.decision_id,
                            semantic_hash=decision.semantic_hash)
+                # An effect that happened remotely counts against every shared
+                # resource it touched, reserved beforehand or not (V-G1b: a
+                # preview decision recorded here was filed under the
+                # principal only, and other principals' budgets missed it).
+                keys = self._scope_keys(decision.action)
+                if keys:
+                    entry = next(e for e in self.store.entries(self.continuity_key)
+                                 if e.decision_id == decision.decision_id)
+                    for key in keys:
+                        self.store.append(key, entry)
         if decision.evidence is not None:
             self.chain.record_execution(decision.evidence, True, "remote-runtime")
 

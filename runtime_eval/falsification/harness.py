@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import math
 import secrets
 import threading
 import time
@@ -47,6 +48,13 @@ def _current(state: dict) -> tuple[str, dict]:
     return state.get("tool"), (json.loads(args) if isinstance(args, str) else args or {})
 
 
+def _debit(amount, limit: int) -> int:
+    try:
+        return max(0, math.ceil(amount))
+    except (TypeError, ValueError, OverflowError):
+        return limit + 1
+
+
 def aggregate_outflow_rule(src: str, limit: int) -> OmegaRule:
     """Prohibited: governed outflow from `src` in this principal's history,
     including the candidate, exceeds `limit`."""
@@ -54,9 +62,13 @@ def aggregate_outflow_rule(src: str, limit: int) -> OmegaRule:
         tool, args = _current(state)
         if tool != "transfer" or args.get("from") != src:
             return False
-        total = sum(int(a.get("amount", 0)) for t, a in _prior(state)
+        # A negative or non-numeric amount never reduces the counted outflow
+        # (V-G1a: a refused negative "transfer" is filed as executed, because
+        # an executor that raised may have acted, and it used to offset the
+        # budget). Unreadable amounts count as the whole limit.
+        total = sum(_debit(a.get("amount"), limit) for t, a in _prior(state)
                     if t == "transfer" and a.get("from") == src)
-        return total + int(args.get("amount", 0)) > limit
+        return total + _debit(args.get("amount"), limit) > limit
     return OmegaRule(OmegaDomain.CUSTOM, f"aggregate_outflow_{src}_le_{limit}",
                      f"Cumulative outflow from {src} must not exceed {limit}", check)
 

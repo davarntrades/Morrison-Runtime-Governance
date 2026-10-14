@@ -83,7 +83,14 @@ class Ledger:
             try:
                 seq = c.execute("SELECT COUNT(*) FROM effects").fetchone()[0]
                 if tool == "transfer":
-                    amt = int(args["amount"])
+                    amt = args["amount"]
+                    # A transfer moves a positive amount from `from` to `to`.
+                    # A negative amount debited `to` instead (V-E12): the
+                    # payee, whose owner nobody checks.
+                    if (isinstance(amt, bool) or not isinstance(amt, (int, float))
+                            or amt != amt or amt <= 0 or int(amt) != amt):
+                        raise ResourceRefused(f"amount must be a positive whole number, got {amt!r}")
+                    amt = int(amt)
                     row = c.execute("SELECT balance FROM accounts WHERE id=?",
                                     (args["from"],)).fetchone()
                     if row is None:
