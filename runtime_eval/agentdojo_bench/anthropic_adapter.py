@@ -65,7 +65,17 @@ PRICES_PER_MTOK = {
                           "cache_write": 3.75, "cache_read": 0.30},
     "claude-haiku-4-5": {"input": 1.00, "output": 5.00,
                          "cache_write": 1.25, "cache_read": 0.10},
+    "claude-opus-4-5": {"input": 5.00, "output": 25.00,
+                        "cache_write": 6.25, "cache_read": 0.50},
 }
+
+
+def price_for(model: str) -> dict | None:
+    """List price for `model`, matching dated ids (claude-haiku-4-5-20251001)
+    by the longest known prefix. None means unknown: the run refuses to start
+    with a USD cap it could not enforce."""
+    hits = [k for k in PRICES_PER_MTOK if model == k or model.startswith(k + "-")]
+    return PRICES_PER_MTOK[max(hits, key=len)] if hits else None
 
 # Models whose request surface is adaptive thinking with no sampling
 # parameters. Everything else gets the "legacy" profile: AgentDojo's own
@@ -105,7 +115,7 @@ class Budget:
     def record(self, completion, latency_s: float,
                request_id: str | None = None) -> None:
         usage = completion.usage
-        price = PRICES_PER_MTOK.get(self.model)
+        price = price_for(self.model)
         tokens = {
             "input_tokens": usage.input_tokens or 0,
             "output_tokens": usage.output_tokens or 0,

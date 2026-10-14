@@ -134,6 +134,11 @@ def run_live(provider: str, model: str, suite_name: str, *,
              benign: bool = False) -> dict:
     suite = get_suite(benchmark_version, suite_name)
     settings = settings or RequestSettings(model=model)
+    if provider == "anthropic" and max_usd != float("inf"):
+        from runtime_eval.agentdojo_bench.anthropic_adapter import price_for
+        if price_for(model) is None:
+            raise ValueError(f"no list price for {model!r}: a USD cap could "
+                             f"not be enforced, refusing to start")
     budget = Budget(model, max_usd, max_requests)
     pipeline, executor = build_pipeline(provider, model, suite_name, defense,
                                         budget=budget, settings=settings,
