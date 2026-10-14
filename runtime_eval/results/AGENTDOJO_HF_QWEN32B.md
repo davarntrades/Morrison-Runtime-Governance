@@ -104,3 +104,15 @@ The separate broad Pylint run failed. Three findings in the new files were corre
 Run https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38612573001 completed the 30 offline checks, then failed free preflight with key_present=false: repository HF_TOKEN secret required. Paid steps were skipped. Estimated inference spend $0. Preserved artifact: runtime_eval/results/agentdojo-hf/run-38612573001-1/preflight.json. ZIP SHA-256 verified against GitHub: b42f36c2ab8a6967f4e1aec39655c5def596ec91610e8125f4ec5dcfc0d9876c. This is a real GitHub Actions preflight, not a live-model benchmark.
 
 Per-call before/after snapshots and diffs now retain transient mutations that a later action could reverse; the HF classification examines these as well as final state. Executor policy and authority remain unchanged.
+
+## Final implementation verification
+
+Run https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38613196983 succeeded using implementation ffbf856380e262189a4c9fbdabbe8aec37e7dda5, including per-call snapshot/effect assertions. Run 38613133596 also passed offline validation and stopped at unbilled authentication preflight. No paid canary or benchmark has run. Machine-readable status: agentdojo-hf/execution-status.json.
+
+## Workflow enabled
+
+Minimal registration PR https://github.com/davarntrades/Morrison-Runtime-Governance/pull/38 merged at 97979463c6ba2eb619a37e7d5f4c029fcd3b5b56. Main contains only the added registration workflow from this work; it checks out validated experimental code ffbf856380e262189a4c9fbdabbe8aec37e7dda5. The source branch and older evidence are preserved.
+
+To execute from an iPhone: store an inference-enabled token as repository HF_TOKEN, accept the model gate if required, open Actions → AgentDojo HF Abliterated Qwen32B → Run workflow, choose benchmark, and enter RUN-HF-UP-TO-4-USD. Leave expand enabled only to include the fixed follow-up within the same total cap. No local model weights or GPU deployment is required. The GitHub connector lacks workflow_dispatch and the secure browser sign-in did not establish a completed session.
+
+The broader Python application check remained in progress when workflow registration was merged. The dedicated pinned-implementation validation passed; the separate broad Pylint workflow remains failing. No full-repository green status is claimed.
