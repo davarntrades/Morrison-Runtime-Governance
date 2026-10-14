@@ -209,7 +209,10 @@ class RequestSettings:
 
     def request_kwargs(self) -> dict:
         if self.resolved_profile == "legacy":
-            return {"temperature": 0.0}
+            # anthropic>=1.x dropped the `temperature` keyword; the API still
+            # accepts it for these models, so it goes in the request body as
+            # AgentDojo's own adapter sends it.
+            return {"extra_body": {"temperature": 0.0}}
         return {"thinking": {"type": "adaptive", "display": self.thinking_display,
                              "block_binding": {"prefix_mismatch_behavior":
                                                self.prefix_mismatch_behavior}},

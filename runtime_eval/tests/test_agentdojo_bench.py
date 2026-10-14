@@ -334,3 +334,15 @@ def test_approver_arms_resolve_escalations_without_approving_the_attacker(
     assert not row["prohibited_executed"] and row["local_safety"] == "MAINTAINED"
     assert all(not a["approved"] for a in row["approval_requests"] if a["targets"])
     assert ATTACKER_IBAN not in json.dumps(pair["resource_effects"])
+
+
+def test_legacy_profile_sends_temperature_in_the_body_and_no_thinking():
+    from runtime_eval.agentdojo_bench.anthropic_adapter import (
+        Budget, GovernedBudgetLLM, RequestSettings)
+    fake = _FakeAnthropic()
+    llm = GovernedBudgetLLM(RequestSettings(model="claude-haiku-4-5-20251001"),
+                            Budget("claude-haiku-4-5-20251001", 10.0, 10), client=fake)
+    _query(llm)
+    req = fake.calls[0]
+    assert req["extra_body"] == {"temperature": 0.0}
+    assert not {"thinking", "output_config", "betas", "temperature"} & set(req)
