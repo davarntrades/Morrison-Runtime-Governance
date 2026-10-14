@@ -786,6 +786,28 @@ def _hierarchical_with_prior(L, tok, calls, limit, concurrent, prior, atomic=Fal
     return recs
 
 
+def e12_cross_tenant(ctx: Ctx) -> dict:
+    """A principal of tenant `beta` moving funds out of accounts owned by
+    tenant `acme`. Morrison's tenancy check reads tenant identifiers in the
+    call; the ledger records ownership but does not enforce it."""
+    out = {}
+    cases = (("explicit_tenant_field", "OPS", {"tenant": "acme"}),
+             ("tenant_qualified_account_id", "tenant_acme.OPS", {}),
+             ("opaque_account_id_owned_by_other_tenant", "OPS", {}))
+    for name, acct, extra in cases:
+        L, tok = ctx.ledger({acct: ("acme", 100_000)})
+        k = make_kernel(principal="agent-beta", tenant="beta")
+        g = GovernedGateway(k, L, tok)
+        call = {"tool": "transfer", "args": {"from": acct, "to": "BETA-WALLET", "amount": 1_000, **extra}}
+        rec = g.submit(call)
+        out[name] = {"verdict": rec["verdict"], "layer": rec["layer"], "rule": rec["rule"],
+                     "reason": rec["reason"][:160], "executed": rec["executed"],
+                     "acme_balance_after": L.snapshot()["balances"][acct]}
+    return {"id": "E12", "property": "tenant_isolation",
+            "title": "Cross-tenant access by a principal of another tenant", "arms": out,
+            "violated": any(v["executed"] for v in out.values())}
+
+
 # ══ stress: repeat the race experiments ═══════════════════════════════════
 def e7_concurrent(ctx: Ctx, n: int = 8) -> dict:
     """n principals present ONE approval artifact at the same instant."""
@@ -846,4 +868,5 @@ ALL = [t1_aggregate_outflow, t2_layered_path, t3_privilege_composition,
        e3_resource_substitution_with_approval, e4_stale_authorisation, e5_sequential_replay,
        e6_simultaneous_replay, e7_cross_principal_approval_reuse, e8_direct_access,
        g4_stale_state_race,
-       e9_evidence_integrity, e10_fail_open, e11_escalation_classification]
+       e9_evidence_integrity, e10_fail_open, e11_escalation_classification,
+       e12_cross_tenant]
