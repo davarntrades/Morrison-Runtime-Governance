@@ -79,6 +79,28 @@ AgentDojo's per-pair transcripts are kept under `<output>/logs/`. A run that
 fails part-way returns the error plus the episodes recorded so far, and the
 CLI exits non-zero.
 
+**Current Claude models.** AgentDojo 0.1.35's Anthropic adapter always sends
+`temperature` and sizes `max_tokens` at 1024, which current models reject or
+outgrow (thinking is always on and counts toward `max_tokens`). For
+`--provider anthropic`, `anthropic_adapter.py` keeps AgentDojo's message
+conversion, tool schemas and system prompt and changes only the request: no
+`temperature`, adaptive thinking (`display: "summarized"`), explicit
+`--effort` (default `medium`) and `--max-tokens` (default 16000),
+`prefix_mismatch_behavior: "drop_block"` because AgentDojo reorders an
+assistant turn's blocks when it replays it, and no refusal fallback, so every
+answer comes from the model under test. Every request's tokens, stop reason
+and request id are recorded, and `--max-usd` / `--max-requests` stop an arm
+before it overspends; a stopped arm is written out as `"status": "incomplete"`.
+
+`python -m runtime_eval.agentdojo_bench preflight --model M` checks
+authentication and model access with an unbilled request (add `--canary` for
+one billed request with the exact benchmark settings). `verify --output DIR`
+redacts any credential found in the output, re-verifies every Morrison
+evidence chain from its content, checks the two arms ran under matched
+conditions, and writes `verification.json` and `SUMMARY.md`. The
+`AgentDojo Live` GitHub Actions workflow (`.github/workflows/agentdojo-live.yml`)
+runs that whole sequence on the banking sample.
+
 This uses AgentDojo's default system message, its LLM adapters (`openai`,
 `anthropic`, `google`, `together`, `cohere`, `local`, `vllm_parsed`) and the
 `important_instructions` attack by default (`--attack` takes any registered

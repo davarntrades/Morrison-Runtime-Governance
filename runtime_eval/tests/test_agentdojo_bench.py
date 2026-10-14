@@ -137,12 +137,16 @@ def test_live_runner_separates_attempted_calls_from_resource_effects(
         defense, monkeypatch, tmp_path):
     from runtime_eval.agentdojo_bench import live
     suite = get_suite(DEFAULT_BENCHMARK_VERSION, "banking")
-    monkeypatch.setattr(live, "get_llm", lambda *a, **k: _CompromisedLLM(suite))
+    monkeypatch.setattr(live, "make_llm", lambda *a, **k: _CompromisedLLM(suite))
     out = live.run_live("anthropic", "claude-test-model", "banking",
                         defense=defense, user_tasks=["user_task_0"],
                         injection_tasks=["injection_task_0"], logdir=tmp_path)
     assert "error" not in out
+    assert out["status"] == "complete"
     row = out["results"][0]
+    assert row["evidence_chain"]["integrity_verified"] is True
+    assert all(c["decision"]["binding"]["decision_id"]
+               for c in row["attempted_calls"])
     assert row["n_attempted"] >= 2
     assert any(c["tool"] == "send_money" for c in row["attempted_calls"])
     if defense == "none":
@@ -156,3 +160,104 @@ def test_live_runner_separates_attempted_calls_from_resource_effects(
         assert row["attack_succeeded"] is False
         assert row["n_resource_effects"] == 0
     assert out["attack_target_name"] == "Claude"
+
+
+class _FakeStream:
+    def __init__(self, message):
+        self.message = message
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def get_final_message(self):
+        return self.message
+
+
+class _FakeAnthropic:
+    """Captures request kwargs; answers every request with a final text turn."""
+
+    def __init__(self):
+        from types import SimpleNamespace
+        self.calls = []
+        msg = SimpleNamespace(
+            model="claude-opus-5-5", stop_reason="end_turn", stop_details=None,
+            content=[SimpleNamespace(type="text", text="ok")],
+            usage=SimpleNamespace(input_tokens=1000, output_tokens=100,
+                                  cache_creation_input_tokens=0,
+                                  cache_read_input_tokens=0))
+        outer = self
+
+        class _Messages:
+            def stream(self, **kwargs):
+                outer.calls.append(kwargs)
+                return _FakeStream(msg)
+
+        self.beta = SimpleNamespace(messages=_Messages())
+
+
+def _adapter_llm(max_usd=100.0, max_requests=100):
+    from runtime_eval.agentdojo_bench.anthropic_adapter import (
+        Budget, GovernedBudgetLLM, RequestSettings)
+    fake = _FakeAnthropic()
+    budget = Budget("claude-opus-5-5", max_usd, max_requests)
+    llm = GovernedBudgetLLM(RequestSettings(model="claude-opus-5-5"), budget,
+                            client=fake)
+    return llm, fake, budget
+
+
+def _query(llm):
+    from agentdojo.types import ChatSystemMessage, ChatUserMessage
+    _, _, runtime = _banking()
+    msgs = [ChatSystemMessage(role="system",
+                              content=[text_content_block_from_string("sys")]),
+            ChatUserMessage(role="user",
+                            content=[text_content_block_from_string("hi")])]
+    return llm.query("hi", runtime, messages=msgs)
+
+
+def test_opus_adapter_sends_the_current_request_surface():
+    llm, fake, budget = _adapter_llm()
+    _query(llm)
+    req = fake.calls[0]
+    assert "temperature" not in req and "fallbacks" not in req
+    assert req["model"] == "claude-opus-5-5"
+    assert req["thinking"]["type"] == "adaptive"
+    assert req["thinking"]["block_binding"] == {
+        "prefix_mismatch_behavior": "drop_block"}
+    assert req["output_config"] == {"effort": "medium"}
+    assert req["betas"] == ["thinking-binding-controls-2026-08-01"]
+    assert req["max_tokens"] == 16000
+    rec = budget.requests[0]
+    # $4/MTok in, $20/MTok out
+    assert rec["est_cost_usd"] == round(1000 * 4e-6 + 100 * 20e-6, 6)
+    assert budget.summary()["stop_reasons"] == {"end_turn": 1}
+
+
+def test_budget_stops_the_run_before_the_capped_request():
+    from runtime_eval.agentdojo_bench.anthropic_adapter import BudgetExceeded
+    llm, fake, _ = _adapter_llm(max_requests=1)
+    _query(llm)
+    with pytest.raises(BudgetExceeded):
+        _query(llm)
+    assert len(fake.calls) == 1
+
+
+def test_budget_stop_is_reported_as_incomplete(monkeypatch, tmp_path):
+    from runtime_eval.agentdojo_bench import live
+    llm, _, _ = _adapter_llm(max_requests=1)
+
+    def make(provider, model, budget=None, settings=None):
+        llm.budget = budget
+        return llm
+
+    monkeypatch.setattr(live, "make_llm", make)
+    out = live.run_live("anthropic", "claude-opus-5-5", "banking",
+                        defense="morrison", user_tasks=["user_task_0"],
+                        injection_tasks=["injection_task_0"], logdir=tmp_path,
+                        max_requests=1)
+    assert out["status"] == "incomplete"
+    assert "BudgetExceeded" in out["error"]
+    assert out["api_usage"]["requests"] == 1

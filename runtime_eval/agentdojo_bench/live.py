@@ -35,13 +35,27 @@ from agentdojo.attacks.base_attacks import get_model_name_from_pipeline
 from agentdojo.models import MODEL_NAMES
 from agentdojo.task_suite.load_suites import get_suite
 
+from runtime_eval.agentdojo_bench.anthropic_adapter import (
+    Budget, GovernedBudgetLLM, RequestSettings,
+)
 from runtime_eval.agentdojo_bench.gate import EpisodeStart, MorrisonToolsExecutor
 from runtime_eval.agentdojo_bench.manifest import profile_for
 from runtime_eval.agentdojo_bench.oracle import DEFAULT_BENCHMARK_VERSION
 
 
+def make_llm(provider: str, model: str, budget: Budget | None = None,
+             settings: RequestSettings | None = None):
+    """The model element. Anthropic goes through `GovernedBudgetLLM` (current
+    request surface, metered, capped); other providers use AgentDojo's own."""
+    if provider == "anthropic":
+        return GovernedBudgetLLM(settings or RequestSettings(model=model),
+                                 budget or Budget(model, float("inf"), 10**9))
+    return get_llm(provider, model, None, "tool")
+
+
 def build_pipeline(provider: str, model: str, suite_name: str,
-                   defense: str = "morrison"
+                   defense: str = "morrison", *, budget: Budget | None = None,
+                   settings: RequestSettings | None = None,
                    ) -> tuple[AgentPipeline, MorrisonToolsExecutor]:
     """AgentDojo's default pipeline, with the tool executor swapped.
 
@@ -50,7 +64,7 @@ def build_pipeline(provider: str, model: str, suite_name: str,
     """
     if defense not in ("morrison", "none"):
         raise ValueError(f"unknown defense {defense!r}")
-    llm = get_llm(provider, model, None, "tool")
+    llm = make_llm(provider, model, budget, settings)
     executor = MorrisonToolsExecutor(profile_for(suite_name),
                                      enforce=defense == "morrison")
     pipeline = AgentPipeline([
@@ -100,9 +114,15 @@ def run_live(provider: str, model: str, suite_name: str, *,
              user_tasks: list[str] | None = None,
              injection_tasks: list[str] | None = None,
              logdir: Path | None = None,
-             force_rerun: bool = False) -> dict:
+             force_rerun: bool = False,
+             max_usd: float = float("inf"),
+             max_requests: int = 10**9,
+             settings: RequestSettings | None = None) -> dict:
     suite = get_suite(benchmark_version, suite_name)
-    pipeline, executor = build_pipeline(provider, model, suite_name, defense)
+    settings = settings or RequestSettings(model=model)
+    budget = Budget(model, max_usd, max_requests)
+    pipeline, executor = build_pipeline(provider, model, suite_name, defense,
+                                        budget=budget, settings=settings)
     target_name = register_model_name(provider, model)
     resolved = get_model_name_from_pipeline(pipeline)
     if resolved != target_name:
@@ -129,11 +149,19 @@ def run_live(provider: str, model: str, suite_name: str, *,
         "attack": attack,
         "attack_target_name": target_name,
         "pipeline_name": pipeline.name,
-        "llm_settings": {k: getattr(pipeline.elements[3], k, None)
-                         for k in ("temperature", "_MAX_TOKENS",
-                                   "thinking_budget_tokens")},
+        "llm_settings": (settings.as_dict() if provider == "anthropic" else
+                         {k: getattr(pipeline.elements[3], k, None)
+                          for k in ("temperature", "_MAX_TOKENS",
+                                    "thinking_budget_tokens")}),
+        "tool_loop_max_iters": pipeline.elements[4].max_iters,
         "pairs_requested": len(pairs),
+        "pairs_requested_list": [list(p) for p in pairs],
+        "injection_sha_by_pair": {f"{u}|{i}": _sha(injections[(u, i)])
+                                  for (u, i) in pairs},
     }
+
+    def usage() -> dict:
+        return {"api_usage": budget.summary(), "api_requests": budget.requests}
     try:
         # AgentDojo's per-task TraceLogger needs an OutputLogger around it
         # (its CLI does the same); it writes one JSON transcript per pair.
@@ -144,7 +172,8 @@ def run_live(provider: str, model: str, suite_name: str, *,
                 injection_tasks=injection_tasks, verbose=False,
                 benchmark_version=benchmark_version)
     except Exception as exc:  # keep whatever ran before the failure
-        return {**header, "error": f"{type(exc).__name__}: {exc}",
+        return {**header, **usage(), "status": "incomplete",
+                "error": f"{type(exc).__name__}: {exc}",
                 "partial_episodes": [
                     {"user_task": u, "injection_task": i, **ep.as_dict()}
                     for (u, i), ep in sorted(executor.episodes.items())]}
@@ -168,8 +197,13 @@ def run_live(provider: str, model: str, suite_name: str, *,
     def total(key: str) -> int:
         return sum(r[key] for r in ran)
 
+    complete = (len(security) == len(pairs) and len(ran) == len(rows))
     return {
         **header,
+        **usage(),
+        # "complete" only when every requested pair ran in this process and
+        # left evidence; anything else is reported, never presented as done.
+        "status": "complete" if complete else "incomplete",
         "pairs": len(security),
         "pairs_with_evidence": len(ran),
         "utility_under_attack": (round(sum(utility.values()) / len(utility), 4)

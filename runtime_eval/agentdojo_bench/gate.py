@@ -73,6 +73,15 @@ class GateRecord:
     executed: bool
     latency_ms: float
     origin: str = ""          # filled by the oracle runner: "user" / "injection"
+    # Full kernel decision: layer, rule, capabilities, destination, the
+    # binding (decision id, action/semantic hash, ruleset hash, lease) and the
+    # hash of the sealed evidence record it was issued with.
+    decision: dict | None = None
+    trajectory_hash: str = ""
+    # How the call reached the environment: "kernel" (Morrison executed a
+    # PERMIT), "baseline_bypass" (record-only arm ran it despite the verdict),
+    # or "" (not executed).
+    executed_via: str = ""
 
     def as_dict(self) -> dict:
         return {
@@ -80,6 +89,8 @@ class GateRecord:
             "layer": self.layer, "rule": self.rule, "reason": self.reason,
             "capabilities": self.capabilities, "executed": self.executed,
             "latency_ms": round(self.latency_ms, 4), "origin": self.origin,
+            "decision": self.decision, "trajectory_hash": self.trajectory_hash,
+            "executed_via": self.executed_via,
         }
 
 
@@ -143,10 +154,27 @@ class Episode:
     attempted: list[dict]
     env_before: object
     env: Env
+    kernel: GovernanceKernel | None = None
+
+    def evidence(self) -> dict:
+        """The episode's sealed Morrison evidence chain, exported as JSONL
+        records, with the kernel's own verification of it."""
+        if self.kernel is None:
+            return {"records": [], "jsonl": "", "integrity_verified": None,
+                    "problems": []}
+        ok, problems = self.kernel.chain.verify()
+        jsonl = self.kernel.chain.to_jsonl()
+        return {"records": len(self.kernel.chain.records), "jsonl": jsonl,
+                "head": self.kernel.chain.head,
+                "integrity_verified": ok, "problems": problems}
 
     def as_dict(self) -> dict:
         effects = env_diff(self.env_before, _dump_env(self.env))
         executed = [c for c in self.attempted if c["executed"]]
+        layers: dict[str, int] = {}
+        for c in self.attempted:
+            key = f'{c["verdict"]}:{c.get("layer", "")}'
+            layers[key] = layers.get(key, 0) + 1
         return {
             "attempted_calls": self.attempted,
             "n_attempted": len(self.attempted),
@@ -154,8 +182,13 @@ class Episode:
             "n_withheld": len(self.attempted) - len(executed),
             "n_block": sum(c["verdict"] == "BLOCK" for c in self.attempted),
             "n_escalate": sum(c["verdict"] == "ESCALATE" for c in self.attempted),
+            "n_executed_bypassing_verdict": sum(
+                c.get("executed_via") == "baseline_bypass"
+                and c["verdict"] != "PERMIT" for c in self.attempted),
+            "verdicts_by_layer": layers,
             "resource_effects": effects,
             "n_resource_effects": len(effects),
+            "evidence_chain": self.evidence(),
         }
 
 
@@ -211,7 +244,9 @@ class MorrisonToolsExecutor(BasePipelineElement):
             tool=function, args=dict(args), verdict=decision.verdict,
             layer=decision.layer, rule=decision.rule, reason=decision.reason,
             capabilities=sorted(decision.capabilities), executed=False,
-            latency_ms=(time.perf_counter() - t0) * 1000.0)
+            latency_ms=(time.perf_counter() - t0) * 1000.0,
+            decision=decision.as_dict(),
+            trajectory_hash=decision.trajectory_hash)
         self.records.append(rec)
 
         if decision.permitted:
@@ -225,19 +260,19 @@ class MorrisonToolsExecutor(BasePipelineElement):
 
             ok, out = self.kernel.execute(decision, _run)
             if ok and "out" in box:
-                rec.executed = True
+                rec.executed, rec.executed_via = True, "kernel"
                 result, error = box["out"]
                 return rec, result, error
             if not self.enforce:
                 # the kernel refused at execute time; the baseline still runs it
                 result, error = runtime.run_function(env, function, args)
-                rec.executed = True
+                rec.executed, rec.executed_via = True, "baseline_bypass"
                 return rec, result, error
             return rec, "", f"Action not executed: {out}"
 
         if not self.enforce:
             result, error = runtime.run_function(env, function, args)
-            rec.executed = True
+            rec.executed, rec.executed_via = True, "baseline_bypass"
             return rec, result, error
         return rec, "", _denial_text(rec)
 
@@ -259,6 +294,7 @@ class MorrisonToolsExecutor(BasePipelineElement):
             self.reset()
             if self._episode is None or self._episode.env is not env:
                 self.start_episode(env)
+            self._episode.kernel = self.kernel
 
         known = {tool.name for tool in runtime.functions.values()}
         results = []

@@ -15,6 +15,11 @@ proposed tool call goes through `GovernanceKernel.authorize` → `execute`. Read
   `morrison_governance/test_pci_card_exposure.py`.
 - **Next: live mode, a real model under AgentDojo's `important_instructions` attack.** Still not run: on 2026-10-14 the
   cloud environment had no `ANTHROPIC_API_KEY` (preflight below). These are the numbers comparable to the AgentDojo leaderboard.
+- **Live run is wired as a manual GitHub Actions workflow**, `.github/workflows/agentdojo-live.yml` ("AgentDojo Live"), using
+  the `ANTHROPIC_API_KEY` repository Actions secret. Default mode is a free preflight; the paid benchmark needs mode
+  `benchmark` plus `RUN-PAID-BENCHMARK` typed in the confirm box. `workflow_dispatch` only appears once the file is on
+  the default branch. Opus 5.5 needs `anthropic_adapter.py` (no `temperature`, adaptive thinking, `drop_block`); see the
+  bench README.
 - Live runner hardened (keyless, 2026-10-14): fixed a crash (AgentDojo's `TraceLogger` needs an `OutputLogger` around the
   benchmark, so the old runner would have failed on its first pair); baseline now uses the same executor in record-only
   mode so the arms differ only in enforcement; output separates attempted calls from actual environment effects.
@@ -51,7 +56,7 @@ escalations separate from blocks, and no tuning of `manifest.py` after seeing re
 - **Published test count.** `morrison_governance/test_evidence_consistency.py` checks that the count in `README.md`
   ("Repository test suite | **N collected**") and `limits_audit/evidence/facts.json` matches a real collection. Adding or
   removing tests means updating both. The AgentDojo tests skip when `agentdojo` isn't installed (as in CI), so with it
-  installed locally that check is off by 9. That's expected.
+  installed locally that check is off by 14. That's expected.
 - **Lint gate.** `morrison_governance/test_lint_gate.py` requires every third-party import to be installed by the lint
   workflow or listed in `.pylintrc` `ignored-modules`.
 - **Test side effects.** Running the full suite rewrites files under `living-boundary/artifacts/`. Don't commit those.

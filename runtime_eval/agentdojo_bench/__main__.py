@@ -80,14 +80,16 @@ def _live(args) -> int:
             defense=args.defense, benchmark_version=args.benchmark_version,
             user_tasks=args.user_task, injection_tasks=args.injection_task,
             logdir=(args.output / "logs") if args.output else None,
-            force_rerun=args.force_rerun)
+            force_rerun=args.force_rerun, max_usd=args.max_usd,
+            max_requests=args.max_requests, settings=_settings(args))
         result["provenance"] = {**_provenance(args), "started_at": started,
                                 "finished_at": datetime.now(timezone.utc).isoformat()}
         _write(args.output,
                f"live-{args.model.replace('/', '_')}-{args.defense}-{suite}.json",
                result)
-        if "error" in result:
+        if result.get("status") != "complete":
             status = 1
+        if "error" in result:
             print(f"{suite:10s} {args.model} [{args.defense}] FAILED: {result['error']} "
                   f"({len(result['partial_episodes'])} episodes recorded before failure)")
             continue
@@ -98,6 +100,35 @@ def _live(args) -> int:
               f"{result['calls_executed']}  pairs with env changes "
               f"{result['pairs_with_resource_effects']}/{result['pairs_with_evidence']}")
     return status
+
+
+def _settings(args):
+    from runtime_eval.agentdojo_bench.anthropic_adapter import RequestSettings
+    return RequestSettings(model=args.model, max_tokens=args.max_tokens,
+                           effort=args.effort)
+
+
+def _preflight(args) -> int:
+    from runtime_eval.agentdojo_bench.ci import preflight
+    return preflight(args.model, args.output, canary=args.canary,
+                     settings=_settings(args))
+
+
+def _verify(args) -> int:
+    import os
+    from runtime_eval.agentdojo_bench.ci import summary_markdown, verify
+    status = verify(args.output, os.environ.get("ANTHROPIC_API_KEY", ""))
+    md = summary_markdown(args.output)
+    (args.output / "SUMMARY.md").write_text(md + "\n")
+    print(md)
+    return status
+
+
+def _model_settings_args(sp) -> None:
+    sp.add_argument("--max-tokens", type=int, default=16000,
+                    help="per-request max_tokens (thinking counts toward it)")
+    sp.add_argument("--effort", default="medium",
+                    choices=["low", "medium", "high", "xhigh", "max"])
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -123,9 +154,29 @@ def main(argv: list[str] | None = None) -> int:
     live.add_argument("--defense", choices=["morrison", "none"],
                       default="morrison")
     live.add_argument("--force-rerun", action="store_true")
+    live.add_argument("--max-usd", type=float, default=float("inf"),
+                      help="stop the arm before a request once its estimated "
+                           "spend reaches this (Anthropic only)")
+    live.add_argument("--max-requests", type=int, default=10**9,
+                      help="stop the arm before its Nth+1 model request")
+    _model_settings_args(live)
+
+    pre = sub.add_parser("preflight", help="verify API auth and model access "
+                                           "without printing the key")
+    pre.add_argument("--model", required=True)
+    pre.add_argument("--output", type=Path)
+    pre.add_argument("--canary", action="store_true",
+                     help="also send ONE minimal billed request with the "
+                          "benchmark's exact settings")
+    _model_settings_args(pre)
+
+    ver = sub.add_parser("verify", help="redact credentials, re-verify "
+                                        "evidence chains, check matched arms")
+    ver.add_argument("--output", type=Path, required=True)
 
     args = p.parse_args(argv)
-    return _oracle(args) if args.mode == "oracle" else _live(args)
+    return {"oracle": _oracle, "live": _live, "preflight": _preflight,
+            "verify": _verify}[args.mode](args)
 
 
 if __name__ == "__main__":
