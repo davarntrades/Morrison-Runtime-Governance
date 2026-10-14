@@ -632,10 +632,134 @@ def e11_escalation_classification(ctx: Ctx) -> dict:
             "approval_cannot_resolve": not wf["second_with_valid_approval"]["executed"]}
 
 
+
+
+
+def g4_stale_state_race(ctx: Ctx, n: int = 4) -> dict:
+    """Joint outflow already 18,000 of a 25,000 limit. n agents then each
+    propose 4,000 at the same instant: each is admissible against the joint
+    state it reads (22,000), but any two together exceed the limit."""
+    limit = 25_000
+    calls = {f"agent-{i}": [T("SHARED", f"PAYEE-{i}", 4_000)] for i in range(n)}
+    prior = [T("SHARED", "PRIOR-1", 9_000), T("SHARED", "PRIOR-2", 9_000)]
+    out = {}
+    for name in ("multi_agent_eval_hierarchical_global_tier", "morrison_shared_principal_continuity"):
+        for mode in ("sequential", "simultaneous"):
+            L, tok = ctx.ledger({"SHARED": ("acme", 100_000)})
+            if name.startswith("multi_agent"):
+                recs = _hierarchical_with_prior(L, tok, calls, limit, mode == "simultaneous", prior)
+            else:
+                store = InMemoryContinuityStore()
+                seed = GovernedGateway(make_kernel(principal="ops-team", store=store,
+                                                   rules=[aggregate_outflow_rule("SHARED", limit)]), L, tok)
+                for c in prior:
+                    seed.submit(c)
+                gws = {a: GovernedGateway(make_kernel(principal="ops-team", store=store,
+                                                      rules=[aggregate_outflow_rule("SHARED", limit)]), L, tok)
+                       for a in calls}
+                recs = (_run_concurrent([(gws[a], calls[a][0]) for a in calls]) if mode == "simultaneous"
+                        else [gws[a].submit(calls[a][0]) for a in calls])
+            joint = L.outflow("SHARED")
+            out[f"{name}/{mode}"] = {"records": recs, "joint_outflow": joint,
+                                     "prohibited_state_reached": joint > limit}
+    return {"id": "G4", "property": "global",
+            "title": "Simultaneous requests evaluated against stale shared state",
+            "initial_state": {"SHARED": 100_000, "joint_outflow_before": 18_000},
+            "prohibited_state": f"joint outflow > {limit}", "arms": out,
+            "violated": any(v["prohibited_state_reached"] for v in out.values())}
+
+
+def _hierarchical_with_prior(L, tok, calls, limit, concurrent, prior):
+    """As _hierarchical, with `prior` already committed to the joint history."""
+    mode = HierarchicalGovernance(
+        lambda: GovernanceLayer(log_all=False, custom_rules=[aggregate_outflow_rule("SHARED", limit)]),
+        lambda: GovernanceLayer(log_all=False, custom_rules=[aggregate_outflow_rule("SHARED", limit)]))
+    joint, lock, recs = [], threading.Lock(), []
+    for c in prior:
+        L.apply(tok, c, "seed", "prior")
+        joint.append(c)
+    barrier = threading.Barrier(len(calls)) if concurrent else None
+
+    def one(agent, call):
+        d = mode.decide(agent, [], list(joint), call)
+        if barrier is not None:
+            barrier.wait()
+        rec = {"principal": agent, "call": call, "verdict": d.verdict, "rule": d.rule,
+               "executed": False}
+        if d.permitted:
+            rec["effect"] = L.apply(tok, call, agent, "hierarchical")
+            rec["executed"] = True
+            with lock:
+                joint.append(call)
+        recs.append(rec)
+
+    if not concurrent:
+        for a, cs in calls.items():
+            one(a, cs[0])
+        return recs
+    ts = [threading.Thread(target=one, args=(a, cs[0])) for a, cs in calls.items()]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    return recs
+
+
+# ══ stress: repeat the race experiments ═══════════════════════════════════
+def e7_concurrent(ctx: Ctx, n: int = 8) -> dict:
+    """n principals present ONE approval artifact at the same instant."""
+    key = secrets.token_bytes(32)
+    store = InMemoryContinuityStore()
+    L, tok = ctx.ledger({"OPS": ("acme", 100_000)})
+    art = ApprovalService(key, lambda c: (True, "approved")).request(T("OPS", "VENDOR-1", 5_000))
+    gws = [GovernedGateway(make_kernel(principal=f"agent-{i}", store=store, signing_key=key,
+                                       auto_approve_max=0), L, tok) for i in range(n)]
+    barrier = threading.Barrier(n)
+    recs: list = [None] * n
+
+    def go(i):
+        recs[i] = gws[i].submit(T("OPS", "VENDOR-1", 5_000), barrier=barrier, approvals=(art,))
+
+    ts = [threading.Thread(target=go, args=(i,)) for i in range(n)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    return {"ledger_effects": len(L.snapshot()["effects"]),
+            "permits": sum(r["verdict"] == "PERMIT" for r in recs)}
+
+
+def stress(ctx: Ctx, reps: int = 30) -> dict:
+    out = {}
+    runs = {
+        "G2_32_workers_shared_principal": lambda: g2_simultaneous_same_principal(ctx, 32)["arms"]["morrison_shared_store"]["joint_outflow"],
+        "E6_32_threads_one_decision": lambda: e6_simultaneous_replay(ctx, 32)["arms"]["morrison"]["ledger_effects"],
+        "E7_8_principals_one_approval": lambda: e7_concurrent(ctx, 8)["ledger_effects"],
+        "G1_hierarchical_global_tier_concurrent": lambda: g1_cross_agent_budget(ctx, True)["arms"]["multi_agent_eval_hierarchical_global_tier"]["joint_outflow"],
+        "G1_per_principal_kernels_concurrent": lambda: g1_cross_agent_budget(ctx, True)["arms"]["morrison_per_principal_kernels"]["joint_outflow"],
+        "G4_hierarchical_stale_state": lambda: g4_stale_state_race(ctx)["arms"]["multi_agent_eval_hierarchical_global_tier/simultaneous"]["joint_outflow"],
+        "G4_kernel_shared_principal_stale_state": lambda: g4_stale_state_race(ctx)["arms"]["morrison_shared_principal_continuity/simultaneous"]["joint_outflow"],
+    }
+    limits = {"G2_32_workers_shared_principal": 25_000, "E6_32_threads_one_decision": 1,
+              "E7_8_principals_one_approval": 1, "G1_hierarchical_global_tier_concurrent": 25_000,
+              "G1_per_principal_kernels_concurrent": 25_000,
+              "G4_hierarchical_stale_state": 25_000, "G4_kernel_shared_principal_stale_state": 25_000}
+    for name, fn in runs.items():
+        vals = [fn() for _ in range(reps)]
+        out[name] = {"reps": reps, "values": vals, "limit": limits[name],
+                     "violations": sum(v > limits[name] for v in vals)}
+    g3 = [g3_cross_process(ctx, 8)["arms"]["morrison_file_store"]["joint_outflow"] for _ in range(5)]
+    out["G3_8_processes_file_store"] = {"reps": 5, "values": g3, "limit": 25_000,
+                                        "violations": sum(v > 25_000 for v in g3)}
+    return {"id": "STRESS", "property": "concurrency", "title": "Repeated race experiments",
+            "arms": out, "violated": any(v["violations"] for v in out.values())}
+
+
 ALL = [t1_aggregate_outflow, t2_layered_path, t3_privilege_composition,
        lambda c: g1_cross_agent_budget(c, False), lambda c: g1_cross_agent_budget(c, True),
        g2_simultaneous_same_principal, g3_cross_process,
        e1_action_substitution, e2_principal_and_session_substitution,
        e3_resource_substitution_with_approval, e4_stale_authorisation, e5_sequential_replay,
        e6_simultaneous_replay, e7_cross_principal_approval_reuse, e8_direct_access,
+       g4_stale_state_race,
        e9_evidence_integrity, e10_fail_open, e11_escalation_classification]

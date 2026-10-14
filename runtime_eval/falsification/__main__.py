@@ -30,9 +30,12 @@ def main(argv=None) -> int:
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", required=True, help="e.g. pre-repair / post-repair")
     p.add_argument("--only", action="append", help="experiment id prefix")
+    p.add_argument("--stress", action="store_true", help="run only the repeated race experiments")
     args = p.parse_args(argv)
 
-    from runtime_eval.falsification.experiments import ALL, Ctx
+    from runtime_eval.falsification.experiments import ALL, Ctx, stress
+    if args.stress:
+        ALL = [stress]                                          # noqa: N806
     args.output.mkdir(parents=True, exist_ok=True)
     results, started = [], time.time()
     with tempfile.TemporaryDirectory() as tmp:
