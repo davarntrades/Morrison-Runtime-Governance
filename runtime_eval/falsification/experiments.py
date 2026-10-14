@@ -808,6 +808,27 @@ def e12_cross_tenant(ctx: Ctx) -> dict:
             "violated": any(v["executed"] for v in out.values())}
 
 
+def e13_approval_binding_numeric_form(ctx: Ctx) -> dict:
+    """An approval issued with the documented helper for a call whose amount
+    is a whole-number float (as models emit: 1200.0). Found from live run
+    38585660688, where approved rent updates stayed ESCALATE."""
+    key = secrets.token_bytes(32)
+    svc = ApprovalService(key, lambda c: (True, "approved"))
+    out = {}
+    for label, amount in (("integer_amount", 1_200), ("whole_number_float_amount", 1_200.0),
+                          ("fractional_amount", 98.7)):
+        L, tok = ctx.ledger({"OPS": ("acme", 100_000)})
+        k = make_kernel(signing_key=key, auto_approve_max=0)
+        call = T("OPS", "VENDOR-1", amount)
+        rec = GovernedGateway(k, L, tok).submit(call, approvals=(svc.request(call),))
+        out[label] = {"verdict": rec["verdict"], "executed": rec["executed"],
+                      "authorization_reason": rec["decision"]["authorization"]["reason"][:120]}
+    return {"id": "E13", "property": "utility",
+            "title": "Approval issued with issue_approval() fails to bind to a whole-number float amount",
+            "arms": out,
+            "defect": not out["whole_number_float_amount"]["executed"] and out["integer_amount"]["executed"]}
+
+
 # ══ stress: repeat the race experiments ═══════════════════════════════════
 def e7_concurrent(ctx: Ctx, n: int = 8) -> dict:
     """n principals present ONE approval artifact at the same instant."""
@@ -869,4 +890,4 @@ ALL = [t1_aggregate_outflow, t2_layered_path, t3_privilege_composition,
        e6_simultaneous_replay, e7_cross_principal_approval_reuse, e8_direct_access,
        g4_stale_state_race,
        e9_evidence_integrity, e10_fail_open, e11_escalation_classification,
-       e12_cross_tenant]
+       e12_cross_tenant, e13_approval_binding_numeric_form]
