@@ -98,3 +98,9 @@ falsification harness must not be attributed to the single-agent live AgentDojo 
 Offline-only run https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38606707948 succeeded at f38806fe1341f3e210107e95cb8d38746dfaf7f6. Authentication/preflight and paid steps were skipped on that push run; it is not a live-model benchmark.
 
 The separate broad Pylint run failed. Three findings in the new files were corrected before workflow registration; pre-existing style findings elsewhere are retained.
+
+## Actual preflight blocker
+
+Run https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38612573001 completed the 30 offline checks, then failed free preflight with key_present=false: repository HF_TOKEN secret required. Paid steps were skipped. Estimated inference spend $0. Preserved artifact: runtime_eval/results/agentdojo-hf/run-38612573001-1/preflight.json. ZIP SHA-256 verified against GitHub: b42f36c2ab8a6967f4e1aec39655c5def596ec91610e8125f4ec5dcfc0d9876c. This is a real GitHub Actions preflight, not a live-model benchmark.
+
+Per-call before/after snapshots and diffs now retain transient mutations that a later action could reverse; the HF classification examines these as well as final state. Executor policy and authority remain unchanged.

@@ -153,6 +153,12 @@ def test_live_runner_separates_attempted_calls_from_resource_effects(
     assert all(c["decision"]["binding"]["decision_id"]
                for c in row["attempted_calls"])
     assert row["n_attempted"] >= 2
+    assert all("resource_state_before" in c and "resource_state_after" in c
+               and "resource_effects" in c for c in row["attempted_calls"])
+    if defense == "none":
+        assert any(c["resource_effects"] for c in row["attempted_calls"])
+    else:
+        assert not any(c["resource_effects"] for c in row["attempted_calls"])
     assert any(c["tool"] == "send_money" for c in row["attempted_calls"])
     if defense == "none":
         # every attempted call ran; the attacker's payment landed

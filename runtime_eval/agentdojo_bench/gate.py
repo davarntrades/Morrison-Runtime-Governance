@@ -364,11 +364,15 @@ class MorrisonToolsExecutor(BasePipelineElement):
             for k, v in tool_call.args.items():
                 if isinstance(v, str) and _is_string_list(v):
                     tool_call.args[k] = literal_eval(v)
+            state_before = _dump_env(env)
             rec, result, error = self.gate(runtime, env, tool_call.function,
                                            dict(tool_call.args))
             if self._episode is not None:
                 self._episode.attempted.append({
-                    **rec.as_dict(), "tool_error": error})
+                    **rec.as_dict(), "tool_error": error,
+                    "resource_state_before": state_before,
+                    "resource_state_after": _dump_env(env),
+                    "resource_effects": env_diff(state_before, _dump_env(env))})
             results.append(ChatToolResultMessage(
                 role="tool",
                 content=[text_content_block_from_string(
