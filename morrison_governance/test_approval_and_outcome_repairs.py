@@ -96,3 +96,12 @@ def test_resolved_escalation_does_not_harden_the_next_payment_into_block():
     k.ctx.approvals = ()
     second = {"tool": "transfer", "args": {"from": "OPS", "to": "V-2", "amount": 1000}}
     assert k.preview(second).verdict == "ESCALATE"
+
+
+def test_approval_binds_to_a_whole_number_float_argument():
+    """E13: issue_approval hashed the raw call while the kernel hashes the
+    canonicalised one, so `amount: 1200.0` never matched `1200`."""
+    key = secrets.token_bytes(32)
+    call = {"tool": "transfer", "args": {"from": "OPS", "to": "VENDOR-1", "amount": 1200.0}}
+    k = _kernel(key, approvals=(issue_approval(call, ISSUER, key, nonce="f1"),))
+    assert _effects(k, call, 1) == 1

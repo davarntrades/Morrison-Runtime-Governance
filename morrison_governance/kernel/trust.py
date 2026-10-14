@@ -479,9 +479,15 @@ def issue_approval(call: dict, issuer: str, key: bytes, ttl_s: float = 300.0,
     spelling escape the approval requirement entirely.
 
     Raises if `key` is empty — see `ApprovalArtifact.sign`.
+
+    The call is canonicalised first, exactly as the kernel canonicalises a
+    proposal before hashing it. Hashing the raw call made an approval for
+    `amount: 1200.0` (as models emit it) unverifiable against the kernel's
+    `amount: 1200`, so the approved action stayed ESCALATE.
     """
+    from morrison_governance.kernel.canonical import canonicalize
     now = time.time() if now is None else now
     return ApprovalArtifact(
-        action_hash=semantic_action_hash(call), issuer=issuer, scope=scope,
+        action_hash=semantic_action_hash(canonicalize(call)), issuer=issuer, scope=scope,
         issued_at=now, expires_at=now + ttl_s, nonce=nonce,
     ).sign(key)
