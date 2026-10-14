@@ -41,7 +41,10 @@ GOVERNED_DOMAINS = (
 )
 
 
-def build_kernel(profile: SuiteProfile) -> GovernanceKernel:
+APPROVAL_ISSUER = "agentdojo-approval-service"
+
+
+def build_kernel(profile: SuiteProfile, signing_key: bytes = b"") -> GovernanceKernel:
     """A fresh kernel for one AgentDojo task run.
 
     Each (user task, injection task) pair is an independent episode, so it
@@ -56,6 +59,8 @@ def build_kernel(profile: SuiteProfile) -> GovernanceKernel:
         unknown_tool_policy="escalate",
         internal_email_domains=profile.internal_email_domains,
         internal_url_hosts=profile.internal_url_hosts,
+        signing_key=signing_key,
+        trusted_issuers=frozenset({APPROVAL_ISSUER}) if signing_key else frozenset(),
     )
     layer = GovernanceLayer(domains=list(GOVERNED_DOMAINS), log_all=False)
     return GovernanceKernel(layer, context)
@@ -78,6 +83,8 @@ class GateRecord:
     # hash of the sealed evidence record it was issued with.
     decision: dict | None = None
     trajectory_hash: str = ""
+    # The approval request this call triggered (ESCALATE + approver), if any.
+    approval: dict | None = None
     # How the call reached the environment: "kernel" (Morrison executed a
     # PERMIT), "baseline_bypass" (record-only arm ran it despite the verdict),
     # or "" (not executed).
@@ -90,6 +97,7 @@ class GateRecord:
             "capabilities": self.capabilities, "executed": self.executed,
             "latency_ms": round(self.latency_ms, 4), "origin": self.origin,
             "decision": self.decision, "trajectory_hash": self.trajectory_hash,
+            "approval": self.approval,
             "executed_via": self.executed_via,
         }
 
@@ -213,6 +221,8 @@ class MorrisonToolsExecutor(BasePipelineElement):
         self.enforce = enforce
         self.kernel: GovernanceKernel | None = None
         self.records: list[GateRecord] = []
+        self.approver = None
+        self._approval_key = b""
         # Per AgentDojo task (keyed by user/injection task id, read from the
         # TraceLogger the benchmark opens around each task): what the model
         # attempted and what the environment actually changed.
@@ -229,8 +239,36 @@ class MorrisonToolsExecutor(BasePipelineElement):
             self.episodes[key] = self._episode
 
     def reset(self) -> None:
-        self.kernel = build_kernel(self.profile)
+        self.kernel = build_kernel(self.profile, self._approval_key)
         self.records = []
+
+    def attach_approver(self, approver) -> None:
+        """Route ESCALATE verdicts to `approver` (see approvers.py). The key
+        that signs approvals is generated here and held only by this executor
+        and its kernels; the model never sees it."""
+        import secrets
+        self.approver = approver
+        self._approval_key = secrets.token_bytes(32)
+
+    def _request_approval(self, call: dict) -> tuple[object | None, dict]:
+        import dataclasses
+        import secrets
+        from morrison_governance.kernel import issue_approval
+        from runtime_eval.agentdojo_bench.approvers import EpisodeInfo
+        key = _episode_key() or ("", None)
+        info = EpisodeInfo(key[0], None if key[1] in (None, "None") else key[1],
+                           self._episode.env_before if self._episode else {})
+        t0 = time.perf_counter()
+        ok, why = self.approver.decide(call, info)
+        log = {"approver": self.approver.name, "approved": ok, "reason": why,
+               "latency_ms": round((time.perf_counter() - t0) * 1e3, 4)}
+        if not ok:
+            return None, log
+        art = issue_approval(call, APPROVAL_ISSUER, self._approval_key,
+                             ttl_s=120.0, nonce=secrets.token_hex(12))
+        log["nonce"] = art.nonce
+        self.kernel.ctx = dataclasses.replace(self.kernel.ctx, approvals=(art,))
+        return art, log
 
     def gate(self, runtime: FunctionsRuntime, env: Env, function: str,
              args: dict) -> tuple[GateRecord, object, str | None]:
@@ -240,13 +278,25 @@ class MorrisonToolsExecutor(BasePipelineElement):
         call = {"tool": function, "args": dict(args)}
         t0 = time.perf_counter()
         decision = self.kernel.authorize(call)
+        approval_log = None
+        if decision.escalated and self.approver is not None:
+            first = {"verdict": decision.verdict, "layer": decision.layer,
+                     "rule": decision.rule}
+            art, approval_log = self._request_approval(call)
+            approval_log["initial_decision"] = first
+            if art is not None:
+                decision = self.kernel.authorize(call)
+            # an approval is presented for this one request only
+            import dataclasses
+            self.kernel.ctx = dataclasses.replace(self.kernel.ctx, approvals=())
         rec = GateRecord(
             tool=function, args=dict(args), verdict=decision.verdict,
             layer=decision.layer, rule=decision.rule, reason=decision.reason,
             capabilities=sorted(decision.capabilities), executed=False,
             latency_ms=(time.perf_counter() - t0) * 1000.0,
             decision=decision.as_dict(),
-            trajectory_hash=decision.trajectory_hash)
+            trajectory_hash=decision.trajectory_hash,
+            approval=approval_log)
         self.records.append(rec)
 
         if decision.permitted:

@@ -13,7 +13,8 @@ import os
 import re
 from pathlib import Path
 
-ARM_FILE = re.compile(r"^live-.*-(none|morrison)-[a-z]+\.json$")
+ARM_FILE = re.compile(
+    r"^live-.*-(none|morrison-policy|morrison-user-intent|morrison)-[a-z]+\.json$")
 # Anthropic key shapes, plus the header that would carry one.
 _KEY_PATTERNS = [
     re.compile(r"sk-ant-[A-Za-z0-9_\-]{8,}"),
@@ -29,7 +30,7 @@ _MATCHED_PROVENANCE = ("git_commit", "agentdojo_version", "python")
 
 
 def preflight(model: str, output: Path | None, canary: bool = False,
-              settings=None) -> int:
+              settings=None, list_models: bool = False) -> int:
     """Authenticate and confirm model access without exposing the key.
 
     `GET /v1/models/{model}` is not billed. With `canary`, one minimal request
@@ -70,6 +71,11 @@ def preflight(model: str, output: Path | None, canary: bool = False,
         report.update(ok=False, error="could not reach the Anthropic API")
         return _finish(report, output)
 
+    if list_models:
+        try:
+            report["available_models"] = sorted(m.id for m in client.models.list())
+        except anthropic.APIError as exc:
+            report["available_models_error"] = type(exc).__name__
     if canary:
         report["canary"] = _canary(model, settings)
         if not report["canary"]["ok"]:
@@ -184,16 +190,18 @@ def verify(root: Path, secret: str = "") -> int:
     report["evidence_chains"] = chains
 
     mismatches = []
-    if set(arms) == {"none", "morrison"}:
-        a, b = arms["none"], arms["morrison"]
-        for f in _MATCHED_FIELDS:
-            if a.get(f) != b.get(f):
-                mismatches.append(f)
-        pa, pb = a.get("provenance", {}), b.get("provenance", {})
-        mismatches += [f"provenance.{f}" for f in _MATCHED_PROVENANCE
-                       if pa.get(f) != pb.get(f)]
+    if "none" in arms and len(arms) >= 2:
+        a = arms["none"]
+        for name, b in arms.items():
+            if name == "none":
+                continue
+            mismatches += [f"{name}:{f}" for f in _MATCHED_FIELDS
+                           if a.get(f) != b.get(f)]
+            pa, pb = a.get("provenance", {}), b.get("provenance", {})
+            mismatches += [f"{name}:provenance.{f}" for f in _MATCHED_PROVENANCE
+                           if pa.get(f) != pb.get(f)]
     else:
-        mismatches.append("both arms not present")
+        mismatches.append("baseline arm and at least one governed arm not present")
     report["matched_conditions"] = {"ok": not mismatches,
                                     "mismatched_fields": mismatches}
     report["arm_status"] = {k: v.get("status", "unknown") for k, v in arms.items()}
@@ -216,8 +224,10 @@ def summary_markdown(root: Path) -> str:
     lines = [f"## AgentDojo live: {verdict}", ""]
     if not arms:
         return "\n".join(lines + ["No arm produced a result file."])
-    lines += ["| | Baseline (record-only) | Morrison (enforced) |",
-              "|---|---|---|"]
+    order = [n for n in ("none", "morrison", "morrison-policy",
+                         "morrison-user-intent") if n in arms]
+    lines += ["| | " + " | ".join(order) + " |",
+              "|---|" + "---|" * len(order)]
 
     def cell(arm: dict | None, key: str) -> str:
         if arm is None:
@@ -240,16 +250,15 @@ def summary_markdown(root: Path) -> str:
             ("ESCALATE verdicts (baseline: recorded only)", "calls_escalated"),
             ("Pairs with environment changes", "pairs_with_resource_effects"),
             ("Pairs with evidence", "pairs_with_evidence")]
-    a, b = arms.get("none"), arms.get("morrison")
     for label, key in rows:
-        lines.append(f"| {label} | {cell(a, key)} | {cell(b, key)} |")
+        lines.append(f"| {label} | " + " | ".join(cell(arms[n], key) for n in order) + " |")
     for label, key in (("API requests", "requests"),
                        ("Input tokens", "input_tokens"),
                        ("Output tokens", "output_tokens"),
                        ("Est. cost (USD)", "est_cost_usd"),
                        ("Stop reasons", "stop_reasons"),
                        ("Served models", "served_models")):
-        lines.append(f"| {label} | {api(a, key)} | {api(b, key)} |")
+        lines.append(f"| {label} | " + " | ".join(api(arms[n], key) for n in order) + " |")
     mc = ver.get("matched_conditions", {})
     lines += ["",
               f"Matched conditions: {'yes' if mc.get('ok') else 'NO'} "

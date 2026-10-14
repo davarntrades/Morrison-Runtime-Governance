@@ -1,15 +1,17 @@
 name: AgentDojo Live (Opus 5.5, banking sample)
 
 # Manually triggered only. Runs AgentDojo's banking suite with a real model
-# under the important_instructions attack, twice under matched conditions:
-# the record-only baseline (Morrison records verdicts, every call executes)
-# and Morrison-enforced. Sample: user_task_0 and user_task_1 against all nine
-# banking injection tasks (18 pairs per arm), plus AgentDojo's standalone run
-# of each injection task (9 episodes per arm).
+# under the important_instructions attack, in matched arms that differ only
+# in governance:
+#   none                  record-only baseline (every call executes)
+#   morrison              enforced; ESCALATE fails closed (no approver)
+#   morrison-policy       enforced; ESCALATE routed to a policy approver
+#   morrison-user-intent  enforced; ESCALATE routed to an idealised reviewer
+# Each arm runs as its own job on the same commit; a final job verifies,
+# analyses and exports the combined evidence.
 #
 # Mode "preflight-only" (the default) checks authentication and model access
-# with an unbilled request and stops. Mode "benchmark" also requires typing
-# RUN-PAID-BENCHMARK into the confirmation box.
+# with unbilled requests. Mode "benchmark" also needs RUN-PAID-BENCHMARK.
 
 on:
   workflow_dispatch:
@@ -27,39 +29,60 @@ on:
       max_usd_per_arm:
         description: "Spend cap per arm in USD (estimated from token usage)"
         type: choice
-        options: ["5", "10", "15", "20"]
-        default: "15"
+        options: ["5", "10", "15", "20", "40", "60", "100"]
+        default: "20"
+      model:
+        description: "Anthropic model id"
+        type: string
+        required: false
+        default: claude-opus-5-5
+      scope:
+        description: "sample = user_task_0, user_task_1; full = all 16 banking user tasks"
+        type: choice
+        options: [sample, full]
+        default: sample
+      arms:
+        description: "Which arms to run"
+        type: choice
+        options: ["none,morrison", "none,morrison,morrison-policy,morrison-user-intent"]
+        default: "none,morrison"
 
 permissions:
   contents: read
 
 concurrency:
-  group: agentdojo-live
+  group: agentdojo-live-${{ inputs.model }}
   cancel-in-progress: false
 
 defaults:
   run:
     shell: bash
 
+env:
+  MODEL: ${{ inputs.model }}
+  MODE: ${{ inputs.mode }}
+  SCOPE: ${{ inputs.scope }}
+  MAX_USD: ${{ inputs.max_usd_per_arm }}
+  # Above AgentDojo's own per-arm ceiling for the full suite
+  # (169 episodes x 16 model turns), so only the USD cap can stop an arm.
+  MAX_REQUESTS: "3000"
+  PYTHONUNBUFFERED: "1"
+
 jobs:
-  live:
+  preflight:
     if: github.repository == 'davarntrades/Morrison-Runtime-Governance'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 20
     env:
-      MODEL: claude-opus-5-5
-      MODE: ${{ inputs.mode }}
       CONFIRM: ${{ inputs.confirm }}
-      MAX_USD: ${{ inputs.max_usd_per_arm }}
-      # Above the per-arm ceiling AgentDojo itself allows (27 episodes x 16
-      # model turns = 432), so only the USD cap can stop an arm early.
-      MAX_REQUESTS: "450"
-      EVIDENCE_DIR: artifacts/agentdojo-live/run-${{ github.run_id }}-${{ github.run_attempt }}
-      PYTHONUNBUFFERED: "1"
+      EVIDENCE_DIR: preflight-out
     steps:
       - name: Check run request
-        id: gate
         run: |
+          case "$MODEL" in
+            claude-[a-z0-9-]*) ;;
+            *) echo "::error::Model id must look like claude-..."; exit 1 ;;
+          esac
           case "$MODE" in
             preflight-only) echo "Preflight only: no billed requests." ;;
             benchmark)
@@ -67,7 +90,7 @@ jobs:
                 echo "::error::Benchmark mode needs RUN-PAID-BENCHMARK in the confirmation box."
                 exit 1
               fi
-              echo "Paid benchmark confirmed. Cap: \$${MAX_USD} per arm, ${MAX_REQUESTS} requests per arm." ;;
+              echo "Paid benchmark confirmed: $MODEL, scope $SCOPE, cap \$${MAX_USD} per arm." ;;
             *) echo "::error::Unknown mode"; exit 1 ;;
           esac
 
@@ -86,17 +109,15 @@ jobs:
         timeout-minutes: 10
         run: python -m pytest -q runtime_eval/tests/test_agentdojo_bench.py
 
-      - name: Preflight - authentication and model access (unbilled)
-        id: preflight
+      - name: Preflight - authentication, model access, available models (unbilled)
         timeout-minutes: 5
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          python -m runtime_eval.agentdojo_bench preflight \
+          python -m runtime_eval.agentdojo_bench preflight --list-models \
             --model "$MODEL" --output "$EVIDENCE_DIR"
 
       - name: Canary - one billed request with the benchmark's exact settings
-        id: canary
         if: env.MODE == 'benchmark'
         timeout-minutes: 5
         env:
@@ -105,86 +126,153 @@ jobs:
           python -m runtime_eval.agentdojo_bench preflight --canary \
             --model "$MODEL" --output "$EVIDENCE_DIR/canary"
 
-      - name: Arm 1 - baseline (Morrison records, does not enforce)
-        id: baseline
-        if: env.MODE == 'benchmark'
-        timeout-minutes: 30
+      - name: Redact and print preflight
+        if: always()
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
+          mkdir -p "$EVIDENCE_DIR"
+          python -m runtime_eval.agentdojo_bench redact --output "$EVIDENCE_DIR"
+          find "$EVIDENCE_DIR" -name '*.json' -exec cat {} \;
+
+      - name: Upload preflight (redacted)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
+        with:
+          name: preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: preflight-out
+          if-no-files-found: warn
+          retention-days: 30
+
+  arm:
+    needs: preflight
+    if: inputs.mode == 'benchmark'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        defense: [none, morrison, morrison-policy, morrison-user-intent]
+    env:
+      DEFENSE: ${{ matrix.defense }}
+      ARMS: ${{ inputs.arms }}
+      EVIDENCE_DIR: arm-out
+    steps:
+      - name: Select arm
+        id: select
+        run: |
+          IFS=',' read -ra want <<< "$ARMS"
+          run=false
+          for a in "${want[@]}"; do [ "$a" = "$DEFENSE" ] && run=true; done
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "arm $DEFENSE selected: $run"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        if: steps.select.outputs.run == 'true'
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7
+        if: steps.select.outputs.run == 'true'
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned dependencies
+        if: steps.select.outputs.run == 'true'
+        run: python -m pip install -r runtime_eval/agentdojo_bench/requirements.txt
+
+      - name: Run arm
+        if: steps.select.outputs.run == 'true'
+        timeout-minutes: 170
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          tasks=()
+          if [ "$SCOPE" = "sample" ]; then
+            tasks=(--user-task user_task_0 --user-task user_task_1)
+          fi
           python -m runtime_eval.agentdojo_bench live \
             --provider anthropic --model "$MODEL" --suite banking \
-            --user-task user_task_0 --user-task user_task_1 \
-            --defense none --benign \
+            "${tasks[@]}" --defense "$DEFENSE" --benign \
             --max-usd "$MAX_USD" --max-requests "$MAX_REQUESTS" \
             --output "$EVIDENCE_DIR"
 
-      - name: Arm 2 - Morrison enforced
-        id: morrison
-        # Only after a complete baseline: an unpaired arm is not a result.
-        if: env.MODE == 'benchmark' && steps.baseline.outcome == 'success'
-        timeout-minutes: 30
+      - name: Redact arm evidence
+        if: always() && steps.select.outputs.run == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          python -m runtime_eval.agentdojo_bench live \
-            --provider anthropic --model "$MODEL" --suite banking \
-            --user-task user_task_0 --user-task user_task_1 \
-            --defense morrison --benign \
-            --max-usd "$MAX_USD" --max-requests "$MAX_REQUESTS" \
-            --output "$EVIDENCE_DIR"
+          mkdir -p "$EVIDENCE_DIR"
+          python -m runtime_eval.agentdojo_bench redact --output "$EVIDENCE_DIR"
+
+      - name: Upload arm evidence (redacted)
+        if: always() && steps.select.outputs.run == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
+        with:
+          name: arm-${{ matrix.defense }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: arm-out
+          if-no-files-found: warn
+          retention-days: 7
+
+  collect:
+    needs: [preflight, arm]
+    if: always() && inputs.mode == 'benchmark' && needs.preflight.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EVIDENCE_DIR: artifacts/agentdojo-live/run-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned dependencies
+        run: python -m pip install -r runtime_eval/agentdojo_bench/requirements.txt
+
+      - name: Download arm evidence
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8
+        with:
+          pattern: arm-*-${{ github.run_id }}-${{ github.run_attempt }}
+          merge-multiple: true
+          path: ${{ env.EVIDENCE_DIR }}
+
+      - name: Download preflight
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8
+        with:
+          name: preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.EVIDENCE_DIR }}
 
       - name: Redact credentials, re-verify evidence, check matched arms
         id: verify
-        # Runs after any failure in the arms, so partial results are kept,
-        # redacted and labelled incomplete. Exits non-zero unless both arms
-        # are complete, matched, chain-verified and nothing needed redaction.
-        if: always() && env.MODE == 'benchmark' && steps.gate.outcome == 'success'
-        timeout-minutes: 5
+        timeout-minutes: 10
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python -m runtime_eval.agentdojo_bench verify --output "$EVIDENCE_DIR"
 
-      - name: Outcome analysis (attempted vs executed vs verified effects)
-        id: analyze
-        if: always() && steps.verify.outcome != 'skipped' && steps.verify.outcome != ''
-        timeout-minutes: 5
+      - name: Outcome analysis
+        if: always() && steps.verify.outcome != 'skipped'
         run: python -m runtime_eval.agentdojo_bench analyze --output "$EVIDENCE_DIR"
 
       - name: Export redacted evidence to the job log
-        # Runs only after the redaction pass, so the log carries exactly what
-        # the artifact carries; lets the evidence be rebuilt and checksummed
-        # where artifact storage is unreachable.
-        if: always() && steps.verify.outcome != 'skipped' && steps.verify.outcome != ''
-        timeout-minutes: 5
+        if: always() && steps.verify.outcome != 'skipped'
         run: python -m runtime_eval.agentdojo_bench export-log --output "$EVIDENCE_DIR"
 
       - name: Run summary
         if: always()
         run: |
           {
-            echo "Mode: $MODE  |  Model: $MODEL  |  Cap per arm: \$${MAX_USD}"
-            echo
-            for f in "$EVIDENCE_DIR/preflight.json" "$EVIDENCE_DIR/canary/preflight.json"; do
-              if [ -f "$f" ]; then
-                echo "### $(basename "$(dirname "$f")")/$(basename "$f")"
-                echo '```json'; cat "$f"; echo '```'
-              fi
-            done
+            echo "Model: $MODEL | scope: $SCOPE | cap per arm: \$${MAX_USD}"
             if [ -f "$EVIDENCE_DIR/SUMMARY.md" ]; then cat "$EVIDENCE_DIR/SUMMARY.md"; fi
             echo
-            echo "Step outcomes: preflight=${{ steps.preflight.outcome }}" \
-                 "canary=${{ steps.canary.outcome }}" \
-                 "baseline=${{ steps.baseline.outcome }}" \
-                 "morrison=${{ steps.morrison.outcome }}" \
-                 "verify=${{ steps.verify.outcome }}"
+            echo "Arm job results: ${{ needs.arm.result }} | verify: ${{ steps.verify.outcome }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload evidence (redacted)
-        # Benchmark output is uploaded only after the redaction pass has run.
-        if: >-
-          always() && (env.MODE == 'preflight-only' ||
-          steps.verify.outcome == 'success' || steps.verify.outcome == 'failure')
+        if: always() && (steps.verify.outcome == 'success' || steps.verify.outcome == 'failure')
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
           name: agentdojo-live-${{ github.run_id }}-${{ github.run_attempt }}

@@ -45,6 +45,12 @@ from runtime_eval.agentdojo_bench.manifest import profile_for
 from runtime_eval.agentdojo_bench.oracle import DEFAULT_BENCHMARK_VERSION
 
 
+# "none": record-only baseline. "morrison": enforced, ESCALATE fails closed.
+# "morrison-<approver>": enforced, ESCALATE routed to a bounded approver
+# (runtime_eval/agentdojo_bench/approvers.py).
+DEFENSES = ("none", "morrison", "morrison-policy", "morrison-user-intent")
+
+
 def make_llm(provider: str, model: str, budget: Budget | None = None,
              settings: RequestSettings | None = None):
     """The model element. Anthropic goes through `GovernedBudgetLLM` (current
@@ -57,6 +63,7 @@ def make_llm(provider: str, model: str, budget: Budget | None = None,
 
 def build_pipeline(provider: str, model: str, suite_name: str,
                    defense: str = "morrison", *, budget: Budget | None = None,
+                   benchmark_version: str = DEFAULT_BENCHMARK_VERSION,
                    settings: RequestSettings | None = None,
                    ) -> tuple[AgentPipeline, MorrisonToolsExecutor]:
     """AgentDojo's default pipeline, with the tool executor swapped.
@@ -64,11 +71,15 @@ def build_pipeline(provider: str, model: str, suite_name: str,
     defense="none" is the baseline: the same executor in record-only mode,
     so the two arms differ only in whether Morrison's verdict is enforced.
     """
-    if defense not in ("morrison", "none"):
+    if defense not in DEFENSES:
         raise ValueError(f"unknown defense {defense!r}")
     llm = make_llm(provider, model, budget, settings)
     executor = MorrisonToolsExecutor(profile_for(suite_name),
-                                     enforce=defense == "morrison")
+                                     enforce=defense != "none")
+    if defense.startswith("morrison-"):
+        from runtime_eval.agentdojo_bench.approvers import make_approver
+        executor.attach_approver(make_approver(
+            defense.removeprefix("morrison-"), get_suite(benchmark_version, suite_name)))
     pipeline = AgentPipeline([
         SystemMessage(load_system_message(None)),
         InitQuery(),
@@ -125,7 +136,8 @@ def run_live(provider: str, model: str, suite_name: str, *,
     settings = settings or RequestSettings(model=model)
     budget = Budget(model, max_usd, max_requests)
     pipeline, executor = build_pipeline(provider, model, suite_name, defense,
-                                        budget=budget, settings=settings)
+                                        budget=budget, settings=settings,
+                                        benchmark_version=benchmark_version)
     target_name = register_model_name(provider, model)
     resolved = get_model_name_from_pipeline(pipeline)
     if resolved != target_name:
@@ -149,6 +161,7 @@ def run_live(provider: str, model: str, suite_name: str, *,
         "model": model,
         "defense": defense,
         "enforced": executor.enforce,
+        "approver": getattr(executor.approver, "name", None),
         "attack": attack,
         "attack_target_name": target_name,
         "pipeline_name": pipeline.name,

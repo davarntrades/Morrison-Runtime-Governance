@@ -106,13 +106,14 @@ def _live(args) -> int:
 def _settings(args):
     from runtime_eval.agentdojo_bench.anthropic_adapter import RequestSettings
     return RequestSettings(model=args.model, max_tokens=args.max_tokens,
-                           effort=args.effort)
+                           effort=args.effort,
+                           profile=getattr(args, "request_profile", ""))
 
 
 def _preflight(args) -> int:
     from runtime_eval.agentdojo_bench.ci import preflight
     return preflight(args.model, args.output, canary=args.canary,
-                     settings=_settings(args))
+                     settings=_settings(args), list_models=args.list_models)
 
 
 def _verify(args) -> int:
@@ -128,6 +129,14 @@ def _verify(args) -> int:
 def _analyze(args) -> int:
     from runtime_eval.agentdojo_bench.analyze import main as analyze_main
     return analyze_main(args.output)
+
+
+def _redact(args) -> int:
+    import os
+    from runtime_eval.agentdojo_bench.ci import redact_tree
+    found = redact_tree(args.output, os.environ.get("ANTHROPIC_API_KEY", ""))
+    print(json.dumps({"redacted_files": found}, indent=2))
+    return 1 if found else 0
 
 
 def _export(args) -> int:
@@ -162,8 +171,8 @@ def main(argv: list[str] | None = None) -> int:
                            "together, cohere, local, vllm_parsed")
     live.add_argument("--model", required=True)
     live.add_argument("--attack", default="important_instructions")
-    live.add_argument("--defense", choices=["morrison", "none"],
-                      default="morrison")
+    from runtime_eval.agentdojo_bench.live import DEFENSES
+    live.add_argument("--defense", choices=list(DEFENSES), default="morrison")
     live.add_argument("--force-rerun", action="store_true")
     live.add_argument("--max-usd", type=float, default=float("inf"),
                       help="stop the arm before a request once its estimated "
@@ -173,6 +182,8 @@ def main(argv: list[str] | None = None) -> int:
     live.add_argument("--benign", action="store_true",
                       help="also run the same user tasks with no injection")
     _model_settings_args(live)
+    live.add_argument("--request-profile", choices=["", "adaptive", "legacy"],
+                      default="", help="'' = chosen by model")
 
     pre = sub.add_parser("preflight", help="verify API auth and model access "
                                            "without printing the key")
@@ -182,6 +193,8 @@ def main(argv: list[str] | None = None) -> int:
                      help="also send ONE minimal billed request with the "
                           "benchmark's exact settings")
     _model_settings_args(pre)
+    pre.add_argument("--list-models", action="store_true")
+    pre.add_argument("--request-profile", choices=["", "adaptive", "legacy"], default="")
 
     ver = sub.add_parser("verify", help="redact credentials, re-verify "
                                         "evidence chains, check matched arms")
@@ -189,13 +202,15 @@ def main(argv: list[str] | None = None) -> int:
     ana = sub.add_parser("analyze", help="outcome analysis: attempted vs "
                                          "executed vs verified effects")
     ana.add_argument("--output", type=Path, required=True)
+    red = sub.add_parser("redact", help="redact credentials under --output in place")
+    red.add_argument("--output", type=Path, required=True)
     exp = sub.add_parser("export-log", help="print the redacted evidence "
                                             "directory as base64 to stdout")
     exp.add_argument("--output", type=Path, required=True)
 
     args = p.parse_args(argv)
     return {"oracle": _oracle, "live": _live, "preflight": _preflight,
-            "verify": _verify, "analyze": _analyze,
+            "verify": _verify, "analyze": _analyze, "redact": _redact,
             "export-log": _export}[args.mode](args)
 
 

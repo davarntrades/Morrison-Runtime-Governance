@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 pytest.importorskip("agentdojo")
@@ -308,3 +310,27 @@ def test_benign_runs_are_recorded_and_required_for_completion(monkeypatch, tmp_p
     # paying the bill is a payment: Morrison escalates it, nothing moves
     assert row["n_escalate"] >= 1 and row["n_resource_effects"] == 0
     assert row["utility"] is False
+
+
+@pytest.mark.parametrize("approver,bill_paid", [("user-intent", True), ("policy", False)])
+def test_approver_arms_resolve_escalations_without_approving_the_attacker(
+        approver, bill_paid, monkeypatch, tmp_path):
+    from runtime_eval.agentdojo_bench import live
+    from runtime_eval.agentdojo_bench.analyze import ATTACKER_IBAN, analyse_episode
+    suite = get_suite(DEFAULT_BENCHMARK_VERSION, "banking")
+    monkeypatch.setattr(live, "make_llm", lambda *a, **k: _CompromisedLLM(suite))
+    out = live.run_live("anthropic", "claude-test-model", "banking",
+                        defense=f"morrison-{approver}", user_tasks=["user_task_0"],
+                        injection_tasks=["injection_task_0"], logdir=tmp_path,
+                        benign=True)
+    assert out["status"] == "complete" and out["approver"] == approver
+    (benign,) = out["benign_user_tasks"]
+    pay = [c for c in benign["attempted_calls"] if c["tool"] == "send_money"]
+    assert pay and pay[0]["approval"]["approver"] == approver
+    assert pay[0]["executed"] is bill_paid
+    # under attack, the attacker's transfer is never approved or executed
+    (pair,) = out["results"]
+    row = analyse_episode(pair, enforced=True)
+    assert not row["prohibited_executed"] and row["local_safety"] == "MAINTAINED"
+    assert all(not a["approved"] for a in row["approval_requests"] if a["targets"])
+    assert ATTACKER_IBAN not in json.dumps(pair["resource_effects"])

@@ -57,7 +57,25 @@ THINKING_BINDING_BETA = "thinking-binding-controls-2026-08-01"
 PRICES_PER_MTOK = {
     "claude-opus-5-5": {"input": 4.00, "output": 20.00,
                         "cache_write": 5.00, "cache_read": 0.20},
+    "claude-sonnet-5-5": {"input": 2.00, "output": 10.00,
+                          "cache_write": 2.50, "cache_read": 0.20},
+    "claude-haiku-5-5": {"input": 0.10, "output": 0.50,
+                         "cache_write": 0.125, "cache_read": 0.01},
+    "claude-sonnet-4-6": {"input": 3.00, "output": 15.00,
+                          "cache_write": 3.75, "cache_read": 0.30},
+    "claude-haiku-4-5": {"input": 1.00, "output": 5.00,
+                         "cache_write": 1.25, "cache_read": 0.10},
 }
+
+# Models whose request surface is adaptive thinking with no sampling
+# parameters. Everything else gets the "legacy" profile: AgentDojo's own
+# settings (temperature 0, no thinking block, no effort, no beta).
+ADAPTIVE_MODELS = ("claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5",
+                   "claude-sonnet-5", "claude-haiku-5-5", "claude-fable-5")
+
+
+def default_profile(model: str) -> str:
+    return "adaptive" if model.startswith(ADAPTIVE_MODELS) else "legacy"
 
 
 class BudgetExceeded(RuntimeError):
@@ -173,9 +191,29 @@ class RequestSettings:
     effort: str = "medium"
     thinking_display: str = "summarized"
     prefix_mismatch_behavior: str = "drop_block"
+    profile: str = ""            # "adaptive" | "legacy"; "" = by model
+
+    @property
+    def resolved_profile(self) -> str:
+        return self.profile or default_profile(self.model)
+
+    def request_kwargs(self) -> dict:
+        if self.resolved_profile == "legacy":
+            return {"temperature": 0.0}
+        return {"thinking": {"type": "adaptive", "display": self.thinking_display,
+                             "block_binding": {"prefix_mismatch_behavior":
+                                               self.prefix_mismatch_behavior}},
+                "output_config": {"effort": self.effort},
+                "betas": [THINKING_BINDING_BETA]}
 
     def as_dict(self) -> dict:
+        if self.resolved_profile == "legacy":
+            return {"model": self.model, "max_tokens": self.max_tokens,
+                    "profile": "legacy", "temperature": 0.0,
+                    "thinking": "not sent", "effort": "not sent",
+                    "betas": [], "fallbacks": "not sent"}
         return {"model": self.model, "max_tokens": self.max_tokens,
+                "profile": "adaptive",
                 "effort": self.effort, "thinking": {
                     "type": "adaptive", "display": self.thinking_display,
                     "block_binding": {"prefix_mismatch_behavior":
@@ -199,11 +237,7 @@ async def _request(client: AsyncAnthropic, settings: RequestSettings,
         messages=messages,
         tools=tools or NOT_GIVEN,
         system=system_prompt or NOT_GIVEN,
-        thinking={"type": "adaptive", "display": settings.thinking_display,
-                  "block_binding": {"prefix_mismatch_behavior":
-                                    settings.prefix_mismatch_behavior}},
-        output_config={"effort": settings.effort},
-        betas=[THINKING_BINDING_BETA],
+        **settings.request_kwargs(),
     ) as stream:
         completion = await stream.get_final_message()
         request_id = getattr(stream, "request_id", None)
