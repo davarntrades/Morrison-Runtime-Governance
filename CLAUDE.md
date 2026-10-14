@@ -62,7 +62,7 @@ escalations separate from blocks, and no tuning of `manifest.py` after seeing re
 - **Published test count.** `morrison_governance/test_evidence_consistency.py` checks that the count in `README.md`
   ("Repository test suite | **N collected**") and `limits_audit/evidence/facts.json` matches a real collection. Adding or
   removing tests means updating both. The AgentDojo tests skip when `agentdojo` isn't installed (as in CI), so with it
-  installed locally that check is off by 17. That's expected.
+  installed locally that check is off by 19. That's expected.
 - **Lint gate.** `morrison_governance/test_lint_gate.py` requires every third-party import to be installed by the lint
   workflow or listed in `.pylintrc` `ignored-modules`.
 - **Test side effects.** Running the full suite rewrites files under `living-boundary/artifacts/`. Don't commit those.

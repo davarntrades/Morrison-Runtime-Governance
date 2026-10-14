@@ -303,6 +303,18 @@ class Attempt:
         return self.state in (EXECUTED, EXPORTED, RESERVED, UNCONFIRMED)
 
 
+# Approval single-use state that must hold across principals: one signed
+# artifact authorises one committed transition, whoever presents it.
+APPROVALS_NAMESPACE = "__approvals__"
+
+
+def approval_replay_token(approval) -> str:
+    """What makes an approval artifact single-use. Its nonce when it has one;
+    otherwise its signature, so an artifact issued without a nonce is still
+    spent once rather than replayable until it expires."""
+    return f"approval:{approval.nonce or 'sig:' + str(approval.signature)}"
+
+
 class GovernanceKernel:
     """Pre-execution governance with a real trust boundary."""
 
@@ -318,6 +330,9 @@ class GovernanceKernel:
         # morrison_governance.escalation.
         self.escalation_router = escalation_router
         self.chain = EvidenceChain(key=evidence_key)
+        # Executions whose outcome record could not be sealed (see
+        # `_record_execution_outcome`): committed effects missing evidence.
+        self.evidence_failures: list[dict] = []
         self.engine_version = engine_version
         self.session_id = session_id or uuid.uuid4().hex
         self.decision_ttl_s = float(decision_ttl_s)
@@ -802,11 +817,13 @@ class GovernanceKernel:
             # new session built a new context and the same signed artifact
             # verified again: three sessions moved $13.5M on one $4.5M
             # approval. The nonce is now spent for the principal, once.
-            if approval is not None and approval.nonce and self.continuity_key:
-                if self.store.consumed(self.continuity_key,
-                                       f"approval:{approval.nonce}"):
+            if approval is not None and self.continuity_key:
+                token = approval_replay_token(approval)
+                if (self.store.consumed(self.continuity_key, token)
+                        or self.store.consumed(APPROVALS_NAMESPACE, token)):
                     approval, approval_reason = None, (
-                        "approval nonce already used (replay across sessions)")
+                        "approval already used (replay across sessions or "
+                        "principals)")
         authorization = {
             "approved": bool(approval),
             "reason": approval_reason,
@@ -1179,9 +1196,20 @@ class GovernanceKernel:
             # principal's past permanently removed the route forward for every
             # later action — sticky posture with no safety benefit.
             recent = self._clock_basis() - self.decision_ttl_s
+            # An ESCALATE that was then resolved by executing the same
+            # transition under a verified approval is the approval workflow
+            # working, not an adversarial denial. Counting it hardened every
+            # later approval-resolvable step into a BLOCK, so an approval
+            # system listening for ESCALATE was never asked again.
+            ledger = self.ledger
+            resolved = {semantic_action_hash(a.action) for a in ledger
+                        if a.executed or a.state == RESERVED}
             adversarial_indicator = bool(
                 forged or dest.external
-                or any(a.denied and a.timestamp >= recent for a in self.ledger))
+                or any(a.denied and a.timestamp >= recent
+                       and not (a.verdict == ESCALATE
+                                and semantic_action_hash(a.action) in resolved)
+                       for a in ledger))
             if (verdict == BLOCK and not authority_established
                     and requirement != P.DENY
                     and not adversarial_indicator
@@ -1260,9 +1288,23 @@ class GovernanceKernel:
             # second authorization now sees the nonce already used.
             if approval is not None:
                 self.ctx.consume_nonce(approval)
-                if approval.nonce and self.continuity_key:
-                    self.store.consume(self.continuity_key,
-                                       f"approval:{approval.nonce}")
+                token = approval_replay_token(approval)
+                if self.continuity_key:
+                    self.store.consume(self.continuity_key, token)
+                # Principal-independent and atomic: the principal-scoped lock
+                # does not serialise two principals presenting one artifact,
+                # so the test-and-set result decides who holds it.
+                if not self.store.consume(APPROVALS_NAMESPACE, token):
+                    decision.verdict = BLOCK
+                    decision.layer = "binding"
+                    decision.rule = "approval_already_consumed"
+                    decision.reason = ("approval artifact was consumed by another "
+                                       "authorization first; one approval "
+                                       "authorises one transition")
+                    self._record_refusal(decision, proposed, "binding",
+                                         "approval_already_consumed",
+                                         decision.reason)
+                    return decision
             self._reserve(decision, now)
         else:
             self._file(proposed, verdict, DENIED, reason, now,
@@ -1408,16 +1450,30 @@ class GovernanceKernel:
             # reading the chain concluded nothing ran. It now records that the
             # action was committed with an UNKNOWN outcome, which is both true
             # and consistent with the ledger.
-            self.chain.record_execution(
-                decision.evidence, True,
+            self._record_execution_outcome(
+                decision,
                 f"committed; outcome UNKNOWN — executor raised "
                 f"{type(e).__name__}: {e}. The effect may or may not have "
                 f"landed and is treated as having landed.")
             return False, f"runtime error: {type(e).__name__}: {e}"
 
         if decision.evidence is not None:
-            self.chain.record_execution(decision.evidence, True, "ok")
+            self._record_execution_outcome(decision, "ok")
         return True, result
+
+    def _record_execution_outcome(self, decision: "Decision", note: str) -> None:
+        """Seal the execution outcome. The effect has ALREADY been committed
+        when this runs, so a failure here must not be reported as a refusal:
+        that told the caller nothing ran while the resource had changed. The
+        failure is kept on `evidence_failures` for the operator instead."""
+        try:
+            self.chain.record_execution(decision.evidence, True, note)
+        except Exception as e:                       # noqa: BLE001
+            self.evidence_failures.append({
+                "decision_id": decision.decision_id,
+                "action_hash": decision.action_hash,
+                "error": f"{type(e).__name__}: {e}",
+                "at": time.time()})
 
     def _record_refusal(self, decision: Decision, target: dict, layer: str,
                         rule: str, reason: str) -> None:
