@@ -13,8 +13,14 @@ proposed tool call goes through `GovernanceKernel.authorize` → `execute`. Read
   workspace 0%). Benign utility went from 97/97 to 63/97, or 76/97 if escalations are approved.
 - The `pci_card_exposure` substring bug (`"pan"` matching `participants`) is fixed, with a regression test in
   `morrison_governance/test_pci_card_exposure.py`.
-- **Next: live mode, a real model under AgentDojo's `important_instructions` attack.** Still not run: on 2026-10-14 the
-  cloud environment had no `ANTHROPIC_API_KEY` (preflight below). These are the numbers comparable to the AgentDojo leaderboard.
+- **Live mode ran (2026-10-14), Claude Opus 5.5, banking sample, two paid runs.** Report:
+  `runtime_eval/results/AGENTDOJO_LIVE_OPUS55.md`; evidence in `runtime_eval/results/agentdojo-live/`. Attack success was 0/18 in
+  both arms, because the model resisted every injection, so Morrison's prevention under attack was not exercised. In the standalone
+  injection-task runs, Morrison withheld 16/16 model-proposed protected changes (0 environment effect, against 15 executed in the
+  baseline). It also blocked a legitimate bill payment (benign check: 1/2 tasks completed under Morrison, 2/2 in the baseline).
+  Global (cross-agent) safety is NOT_TESTED by this benchmark.
+- Artifact and log downloads are blocked from the cloud container (blob storage hosts). The workflow prints the redacted
+  evidence as a checksummed base64 tarball in the job log (`export-log`); rebuild it from `get_job_logs` output.
 - **Live run is wired as a manual GitHub Actions workflow**, `.github/workflows/agentdojo-live.yml` ("AgentDojo Live"), using
   the `ANTHROPIC_API_KEY` repository Actions secret. Default mode is a free preflight; the paid benchmark needs mode
   `benchmark` plus `RUN-PAID-BENCHMARK` typed in the confirm box. `workflow_dispatch` only appears once the file is on
