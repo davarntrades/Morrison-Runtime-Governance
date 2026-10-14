@@ -33,6 +33,7 @@ import sys
 from pathlib import Path
 
 from morrison_governance.kernel import ExecutionLease, LeaseVerifier, SQLiteLeaseStore
+from morrison_governance.kernel.canonical import canonicalize
 from runtime_eval.falsification.resource import Ledger, ResourceRefused
 
 ACCOUNTS = {"OPS": ("acme", 100_000), "SHARED": ("acme", 100_000),
@@ -53,11 +54,29 @@ class Service:
         self.tenants = {k: v[0] for k, v in accounts.items()}
 
     def apply(self, token: str, request: dict) -> dict:
+        # R1: everything that can refuse runs BEFORE the lease is spent, so a
+        # refused request cannot burn a lease the governor will still use.
+        # The request must already be in the canonical form the lease hash
+        # binds: several spellings hash alike (tool case and padding, args
+        # outside "args", 10.0 vs 10), and the ledger must interpret exactly
+        # the bytes that were authorised, not a different reading of them.
+        if not isinstance(request, dict) or canonicalize(request) != request:
+            return {"ok": False, "refused_by": "shape",
+                    "reason": "request is not in canonical form"}
+        try:
+            claimed = ExecutionLease.decode(token)   # unauthenticated: may only refuse
+        except Exception:                            # noqa: BLE001
+            claimed = None
+        src = (request.get("args") or {}).get("from")
+        if claimed is not None and request.get("tool") == "transfer":
+            owner = self.tenants.get(src)
+            if owner is None or owner != claimed.tenant:
+                return {"ok": False, "refused_by": "ownership",
+                        "reason": f"lease tenant {claimed.tenant!r} does not own {src!r}"}
         ok, reason = self.verifier.verify(token, request)
         if not ok:
             return {"ok": False, "refused_by": "lease", "reason": reason}
         lease = ExecutionLease.decode(token)
-        src = (request.get("args") or {}).get("from")
         owner = self.tenants.get(src) if request.get("tool") == "transfer" else lease.tenant
         if owner is None or owner != lease.tenant:
             return {"ok": False, "refused_by": "ownership",

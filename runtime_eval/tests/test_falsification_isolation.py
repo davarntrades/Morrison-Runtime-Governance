@@ -31,3 +31,18 @@ def test_ledger_refuses_a_lease_from_another_tenant():
         assert rec["executed"] is False
         assert rec["resource"]["refused_by"] == "ownership"
         assert dep.snapshot()["balances"]["OPS"] == 100_000
+
+
+def test_refused_request_variant_does_not_spend_the_lease():
+    """R1: a same-hash spelling the ledger would read differently is refused
+    before the lease is spent, so the authorised request still runs once."""
+    with isolation.IsolatedDeployment() as dep:
+        k = dep.arm(make_kernel())
+        d = k.authorize(T("OPS", "VENDOR-1", 77))
+        token = k.mint_lease(d).encode()
+        for variant in ({"tool": "TRANSFER", "args": dict(d.action["args"])},
+                        {"tool": "transfer", "args": {}, **d.action["args"]}):
+            reply = dep.client.call({"op": "apply", "lease": token, "request": variant})
+            assert reply["ok"] is False and reply["refused_by"] == "shape"
+        assert dep.client.call({"op": "apply", "lease": token, "request": d.action})["ok"]
+        assert dep.snapshot()["balances"]["OPS"] == 100_000 - 77
