@@ -25,6 +25,21 @@ additive provider layer; it does not implement or modify governance policy.
 This is **additive** to the existing repository. Nothing under
 `morrison_governance/` changes; this package extends it.
 
+## AgentDojo (third-party prompt-injection benchmark)
+
+`runtime_eval.agentdojo_bench` runs the AgentDojo suites (workspace, travel,
+banking, slack) with Morrison as the agent's tool executor. `oracle` mode is
+model-free and needs no API key: it replays a fully compromised agent through
+the gate. `live` mode runs a real model under AgentDojo's own attacks.
+
+```bash
+pip install -r runtime_eval/agentdojo_bench/requirements.txt
+python -m runtime_eval.agentdojo_bench oracle --output runtime_eval/results/agentdojo
+```
+
+See [`agentdojo_bench/README.md`](agentdojo_bench/README.md) and the results in
+[`results/AGENTDOJO_BENCHMARK.md`](results/AGENTDOJO_BENCHMARK.md).
+
 ## Dynamical + SCM causal overlay (prototype)
 
 `runtime_eval.causal_overlay` consumes an already-governed trajectory or a
