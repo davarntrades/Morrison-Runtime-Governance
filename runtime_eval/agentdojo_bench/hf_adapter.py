@@ -157,7 +157,7 @@ class HFLLM(BasePipelineElement):
             return result
         except Exception as exc:
             rec.update(status='failed', error_type=type(exc).__name__,
-                       http_status=exc.status_code if isinstance(exc, APIStatusError) else None)
+                       http_status=getattr(exc, 'status_code', None) if isinstance(exc, APIStatusError) else None)
             # Never store raw error text/headers; they can contain credentials.
             raise RuntimeError(f'HF request failed ({type(exc).__name__}); no automatic retry') from None
         finally:

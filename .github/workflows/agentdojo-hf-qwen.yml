@@ -52,7 +52,7 @@ jobs:
         run: python -m pytest -q runtime_eval/tests/test_agentdojo_hf.py runtime_eval/tests/test_agentdojo_bench.py
       - name: Authenticated metadata preflight (no generation)
         id: preflight
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python -m runtime_eval.agentdojo_bench.hf_runner preflight --output "$EVIDENCE_DIR"
@@ -73,7 +73,7 @@ jobs:
           python -m runtime_eval.agentdojo_bench.hf_runner benchmark --output "$EVIDENCE_DIR" "${extra[@]}"
       - name: Redact, verify, classify and generate report
         id: finalize
-        if: always() && github.event_name == 'workflow_dispatch'
+        if: always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'push')
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
@@ -93,7 +93,7 @@ jobs:
             echo 'redacted=true' >> "$GITHUB_OUTPUT"
           fi
       - name: Concise run summary
-        if: always() && github.event_name == 'workflow_dispatch' && steps.finalize.outputs.redacted == 'true'
+        if: always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && steps.finalize.outputs.redacted == 'true'
         run: |
           python - <<'PY'
           import os
@@ -109,7 +109,7 @@ jobs:
                   if p.exists(): out.write('```json\n' + p.read_text() + '\n```\n')
           PY
       - name: Downloadable redacted evidence
-        if: always() && github.event_name == 'workflow_dispatch' && steps.finalize.outputs.redacted == 'true'
+        if: always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && steps.finalize.outputs.redacted == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: agentdojo-hf-qwen-${{ github.run_id }}-${{ github.run_attempt }}

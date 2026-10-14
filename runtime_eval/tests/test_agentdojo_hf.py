@@ -1,10 +1,11 @@
 """Offline controls; these tests are never reported as hosted inference evidence."""
 import json
-from types import SimpleNamespace
 
 import httpx
 import pytest
 from openai import OpenAI
+pytest.importorskip("agentdojo")
+
 from agentdojo.types import text_content_block_from_string
 
 from runtime_eval.agentdojo_bench.hf_adapter import (

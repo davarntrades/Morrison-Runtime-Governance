@@ -220,7 +220,7 @@ def main(argv=None):
     except Exception as exc:
         # Safe exception class only; SDK/server messages can contain secrets.
         write(root / 'blocker.json', {'status': 'BLOCKED_OR_INCOMPLETE', 'error_type': type(exc).__name__, 'stage': stage,
-                                     'safe_reason': str(exc) if type(exc) is RuntimeError else None,
+                                     'safe_reason': str(exc) if isinstance(exc, RuntimeError) else None,
                                      'benchmark_success_claimed': False})
         return 1
 

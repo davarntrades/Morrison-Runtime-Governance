@@ -92,3 +92,9 @@ Existing open findings E8, E12, G1 and T3b remain recorded and unchanged. This i
 adapter does not repair direct resource access, tenant isolation, cross-principal continuity
 or blindness to pre-existing state. Shared-state global experiments in the separate
 falsification harness must not be attributed to the single-agent live AgentDojo run.
+
+## GitHub Actions validation
+
+Offline-only run https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38606707948 succeeded at f38806fe1341f3e210107e95cb8d38746dfaf7f6. Authentication/preflight and paid steps were skipped on that push run; it is not a live-model benchmark.
+
+The separate broad Pylint run failed. Three findings in the new files were corrected before workflow registration; pre-existing style findings elsewhere are retained.
