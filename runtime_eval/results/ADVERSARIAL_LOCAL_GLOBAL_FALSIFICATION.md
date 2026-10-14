@@ -3,6 +3,9 @@
 Date: 2026-10-14. Branch: `claude/agentdojo-live-matched-arms` (experimental, not merged). Evaluator stance: try to
 break the claims, keep every failure, and classify a property only from observed resource state.
 
+> **Update (later the same day):** E8, E10, E12 and G1 were repaired and independently re-falsified; see
+> `REPAIR_REFALSIFICATION.md`. The results below are the state before those repairs and are kept unchanged.
+
 Classification vocabulary, used only as defined:
 
 | Label | Meaning here |

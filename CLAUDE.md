@@ -22,11 +22,16 @@ proposed tool call goes through `GovernanceKernel.authorize` → `execute`. Read
 - **Adversarial falsification done (2026-10-14).** Report: `runtime_eval/results/ADVERSARIAL_LOCAL_GLOBAL_FALSIFICATION.md`;
   offline harness `runtime_eval/falsification/` (`python -m runtime_eval.falsification --output DIR --phase NAME`), results
   and 15 live runs in `runtime_eval/results/falsification/`. One live injected prohibited attempt found (Haiku 4.5, `direct`,
-  user_task_12 × injection_task_4): executed ungoverned, blocked under Morrison. Open violations kept as findings: E8
-  (resource reachable without the governor), E12 (cross-tenant via opaque account ids), G1 (global limit across separate
-  principals), T3b (trajectory rule blind to pre-existing state). Repaired on this branch only: E5/E7 approval replay, E10,
-  E11, G4 (`AtomicJointAdmission`), E13 (`issue_approval` now hashes the canonical call). The live workflow has
-  `scope`, `attack`, `arms` (incl. `morrison-policy`, `morrison-user-intent` approvers) and `model` inputs.
+  user_task_12 × injection_task_4): executed ungoverned, blocked under Morrison. Repaired on this branch only: E5/E7
+  approval replay, E10, E11, G4 (`AtomicJointAdmission`), E13 (`issue_approval` now hashes the canonical call). The live
+  workflow has `scope`, `attack`, `arms` (incl. `morrison-policy`, `morrison-user-intent` approvers) and `model` inputs.
+- **E8, E10, E12, G1 repaired and independently re-falsified (2026-10-14).** Report:
+  `runtime_eval/results/REPAIR_REFALSIFICATION.md`. New config: `SecurityContext.resource_scopes` (G1: shared-resource
+  history across principals; rolling over `continuity_window_s`, 0 = lifetime), `owned_resource_args` +
+  `resource_tenants` (E12), execution-intent record before every effect (E10), isolated ledger behind execution leases
+  (`runtime_eval/falsification/isolation.py`, needs root; CI skips). The independent suites
+  (`runtime_eval/falsification/refalsify/`) found R1, R2 (a regression from the E10 repair), V-G1a, V-G1b, V-E12: all fixed.
+  Still open: T3b (trajectory rule blind to pre-existing state), cross-host global safety (UNSUPPORTED).
 - Artifact and log downloads are blocked from the cloud container (blob storage hosts). The workflow prints the redacted
   evidence as a checksummed base64 tarball in the job log (`export-log`); rebuild it from `get_job_logs` output.
 - **Live run is wired as a manual GitHub Actions workflow**, `.github/workflows/agentdojo-live.yml` ("AgentDojo Live"), using
