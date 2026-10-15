@@ -24,8 +24,20 @@ from typing import Optional
 
 from collection_agent.stripe_gateway import StripeGateway
 
-ROOT = Path(__file__).resolve().parent.parent           # stripe-collection-agent/
-REPO = ROOT.parent                                      # Morrison repo (morrison_governance)
+ROOT = Path(__file__).resolve().parent.parent           # the app root
+
+
+def morrison_repo() -> Path:
+    """Where the unmodified Morrison repository lives: $MORRISON_REPO, the
+    pinned submodule of the standalone hackathon repository, or the parent
+    directory when this app sits inside the Morrison repository."""
+    if os.environ.get("MORRISON_REPO"):
+        return Path(os.environ["MORRISON_REPO"]).resolve()
+    vendored = ROOT / "vendor" / "Morrison-Runtime-Governance"
+    return vendored if (vendored / "morrison_governance").is_dir() else ROOT.parent
+
+
+REPO = morrison_repo()
 SECRET_VARS = ("STRIPE_SECRET_KEY", "OPERATOR_TOKEN", "GOVERNANCE_SERVICE_TOKEN",
                "STRIPE_WEBHOOK_SECRET")
 
@@ -36,8 +48,7 @@ def base_env() -> dict:
             "HTTPS_PROXY", "HTTP_PROXY", "NO_PROXY", "https_proxy", "http_proxy",
             "no_proxy", "NODE_EXTRA_CA_CERTS", "TMPDIR")
     env = {k: os.environ[k] for k in keep if k in os.environ}
-    morrison = os.environ.get("MORRISON_REPO", str(REPO))
-    env["PYTHONPATH"] = os.pathsep.join([str(ROOT), morrison])
+    env["PYTHONPATH"] = os.pathsep.join([str(ROOT), str(REPO)])
     env["PYTHONUNBUFFERED"] = "1"
     return env
 
