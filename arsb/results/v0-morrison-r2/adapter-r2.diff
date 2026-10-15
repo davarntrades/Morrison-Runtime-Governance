@@ -1,0 +1,71 @@
+diff --git a/arsb/adapters/morrison.py b/arsb/adapters/morrison.py
+index 9bdc263..f72986f 100644
+--- a/arsb/adapters/morrison.py
++++ b/arsb/adapters/morrison.py
+@@ -19,8 +19,10 @@ Policy translation (the full translation is in `translate`):
+                            (the documented remedy for T3b; without it the rule is blind to them)
+   owners                -> owned_resource_args + resource_tenants (E12 repair)
+   confidential_docs     -> internal_email_domains; Morrison's built-in egress-after-read rules
+-  provenance            -> NOT TRANSLATABLE: Morrison does not track where argument values
+-                           came from. Listed in `untranslated`.
++  provenance            -> SecurityContext.argument_provenance {op: (arg,)} with output_trust read
++                           from the resource's own classification of what it returned (a document's
++                           `trusted` flag). Value-level taint over recorded outputs (adapter revision r2,
++                           after the Morrison repair; v0 frozen adapter listed it as untranslated).
+ 
+ Each principal gets its own kernel (its own identity and session); all kernels share one
+ continuity store, which is what Morrison's cross-agent guarantee requires.
+@@ -82,6 +84,13 @@ def _debit(v, limit):
+         return limit + 1
+ 
+ 
++def _output_trust(call: dict, result) -> bool:
++    """Whether an executed call's output is a trusted source: the resource's own
++    classification of the document it returned (anything else is untrusted)."""
++    read = (result or {}).get("read") if isinstance(result, dict) else None
++    return bool(read and read.get("trusted"))
++
++
+ def translate(policy: dict) -> tuple[list, list]:
+     rules, untranslated = [], []
+     if policy.get("allow"):
+@@ -122,8 +131,6 @@ def translate(policy: dict) -> tuple[list, list]:
+             held |= set((state.get("held_entitlements") or {}).get(who, []))
+             return ents <= held | {args.get("entitlement")}
+         rules.append(OmegaRule(OmegaDomain.CUSTOM, "arsb_sod", "separation of duties", sod_check))
+-    if policy.get("provenance"):
+-        untranslated.append("provenance")
+     return rules, untranslated
+ 
+ 
+@@ -148,6 +155,11 @@ class Morrison(Adapter):
+                         if call.get("tool") == "transfer" and call.get("args", {}).get("from") in scoped else [])
+                        if scoped else None)
+         self.internal = (policy.get("internal_domain"),) if policy.get("internal_domain") else ()
++        self.provenance = {}
++        for rule in policy.get("provenance") or []:
++            if rule.get("must_come_from", "request") == "request":
++                self.provenance.setdefault(rule["op"], ())
++                self.provenance[rule["op"]] += (rule["arg"],)
+         self.kernels = {}
+         self._fault = None
+         if self.mediated:
+@@ -167,6 +179,8 @@ class Morrison(Adapter):
+                 resource_scopes=self.scopes,
+                 owned_resource_args={"transfer": ("from",)} if self.owners is not None else {},
+                 resource_tenants=self.owners,
++                argument_provenance=self.provenance,
++                output_trust=_output_trust,
+                 lease_signer=(lambda m: sign(self._seed, m)) if self.mediated else None,
+                 lease_store=self.leases if self.mediated else None)
+             layer = GovernanceLayer(domains=DOMAINS, custom_rules=list(self.rules), log_all=False)
+@@ -207,7 +221,8 @@ class Morrison(Adapter):
+                 return Outcome("refused", f"lease not issued: {exc}"[:200])
+             token = lease.encode()
+             try:
+-                self.exec(_op(d.action), principal, lease.lease_id, token)
++                result = self.exec(_op(d.action), principal, lease.lease_id, token)
++                k.record_output(d.action, result)     # a remote execution reports its output
+                 return Outcome("executed", decision_ref=lease.lease_id, token=token)
+             except Refused as exc:
+                 return Outcome("refused", f"resource: {exc}", token=token)

@@ -38,6 +38,11 @@ proposed tool call goes through `GovernanceKernel.authorize` → `execute`. Read
   deny-all, allowlist, a reference provenance baseline, Morrison (in-process, lease-mediated), and the original
   Progent and CaMeL implementations (installed in a separate venv). CaMeL leads trajectory and provenance; Morrison
   leads cross-agent and resource-side; Progent matches Morrison on authorisation with better clean-workload utility.
+  Frozen as `arsb-v0-dev` (`arsb/RELEASE_v0.md`, `arsb/FREEZE.json`, `arsb/repro/`; `python -m arsb.freeze check|verify`).
+- **Morrison repairs from ARSB (branch `claude/morrison-provenance-utl01`).** `SecurityContext.argument_provenance` +
+  `output_trust` (value-level taint; ESCALATE `untrusted_argument_provenance`), and prior trajectory states marked as
+  admitted history (UTL-01). Frozen ARSB rerun with adapter r2: only LOC-02 and UTL-01 Morrison cells moved
+  (`arsb/results/v0-morrison-r2/RERUN.md`). Run pytest with `--ignore=.claude` if an agent worktree exists there.
 - Artifact and log downloads are blocked from the cloud container (blob storage hosts). The workflow prints the redacted
   evidence as a checksummed base64 tarball in the job log (`export-log`); rebuild it from `get_job_logs` output.
 - **Live run is wired as a manual GitHub Actions workflow**, `.github/workflows/agentdojo-live.yml` ("AgentDojo Live"), using
