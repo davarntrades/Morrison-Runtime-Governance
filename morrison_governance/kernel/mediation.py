@@ -277,9 +277,13 @@ def mint_lease(decision: Any, signer: Callable[[bytes], bytes], ttl_s: float = 6
     return ExecutionLease(
         lease_id=lease_id_for(decision), action_hash=decision.action_hash,
         semantic_hash=decision.semantic_hash, principal=decision.principal_id,
-        tenant=getattr(decision, "authorization", {}).get("tenant", ""),
+        tenant=getattr(decision, "tenant_id", "")
+        or getattr(decision, "authorization", {}).get("tenant", ""),
         session_id=decision.session_id, decision_id=decision.decision_id,
-        tool_family=decision.action["tool"], issued_at=stamp, expires_at=stamp + ttl_s,
+        tool_family=decision.action["tool"], issued_at=stamp,
+        # Never outlive the decision it represents.
+        expires_at=min(stamp + ttl_s, decision.issued_wall + ttl_s)
+        if getattr(decision, "issued_wall", 0.0) else stamp + ttl_s,
     ).sign(signer)
 
 

@@ -10,7 +10,8 @@ from morrison_governance import GovernanceLayer
 from morrison_governance.domains import OmegaDomain
 from morrison_governance.kernel import GovernanceKernel, issue_approval
 from morrison_governance.kernel.continuity import InMemoryContinuityStore
-from morrison_governance.kernel.trust import Principal, SecurityContext
+from morrison_governance.kernel.canonical import authorization_action_hash
+from morrison_governance.kernel.trust import ApprovalArtifact, Principal, SecurityContext
 
 DOMAINS = [OmegaDomain.FINANCE, OmegaDomain.CYBERSECURITY, OmegaDomain.DATA_PRIVACY,
            OmegaDomain.ENTERPRISE, OmegaDomain.COMPLIANCE]
@@ -28,6 +29,11 @@ def _kernel(key, principal="agent-a", store=None, approvals=()):
     return GovernanceKernel(GovernanceLayer(domains=DOMAINS, log_all=False), ctx)
 
 
+def _approve(call, key, principal="agent-a"):
+    """Approvals are bound to one principal and tenant and carry a strong nonce."""
+    return issue_approval(call, ISSUER, key, principal=principal, tenant="acme")
+
+
 def _effects(kernel, call, n):
     done = []
     for _ in range(n):
@@ -37,15 +43,19 @@ def _effects(kernel, call, n):
     return len(done)
 
 
-def test_approval_without_nonce_authorises_one_effect():
+def test_approval_without_nonce_authorises_at_most_one_effect():
+    """E5. `issue_approval` no longer mints nonce-less artifacts, so one is
+    signed directly: the kernel refuses it outright (0 effects, never 3)."""
     key = secrets.token_bytes(32)
-    art = issue_approval(PAY, ISSUER, key, nonce="")
-    assert _effects(_kernel(key, approvals=(art,)), PAY, 3) == 1
+    art = ApprovalArtifact(action_hash=authorization_action_hash(PAY), issuer=ISSUER,
+                           principal="agent-a", tenant="acme", issued_at=0.0,
+                           expires_at=4e9, nonce="").sign(key)
+    assert _effects(_kernel(key, approvals=(art,)), PAY, 3) == 0
 
 
 def test_one_approval_cannot_be_spent_by_a_second_principal():
     key, store = secrets.token_bytes(32), InMemoryContinuityStore()
-    art = issue_approval(PAY, ISSUER, key, nonce=secrets.token_hex(8))
+    art = _approve(PAY, key)
     total = sum(_effects(_kernel(key, who, store, (art,)), PAY, 1)
                 for who in ("agent-a", "agent-b", "agent-c"))
     assert total == 1
@@ -53,7 +63,7 @@ def test_one_approval_cannot_be_spent_by_a_second_principal():
 
 def test_simultaneous_cross_principal_presentation_yields_one_permit():
     key, store = secrets.token_bytes(32), InMemoryContinuityStore()
-    art = issue_approval(PAY, ISSUER, key, nonce=secrets.token_hex(8))
+    art = _approve(PAY, key, principal="agent-0")
     kernels = [_kernel(key, f"agent-{i}", store, (art,)) for i in range(8)]
     barrier, verdicts = threading.Barrier(len(kernels)), []
 
@@ -71,7 +81,7 @@ def test_simultaneous_cross_principal_presentation_yields_one_permit():
 
 def test_evidence_failure_after_commit_is_not_reported_as_refusal():
     key = secrets.token_bytes(32)
-    k = _kernel(key, approvals=(issue_approval(PAY, ISSUER, key, nonce="n1"),))
+    k = _kernel(key, approvals=(_approve(PAY, key),))
     d = k.authorize(PAY)
     assert d.permitted
 
@@ -90,7 +100,7 @@ def test_resolved_escalation_does_not_harden_the_next_payment_into_block():
     k = _kernel(key)
     first = {"tool": "transfer", "args": {"from": "OPS", "to": "V-1", "amount": 1000}}
     assert k.authorize(first).verdict == "ESCALATE"            # workflow: escalate,
-    k.ctx.approvals = (issue_approval(first, ISSUER, key, nonce="a1"),)
+    k.ctx.approvals = (_approve(first, key),)
     d = k.authorize(first)                                    # then approve,
     assert d.permitted and k.execute(d, lambda a: None)[0]    # then execute
     k.ctx.approvals = ()
@@ -103,5 +113,5 @@ def test_approval_binds_to_a_whole_number_float_argument():
     canonicalised one, so `amount: 1200.0` never matched `1200`."""
     key = secrets.token_bytes(32)
     call = {"tool": "transfer", "args": {"from": "OPS", "to": "VENDOR-1", "amount": 1200.0}}
-    k = _kernel(key, approvals=(issue_approval(call, ISSUER, key, nonce="f1"),))
+    k = _kernel(key, approvals=(_approve(call, key),))
     assert _effects(k, call, 1) == 1

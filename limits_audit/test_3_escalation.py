@@ -104,7 +104,9 @@ print("         ledger growth is the only consequence.")
 # ────────────────────────────────────────────────────────────────
 print("\n[3.6] The ONLY exit from ESCALATE: a signed ApprovalArtifact in the")
 print("      TRUSTED context. Callers cannot supply one in the call args.")
-art = issue_approval(CALL, issuer="security-review", key=KEY, ttl_s=300, nonce="n1")
+art = issue_approval(
+    CALL, issuer="security-review", key=KEY, ttl_s=300,
+    nonce="limits-escalation-nonce-0001", principal="agent-1", tenant="corp")
 k4, _ = build(manifest=MANIFEST)
 spoofed = dict(CALL); spoofed["approval"] = art
 print(f"      artifact placed in call args      -> {k4.preview(spoofed).verdict}")
@@ -120,16 +122,22 @@ print(f"      same artifact, second attempt     -> {d6.verdict} ({d6.reason[-45:
 # ────────────────────────────────────────────────────────────────
 print("\n[3.7] A human who answers LATE, or the wrong human, or for the wrong action")
 late = issue_approval(CALL, issuer="security-review", key=KEY, ttl_s=1.0,
-                      now=time.time() - 3600, nonce="n2")
+                      now=time.time() - 3600,
+                      nonce="limits-escalation-nonce-0002",
+                      principal="agent-1", tenant="corp")
 k6, _ = build(approvals=[late], manifest=MANIFEST)
 d7 = k6.preview(CALL)
 print(f"      EXPIRED artifact (ttl=300s default) -> {d7.verdict}")
 print(f"          {d7.reason[-60:]}")
-wrong_issuer = issue_approval(CALL, issuer="the-agent-itself", key=KEY, nonce="n3")
+wrong_issuer = issue_approval(
+    CALL, issuer="the-agent-itself", key=KEY,
+    nonce="limits-escalation-nonce-0003", principal="agent-1", tenant="corp")
 k7, _ = build(approvals=[wrong_issuer], manifest=MANIFEST)
 print(f"      UNTRUSTED issuer                    -> {k7.preview(CALL).verdict}")
 other = issue_approval({"tool": "wire_transfer", "args": {"amount": 100, "payee": "acct-1"}},
-                       issuer="security-review", key=KEY, nonce="n4")
+                       issuer="security-review", key=KEY,
+                       nonce="limits-escalation-nonce-0004",
+                       principal="agent-1", tenant="corp")
 k8, _ = build(approvals=[other], manifest=MANIFEST)
 print(f"      approval for $100, replayed at $4.5M-> {k8.preview(CALL).verdict}")
 print("      -> the approval TTL (default 300s, trust.py:335) is the only")

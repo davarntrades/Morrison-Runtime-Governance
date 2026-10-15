@@ -65,6 +65,12 @@ from morrison_governance.kernel.normalize import canonical_tool, normalize_actio
 KEY = b"round-two-key"
 ISSUERS = frozenset({"security-review"})
 
+
+def _bound_approval(*args, **kwargs):
+    kwargs.setdefault("principal", "agent-svc")
+    kwargs.setdefault("tenant", "acme")
+    return issue_approval(*args, **kwargs)
+
 MANIFEST = {
     "query_db": [C.CAP_DATA_READ],
     "http_post": [C.CAP_EXTERNAL_DATA_MOVE],
@@ -182,8 +188,9 @@ def test_atk_01b_an_approval_cannot_launder_through_a_collision():
                  "args": {"run": "drop database prod", "note": "noop"}}
 
     ctx = _ctx()
-    ctx.approvals = (issue_approval(benign, issuer="security-review", key=KEY,
-                                    ttl_s=300, nonce="collide-1"),)
+    ctx.approvals = (_bound_approval(benign, issuer="security-review", key=KEY,
+                                    ttl_s=300,
+                                    nonce="collision-regression-nonce-01"),)
     kernel, rt = _kernel(ctx), _Runtime()
     decision, executed, _ = kernel.submit(malicious, rt)
 

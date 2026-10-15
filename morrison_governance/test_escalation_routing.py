@@ -40,11 +40,12 @@ CALL = {"tool": "wire_transfer", "args": {"amount": 4_500_000, "payee": "acct-99
 _SEQ = [0]
 
 
-def _kernel(router, approvals=()):
+def _kernel(router, approvals=(), principal=None):
     _SEQ[0] += 1
+    principal = principal or f"agent-{_SEQ[0]}"
     gov = GovernanceLayer(domains=[OmegaDomain.FINANCE], log_all=False)
     ctx = SecurityContext(
-        principal=Principal(id=f"agent-{_SEQ[0]}", tenant="corp"),
+        principal=Principal(id=principal, tenant="corp"),
         signing_key=ORG_KEY, trusted_issuers=frozenset({REVIEWER}),
         approvals=tuple(approvals),
         tool_manifest={"wire_transfer": ["payment.move_funds"]})
@@ -203,7 +204,7 @@ def test_reviewer_approval_lets_the_original_action_proceed():
     assert router.get(d1.escalation.id).resolved_by == REVIEWER
 
     # The caller re-proposes with the artifact the reviewer minted.
-    k2 = _kernel(router, approvals=(artifact,))
+    k2 = _kernel(router, approvals=(artifact,), principal=artifact.principal)
     d2 = k2.authorize(CALL, now=1100.0)
     assert d2.verdict == "PERMIT", d2.reason
     ok, _out = k2.execute(d2, lambda a: ran.append(a), now=1100.0)
@@ -250,7 +251,7 @@ def test_the_approval_is_the_ordinary_artifact_not_a_second_authority():
     d2 = k2.authorize(CALL, now=2000.0)
     bad = router2.approve(d2.escalation.id, issuer=REVIEWER,
                           key=b"not-the-org-key", now=2010.0)
-    assert _kernel(router, approvals=(bad,)).authorize(
+    assert _kernel(router, approvals=(bad,), principal=bad.principal).authorize(
         CALL, now=2010.0).verdict != "PERMIT"
 
     # Untrusted issuer -> refused.
@@ -259,11 +260,13 @@ def test_the_approval_is_the_ordinary_artifact_not_a_second_authority():
     d3 = k3.authorize(CALL, now=3000.0)
     untrusted = router3.approve(d3.escalation.id, issuer="the-agent-itself",
                                 key=ORG_KEY, now=3010.0)
-    assert _kernel(router, approvals=(untrusted,)).authorize(
+    assert _kernel(router, approvals=(untrusted,),
+                   principal=untrusted.principal).authorize(
         CALL, now=3010.0).verdict != "PERMIT"
 
     # The genuine one works.
-    assert _kernel(router, approvals=(artifact,)).authorize(
+    assert _kernel(router, approvals=(artifact,),
+                   principal=artifact.principal).authorize(
         CALL, now=1010.0).verdict == "PERMIT"
 
 

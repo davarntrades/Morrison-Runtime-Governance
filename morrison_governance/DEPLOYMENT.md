@@ -235,14 +235,18 @@ outcomes = wg.run(workflow_steps, executor=run)
   verdicts (CI-stable). Tool-name synonyms and argument encodings are folded to
   one canonical semantic form before policy runs, so `run_shell` cannot execute
   what `shell` is refused. See `LIMITATIONS.md` for residual gaps.
-- **Decisions are single-use leases.** A PERMIT carries a decision id, semantic
-  action hash, session, principal, ruleset hash and expiry. `execute()` consumes
+- **Decisions are single-use leases.** A PERMIT carries a decision id, exact and
+  semantic action hashes, authorization identity, session, principal, tenant,
+  ruleset hash and expiry. `execute()` compares the whole binding to its stored
+  reservation and consumes
   it atomically; reuse, expiry, a changed ruleset, a foreign session, or a
   subsequent BLOCK on the same transition all refuse it. Release what you do
   not execute with `guard.release(decision)`.
-- **Approvals are single-use and bound to the transition.** The nonce is
-  consumed at authorisation, so one approval cannot mint two PERMITs, and the
-  binding is to the semantic hash, so respelling the call does not dodge it.
+- **Approvals are single-use and context-bound.** The signature covers the
+  authorization action, principal, tenant, issuance window, and mandatory
+  strong nonce. Broad tool families do not share authority. Deployments may
+  configure explicit authorization equivalences; that registry participates in
+  the ruleset hash and changes invalidate outstanding decisions.
 - **Policy changes take effect.** After mutating `ctx.policy_values`, call
   `kernel.refresh_ruleset()`; outstanding decisions issued under the old
   ruleset are then refused at execute.

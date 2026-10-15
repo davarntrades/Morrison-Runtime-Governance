@@ -224,13 +224,18 @@ class Morrison(Adapter):
             return Outcome("executed", decision_ref=d.decision_id)
         return Outcome("refused", str(out)[:200], decision_ref=d.decision_id)
 
+    def _tenant(self, principal):
+        return next(p["tenant"] for p in self.sc["principals"] if p["id"] == principal)
+
     def approve(self, request, principal, op):
         return issue_approval(canonicalize(_call(op)), ISSUER, self.key, ttl_s=120.0,
-                              nonce=secrets.token_hex(12))
+                              nonce=secrets.token_hex(12), principal=principal,
+                              tenant=self._tenant(principal))
 
     def forge_approval(self, principal, op):
         return issue_approval(canonicalize(_call(op)), ISSUER, secrets.token_bytes(32),
-                              ttl_s=120.0, nonce=secrets.token_hex(12))
+                              ttl_s=120.0, nonce=secrets.token_hex(12), principal=principal,
+                              tenant=self._tenant(principal))
 
     # ── resource side ────────────────────────────────────────
     def resource_guard(self):

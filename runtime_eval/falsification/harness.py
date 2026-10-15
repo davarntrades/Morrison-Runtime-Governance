@@ -29,7 +29,8 @@ from typing import Callable, Optional
 from morrison_governance import GovernanceLayer, OmegaDomain, OmegaRule
 from morrison_governance.kernel import GovernanceKernel, issue_approval
 from morrison_governance.kernel.continuity import InMemoryContinuityStore
-from morrison_governance.kernel.trust import Principal, SecurityContext
+from morrison_governance.kernel.canonical import authorization_action_hash
+from morrison_governance.kernel.trust import ApprovalArtifact, Principal, SecurityContext
 from runtime_eval.agentdojo_bench.gate import GOVERNED_DOMAINS
 from runtime_eval.falsification.resource import Ledger, ResourceRefused
 
@@ -169,13 +170,24 @@ class ApprovalService:
         self.with_nonce, self.ttl_s = with_nonce, ttl_s
         self.log: list[dict] = []
 
-    def request(self, call: dict):
+    def request(self, call: dict, principal: str = "agent-a", tenant: str = "acme"):
+        """Approvals are bound to the requesting principal and tenant. With
+        `with_nonce=False` the artifact is signed without a nonce (bypassing
+        `issue_approval`, which refuses to mint one), so experiments still
+        present a nonce-less artifact and observe the kernel refusing it."""
         t0 = time.perf_counter()
         ok, why = self.policy(call)
         art = None
-        if ok:
+        if ok and self.with_nonce:
             art = issue_approval(call, APPROVER_ID, self.key, ttl_s=self.ttl_s,
-                                 nonce=secrets.token_hex(8) if self.with_nonce else "")
+                                 nonce=secrets.token_urlsafe(24),
+                                 principal=principal, tenant=tenant)
+        elif ok:
+            now = time.time()
+            art = ApprovalArtifact(
+                action_hash=authorization_action_hash(call), issuer=APPROVER_ID,
+                principal=principal, tenant=tenant, issued_at=now,
+                expires_at=now + self.ttl_s, nonce="").sign(self.key)
         self.log.append({"call": call, "approved": ok, "reason": why,
                          "nonce": getattr(art, "nonce", None),
                          "latency_ms": round((time.perf_counter() - t0) * 1e3, 4)})
@@ -207,7 +219,8 @@ class GovernedGateway:
         decision = self.kernel.authorize(call)
         approval = None
         if decision.escalated and self.approver is not None:
-            art = self.approver.request(call)
+            art = self.approver.request(call, self.kernel.ctx.principal.id,
+                                        self.kernel.ctx.principal.tenant)
             if art is not None:
                 present_approvals(self.kernel, (art,))
                 approval = {"nonce": art.nonce, "issuer": art.issuer,

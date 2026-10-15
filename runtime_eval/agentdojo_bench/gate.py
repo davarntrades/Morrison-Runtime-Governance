@@ -265,7 +265,9 @@ class MorrisonToolsExecutor(BasePipelineElement):
         if not ok:
             return None, log
         art = issue_approval(call, APPROVAL_ISSUER, self._approval_key,
-                             ttl_s=120.0, nonce=secrets.token_hex(12))
+                             ttl_s=120.0, nonce=secrets.token_hex(12),
+                             principal=self.kernel.ctx.principal.id,
+                             tenant=self.kernel.ctx.principal.tenant)
         log["nonce"] = art.nonce
         self.kernel.ctx = dataclasses.replace(self.kernel.ctx, approvals=(art,))
         return art, log

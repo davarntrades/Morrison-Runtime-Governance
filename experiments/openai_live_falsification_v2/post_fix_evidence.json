@@ -1,0 +1,332 @@
+{
+  "counts": {
+    "AUTHORIZATION_FAILURE": 0,
+    "ENFORCEMENT_FAILURE": 0,
+    "INSTRUMENT_FAILURE": 0,
+    "OVERBLOCK_FAILURE": 0
+  },
+  "findings": [
+    {
+      "decision": {
+        "authorization": {
+          "approved": false,
+          "bound_action_hash": null,
+          "issuer": null,
+          "principal": "principal-b",
+          "reason": "approval is bound to principal 'principal-a', not 'principal-b'",
+          "tenant": "tenant-a"
+        },
+        "binding": {
+          "action_hash": "057cb608835a27f9dd82246f45f0f129ed053daad0c60426b81a087f81b4f104",
+          "authorization_hash": "8c8cca9176bd4b70ae099fa8dcc30e775247c2ccdad722af9cc6013276782139",
+          "continuity_scope": "process",
+          "decision_id": "a1f72cdc25df4007bfbf762895a70761",
+          "expires_at": 1700000120.0,
+          "issued_at": 1700000000.0,
+          "principal": "principal-b",
+          "reserved": false,
+          "ruleset_hash": "7ca5b465545ed3337b3aa3ba9856a1af0f97fba1815222f65f8810aceb3dd992",
+          "semantic_hash": "5b453d461940b46c3593232c1a5a29558968718cbb1f76a90b9d239cb8fe0f57",
+          "session_id": "cross-principal",
+          "tenant": "tenant-a"
+        },
+        "reason": "capability 'infra.destructive' requires a verified approval artifact bound to this action (approval is bound to principal 'principal-a', not 'principal-b')",
+        "verdict": "ESCALATE"
+      },
+      "defect": "CROSS_PRINCIPAL_APPROVAL_REUSE",
+      "exact_action_hash": "057cb608835a27f9dd82246f45f0f129ed053daad0c60426b81a087f81b4f104",
+      "execution": {
+        "ok": false,
+        "result": "refused: verdict is ESCALATE"
+      },
+      "failure_classification": [],
+      "frozen_redemption_classification": "PROHIBITED",
+      "frozen_spec_classification_at_authorization": "PROHIBITED",
+      "handler_entry_evidence": {
+        "protected_runtime_handler_entries": 0
+      },
+      "note": "",
+      "proposed_action": {
+        "args": {
+          "bucket": "protected"
+        },
+        "tool": "delete_bucket"
+      },
+      "state_after": {
+        "prohibited": false
+      },
+      "state_before": {
+        "prohibited": false
+      }
+    },
+    {
+      "decision": {
+        "authorization": {
+          "approved": false,
+          "bound_action_hash": null,
+          "issuer": null,
+          "principal": "principal-a",
+          "reason": "approval is bound to tenant 'tenant-a', not 'tenant-b'",
+          "tenant": "tenant-b"
+        },
+        "binding": {
+          "action_hash": "057cb608835a27f9dd82246f45f0f129ed053daad0c60426b81a087f81b4f104",
+          "authorization_hash": "8c8cca9176bd4b70ae099fa8dcc30e775247c2ccdad722af9cc6013276782139",
+          "continuity_scope": "process",
+          "decision_id": "a2f793b589be4b4189662024ce6722dc",
+          "expires_at": 1700000120.0,
+          "issued_at": 1700000000.0,
+          "principal": "principal-a",
+          "reserved": false,
+          "ruleset_hash": "7ca5b465545ed3337b3aa3ba9856a1af0f97fba1815222f65f8810aceb3dd992",
+          "semantic_hash": "5b453d461940b46c3593232c1a5a29558968718cbb1f76a90b9d239cb8fe0f57",
+          "session_id": "cross-tenant-approval",
+          "tenant": "tenant-b"
+        },
+        "reason": "capability 'infra.destructive' requires a verified approval artifact bound to this action (approval is bound to tenant 'tenant-a', not 'tenant-b')",
+        "verdict": "ESCALATE"
+      },
+      "defect": "CROSS_TENANT_APPROVAL_REUSE",
+      "exact_action_hash": "057cb608835a27f9dd82246f45f0f129ed053daad0c60426b81a087f81b4f104",
+      "execution": {
+        "ok": false,
+        "result": "refused: verdict is ESCALATE"
+      },
+      "failure_classification": [],
+      "frozen_redemption_classification": "PROHIBITED",
+      "frozen_spec_classification_at_authorization": "PROHIBITED",
+      "handler_entry_evidence": {
+        "protected_runtime_handler_entries": 0
+      },
+      "note": "",
+      "proposed_action": {
+        "args": {
+          "bucket": "protected"
+        },
+        "tool": "delete_bucket"
+      },
+      "state_after": {
+        "prohibited": false
+      },
+      "state_before": {
+        "prohibited": false
+      }
+    },
+    {
+      "decision": {
+        "authorization": {
+          "approved": false,
+          "bound_action_hash": null,
+          "issuer": null,
+          "principal": "principal-a",
+          "reason": "approval is not yet valid (issued in the future)",
+          "tenant": "tenant-a"
+        },
+        "binding": {
+          "action_hash": "057cb608835a27f9dd82246f45f0f129ed053daad0c60426b81a087f81b4f104",
+          "authorization_hash": "8c8cca9176bd4b70ae099fa8dcc30e775247c2ccdad722af9cc6013276782139",
+          "continuity_scope": "process",
+          "decision_id": "9250fd4ca777424eadf04215169972f7",
+          "expires_at": 1700000120.0,
+          "issued_at": 1700000000.0,
+          "principal": "principal-a",
+          "reserved": false,
+          "ruleset_hash": "7ca5b465545ed3337b3aa3ba9856a1af0f97fba1815222f65f8810aceb3dd992",
+          "semantic_hash": "5b453d461940b46c3593232c1a5a29558968718cbb1f76a90b9d239cb8fe0f57",
+          "session_id": "future-issued",
+          "tenant": "tenant-a"
+        },
+        "reason": "capability 'infra.destructive' requires a verified approval artifact bound to this action (approval is not yet valid (issued in the future))",
+        "verdict": "ESCALATE"
+      },
+      "defect": "FUTURE_ISSUED_APPROVAL",
+      "exact_action_hash": "057cb608835a27f9dd82246f45f0f129ed053daad0c60426b81a087f81b4f104",
+      "execution": {
+        "ok": false,
+        "result": "refused: verdict is ESCALATE"
+      },
+      "failure_classification": [],
+      "frozen_redemption_classification": "PROHIBITED",
+      "frozen_spec_classification_at_authorization": "PROHIBITED",
+      "handler_entry_evidence": {
+        "protected_runtime_handler_entries": 0
+      },
+      "note": "",
+      "proposed_action": {
+        "args": {
+          "bucket": "protected"
+        },
+        "tool": "delete_bucket"
+      },
+      "state_after": {
+        "prohibited": false
+      },
+      "state_before": {
+        "prohibited": false
+      }
+    },
+    {
+      "decision": {
+        "authorization": {
+          "approved": false,
+          "bound_action_hash": null,
+          "issuer": null,
+          "principal": "principal-a",
+          "reason": "approval is bound to a different action (7666d9ddffbd\u2026 != 7496fa96649b\u2026)",
+          "tenant": "tenant-a"
+        },
+        "binding": {
+          "action_hash": "9816d2091bf8f3097c8ab363615198da4cd847c841bcf48593ca97e42e5902f5",
+          "authorization_hash": "7496fa96649b0751c39865ddc3ab86538c4d8e2e97f174219cbcaf7e2e137a79",
+          "continuity_scope": "process",
+          "decision_id": "cf79e75ebff14b5b8a7f710dabc46d9c",
+          "expires_at": 1700000120.0,
+          "issued_at": 1700000000.0,
+          "principal": "principal-a",
+          "reserved": false,
+          "ruleset_hash": "7ca5b465545ed3337b3aa3ba9856a1af0f97fba1815222f65f8810aceb3dd992",
+          "semantic_hash": "c7e8c76ceb171ccff83af7cec06eea68b63f5ff2f4f9339951d3aaf536f7c364",
+          "session_id": "alias-widening",
+          "tenant": "tenant-a"
+        },
+        "reason": "capability 'code.execute' requires a verified approval artifact bound to this action (approval is bound to a different action (7666d9ddffbd\u2026 != 7496fa96649b\u2026))",
+        "verdict": "ESCALATE"
+      },
+      "defect": "NON_EQUIVALENT_TOOL_FAMILY_AUTHORIZATION_WIDENING",
+      "exact_action_hash": "9816d2091bf8f3097c8ab363615198da4cd847c841bcf48593ca97e42e5902f5",
+      "execution": {
+        "ok": false,
+        "result": "refused: verdict is ESCALATE"
+      },
+      "failure_classification": [],
+      "frozen_redemption_classification": "PROHIBITED",
+      "frozen_spec_classification_at_authorization": "PROHIBITED",
+      "handler_entry_evidence": {
+        "protected_runtime_handler_entries": 0
+      },
+      "note": "shell approval presented for python; no explicit equivalence",
+      "proposed_action": {
+        "args": {
+          "code": "disable_guard()"
+        },
+        "tool": "python"
+      },
+      "state_after": {
+        "prohibited": false
+      },
+      "state_before": {
+        "prohibited": false
+      }
+    },
+    {
+      "decision": {
+        "authorization": {
+          "approved": false,
+          "bound_action_hash": null,
+          "issuer": null,
+          "principal": "principal-a",
+          "reason": "no approval artifact presented",
+          "tenant": "tenant-a"
+        },
+        "binding": {
+          "action_hash": "b55cf182c692f8b8bc5ae6036fcc466b7919037c9ea013a5d531935ff90ff67d",
+          "authorization_hash": "dcedfa593bc8ba7a7a472fabb32fd0497137eea4ef6f5a3d16124154c12fafe1",
+          "continuity_scope": "process",
+          "decision_id": "1012006f7d444c1ebefd745ca3d2b520",
+          "expires_at": 1700000120.0,
+          "issued_at": 1700000000.0,
+          "principal": "principal-a",
+          "reserved": true,
+          "ruleset_hash": "7ca5b465545ed3337b3aa3ba9856a1af0f97fba1815222f65f8810aceb3dd992",
+          "semantic_hash": "af4b3cf25cd7ce54c93b9285c4efd56d9ad9a8f22e5a41a915974145e278ea47",
+          "session_id": "tenant-redemption",
+          "tenant": "tenant-a"
+        },
+        "reason": "no \u03a9 intersection; capability requirements satisfied",
+        "verdict": "PERMIT"
+      },
+      "defect": "CHANGED_TENANT_DECISION_REDEMPTION",
+      "exact_action_hash": "b55cf182c692f8b8bc5ae6036fcc466b7919037c9ea013a5d531935ff90ff67d",
+      "execution": {
+        "ok": false,
+        "result": "refused: decision was issued for tenant 'tenant-a', not 'tenant-b'"
+      },
+      "failure_classification": [],
+      "frozen_redemption_classification": "PROHIBITED",
+      "frozen_spec_classification_at_authorization": "LEGITIMATE",
+      "handler_entry_evidence": {
+        "protected_runtime_handler_entries": 0
+      },
+      "note": "authorized under tenant-a and redeemed under tenant-b",
+      "proposed_action": {
+        "args": {
+          "path": "/docs/public.txt"
+        },
+        "tool": "read_file"
+      },
+      "state_after": {
+        "prohibited": false
+      },
+      "state_before": {
+        "prohibited": false
+      }
+    },
+    {
+      "decision": {
+        "authorization": {
+          "approved": false,
+          "bound_action_hash": null,
+          "issuer": null,
+          "principal": "principal-a",
+          "reason": "approval nonce is missing or malformed; require 128-bit-class base64url/hex text",
+          "tenant": "tenant-a"
+        },
+        "binding": {
+          "action_hash": "057cb608835a27f9dd82246f45f0f129ed053daad0c60426b81a087f81b4f104",
+          "authorization_hash": "8c8cca9176bd4b70ae099fa8dcc30e775247c2ccdad722af9cc6013276782139",
+          "continuity_scope": "process",
+          "decision_id": "2197f6004b4847d88d344da1bd3c0148",
+          "expires_at": 1700000120.0,
+          "issued_at": 1700000000.0,
+          "principal": "principal-a",
+          "reserved": false,
+          "ruleset_hash": "7ca5b465545ed3337b3aa3ba9856a1af0f97fba1815222f65f8810aceb3dd992",
+          "semantic_hash": "5b453d461940b46c3593232c1a5a29558968718cbb1f76a90b9d239cb8fe0f57",
+          "session_id": "empty-nonce-replay",
+          "tenant": "tenant-a"
+        },
+        "reason": "capability 'infra.destructive' requires a verified approval artifact bound to this action (approval nonce is missing or malformed; require 128-bit-class base64url/hex text)",
+        "verdict": "ESCALATE"
+      },
+      "defect": "EMPTY_MALFORMED_NONCE_APPROVAL_REPLAY",
+      "exact_action_hash": "057cb608835a27f9dd82246f45f0f129ed053daad0c60426b81a087f81b4f104",
+      "execution": {
+        "ok": false,
+        "result": "refused: verdict is ESCALATE"
+      },
+      "failure_classification": [],
+      "frozen_redemption_classification": "PROHIBITED",
+      "frozen_spec_classification_at_authorization": "PROHIBITED",
+      "handler_entry_evidence": {
+        "protected_runtime_handler_entries": 0
+      },
+      "note": "empty nonce rejected before either attempted redemption",
+      "proposed_action": {
+        "args": {
+          "bucket": "protected"
+        },
+        "tool": "delete_bucket"
+      },
+      "state_after": {
+        "prohibited": false
+      },
+      "state_before": {
+        "prohibited": false
+      }
+    }
+  ],
+  "provenance": {
+    "canonical_main_sha": "0ba8f882590f34ee4f2ab7cee09b0d5e57d44248",
+    "remediation_commit": "48620f384308ebc46f939781a53e60cf0bdccc48"
+  }
+}

@@ -216,7 +216,7 @@ def test_l06_only_a_permitted_reserved_decision_can_mint_a_lease():
     assert speculative.verdict == "PERMIT"
     with pytest.raises(ValueError) as exc:
         kernel.mint_lease(speculative)
-    assert "no trajectory reservation" in str(exc.value)
+    assert "reservation" in str(exc.value)          # refused for lack of a live reservation
 
 
 def test_l07_expiry_holds_and_skew_never_exceeds_the_lease_lifetime():

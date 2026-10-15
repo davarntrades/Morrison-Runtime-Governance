@@ -27,6 +27,8 @@ hash and refuses anything that does not match the authorised hash.
 from __future__ import annotations
 
 import contextlib
+import hashlib
+import json
 import threading
 import time
 import uuid
@@ -40,7 +42,8 @@ from morrison_governance.kernel import capabilities as C
 from morrison_governance.kernel import policy as P
 from morrison_governance.kernel import sensitivity as S
 from morrison_governance.kernel.canonical import (
-    action_hash, canonicalize, semantic_action_hash,
+    action_hash, authorization_action_hash,
+    authorization_equivalence_manifest, canonicalize, semantic_action_hash,
 )
 from morrison_governance.kernel.normalize import normalize_action
 from morrison_governance.kernel.continuity import (
@@ -149,10 +152,8 @@ class Decision:
     destination: dict = field(default_factory=dict)
     trajectory_hash: str = ""
     evidence: Optional[EvidenceRecord] = None
-    # The canonical tool family this proposal resolved to. Aliasing is what
-    # stops `run_shell` executing what `shell` is refused, and it also means an
-    # approval covers every member of the family with the same arguments. That
-    # widening is a real consequence, so it is surfaced rather than implied.
+    # Broad classification/revocation family. This does not confer approval
+    # equivalence; `authorization_hash` is the narrower authority identity.
     tool_family: str = ""
 
     # ── single-use + freshness binding ───────────────────────
@@ -163,8 +164,10 @@ class Decision:
     # one session, one principal, one ruleset, one moment, and one use.
     decision_id: str = ""
     semantic_hash: str = ""            # identity of the TRANSITION
+    authorization_hash: str = ""       # identity an approval must bind to
     session_id: str = ""
     principal_id: str = ""
+    tenant_id: str = ""
     ruleset_hash: str = ""
     issued_at: float = 0.0
     expires_at: float = 0.0
@@ -187,13 +190,36 @@ class Decision:
         return {"decision_id": self.decision_id,
                 "action_hash": self.action_hash,
                 "semantic_hash": self.semantic_hash,
+                "authorization_hash": self.authorization_hash,
                 "session_id": self.session_id,
                 "principal": self.principal_id,
+                "tenant": self.tenant_id,
                 "continuity_scope": self.continuity_scope,
                 "ruleset_hash": self.ruleset_hash,
                 "issued_at": self.issued_at,
                 "expires_at": self.expires_at,
                 "reserved": self.reserved}
+
+    def security_binding_hash(self) -> str:
+        """Tamper-evident identity stored with the trajectory reservation."""
+        payload = {
+            "verdict": self.verdict,
+            "action_hash": self.action_hash,
+            "semantic_hash": self.semantic_hash,
+            "authorization_hash": self.authorization_hash,
+            "decision_id": self.decision_id,
+            "session_id": self.session_id,
+            "principal": self.principal_id,
+            "tenant": self.tenant_id,
+            "ruleset_hash": self.ruleset_hash,
+            "issued_at": self.issued_at,
+            "expires_at": self.expires_at,
+            "issued_wall": self.issued_wall,
+            "requirement": self.requirement,
+            "tool_family": self.tool_family,
+        }
+        raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
     # ── measured latency ─────────────────────────────────────
     # `decision_time_ms` is the END-TO-END cost of producing this decision:
@@ -382,7 +408,10 @@ class GovernanceKernel:
                    "policy_values": {**P.DEFAULT_POLICY_VALUES,
                                      **(context.policy_values or {})},
                    "unknown_tool_policy": context.unknown_tool_policy,
-                   "reject_untrusted_authority_claims": context.reject_untrusted_authority_claims})
+                   "reject_untrusted_authority_claims": context.reject_untrusted_authority_claims,
+                   "authorization_equivalences":
+                       authorization_equivalence_manifest(
+                           context.authorization_equivalences)})
 
     # ── history ──────────────────────────────────────────────
     @property
@@ -428,7 +457,7 @@ class GovernanceKernel:
     def _file(self, action: dict, verdict: str, state: str, reason: str,
               timestamp: float, capabilities: frozenset = frozenset(),
               decision_id: str = "", semantic_hash: str = "",
-              expires_at: float = 0.0) -> None:
+              expires_at: float = 0.0, binding_hash: str = "") -> None:
         """Record one governed attempt against the continuity key."""
         if not self.continuity_key:
             return
@@ -437,7 +466,7 @@ class GovernanceKernel:
             decision_id=decision_id or uuid.uuid4().hex, action=action,
             verdict=verdict, state=state, reason=reason,
             actor=self.ctx.principal.id, session_id=self.session_id,
-            semantic_hash=semantic_hash,
+            semantic_hash=semantic_hash, binding_hash=binding_hash,
             capabilities=tuple(sorted(capabilities)),
             timestamp=timestamp, expires_at=expires_at,
             wall_timestamp=wall, wall_expires_at=wall + self.decision_ttl_s))
@@ -573,7 +602,8 @@ class GovernanceKernel:
                    capabilities=decision.capabilities,
                    decision_id=decision.decision_id,
                    semantic_hash=decision.semantic_hash,
-                   expires_at=decision.expires_at)
+                   expires_at=decision.expires_at,
+                   binding_hash=decision.security_binding_hash())
         if scope_keys and self.continuity_key:
             entry = next(e for e in self.store.entries(self.continuity_key)
                          if e.decision_id == decision.decision_id)
@@ -764,10 +794,16 @@ class GovernanceKernel:
         if self.continuity_key:
             self.store.revoke(self.continuity_key, semantic_hash, reason)
 
-    def _lease_problem(self, decision: "Decision", now: float) -> Optional[str]:
+    def _lease_problem(self, decision: "Decision", now: float,
+                       require_reservation: bool = True) -> Optional[str]:
         """Why this decision may not be executed, or None if it may.
 
         Every clause here is a counterexample that used to execute.
+
+        `require_reservation=False` is only for `record_remote_execution`: an
+        effect a remote runtime already performed from an unreserved (preview)
+        decision must still be recorded against every shared budget it touched
+        (V-G1b). Every other clause still applies.
         """
         if decision.verdict != PERMIT:
             return f"verdict is {decision.verdict}"
@@ -782,6 +818,20 @@ class GovernanceKernel:
         if decision.principal_id != self.ctx.principal.id:
             return (f"decision was issued to principal "
                     f"{decision.principal_id!r}, not {self.ctx.principal.id!r}")
+        if decision.tenant_id != self.ctx.principal.tenant:
+            return (f"decision was issued for tenant {decision.tenant_id!r}, "
+                    f"not {self.ctx.principal.tenant!r}")
+        reservation = next((entry for entry in
+                            self.store.entries(self.continuity_key)
+                            if entry.decision_id == decision.decision_id
+                            and entry.state == RESERVED), None)
+        if reservation is None and require_reservation:
+            return ("decision has no live reservation in the current "
+                    "principal/tenant continuity context")
+        if (reservation is not None
+                and reservation.binding_hash != decision.security_binding_hash()):
+            return ("decision security binding was mutated after "
+                    "authorization")
         if decision.expires_at and now > decision.expires_at:
             return (f"decision expired {now - decision.expires_at:.1f}s ago; "
                     f"re-authorise against the current trajectory")
@@ -905,6 +955,8 @@ class GovernanceKernel:
         with _sw("canonicalization"):
             ahash = action_hash(proposed)
             shash = semantic_action_hash(proposed)
+            auth_hash = authorization_action_hash(
+                proposed, self.ctx.authorization_equivalences)
             norm = normalize_action(proposed)
         with _sw("capability_classification"):
             # Capabilities are classified on `clean`: authority field NAMES
@@ -921,9 +973,11 @@ class GovernanceKernel:
                 extra_args=quarantined)
 
         with _sw("approval_verification"):
-            # Approvals bind to the SEMANTIC hash, so an approval cannot be
-            # dodged by respelling the call it was issued for.
-            approval, approval_reason = self.ctx.verified_approval(shash, now)
+            # Approvals bind to the exact authorization identity. Broad tool
+            # families never widen it; only the trusted explicit equivalence
+            # registry can do so.
+            approval, approval_reason = self.ctx.verified_approval(
+                auth_hash, now)
             # ...and their single-use state lives against the CONTINUITY KEY,
             # not the SecurityContext. `_used_nonces` was instance state, so a
             # new session built a new context and the same signed artifact
@@ -1372,7 +1426,9 @@ class GovernanceKernel:
             decision_time_ms=(time.perf_counter() - _t0) * 1000.0,
             tool_family=norm.tool,
             decision_id=uuid.uuid4().hex, semantic_hash=shash,
-            session_id=self.session_id, principal_id=self.ctx.principal.id,
+            authorization_hash=auth_hash, session_id=self.session_id,
+            principal_id=self.ctx.principal.id,
+            tenant_id=self.ctx.principal.tenant,
             ruleset_hash=self._live_ruleset_hash(), issued_at=now,
             expires_at=now + self.decision_ttl_s,
             issued_wall=time.time(),
@@ -1670,7 +1726,8 @@ class GovernanceKernel:
             raise ValueError("only a PERMIT decision can be recorded as executed")
         stamp = time.time() if now is None else now
         with self._lock, self._critical_section():
-            problem = self._lease_problem(decision, stamp)
+            problem = self._lease_problem(decision, stamp,
+                                          require_reservation=False)
             if problem is not None:
                 raise ValueError(f"decision cannot be recorded as executed: "
                                  f"{problem}")
@@ -1720,7 +1777,9 @@ class GovernanceKernel:
         values = self.ctx.policy_values or {}
         return (id(self.layer.rules), len(self.layer.rules),
                 repr(sorted(values.items(), key=lambda kv: str(kv[0]))),
-                self.ctx.unknown_tool_policy, self.ctx.reject_untrusted_authority_claims)
+                self.ctx.unknown_tool_policy, self.ctx.reject_untrusted_authority_claims,
+                repr(authorization_equivalence_manifest(
+                    self.ctx.authorization_equivalences)))
 
     def _live_ruleset_hash(self) -> str:
         """The hash of the ruleset IN FORCE RIGHT NOW.
@@ -1742,7 +1801,10 @@ class GovernanceKernel:
                    "policy_values": {**P.DEFAULT_POLICY_VALUES,
                                      **(self.ctx.policy_values or {})},
                    "unknown_tool_policy": self.ctx.unknown_tool_policy,
-                   "reject_untrusted_authority_claims": self.ctx.reject_untrusted_authority_claims})
+                   "reject_untrusted_authority_claims": self.ctx.reject_untrusted_authority_claims,
+                   "authorization_equivalences":
+                       authorization_equivalence_manifest(
+                           self.ctx.authorization_equivalences)})
         self._ruleset_cache = (fingerprint, digest)
         return digest
 
@@ -1795,7 +1857,10 @@ class GovernanceKernel:
                    "policy_values": {**P.DEFAULT_POLICY_VALUES,
                                      **(self.ctx.policy_values or {})},
                    "unknown_tool_policy": self.ctx.unknown_tool_policy,
-                   "reject_untrusted_authority_claims": self.ctx.reject_untrusted_authority_claims})
+                   "reject_untrusted_authority_claims": self.ctx.reject_untrusted_authority_claims,
+                   "authorization_equivalences":
+                       authorization_equivalence_manifest(
+                           self.ctx.authorization_equivalences)})
         return self._ruleset_hash
 
     # ── reporting ────────────────────────────────────────────
