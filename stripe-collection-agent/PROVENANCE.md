@@ -27,6 +27,7 @@
 | `collection_agent/dashboard.py`, `static/index.html` | Demonstration dashboard |
 | `collection_agent/stripe_double.py` | Local Stripe API double for offline tests only (never reported as Stripe) |
 | `collection_agent/web.py`, `demo.py` | HTTP plumbing; demo launcher |
+| `scripts/export_standalone.sh` | Exports the app as a standalone public repository (Morrison as a pinned submodule) |
 | `tests/` | 26 automated tests |
 | `../.github/workflows/stripe-collection-live.yml` | CI: offline suite, plus the live Stripe test-mode run when the secret is set |
 

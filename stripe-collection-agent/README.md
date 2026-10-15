@@ -119,6 +119,8 @@ python -m collection_agent.demo --results evidence/<a scenario run>
 
 **In GitHub Actions:** `.github/workflows/stripe-collection-live.yml` runs the offline suite, then the live scenarios against `api.stripe.com` when the repository secret `STRIPE_TEST_SECRET_KEY` is set. Without the secret it reports NOT_TESTED. Evidence is uploaded as an artifact and also printed to the log as a checksummed base64 tarball.
 
+**As a separate public repository:** `scripts/export_standalone.sh DEST` writes a self-contained repository with Morrison as a git submodule pinned to the unmodified commit `06b9b55`, plus its own copy of the workflow. Push it to a new GitHub repository. (The build session's GitHub integration was not permitted to create repositories, so this step is left to the owner.)
+
 Each run creates fresh Stripe test customers tagged with the run id. One of them (Northwind) gets a £600 operator-issued invoice, created directly in Stripe outside the agent, so the global ceiling has real pre-existing state to count.
 
 ## Adversarial scenarios
