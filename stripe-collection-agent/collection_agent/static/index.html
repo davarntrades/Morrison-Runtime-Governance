@@ -2,97 +2,380 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Collection Agent Console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f1ea">
+<title>Morrison Collections Console</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='14' y='18' width='36' height='32' rx='9' fill='%23111'/%3E%3Crect x='19' y='27' width='26' height='13' rx='6.5' fill='%23fff'/%3E%3Ccircle cx='27' cy='33.5' r='3' fill='%23111'/%3E%3Ccircle cx='37' cy='33.5' r='3' fill='%23111'/%3E%3Ccircle cx='32' cy='8' r='4.5' fill='%23111'/%3E%3Crect x='30.5' y='10' width='3' height='9' fill='%23111'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f7f9;--panel:#fff;--ink:#16191d;--mute:#5d6672;--line:#e2e5ea;--accent:#2f4fd8;
---allow:#127a46;--allow-bg:#e3f4ea;--block:#b42318;--block-bg:#fde8e6;--esc:#9a6200;--esc-bg:#fdf1d8;
---code:#f1f3f6;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--panel:#171a20;--ink:#e8eaee;
---mute:#9aa3ae;--line:#2a2f38;--accent:#7d94ff;--allow:#5fd39a;--allow-bg:#123222;--block:#ff8a80;--block-bg:#3a1714;
---esc:#f2c14e;--esc-bg:#3a2c0e;--code:#1f232b}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);
-font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header{padding:20px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
-header h1{margin:0;font-size:20px}header p{margin:4px 0 0;color:var(--mute);font-size:13px}
-main{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
-h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 10px}
-textarea{width:100%;min-height:64px;padding:10px;border:1px solid var(--line);border-radius:8px;
-background:var(--bg);color:var(--ink);font:inherit;resize:vertical}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:7px;
-font:inherit;font-size:13px;cursor:pointer}button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-button:disabled{opacity:.5;cursor:wait}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-.card{border:1px solid var(--line);border-radius:9px;padding:12px;background:var(--panel);min-width:0}
-.card h3{margin:0 0 8px;font-size:13px;color:var(--mute);font-weight:600}
-.badge{display:inline-block;font-weight:700;padding:3px 10px;border-radius:999px;font-size:13px}
-.ALLOW{color:var(--allow);background:var(--allow-bg)}.BLOCK{color:var(--block);background:var(--block-bg)}
-.ESCALATE{color:var(--esc);background:var(--esc-bg)}.big{font-size:22px;padding:6px 16px}
-.kv{display:grid;grid-template-columns:max-content 1fr;gap:3px 10px;font-size:13px}
-.kv span{min-width:0;overflow-wrap:anywhere}.kv span:nth-child(odd){color:var(--mute)}.mono,.kv .mono{font-family:var(--mono);font-size:12px;word-break:break-all}
-.reason{font-size:13px;margin-top:6px}a{color:var(--accent)}
-table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
-th{color:var(--mute);font-weight:600;border-top:0}.scroll{overflow-x:auto}
-.muted{color:var(--mute);font-size:13px}.warn{color:var(--esc)}
-.banner{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 24px;font-size:13px;font-weight:600;
-border-bottom:1px solid var(--line)}.banner.live{background:var(--allow-bg);color:var(--allow)}
-.banner.double{background:var(--esc-bg);color:var(--esc)}.banner.down{background:var(--block-bg);color:var(--block)}
+:root{
+  --cream:#f4f1ea; --card:#ffffff; --ink:#141414; --ink2:#3d3d3d; --mute:#7a766d; --line:#e6e1d6;
+  --rust:#c8582c;
+  --allow:#1f8a4c; --allow-bg:#e6f3ea; --block:#cf3b3b; --block-bg:#fbe9e7; --esc:#c98a12; --esc-bg:#fbf1dc;
+  --agent:#d9a21b; --kernel:#7fc79a; --stripe:#5b6cf2; --evidence:#d36fc6;
+  --serif:"Playfair Display",Georgia,"Times New Roman",serif;
+  --sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --shadow:0 1px 2px rgba(40,30,10,.05),0 8px 28px rgba(40,30,10,.07);
+  --radius:20px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;color:var(--ink);font:15px/1.5 var(--sans);background:var(--cream);
+  background-image:radial-gradient(rgba(60,50,30,.09) 1px,transparent 1.2px);background-size:22px 22px}
+.wrap{max-width:1240px;margin:0 auto;padding:28px max(16px,env(safe-area-inset-left)) 48px}
+.mono{font-family:var(--mono)}
+button{font:inherit;cursor:pointer}
+
+/* ── masthead ─────────────────────────────── */
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.pill-dark{font:600 12px/1 var(--mono);letter-spacing:.12em;color:#fff;background:#111;border-radius:999px;padding:9px 16px;white-space:nowrap}
+.brand{display:flex;align-items:center;gap:10px;font:700 12px/1.2 var(--mono);letter-spacing:.14em;color:var(--ink2)}
+.brand svg{width:44px;height:32px}
+h1{font:900 clamp(40px,7.4vw,86px)/.98 var(--serif);letter-spacing:-.02em;margin:26px 0 18px}
+.kicker{font:700 clamp(13px,1.6vw,16px)/1.3 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--rust);margin:0}
+hr.rule{border:0;border-top:1px solid #d9d3c6;margin:22px 0 22px}
+
+/* backend status: must always be unmistakable */
+.status{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-radius:14px;padding:12px 16px;
+  font:600 13px/1.35 var(--mono);letter-spacing:.04em;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow)}
+.status .dot{width:10px;height:10px;border-radius:50%;flex:none;background:#bbb}
+.status.live{border-color:#bfe0cb}.status.live .dot{background:var(--allow);box-shadow:0 0 0 4px var(--allow-bg)}
+.status.live .label{color:var(--allow)}
+.status.double{border-color:#efd9a6;background:#fffaf0}.status.double .dot{background:var(--esc);box-shadow:0 0 0 4px var(--esc-bg)}
+.status.double .label{color:#9a6700}
+.status.down .dot{background:var(--block)}.status.down .label{color:var(--block)}
+.status .sub{font:500 12px/1.3 var(--sans);color:var(--mute);letter-spacing:0}
+
+/* ── cards ─────────────────────────────────── */
+.card{position:relative;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 22px 20px;min-width:0}
+.card.accent::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:4px;border-radius:0 4px 4px 0;background:var(--accent,#ccc)}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.12em;color:var(--mute);text-transform:uppercase}
+.title{font:800 clamp(20px,2.3vw,26px)/1.1 var(--sans);letter-spacing:-.01em;text-transform:uppercase;margin:6px 0 4px}
+.lede{color:var(--ink2);margin:0}
+
+/* request */
+.request{margin-top:22px;--accent:var(--agent)}
+.req-grid{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:stretch;margin-top:14px}
+textarea{width:100%;min-height:76px;resize:vertical;border:1px solid var(--line);border-radius:14px;background:#fbfaf6;
+  padding:14px 16px;font:16px/1.45 var(--sans);color:var(--ink)}
+textarea:focus{outline:2px solid #e8c46a;border-color:transparent}
+.run{border:0;border-radius:14px;background:#111;color:#fff;font-weight:700;padding:0 26px;min-height:52px;
+  display:flex;align-items:center;gap:10px;justify-content:center;transition:transform .15s ease,opacity .2s}
+.run:active{transform:scale(.98)}.run:disabled{opacity:.55;cursor:wait}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;align-items:center}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font:600 13px/1 var(--sans);color:var(--ink2);
+  box-shadow:0 1px 0 rgba(0,0,0,.03);transition:border-color .15s,background .15s}
+.chip:hover{border-color:#cfc6b2}.chip.on{border-color:var(--ink);background:#111;color:#fff}
+.chip .tag{font:600 10px/1 var(--mono);letter-spacing:.08em;color:var(--block);margin-left:6px}
+.chip.on .tag{color:#ffb4a8}
+.note{margin-top:10px;font-size:13px;color:#9a6700;min-height:1px}
+
+/* ── the flow: agent → kernel → stripe ─────── */
+.flow{display:grid;grid-template-columns:minmax(0,1fr) 56px minmax(0,1.5fr) 56px minmax(0,1fr);align-items:stretch;margin-top:26px}
+.wire{position:relative;--c:#bbb}
+.wire .rail{position:absolute;left:0;right:0;top:50%;height:8px;margin-top:-4px;border-radius:8px;
+  background:color-mix(in srgb,var(--c) 26%,transparent)}
+.wire .rail::after{content:"";position:absolute;left:0;right:0;top:3px;height:2px;background:#fff;border-radius:2px}
+.wire .packet{position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;opacity:0;transition:opacity .3s;
+  background:repeating-linear-gradient(90deg,var(--c) 0 6px,transparent 6px 16px);background-size:16px 2px}
+.wire.on .packet{opacity:1;animation:flowx .9s linear infinite}
+.wire .node{position:absolute;left:50%;top:50%;width:22px;height:26px;margin:-13px 0 0 -11px;border-radius:6px;background:#fff;
+  border:1.5px solid var(--c);display:grid;place-items:center;color:var(--c);transition:transform .3s}
+.wire .node svg{width:12px;height:12px}
+.wire.on .node{transform:scale(1.08)}
+.wire .x{position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:#fff;
+  border:1.5px solid var(--block);color:var(--block);display:grid;place-items:center;font:700 13px/1 var(--sans);opacity:0;transform:scale(.6);transition:all .3s}
+.wire.cut .x{opacity:1;transform:scale(1)}.wire.cut .node{opacity:0}
+.wire.cut .rail{background:color-mix(in srgb,var(--block) 18%,transparent)}
+@keyframes flowx{to{background-position:16px 0}}
+@keyframes flowy{to{background-position:0 16px}}
+
+.agent{--accent:var(--agent)}.stripe{--accent:var(--stripe)}
+.head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.bot{width:74px;height:74px;flex:none}
+.empty{color:var(--mute);font-size:14px;margin:18px 0 4px}
+.fields{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.field{border:1px solid var(--line);border-radius:12px;padding:7px 10px;background:#fbfaf6;min-width:0;max-width:100%}
+.field b{display:block;font:500 10px/1.2 var(--mono);letter-spacing:.1em;color:var(--mute);text-transform:uppercase}
+.field span{display:block;font:600 13.5px/1.35 var(--sans);overflow-wrap:anywhere}
+.field.wide{flex-basis:100%}
+.field .mono{font:500 12px/1.4 var(--mono)}
+.field.hot{border-color:#f0c0b8;background:#fff6f4}
+.foot{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);margin-top:16px;padding-top:14px;font:700 13px/1.2 var(--sans);text-transform:uppercase;flex-wrap:wrap}
+.foot .ico{width:16px;height:16px;flex:none}
+
+/* verdict text */
+.v-ALLOW{color:var(--allow)}.v-BLOCK{color:var(--block)}.v-ESCALATE{color:var(--esc)}
+.vchip{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--mono);letter-spacing:.08em;padding:6px 10px;border-radius:999px}
+.vchip.ALLOW{color:var(--allow);background:var(--allow-bg)}.vchip.BLOCK{color:var(--block);background:var(--block-bg)}
+.vchip.ESCALATE{color:var(--esc);background:var(--esc-bg)}.vchip.WAIT{color:var(--mute);background:#f1eee6}
+
+/* kernel */
+.kernel{border:1.5px solid #cfe7d7;box-shadow:0 0 0 6px rgba(127,199,154,.10),var(--shadow);padding:24px}
+.k-head{display:flex;gap:18px;align-items:center}
+.logo{width:132px;height:97px;flex:none}
+.logo .orbit{transform-origin:73px 53px;transform-box:view-box}
+.kernel.thinking .logo .orbit{animation:spin 2.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.k-title{font:800 clamp(22px,2vw,28px)/1.05 var(--sans);letter-spacing:-.01em;margin:0;white-space:nowrap}
+.k-sub{color:var(--ink2);margin:4px 0 8px}
+.counts{display:flex;gap:6px 16px;flex-wrap:wrap;white-space:nowrap;font:600 12.5px/1 var(--mono);letter-spacing:.08em}
+.adm{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.adm .box{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:#fbfaf6;min-width:0}
+.adm .box h4{margin:0 0 8px;font:600 11px/1.2 var(--mono);letter-spacing:.1em;color:var(--mute);text-transform:uppercase}
+.reason{font-size:13px;color:var(--ink2);margin-top:8px;overflow-wrap:anywhere}
+.final{display:flex;align-items:center;gap:16px;margin-top:14px;padding:14px 16px;border-radius:16px;background:#faf8f3;border:1px solid var(--line);flex-wrap:wrap}
+.final .big{font:900 clamp(28px,3.6vw,40px)/1 var(--serif);letter-spacing:.01em}
+.final .meta{font:500 12px/1.5 var(--mono);color:var(--ink2);min-width:0;overflow-wrap:anywhere}
+.badge-line{display:inline-block;margin-top:14px;font:600 11px/1 var(--mono);letter-spacing:.12em;color:var(--ink2);background:#efebe2;border-radius:999px;padding:7px 12px}
+
+/* stripe */
+.steps{margin:14px 0 0;padding:0;list-style:none;display:grid;gap:10px}
+.step{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start}
+.step .tick{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 var(--sans);background:#efebe2;color:var(--mute)}
+.step.ok .tick{background:var(--allow-bg);color:var(--allow)}
+.step.no .tick{background:var(--block-bg);color:var(--block)}
+.step.wait .tick{background:var(--esc-bg);color:var(--esc)}
+.step b{display:block;font:700 13px/1.3 var(--sans)}
+.step small{display:block;color:var(--mute);font-size:12.5px;overflow-wrap:anywhere}
+.pay{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font:600 13px/1 var(--sans);color:#fff;background:var(--stripe);border-radius:10px;padding:9px 12px;text-decoration:none}
+.ghost{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font:600 13px/1 var(--sans);color:var(--ink)}
+.caveat{font-size:12px;color:var(--mute);margin-top:12px}
+
+/* reveal choreography: proposal → authorization → execution → evidence */
+.stage{transition:opacity .45s ease,transform .45s ease}
+.stage.pending{opacity:.35;transform:translateY(6px)}
+.flash{animation:flash .9s ease}
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(20,20,20,.18),var(--shadow)}100%{box-shadow:0 0 0 14px rgba(20,20,20,0),var(--shadow)}}
+
+/* evidence + audit */
+.lower{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-top:22px;align-items:start}
+details.card{padding:0}
+details.card>summary{list-style:none;cursor:pointer;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary .chev{transition:transform .2s;color:var(--mute)}
+details[open]>summary .chev{transform:rotate(90deg)}
+details.card .body{padding:0 22px 20px}
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:7px 14px;font-size:13px}
+.kv>span:nth-child(odd){font:500 11px/1.6 var(--mono);letter-spacing:.06em;color:var(--mute);text-transform:uppercase}
+.kv>span:nth-child(even){font:500 12px/1.55 var(--mono);overflow-wrap:anywhere;color:var(--ink)}
+.trail{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.trail li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fbfaf6;font-size:13px}
+.trail .what{min-width:0;overflow-wrap:anywhere}.trail .when{font:500 11px/1 var(--mono);color:var(--mute)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}
+th{font:600 10.5px/1.2 var(--mono);letter-spacing:.1em;color:var(--mute);text-transform:uppercase;border-top:0}
+.tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.chainline{display:flex;gap:18px;flex-wrap:wrap;font:500 12px/1.4 var(--mono);color:var(--ink2)}
+
+/* the loop */
+.loop{display:flex;align-items:center;gap:22px;margin-top:30px;flex-wrap:wrap}
+.loop .eyebrow{min-width:90px}
+.loop ol{display:flex;flex-wrap:wrap;gap:6px 4px;margin:0;padding:0;list-style:none;font:700 clamp(15px,1.8vw,19px)/1.3 var(--sans)}
+.loop li{color:#bdb6a6;transition:color .35s}.loop li.lit{color:var(--ink)}
+.loop li+li::before{content:"→";color:#bdb6a6;margin:0 8px;font-weight:400}
+.sig{margin-top:14px;font:500 11px/1 var(--mono);letter-spacing:.12em;color:var(--mute)}
+
+/* ── responsive ───────────────────────────── */
+@media (max-width:1080px){
+  .flow{grid-template-columns:1fr;grid-template-rows:auto 48px auto 48px auto}
+  .wire .rail{left:50%;right:auto;top:0;bottom:0;width:8px;height:auto;margin:0 0 0 -4px}
+  .wire .rail::after{left:3px;right:auto;top:0;bottom:0;width:2px;height:auto}
+  .wire .packet{left:50%;right:auto;top:0;bottom:0;width:2px;height:auto;margin:0 0 0 -1px;
+    background:repeating-linear-gradient(180deg,var(--c) 0 6px,transparent 6px 16px);background-size:2px 16px}
+  .wire.on .packet{animation-name:flowy}
+  .lower{grid-template-columns:1fr}
+}
+@media (max-width:620px){
+  .logo{width:150px!important;height:110px!important}
+  .k-head{flex-direction:column;text-align:center}.k-head .counts{justify-content:center}
+  .wrap{padding-top:18px}
+  .req-grid{grid-template-columns:1fr}
+  .run{min-height:50px}
+  .adm{grid-template-columns:1fr}
+  .k-head{gap:12px}
+  .card{padding:18px 16px 16px;border-radius:18px}
+  .kernel{padding:18px 16px}
+  .bot{width:60px;height:60px}
+  .trail li{grid-template-columns:auto 1fr}.trail .when{grid-column:2}
+  details.card>summary{padding:16px}details.card .body{padding:0 16px 16px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<header>
-  <h1>Resurrection Tech Ltd — Autonomous Collection Agent</h1>
-  <p>The agent proposes. Morrison Runtime Governance decides. Only a Morrison-issued, single-use, action-bound lease reaches Stripe.</p>
-</header>
-<div id="banner" class="banner down">Checking Stripe backend…</div>
-<main>
-  <section class="panel">
-    <h2>Customer request</h2>
-    <textarea id="req">Create an invoice for Acme Robotics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-10).</textarea>
-    <div class="row">
-      <button class="primary" id="go">Run agent</button>
-      <span class="muted">Presets:</span>
-      <button data-preset="ok">Authorized £500</button>
-      <button data-preset="big">Compromised: £5,000</button>
-      <button data-preset="acct">Compromised: wrong account</button>
-      <button data-preset="dup">Duplicate</button>
-      <button data-preset="global">Northwind £500 (global limit)</button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="dots-amber" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#f2c94c"/><circle cx="1.5" cy="1.5" r=".9" fill="#a8760a"/></pattern>
+    <pattern id="dots-indigo" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#8d97ff"/><circle cx="1.5" cy="1.5" r=".9" fill="#3341c9"/></pattern>
+    <symbol id="robot" viewBox="0 0 80 80">
+      <rect x="37.5" y="2" width="5" height="10" fill="#222"/><circle cx="40" cy="4" r="4" fill="#222"/>
+      <rect x="14" y="11" width="52" height="38" rx="12" style="fill:var(--fill)"/>
+      <rect x="21" y="20" width="38" height="20" rx="10" fill="#151515"/>
+      <circle cx="31" cy="30" r="5" style="fill:var(--eye)"/><circle cx="49" cy="30" r="5" style="fill:var(--eye)"/>
+      <path d="M18 54 Q40 46 62 54 L66 78 H14 Z" style="fill:var(--fill)"/>
+      <rect x="48" y="58" width="9" height="8" rx="2" fill="none" stroke="#222" stroke-width="1.6"/>
+    </symbol>
+    <symbol id="doc" viewBox="0 0 16 16"><rect x="3" y="1.5" width="10" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" stroke="currentColor" stroke-width="1.3"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <svg viewBox="0 0 146 107" aria-hidden="true"><use href="#mlogo"/></svg>
+      MORRISON RUNTIME GOVERNANCE
     </div>
-    <div id="note" class="muted" style="margin-top:8px"></div>
-  </section>
+    <span class="pill-dark">STRIPE · COLLECTIONS</span>
+  </div>
 
-  <section id="out" class="panel" hidden>
-    <h2>Run</h2>
-    <div class="grid">
-      <div class="card"><h3>1 · Agent-generated proposal</h3><div id="proposal"></div></div>
-      <div class="card"><h3>2 · Morrison local admissibility</h3><div id="local"></div></div>
-      <div class="card"><h3>3 · Morrison global admissibility</h3><div id="global"></div></div>
-      <div class="card"><h3>4 · Final authorization</h3><div id="final"></div></div>
-      <div class="card"><h3>5 · Stripe invoice</h3><div id="stripe"></div></div>
-      <div class="card"><h3>6 · Verified payment status</h3><div id="paid"></div></div>
+  <h1>Every financial agent.<br>One independent authority.</h1>
+  <p class="kicker">Governed AI for autonomous invoice collection · Resurrection Tech Ltd</p>
+  <hr class="rule">
+
+  <div id="status" class="status down" role="status">
+    <span class="dot"></span><span class="label">Checking Stripe backend…</span><span class="sub"></span>
+  </div>
+
+  <!-- 1 · customer request -->
+  <section class="card accent request" aria-labelledby="req-title">
+    <div class="eyebrow">Customer request</div>
+    <div class="title" id="req-title">What should the agent collect?</div>
+    <div class="req-grid">
+      <label class="sr" style="display:contents">
+        <textarea id="req" aria-label="Customer request">Create an invoice for Acme Robotics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-10).</textarea>
+      </label>
+      <button class="run" id="go"><span id="go-label">Run agent</span> <span aria-hidden="true">→</span></button>
     </div>
-    <div class="card" style="margin-top:12px"><h3>Decision-bound evidence</h3><div id="evidence"></div></div>
+    <div class="chips" role="group" aria-label="Demonstration presets">
+      <button class="chip" data-preset="ok">Authorized £500</button>
+      <button class="chip" data-preset="big">£5,000<span class="tag">COMPROMISED</span></button>
+      <button class="chip" data-preset="acct">Wrong account<span class="tag">COMPROMISED</span></button>
+      <button class="chip" data-preset="dup">Duplicate</button>
+      <button class="chip" data-preset="global">Northwind · global limit</button>
+    </div>
+    <div class="note" id="note"></div>
   </section>
 
-  <section class="panel">
-    <h2>Adversarial scenario results</h2>
-    <div id="scen" class="scroll muted">No scenario run loaded.</div>
+  <!-- 2 · agent → kernel → stripe -->
+  <section class="flow" aria-label="Governed execution path">
+    <article class="card accent agent stage" id="agentCard">
+      <div class="head">
+        <div>
+          <div class="eyebrow">01 / Agent</div>
+          <div class="title">Collection agent</div>
+          <p class="lede">Proposes. Never authorizes.</p>
+        </div>
+        <svg class="bot" style="--fill:url(#dots-amber);--eye:#f2c94c" aria-hidden="true"><use href="#robot"/></svg>
+      </div>
+      <div id="proposal"><p class="empty">No proposal yet. Run the agent to see what it asks Morrison for.</p></div>
+      <div class="foot" id="agentFoot"><svg class="ico" style="color:var(--mute)"><use href="#doc"/></svg><span class="v-WAIT" style="color:var(--mute)">Idle</span></div>
+    </article>
+
+    <div class="wire" id="w1" style="--c:var(--agent)" aria-hidden="true">
+      <span class="rail"></span><span class="packet"></span><span class="node"><svg><use href="#doc"/></svg></span><span class="x">✕</span>
+    </div>
+
+    <article class="card kernel stage" id="kernelCard">
+      <div class="k-head">
+        <svg class="logo" viewBox="0 0 146 107" role="img" aria-label="Morrison robot logo">
+          <symbol id="mlogo" viewBox="0 0 146 107">
+            <g class="orbit">
+              <ellipse cx="73" cy="58" rx="66" ry="25" transform="rotate(-9 73 58)" fill="none" stroke="#8f8f8f" stroke-width="3.2"/>
+              <circle cx="30" cy="46" r="8" fill="#e5261f"/><circle cx="122" cy="36" r="8" fill="#f5a01a"/>
+              <circle cx="116" cy="74" r="9" fill="#0a63f0"/><circle cx="26" cy="81" r="9" fill="#0d8a43"/>
+            </g>
+            <circle cx="73" cy="22" r="6.5" fill="#111"/><rect x="70" y="24" width="6" height="14" fill="#111"/>
+            <rect x="47" y="36" width="52" height="41" rx="14" fill="#111"/>
+            <rect x="55" y="46" width="36" height="18" rx="9" fill="#fff"/>
+            <circle cx="65" cy="55" r="4.2" fill="#111"/><circle cx="81" cy="55" r="4.2" fill="#111"/>
+          </symbol>
+          <use href="#mlogo"/>
+        </svg>
+        <div style="min-width:0">
+          <div class="eyebrow">02 / Independent authority</div>
+          <h2 class="k-title">MORRISON KERNEL</h2>
+          <p class="k-sub">Independent veto · before execution</p>
+          <div class="counts" id="counts" title="Decisions in this dashboard session">
+            <span class="v-ALLOW">ALLOW <b id="cA">0</b></span>
+            <span class="v-ESCALATE">ESCALATE <b id="cE">0</b></span>
+            <span class="v-BLOCK">BLOCK <b id="cB">0</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="adm">
+        <div class="box"><h4>Local admissibility</h4><div id="local"><span class="vchip WAIT">AWAITING</span></div>
+          <div class="reason" id="localWhy">Commercial terms: customer, agreement, service, GBP, amount, recipient account.</div></div>
+        <div class="box"><h4>Global admissibility</h4><div id="global"><span class="vchip WAIT">AWAITING</span></div>
+          <div class="reason" id="globalWhy">Trajectory: duplicates, invoice count, cumulative issued ceiling, concurrent reservations.</div></div>
+      </div>
+      <div class="final" id="final">
+        <span class="big" style="color:#c9c2b2">—</span>
+        <span class="meta">Final authorization appears here. Only an ALLOW mints a single-use, action-bound execution lease.</span>
+      </div>
+      <span class="badge-line">EVERY PROPOSAL · ONE AUTHORITY</span>
+    </article>
+
+    <div class="wire" id="w2" style="--c:var(--stripe)" aria-hidden="true">
+      <span class="rail"></span><span class="packet"></span><span class="node"><svg><use href="#doc"/></svg></span><span class="x">✕</span>
+    </div>
+
+    <article class="card accent stripe stage" id="stripeCard">
+      <div class="head">
+        <div>
+          <div class="eyebrow">03 / Executor</div>
+          <div class="title">Stripe execution</div>
+          <p class="lede">Acts only on a valid Morrison lease.</p>
+        </div>
+        <svg class="bot" style="--fill:url(#dots-indigo);--eye:#9aa3ff" aria-hidden="true"><use href="#robot"/></svg>
+      </div>
+      <div id="stripe"><p class="empty">No Stripe operation yet.</p></div>
+      <div class="foot" id="stripeFoot"><svg class="ico" style="color:var(--mute)"><use href="#doc"/></svg><span style="color:var(--mute)">Idle</span></div>
+    </article>
   </section>
 
-  <section class="panel">
-    <h2>Evidence chains</h2>
-    <div id="chains" class="muted">Loading…</div>
+  <!-- 3 · evidence + audit -->
+  <section class="lower">
+    <details class="card stage" id="evidenceCard">
+      <summary><div><div class="eyebrow">04 / Evidence</div><div class="title" style="margin-bottom:0">Decision-bound evidence</div></div><span class="chev">›</span></summary>
+      <div class="body" id="evidence"><p class="empty">Run the agent to bind a decision to its evidence.</p></div>
+    </details>
+    <details class="card" id="trailCard" open>
+      <summary><div><div class="eyebrow">05 / Audit trail</div><div class="title" style="margin-bottom:0">This session</div></div><span class="chev">›</span></summary>
+      <div class="body"><ul class="trail" id="trail"><li style="grid-template-columns:1fr"><span class="what" style="color:var(--mute)">No runs yet.</span></li></ul>
+        <div class="chainline" id="chains" style="margin-top:14px"></div></div>
+    </details>
   </section>
-</main>
+
+  <details class="card" id="scenCard" style="margin-top:18px">
+    <summary><div><div class="eyebrow">Adversarial scenarios</div><div class="title" style="margin-bottom:0">S0–S12 results</div></div><span class="chev">›</span></summary>
+    <div class="body" id="scen"><p class="empty">No scenario run loaded.</p></div>
+  </details>
+
+  <div class="loop" aria-label="The loop">
+    <span class="eyebrow">The loop</span>
+    <ol id="loop"><li>propose</li><li>verify</li><li>execute</li><li>record</li><li>evidence</li></ol>
+  </div>
+  <div class="sig">MORRISON RUNTIME GOVERNANCE · RESURRECTION TECH</div>
+</div>
+
 <script>
 const $ = id => document.getElementById(id);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const badge = (v, big) => `<span class="badge ${esc(v)} ${big ? "big" : ""}">${esc(v)}</span>`;
-const kv = rows => `<div class="kv">${rows.map(([k, v, m]) => `<span>${esc(k)}</span><span class="${m ? "mono" : ""}">${v}</span>`).join("")}</div>`;
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const gbp = m => typeof m === "number" ? "£" + (m / 100).toLocaleString("en-GB", {minimumFractionDigits: 2}) : esc(m);
+const VERDICTS = ["ALLOW", "BLOCK", "ESCALATE"];
+const vclass = v => VERDICTS.includes(v) ? v : "WAIT";
+const chip = v => `<span class="vchip ${vclass(v)}">${esc(v || "—")}</span>`;
+const kv = rows => `<div class="kv">${rows.map(([k, v]) => `<span>${esc(k)}</span><span>${v}</span>`).join("")}</div>`;
+const field = (k, v, cls = "") => `<div class="field ${cls}"><b>${esc(k)}</b><span>${v}</span></div>`;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const docIco = color => `<svg class="ico" style="color:${color}"><use href="#doc"/></svg>`;
 
+/* presets: request text, plus an optional post-interpretation override that
+   simulates a compromised agent. Outcomes are never preset: they come from /api/run. */
 const PRESETS = {
   ok: ["Create an invoice for Acme Robotics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-10).", null],
   big: ["Create an invoice for Acme Robotics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-12).", {amount: 500000}],
@@ -104,91 +387,165 @@ let override = null;
 document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => {
   const [text, ov] = PRESETS[b.dataset.preset];
   $("req").value = text; override = ov;
-  $("note").textContent = ov ? "Compromised-agent mode: after interpretation the proposal is altered with " + JSON.stringify(ov) + ". Morrison sees only the altered proposal." : "";
+  document.querySelectorAll("[data-preset]").forEach(x => x.classList.toggle("on", x === b));
+  $("note").textContent = ov ? "Compromised-agent mode: after interpretation the proposal is altered with " +
+    JSON.stringify(ov) + ". Morrison sees only the altered proposal." : "";
 });
-$("req").oninput = () => { override = null; $("note").textContent = ""; };
+$("req").oninput = () => { override = null; $("note").textContent = "";
+  document.querySelectorAll("[data-preset]").forEach(x => x.classList.remove("on")); };
+
+function setLoop(n) { [...$("loop").children].forEach((li, i) => li.classList.toggle("lit", i < n)); }
+function wire(id, state) { const w = $(id); w.classList.toggle("on", state === "on"); w.classList.toggle("cut", state === "cut"); }
+function pending(on) { ["agentCard", "kernelCard", "stripeCard", "evidenceCard"].forEach(id => $(id).classList.toggle("pending", on)); }
 
 $("go").onclick = async () => {
-  $("go").disabled = true; $("go").textContent = "Running…";
+  $("go").disabled = true; $("go-label").textContent = "Agent working…";
+  $("note").textContent = override ? $("note").textContent : "";
+  pending(true); setLoop(0); wire("w1", ""); wire("w2", "");
+  $("kernelCard").classList.add("thinking");
   try {
     const r = await fetch("/api/run", {method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({request: $("req").value, override})});
-    render(await r.json());
-  } catch (e) { $("note").textContent = "Error: " + e; }
-  $("go").disabled = false; $("go").textContent = "Run agent";
-  loadChains();
+    const t = await r.json();
+    if (!r.ok || t.error) throw new Error(t.error || ("HTTP " + r.status));
+    await reveal(t);
+  } catch (e) {
+    pending(false); $("note").textContent = "Run failed: " + e.message;
+  }
+  $("kernelCard").classList.remove("thinking");
+  $("go").disabled = false; $("go-label").textContent = "Run agent";
+  loadRuns(); loadChains();
 };
 
-function render(t) {
-  if (t.error) { $("note").textContent = t.error; return; }
-  $("out").hidden = false;
-  const a = t.proposal.args, g = t.governance, d = g.decision || {};
-  $("proposal").innerHTML = kv([
-    ["customer", esc(a.customer)], ["Stripe customer", esc(a.stripe_customer), 1],
-    ["service", esc(a.service)], ["amount", gbp(a.amount) + ` <span class="muted">(${esc(a.amount)} minor)</span>`],
-    ["currency", esc(a.currency)], ["recipient", esc(a.stripe_account), 1],
-    ["agreement", esc(a.agreement_id) + " v" + esc(a.agreement_version)],
-    ["billing ref", esc(a.billing_reference)], ["operation", esc(a.operation_id), 1],
-    ["interpreter", esc(t.interpreter)]]);
-  $("local").innerHTML = badge(g.local.verdict) + `<div class="reason">${esc(g.local.reason)}</div>`;
-  $("global").innerHTML = badge(g.global.verdict) + `<div class="reason">${esc(g.global.reason)}</div>` +
-    (g.global.note ? `<div class="muted">${esc(g.global.note)}</div>` : "");
-  $("final").innerHTML = badge(g.verdict, true) + kv([["layer", esc(d.layer)], ["rule", esc(d.rule || "—")],
-    ["requirement", esc(d.requirement)], ["lease", t.lease_issued ? "issued (single-use, Ed25519)" : "none"]]);
+/* Present ONE backend response in pipeline order. Nothing here decides anything. */
+async function reveal(t) {
+  const a = (t.proposal || {}).args || {}, g = t.governance || {}, d = g.decision || {};
   const ex = t.execution || {}, s = ex.stripe || {};
-  if (ex.executed) {
-    $("stripe").innerHTML = kv([["invoice", esc(s.invoice_id), 1], ["number", esc(s.number)],
-      ["status", esc(s.status)], ["amount due", gbp(s.amount_due)],
-      ["hosted link", s.hosted_invoice_url ? `<a href="${esc(s.hosted_invoice_url)}" target="_blank" rel="noopener">open payment page</a>` : "—"],
-      ["backend", esc(ex.backend)]]);
-  } else {
-    $("stripe").innerHTML = `<span class="badge BLOCK">No Stripe operation</span><div class="reason">${esc(ex.reason)}</div>`;
-  }
-  const v = t.verified_invoice;
-  $("paid").innerHTML = v ? kv([["status", esc(v.status)], ["paid", gbp(v.amount_paid)], ["outstanding", gbp(v.amount_remaining)],
-      ["verified via", esc(v.verified_via), 1]]) + `<div class="row"><button id="refresh">Re-verify with Stripe</button></div>`
-    : `<span class="muted">No invoice to verify.</span>`;
-  if (v) $("refresh").onclick = async () => { const r = await fetch("/api/invoice/" + v.id); t.verified_invoice = await r.json(); render(t); };
+  const ov = t.override || {};
+
+  // proposal
+  $("proposal").innerHTML = `<div class="fields">` +
+    field("Customer", esc(a.customer)) +
+    field("Amount", gbp(a.amount) + ` <span class="mono" style="color:var(--mute)">${esc(a.currency)}</span>`, "amount" in ov ? "hot" : "") +
+    field("Billing ref", esc(a.billing_reference)) +
+    field("Agreement", esc(a.agreement_id) + " · v" + esc(a.agreement_version)) +
+    field("Recipient account", `<span class="mono">${esc(a.stripe_account)}</span>`, "wide " + ("stripe_account" in ov ? "hot" : "")) +
+    field("Operation", `<span class="mono">${esc(a.operation_id)}</span>`, "wide") + `</div>`;
+  $("agentFoot").innerHTML = docIco("var(--agent)") + `<span style="color:#9a6f05">PROPOSED</span><span style="color:var(--ink2);font-weight:600;text-transform:none">· ${esc(t.interpreter)}</span>`;
+  $("agentCard").classList.remove("pending"); $("agentCard").classList.add("flash");
+  setLoop(1); wire("w1", "on"); await sleep(450);
+
+  // authorization
+  $("local").innerHTML = chip(g.local && g.local.verdict);
+  $("localWhy").textContent = (g.local && g.local.reason) || "";
+  $("global").innerHTML = chip(g.global && g.global.verdict);
+  $("globalWhy").textContent = [(g.global && g.global.reason), (g.global && g.global.note)].filter(Boolean).join(" — ");
+  $("final").innerHTML = `<span class="big v-${vclass(g.verdict)}">${esc(g.verdict)}</span>
+    <span class="meta">layer ${esc(d.layer)} · rule ${esc(d.rule || "none")} · requirement ${esc(d.requirement)}<br>
+    lease: ${t.lease_issued ? "issued (Ed25519, single-use, bound to this action)" : "none issued"}</span>`;
+  $("kernelCard").classList.remove("thinking", "pending"); $("kernelCard").classList.add("flash");
+  setLoop(2); await sleep(500);
+
+  // execution
+  wire("w2", ex.executed ? "on" : "cut");
+  renderStripe(t);
+  $("stripeCard").classList.remove("pending"); $("stripeCard").classList.add("flash");
+  setLoop(ex.executed ? 3 : 2); await sleep(450);
+
+  // evidence
   $("evidence").innerHTML = kv([
-    ["action hash", esc(d.action_hash), 1], ["decision id", esc(d.decision_id), 1],
-    ["governance record", esc(d.evidence_hash), 1], ["ruleset hash", esc(d.ruleset_hash), 1],
-    ["trajectory hash", esc(d.trajectory_hash), 1],
-    ["lease id", esc(ex.lease_id || "—"), 1],
-    ["executor record", esc(ex.evidence ? ex.evidence.record_hash : "—"), 1],
-    ["Stripe metadata", esc(s.metadata ? JSON.stringify(s.metadata) : "—"), 1]]);
+    ["action hash", esc(d.action_hash)], ["decision id", esc(d.decision_id)],
+    ["governance record", esc(d.evidence_hash)], ["ruleset hash", esc(d.ruleset_hash)],
+    ["trajectory hash", esc(d.trajectory_hash)], ["capabilities", esc((d.capabilities || []).join(", "))],
+    ["lease", esc(t.lease_preview || "none")], ["lease id", esc(ex.lease_id || "—")],
+    ["executor record", esc(ex.evidence ? ex.evidence.record_hash : "—")],
+    ["Stripe metadata", esc(s.metadata ? JSON.stringify(s.metadata) : "—")]]);
+  $("evidenceCard").classList.remove("pending"); $("evidenceCard").classList.add("flash");
+  setLoop(5);
+  setTimeout(() => document.querySelectorAll(".flash").forEach(e => e.classList.remove("flash")), 1000);
 }
 
-async function loadScenarios() {
-  const r = await (await fetch("/api/scenarios")).json();
-  if (!r.results) return;
-  const sum = r.summary || {};
-  const head = sum.is_real_stripe === false ? `<p class="warn">Backend: ${esc(sum.stripe_backend)} — LOCAL DOUBLE, not Stripe.</p>` :
-    `<p class="muted">Backend: ${esc(sum.stripe_backend)} · account ${esc(sum.stripe_account)} · ${esc(sum.generated_at)}</p>`;
-  $("scen").innerHTML = head + `<table><tr><th>ID</th><th>Scenario</th><th>Local</th><th>Global</th><th>Final</th><th>Observed outcome</th><th>Status</th></tr>` +
-    r.results.map(x => `<tr><td>${esc(x.id)}</td><td>${esc(x.scenario)}</td>
-      <td>${x.local && x.local.verdict ? badge(x.local.verdict) : "—"}</td>
-      <td>${x.global && x.global.verdict ? badge(x.global.verdict) : "—"}</td>
-      <td>${esc(x.final_authorization || "—")}</td><td>${esc(x.outcome || x.error || "")}</td><td><b>${esc(x.status)}</b></td></tr>`).join("") + `</table>`;
+function renderStripe(t) {
+  const ex = t.execution || {}, s = ex.stripe || {}, v = t.verified_invoice;
+  if (!ex.executed) {
+    $("stripe").innerHTML = `<ul class="steps">
+      <li class="step no"><span class="tick">✕</span><div><b>No Stripe operation</b><small>${esc(ex.reason)}</small></div></li>
+      <li class="step"><span class="tick">·</span><div><b>No invoice created</b><small>Stripe was never called${ex.stripe_called === false ? " (confirmed by the executor)" : ""}.</small></div></li></ul>`;
+    $("stripeFoot").innerHTML = docIco("var(--block)") + `<span class="v-BLOCK">NOT EXECUTED</span>`;
+    return;
+  }
+  const paid = v && v.status === "paid";
+  $("stripe").innerHTML = `<ul class="steps">
+    <li class="step ok"><span class="tick">✓</span><div><b>Lease verified &amp; redeemed</b><small class="mono">${esc(ex.lease_id || "")}</small></div></li>
+    <li class="step ok"><span class="tick">✓</span><div><b>Invoice created &amp; finalised · ${gbp(s.amount_due)}</b>
+      <small class="mono">${esc(s.invoice_id)} · ${esc(s.number || "")} · status ${esc(s.status)}</small>
+      ${s.hosted_invoice_url ? `<a class="pay" href="${esc(s.hosted_invoice_url)}" target="_blank" rel="noopener">Open hosted payment page ↗</a>` : ""}</div></li>
+    <li class="step ${paid ? "ok" : "wait"}"><span class="tick">${paid ? "✓" : "…"}</span><div>
+      <b>Payment ${v ? (paid ? "verified: paid " + gbp(v.amount_paid) : "not received: " + esc(v.status)) : "not yet verified"}</b>
+      <small>${v ? "Outstanding " + gbp(v.amount_remaining) + " · " + esc(v.verified_via) : ""}</small>
+      <button class="ghost" id="refresh" style="margin-top:8px">Re-verify with Stripe</button></div></li></ul>
+    <p class="caveat">Creating an invoice is not receipt of funds. Payment is shown only from an authenticated Stripe retrieval.</p>`;
+  $("stripeFoot").innerHTML = docIco("var(--allow)") + `<span class="v-ALLOW">EXECUTED</span><span style="color:var(--ink2);text-transform:none;font-weight:600">· ${esc(ex.backend)}</span>`;
+  $("refresh").onclick = async () => {
+    $("refresh").disabled = true; $("refresh").textContent = "Checking Stripe…";
+    try { t.verified_invoice = await (await fetch("/api/invoice/" + encodeURIComponent(s.invoice_id))).json(); }
+    catch (e) { /* keep last verified value */ }
+    renderStripe(t);
+  };
 }
-async function loadChains() {
-  const r = await (await fetch("/api/evidence")).json();
-  const gi = r.governance.integrity || {};
-  $("chains").innerHTML = kv([
-    ["governance chain", `${gi.evidence_verified ? "verified" : "NOT VERIFIED"} · ${esc(gi.records)} records · head ${esc(gi.head)}`],
-    ["executor chain", `${r.executor.verified ? "verified" : "NOT VERIFIED"} · ${esc(r.executor.records)} records`]]);
-}
+
 async function loadHealth() {
   try {
     const h = await (await fetch("/api/health")).json();
-    const b = $("banner");
-    b.className = "banner " + (h.is_real_stripe ? "live" : h.backend === "unreachable" ? "down" : "double");
-    b.innerHTML = (h.is_real_stripe ? `Stripe TEST MODE · account ${esc(h.account)}`
-      : h.backend === "unreachable" ? "Stripe executor unreachable"
-      : `LOCAL STRIPE DOUBLE (${esc(h.backend)}) · NOT STRIPE · offline rehearsal only`) +
-      `<span class="muted" style="font-weight:400">Agent interpreter: ${esc(h.interpreter)}</span>`;
-  } catch (e) { $("banner").textContent = "Backend status unavailable"; }
+    const el = $("status");
+    el.className = "status " + (h.is_real_stripe ? "live" : h.backend === "unreachable" ? "down" : "double");
+    el.querySelector(".label").textContent = h.is_real_stripe ? `STRIPE TEST MODE · ${h.account}` :
+      h.backend === "unreachable" ? "STRIPE EXECUTOR UNREACHABLE" :
+      `LOCAL STRIPE DOUBLE · NOT STRIPE · offline rehearsal (${h.backend})`;
+    el.querySelector(".sub").textContent = "Agent interpreter: " + h.interpreter;
+  } catch (e) { $("status").querySelector(".label").textContent = "Backend status unavailable"; }
 }
-loadHealth(); loadScenarios(); loadChains();
+
+async function loadRuns() {
+  let runs = [];
+  try { runs = await (await fetch("/api/runs")).json(); } catch (e) { return; }
+  const n = v => runs.filter(r => (r.governance || {}).verdict === v).length;
+  $("cA").textContent = n("ALLOW"); $("cE").textContent = n("ESCALATE"); $("cB").textContent = n("BLOCK");
+  if (!runs.length) return;
+  $("trail").innerHTML = runs.slice(0, 8).map(r => {
+    const a = (r.proposal || {}).args || {}, g = r.governance || {}, ex = r.execution || {};
+    const when = r.started_at ? new Date(r.started_at * 1000).toLocaleTimeString("en-GB") : "";
+    const effect = ex.executed ? `invoice ${esc((ex.stripe || {}).invoice_id)}` : "no Stripe effect";
+    return `<li>${chip(g.verdict)}<span class="what"><b>${esc(a.customer)}</b> · ${gbp(a.amount)} · ${esc(a.billing_reference)} · ${effect}</span><span class="when">${esc(when)}</span></li>`;
+  }).join("");
+}
+
+async function loadChains() {
+  try {
+    const r = await (await fetch("/api/evidence")).json();
+    const gi = r.governance.integrity || {};
+    $("chains").innerHTML = `<span>Governance chain: ${gi.evidence_verified ? "✓ verified" : "✕ NOT VERIFIED"} · ${esc(gi.records)} records</span>
+      <span>Executor chain: ${r.executor.verified ? "✓ verified" : "✕ NOT VERIFIED"} · ${esc(r.executor.records)} records</span>`;
+  } catch (e) {}
+}
+
+async function loadScenarios() {
+  let r = {};
+  try { r = await (await fetch("/api/scenarios")).json(); } catch (e) { return; }
+  if (!r.results) return;
+  const sum = r.summary || {};
+  const head = sum.is_real_stripe === false
+    ? `<p class="note" style="font-weight:600">Backend: ${esc(sum.stripe_backend)} · LOCAL STRIPE DOUBLE — NOT STRIPE.</p>`
+    : `<p class="caveat">Backend: ${esc(sum.stripe_backend)} · account ${esc(sum.stripe_account)} · ${esc(sum.generated_at)}</p>`;
+  $("scen").innerHTML = head + `<div class="tscroll"><table><tr><th>ID</th><th>Scenario</th><th>Local</th><th>Global</th><th>Observed outcome</th><th>Status</th></tr>` +
+    r.results.map(x => `<tr><td class="mono">${esc(x.id)}</td><td>${esc(x.scenario)}</td>
+      <td>${x.local && x.local.verdict ? chip(x.local.verdict) : "—"}</td>
+      <td>${x.global && x.global.verdict ? chip(x.global.verdict) : "—"}</td>
+      <td>${esc(x.outcome || x.error || x.reason || "")}</td>
+      <td><b class="${x.status === "PASSED" ? "v-ALLOW" : x.status === "FAILED" ? "v-BLOCK" : "v-ESCALATE"}">${esc(x.status)}</b></td></tr>`).join("") + `</table></div>`;
+}
+
+loadHealth(); loadRuns(); loadChains(); loadScenarios();
 </script>
 </body>
 </html>
