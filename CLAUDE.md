@@ -32,6 +32,12 @@ proposed tool call goes through `GovernanceKernel.authorize` → `execute`. Read
   (`runtime_eval/falsification/isolation.py`, needs root; CI skips). The independent suites
   (`runtime_eval/falsification/refalsify/`) found R1, R2 (a regression from the E10 repair), V-G1a, V-G1b, V-E12: all fixed.
   Still open: T3b (trajectory rule blind to pre-existing state), cross-host global safety (UNSUPPORTED).
+- **ARSB v0 (branch `claude/arsb-v0`, 2026-10-15).** Implementation-neutral benchmark for local, trajectory,
+  cross-agent, authorisation, resource-side, evidence, tenancy, fail-closed and utility properties: `arsb/SPEC.md`,
+  `arsb/README.md`, `python -m arsb --output DIR`. Scripted threat model only; no inference. Adapters for ungoverned,
+  deny-all, allowlist, a reference provenance baseline, Morrison (in-process, lease-mediated), and the original
+  Progent and CaMeL implementations (installed in a separate venv). CaMeL leads trajectory and provenance; Morrison
+  leads cross-agent and resource-side; Progent matches Morrison on authorisation with better clean-workload utility.
 - Artifact and log downloads are blocked from the cloud container (blob storage hosts). The workflow prints the redacted
   evidence as a checksummed base64 tarball in the job log (`export-log`); rebuild it from `get_job_logs` output.
 - **Live run is wired as a manual GitHub Actions workflow**, `.github/workflows/agentdojo-live.yml` ("AgentDojo Live"), using
