@@ -11,10 +11,10 @@ An AI agent turns a customer request ("invoice Acme £500 for a Morrison Runtime
 | Morrison enforcement (local + global envelope, leases, evidence) | Working; 26 automated tests pass |
 | Process separation (the agent holds no Stripe key and has no route to Stripe) | Working; verified by scenario S0 and the executor tests |
 | Adversarial scenarios S0–S12 against the **local Stripe double** | 13/13 PASSED, `evidence/offline-LOCAL-DOUBLE-not-stripe/`. **These are not Stripe results.** |
-| Adversarial scenarios against **Stripe test mode** (`api.stripe.com`) | **NOT_TESTED yet.** Stripe was unreachable from the build environment, and `STRIPE_TEST_SECRET_KEY` is not yet set for the workflow. See `SUBMISSION.md` |
-| LLM interpretation with Claude | Implemented, but not run in the build environment (no key). The rule-based fallback was used, and every trace records which interpreter ran |
+| Adversarial scenarios against **Stripe test mode** (`api.stripe.com`) | **13/13 PASSED, independently re-verified against Stripe (20/20 checks)**, 2026-10-15, [run 38786789211](https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38786789211), account `acct_1UQtP05V2GeL8QqN`. Evidence: `evidence/live-STRIPE-TEST-MODE-20261015T183507Z/` (rule-based interpreter) |
+| LLM interpretation with Claude | Implemented; **not yet run live**. The first live run used the rule-based interpreter. Run the workflow with `interpreter=claude` to exercise it |
 
-No Stripe response, test result or payment confirmation in this repository is fabricated. Evidence produced against the double says `backend: override:http://127.0.0.1:…` and `is_real_stripe: false`.
+No Stripe response, test result or payment confirmation in this repository is fabricated. Evidence produced against the double says `backend: override:http://127.0.0.1:…` and `is_real_stripe: false`. Live evidence says `backend: stripe-test-mode` and `is_real_stripe: true`, and its provenance (workflow run, commit, bundle SHA-256) is in that directory's `PROVENANCE.md`.
 
 ## Architecture
 
@@ -145,7 +145,7 @@ The harness never trusts a UI message. For each scenario it lists the customer's
 
 ## Known weaknesses and deployment gaps
 
-- **The live Stripe run has not been executed yet** (see Status).
+- **The Claude interpreter has not been run live yet.** The live Stripe run used the rule-based interpreter (see Status).
 - **Single host.** `FileContinuityStore` and `SQLiteLeaseStore` are host-local by design (Morrison documents this). Multi-host deployment needs a shared atomic store. Cross-host global safety is not provided.
 - **Observed state is read per decision, not locked.** An invoice created in Stripe outside this system *between* the state read and the agent's execution is not counted for that decision. Everything the agent itself does is serialised by Morrison reservations.
 - **The executor does not re-check terms at redemption.** A lease is valid for ≤60 s. Agreement changes cancel unredeemed leases through `release`, but a lease redeemed in the gap before cancellation stands, and is counted as an effect.

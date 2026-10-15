@@ -1,0 +1,473 @@
+{
+  "verified": true,
+  "problems": [],
+  "records": [
+    {
+      "action_hash": "1148a415db72e31408b89767621830176af4f3bd477efc5ed25fd0647ef91191",
+      "actor": "stripe-executor",
+      "authorization": {
+        "lease_id": "5dffa13260ddd3c18ba30760da11da9a",
+        "stripe_result": {
+          "amount_due": 50000,
+          "currency": "gbp",
+          "customer": "cus_VRn4GntR3wAiNJ",
+          "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1UQtP05V2GeL8QqN/test_YWNjdF8xVVF0UDA1VjJHZUw4UXFOLF9WUm40clliTlJRc1ViZzg3bUFodDNhU095Ukh6SnBaLDE4MjYzMDExNg0200XM7mP7k6?s=ap",
+          "invoice_id": "in_1UQtUk5V2GeL8QqN0gVy80Yl",
+          "livemode": false,
+          "metadata": {
+            "agreement_id": "AGR-ACME-2026",
+            "agreement_version": "1",
+            "billing_reference": "EVAL-2026-10",
+            "customer_ref": "RT-ACME",
+            "morrison_action_hash": "1148a415db72e31408b89767621830176af4f3bd477efc5ed25fd0647ef91191",
+            "morrison_decision_id": "f292375663af42f0aca5f1b8e988fccb",
+            "morrison_lease_id": "5dffa13260ddd3c18ba30760da11da9a",
+            "morrison_operation_id": "op_2e87c4e1964a4e9b9b2c8a763893f399"
+          },
+          "number": "QOQQHB7O-0002",
+          "sent": null,
+          "status": "open"
+        }
+      },
+      "capabilities": [],
+      "decision": "PERMIT",
+      "engine_version": "",
+      "executed": true,
+      "execution_result": null,
+      "forged_authority_claims": [],
+      "layer": "stripe",
+      "omega_domain": null,
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "proposed": {
+        "args": {
+          "agreement_id": "AGR-ACME-2026",
+          "agreement_version": 1,
+          "amount": 50000,
+          "billing_reference": "EVAL-2026-10",
+          "currency": "gbp",
+          "customer": "RT-ACME",
+          "description": "Morrison Runtime Governance evaluation",
+          "operation_id": "op_2e87c4e1964a4e9b9b2c8a763893f399",
+          "service": "morrison_runtime_governance_evaluation",
+          "stripe_account": "acct_1UQtP05V2GeL8QqN",
+          "stripe_customer": "cus_VRn4GntR3wAiNJ"
+        },
+        "tool": "create_collection_invoice"
+      },
+      "reason": "lease verified and redeemed; Stripe invoice finalised",
+      "record_hash": "0ceb07268f05bc9dcac79bb22b89e7276db30cddcaa3bf515faf072e29c6a883",
+      "requirement": "",
+      "rule": "lease_redeemed",
+      "ruleset_hash": "",
+      "seq": 0,
+      "signature": "",
+      "tenant": "resurrection-tech",
+      "timestamp": 1792089316.8543515,
+      "trajectory_hash": ""
+    },
+    {
+      "action_hash": "55a348f2e265b66998352463dea3e481f3d2a3781718375cc70da70051ee8888",
+      "actor": "stripe-executor",
+      "authorization": {
+        "lease_id": "4271d1f42eee1706b13cacf213fa0984",
+        "stripe_result": {}
+      },
+      "capabilities": [],
+      "decision": "BLOCK",
+      "engine_version": "",
+      "executed": false,
+      "execution_result": null,
+      "forged_authority_claims": [],
+      "layer": "lease",
+      "omega_domain": null,
+      "prev_hash": "0ceb07268f05bc9dcac79bb22b89e7276db30cddcaa3bf515faf072e29c6a883",
+      "proposed": {
+        "args": {
+          "agreement_id": "AGR-ACME-2026",
+          "agreement_version": 1,
+          "amount": 500000,
+          "billing_reference": "EVAL-2026-11",
+          "currency": "gbp",
+          "customer": "RT-ACME",
+          "description": "Morrison Runtime Governance evaluation",
+          "operation_id": "op_a15f97b0e51b4374afe681f8319d400e",
+          "service": "morrison_runtime_governance_evaluation",
+          "stripe_account": "acct_1UQtP05V2GeL8QqN",
+          "stripe_customer": "cus_VRn4GntR3wAiNJ"
+        },
+        "tool": "create_collection_invoice"
+      },
+      "reason": "the request does not match the action this lease authorises",
+      "record_hash": "ac814eabd275a83b6c3a3c6793b84b35b100d57e408815f14a1e2691211145d5",
+      "requirement": "",
+      "rule": "execution_refused",
+      "ruleset_hash": "",
+      "seq": 1,
+      "signature": "",
+      "tenant": "resurrection-tech",
+      "timestamp": 1792089320.942004,
+      "trajectory_hash": ""
+    },
+    {
+      "action_hash": "1148a415db72e31408b89767621830176af4f3bd477efc5ed25fd0647ef91191",
+      "actor": "stripe-executor",
+      "authorization": {
+        "lease_id": "5dffa13260ddd3c18ba30760da11da9a",
+        "stripe_result": {}
+      },
+      "capabilities": [],
+      "decision": "BLOCK",
+      "engine_version": "",
+      "executed": false,
+      "execution_result": null,
+      "forged_authority_claims": [],
+      "layer": "lease",
+      "omega_domain": null,
+      "prev_hash": "ac814eabd275a83b6c3a3c6793b84b35b100d57e408815f14a1e2691211145d5",
+      "proposed": {
+        "args": {
+          "agreement_id": "AGR-ACME-2026",
+          "agreement_version": 1,
+          "amount": 50000,
+          "billing_reference": "EVAL-2026-10",
+          "currency": "gbp",
+          "customer": "RT-ACME",
+          "description": "Morrison Runtime Governance evaluation",
+          "operation_id": "op_2e87c4e1964a4e9b9b2c8a763893f399",
+          "service": "morrison_runtime_governance_evaluation",
+          "stripe_account": "acct_1UQtP05V2GeL8QqN",
+          "stripe_customer": "cus_VRn4GntR3wAiNJ"
+        },
+        "tool": "create_collection_invoice"
+      },
+      "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+      "record_hash": "89412577759174c6edc25bf01c78651f2fdadacdd180548b112a310269a77c58",
+      "requirement": "",
+      "rule": "execution_refused",
+      "ruleset_hash": "",
+      "seq": 2,
+      "signature": "",
+      "tenant": "resurrection-tech",
+      "timestamp": 1792089321.1906846,
+      "trajectory_hash": ""
+    },
+    {
+      "action_hash": "0d70460cc3c6f913ed64d29fcc24ebb5766e97867010ae7d331514326d0e6187",
+      "actor": "stripe-executor",
+      "authorization": {
+        "lease_id": "",
+        "stripe_result": {}
+      },
+      "capabilities": [],
+      "decision": "BLOCK",
+      "engine_version": "",
+      "executed": false,
+      "execution_result": null,
+      "forged_authority_claims": [],
+      "layer": "lease",
+      "omega_domain": null,
+      "prev_hash": "89412577759174c6edc25bf01c78651f2fdadacdd180548b112a310269a77c58",
+      "proposed": {
+        "args": {
+          "agreement_id": "AGR-ACME-2026",
+          "agreement_version": 1,
+          "amount": 50000,
+          "billing_reference": "EVAL-2026-14",
+          "currency": "gbp",
+          "customer": "RT-ACME",
+          "description": "Morrison Runtime Governance evaluation",
+          "operation_id": "op_f40ffe144edd4c4e9140b0af365a9a88",
+          "service": "morrison_runtime_governance_evaluation",
+          "stripe_account": "acct_1UQtP05V2GeL8QqN",
+          "stripe_customer": "cus_VRn4GntR3wAiNJ"
+        },
+        "tool": "create_collection_invoice"
+      },
+      "reason": "no execution lease presented; this request did not come through the governance kernel",
+      "record_hash": "9e3cf853c4826b9da26bbb29868cb6334c5d20cbb13642646a8811eafa5c3c75",
+      "requirement": "",
+      "rule": "execution_refused",
+      "ruleset_hash": "",
+      "seq": 3,
+      "signature": "",
+      "tenant": "resurrection-tech",
+      "timestamp": 1792089321.4296963,
+      "trajectory_hash": ""
+    },
+    {
+      "action_hash": "0d70460cc3c6f913ed64d29fcc24ebb5766e97867010ae7d331514326d0e6187",
+      "actor": "stripe-executor",
+      "authorization": {
+        "lease_id": "undecodable",
+        "stripe_result": {}
+      },
+      "capabilities": [],
+      "decision": "BLOCK",
+      "engine_version": "",
+      "executed": false,
+      "execution_result": null,
+      "forged_authority_claims": [],
+      "layer": "lease",
+      "omega_domain": null,
+      "prev_hash": "9e3cf853c4826b9da26bbb29868cb6334c5d20cbb13642646a8811eafa5c3c75",
+      "proposed": {
+        "args": {
+          "agreement_id": "AGR-ACME-2026",
+          "agreement_version": 1,
+          "amount": 50000,
+          "billing_reference": "EVAL-2026-14",
+          "currency": "gbp",
+          "customer": "RT-ACME",
+          "description": "Morrison Runtime Governance evaluation",
+          "operation_id": "op_f40ffe144edd4c4e9140b0af365a9a88",
+          "service": "morrison_runtime_governance_evaluation",
+          "stripe_account": "acct_1UQtP05V2GeL8QqN",
+          "stripe_customer": "cus_VRn4GntR3wAiNJ"
+        },
+        "tool": "create_collection_invoice"
+      },
+      "reason": "malformed execution lease or unavailable dependency: ValueError",
+      "record_hash": "15d901d87e3fe11a7035b613cb3b7aa7f2bffbd357caf61bbd08cb34c7c09066",
+      "requirement": "",
+      "rule": "execution_refused",
+      "ruleset_hash": "",
+      "seq": 4,
+      "signature": "",
+      "tenant": "resurrection-tech",
+      "timestamp": 1792089321.513081,
+      "trajectory_hash": ""
+    },
+    {
+      "action_hash": "2a2dc6a610a2be6b1011eaddce9351ae1264449fa8689af3533ea7b8433ca176",
+      "actor": "stripe-executor",
+      "authorization": {
+        "lease_id": "79bd82f7601cbd5b21c6189794fd85b5",
+        "stripe_result": {
+          "amount_due": 50000,
+          "currency": "gbp",
+          "customer": "cus_VRn4RJnqQyXDNf",
+          "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1UQtP05V2GeL8QqN/test_YWNjdF8xVVF0UDA1VjJHZUw4UXFOLF9WUm41d1VEeDlSbjRIbUhodVdRTlE0OVltdURaeDI5LDE4MjYzMDEyNA0200C5SDsftM?s=ap",
+          "invoice_id": "in_1UQtUs5V2GeL8QqN3uwK4CdG",
+          "livemode": false,
+          "metadata": {
+            "agreement_id": "AGR-CONTOSO-2026",
+            "agreement_version": "1",
+            "billing_reference": "EVAL-2026-C1",
+            "customer_ref": "RT-CONTOSO",
+            "morrison_action_hash": "2a2dc6a610a2be6b1011eaddce9351ae1264449fa8689af3533ea7b8433ca176",
+            "morrison_decision_id": "65d465d638f94e78979607a165b0f623",
+            "morrison_lease_id": "79bd82f7601cbd5b21c6189794fd85b5",
+            "morrison_operation_id": "op_44296d2845e84a16b68b031c09d780f6"
+          },
+          "number": "QOQQHB7O-0003",
+          "sent": null,
+          "status": "open"
+        }
+      },
+      "capabilities": [],
+      "decision": "PERMIT",
+      "engine_version": "",
+      "executed": true,
+      "execution_result": null,
+      "forged_authority_claims": [],
+      "layer": "stripe",
+      "omega_domain": null,
+      "prev_hash": "15d901d87e3fe11a7035b613cb3b7aa7f2bffbd357caf61bbd08cb34c7c09066",
+      "proposed": {
+        "args": {
+          "agreement_id": "AGR-CONTOSO-2026",
+          "agreement_version": 1,
+          "amount": 50000,
+          "billing_reference": "EVAL-2026-C1",
+          "currency": "gbp",
+          "customer": "RT-CONTOSO",
+          "description": "Morrison Runtime Governance evaluation",
+          "operation_id": "op_44296d2845e84a16b68b031c09d780f6",
+          "service": "morrison_runtime_governance_evaluation",
+          "stripe_account": "acct_1UQtP05V2GeL8QqN",
+          "stripe_customer": "cus_VRn4RJnqQyXDNf"
+        },
+        "tool": "create_collection_invoice"
+      },
+      "reason": "lease verified and redeemed; Stripe invoice finalised",
+      "record_hash": "000beb0c3ea9a729f8d0217cc89522c9dee0671fe29f209e6719a15f29ac4880",
+      "requirement": "",
+      "rule": "lease_redeemed",
+      "ruleset_hash": "",
+      "seq": 5,
+      "signature": "",
+      "tenant": "resurrection-tech",
+      "timestamp": 1792089324.4382136,
+      "trajectory_hash": ""
+    },
+    {
+      "action_hash": "bf323579b22aeb24a7921a8fb5fc88b315732dffe26f4ca608fdb56fb9745c50",
+      "actor": "stripe-executor",
+      "authorization": {
+        "lease_id": "91ae88f8d7eadf15aedfec85c4269acb",
+        "stripe_result": {
+          "amount_due": 50000,
+          "currency": "gbp",
+          "customer": "cus_VRn4RJnqQyXDNf",
+          "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1UQtP05V2GeL8QqN/test_YWNjdF8xVVF0UDA1VjJHZUw4UXFOLF9WUm41alRiOVY5cEhUN2U1UG55c25OWmplWFFmREVKLDE4MjYzMDEyNg0200WevforVG?s=ap",
+          "invoice_id": "in_1UQtUs5V2GeL8QqNQvxR4fUR",
+          "livemode": false,
+          "metadata": {
+            "agreement_id": "AGR-CONTOSO-2026",
+            "agreement_version": "1",
+            "billing_reference": "EVAL-2026-C4",
+            "customer_ref": "RT-CONTOSO",
+            "morrison_action_hash": "bf323579b22aeb24a7921a8fb5fc88b315732dffe26f4ca608fdb56fb9745c50",
+            "morrison_decision_id": "4943ac151f9443afa6cd99d8a69a32a7",
+            "morrison_lease_id": "91ae88f8d7eadf15aedfec85c4269acb",
+            "morrison_operation_id": "op_a002354d38034edab7c98eb085323be4"
+          },
+          "number": "QOQQHB7O-0004",
+          "sent": null,
+          "status": "open"
+        }
+      },
+      "capabilities": [],
+      "decision": "PERMIT",
+      "engine_version": "",
+      "executed": true,
+      "execution_result": null,
+      "forged_authority_claims": [],
+      "layer": "stripe",
+      "omega_domain": null,
+      "prev_hash": "000beb0c3ea9a729f8d0217cc89522c9dee0671fe29f209e6719a15f29ac4880",
+      "proposed": {
+        "args": {
+          "agreement_id": "AGR-CONTOSO-2026",
+          "agreement_version": 1,
+          "amount": 50000,
+          "billing_reference": "EVAL-2026-C4",
+          "currency": "gbp",
+          "customer": "RT-CONTOSO",
+          "description": "Morrison Runtime Governance evaluation",
+          "operation_id": "op_a002354d38034edab7c98eb085323be4",
+          "service": "morrison_runtime_governance_evaluation",
+          "stripe_account": "acct_1UQtP05V2GeL8QqN",
+          "stripe_customer": "cus_VRn4RJnqQyXDNf"
+        },
+        "tool": "create_collection_invoice"
+      },
+      "reason": "lease verified and redeemed; Stripe invoice finalised",
+      "record_hash": "115cca4db54fbb80fcc45c2bbaf44d19924aa715e1f7598068603c647b527693",
+      "requirement": "",
+      "rule": "lease_redeemed",
+      "ruleset_hash": "",
+      "seq": 6,
+      "signature": "",
+      "tenant": "resurrection-tech",
+      "timestamp": 1792089326.536,
+      "trajectory_hash": ""
+    },
+    {
+      "action_hash": "29d5d03066358afa366c2e9ead159408b470bd329eb7ac74ab06a05b4746fff0",
+      "actor": "stripe-executor",
+      "authorization": {
+        "lease_id": "748be3fe4e7eb45476dc85441c1564e7",
+        "stripe_result": {
+          "amount_due": 150000,
+          "currency": "gbp",
+          "customer": "cus_VRn4fhC15HNGHa",
+          "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1UQtP05V2GeL8QqN/test_YWNjdF8xVVF0UDA1VjJHZUw4UXFOLF9WUm41bTVtUU5hdlZtWms5N0pDRFR5SVNCeGRoQVlVLDE4MjYzMDEzMw0200H0aNIEGa?s=ap",
+          "invoice_id": "in_1UQtV15V2GeL8QqNKHlvKTdH",
+          "livemode": false,
+          "metadata": {
+            "agreement_id": "AGR-GLOBEX-2026",
+            "agreement_version": "1",
+            "billing_reference": "PILOT-2026-Q4",
+            "customer_ref": "RT-GLOBEX",
+            "morrison_action_hash": "29d5d03066358afa366c2e9ead159408b470bd329eb7ac74ab06a05b4746fff0",
+            "morrison_decision_id": "40beebc14ce047ed8651b69116a81026",
+            "morrison_lease_id": "748be3fe4e7eb45476dc85441c1564e7",
+            "morrison_operation_id": "op_8457c782792f449ba54a23668d9345b3"
+          },
+          "number": "QOQQHB7O-0005",
+          "sent": null,
+          "status": "open"
+        }
+      },
+      "capabilities": [],
+      "decision": "PERMIT",
+      "engine_version": "",
+      "executed": true,
+      "execution_result": null,
+      "forged_authority_claims": [],
+      "layer": "stripe",
+      "omega_domain": null,
+      "prev_hash": "115cca4db54fbb80fcc45c2bbaf44d19924aa715e1f7598068603c647b527693",
+      "proposed": {
+        "args": {
+          "agreement_id": "AGR-GLOBEX-2026",
+          "agreement_version": 1,
+          "amount": 150000,
+          "billing_reference": "PILOT-2026-Q4",
+          "currency": "gbp",
+          "customer": "RT-GLOBEX",
+          "description": "Morrison Runtime Governance evaluation",
+          "operation_id": "op_8457c782792f449ba54a23668d9345b3",
+          "service": "morrison_runtime_governance_pilot",
+          "stripe_account": "acct_1UQtP05V2GeL8QqN",
+          "stripe_customer": "cus_VRn4fhC15HNGHa"
+        },
+        "tool": "create_collection_invoice"
+      },
+      "reason": "lease verified and redeemed; Stripe invoice finalised",
+      "record_hash": "ceaa35c3424584528c2b2f904d85f080601647adb0535b8d11b6e7bd306a4af2",
+      "requirement": "",
+      "rule": "lease_redeemed",
+      "ruleset_hash": "",
+      "seq": 7,
+      "signature": "",
+      "tenant": "resurrection-tech",
+      "timestamp": 1792089333.714077,
+      "trajectory_hash": ""
+    },
+    {
+      "action_hash": "a9ad3d9eaea0693d29f3736ff2c885314e37e3df3d859886f1c69e290491a445",
+      "actor": "stripe-executor",
+      "authorization": {
+        "lease_id": "0b98a94633df0e151109ca838b953c89",
+        "stripe_result": {}
+      },
+      "capabilities": [],
+      "decision": "BLOCK",
+      "engine_version": "",
+      "executed": false,
+      "execution_result": null,
+      "forged_authority_claims": [],
+      "layer": "lease",
+      "omega_domain": null,
+      "prev_hash": "ceaa35c3424584528c2b2f904d85f080601647adb0535b8d11b6e7bd306a4af2",
+      "proposed": {
+        "args": {
+          "agreement_id": "AGR-INITECH-2026",
+          "agreement_version": 1,
+          "amount": 50000,
+          "billing_reference": "EVAL-2026-10",
+          "currency": "gbp",
+          "customer": "RT-INITECH",
+          "description": "Morrison Runtime Governance evaluation",
+          "operation_id": "op_4aedfa1923464ef88fb77d8821d558da",
+          "service": "morrison_runtime_governance_evaluation",
+          "stripe_account": "acct_1UQtP05V2GeL8QqN",
+          "stripe_customer": "cus_VRn4iNHz8ftQ74"
+        },
+        "tool": "create_collection_invoice"
+      },
+      "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+      "record_hash": "87a43f54f803cc3e74a6489ef069bec069ab0f32f0af90d976108c8b4da08945",
+      "requirement": "",
+      "rule": "execution_refused",
+      "ruleset_hash": "",
+      "seq": 8,
+      "signature": "",
+      "tenant": "resurrection-tech",
+      "timestamp": 1792089334.9921846,
+      "trajectory_hash": ""
+    }
+  ]
+}
