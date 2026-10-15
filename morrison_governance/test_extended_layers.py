@@ -53,13 +53,15 @@ def test_v4_role_required_blocks_without_omega():
             role_required(("transfer",), ("treasury",)),
         ],
     )
-    # authorized=True so unauthorized_transfer (A_safe) does NOT fire;
-    # small amount so excessive_amount does not fire.
+    # The authorisation is scaffolding: it stops unauthorized_transfer
+    # (A_safe) firing so the test can reach V4. It is supplied through the
+    # trusted channel because a transfer asserting its own authority is not
+    # an authorisation. Small amount so excessive_amount does not fire.
     r = gov.evaluate({
         "tool": "transfer",
-        "args": {"amount": 100, "authorized": True},
+        "args": {"amount": 100},
         "role": "analyst",
-    })
+    }, trusted_facts={"authorized": True})
     assert r.blocked
     assert r.layer == "V4", f"expected V4, got {r.layer}"
     assert "role" in r.reason.lower()
@@ -72,9 +74,9 @@ def test_v4_role_required_permits_with_role():
     )
     r = gov.evaluate({
         "tool": "transfer",
-        "args": {"amount": 100, "authorized": True},
+        "args": {"amount": 100},
         "role": "treasury",
-    })
+    }, trusted_facts={"authorized": True})
     assert r.permitted
     assert r.layer == "V4"
 

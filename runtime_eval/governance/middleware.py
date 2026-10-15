@@ -63,7 +63,8 @@ class RuntimeGovernanceMiddleware:
     def __init__(self, governance: GovernanceLayer,
                  sandbox: SandboxExecutor,
                  hardening: Optional[HardeningPipeline] = None,
-                 security_context=None):
+                 security_context=None,
+                 trusted_facts: Optional[dict] = None):
         """`security_context` promotes this middleware to full kernel parity.
 
         When a SecurityContext is supplied, every decision runs through
@@ -83,10 +84,36 @@ class RuntimeGovernanceMiddleware:
         self.sandbox = sandbox
         self.hardening = hardening
         self.security_context = security_context
+        # Policy facts the DEPLOYMENT established for this run — an approval
+        # its change process recorded, an operator confirmation. They carry
+        # TRUSTED provenance. A flag written into a step's own `args` does
+        # not, because an action asserting that it is authorised is not an
+        # authorisation. See morrison_governance.provenance.
+        self.trusted_facts = dict(trusted_facts or {})
         self.kernel = None
         if security_context is not None:
             from morrison_governance.kernel import GovernanceKernel
             self.kernel = GovernanceKernel(governance, security_context)
+        else:
+            # The legacy path evaluates with GovernanceLayer and then calls
+            # `sandbox.execute(call)` itself. That is a dispatch decided by
+            # reasoning rather than by the veto authority, and it is retained
+            # ONLY because the evaluation harness needs the pre-kernel contract
+            # to measure against. It is confined to an inert simulator: a
+            # SandboxExecutor calls ToolSimulator.simulate and nothing else.
+            #
+            # Point it at anything that can actually act and it refuses to
+            # construct, so this cannot become a second ungoverned execution
+            # surface in a deployment.
+            from runtime_eval.sandbox.executor import SandboxExecutor
+            if not isinstance(sandbox, SandboxExecutor):
+                raise ValueError(
+                    "RuntimeGovernanceMiddleware without a SecurityContext runs "
+                    "the pre-kernel evaluation contract, which dispatches on a "
+                    "GovernanceLayer verdict rather than a kernel "
+                    "authorization. It is restricted to the inert "
+                    "SandboxExecutor. Pass security_context=... to govern a "
+                    "real execution surface.")
 
     # ── single-call gate ─────────────────────────────────────
     def _evaluate_prefix(self, history: list, call_or_calls):
@@ -101,8 +128,10 @@ class RuntimeGovernanceMiddleware:
         plan = list(history) + extension
         try:
             if len(plan) > 1:
-                return self.governance.evaluate_plan(plan), None
-            return self.governance.evaluate(plan[0]), None
+                return self.governance.evaluate_plan(
+                    plan, trusted_facts=self.trusted_facts or None), None
+            return self.governance.evaluate(
+                plan[0], trusted_facts=self.trusted_facts or None), None
         except Exception as e:                       # noqa: BLE001
             return None, f"{type(e).__name__}: {e}"
 

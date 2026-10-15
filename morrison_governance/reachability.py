@@ -424,6 +424,8 @@ class ReachabilityEvaluator:
     def check_v3(self, trajectory: Trajectory) -> Optional[GovernanceResult]:
         """
         V3: rejects when ℛ̂(F(x,u),k) ∩ Ω ≠ ∅ for horizon k ≥ 2.
+        This is one enforcement layer serving the reachability objective; it
+        is not the demonstrated guarantee. See AUTHORITY_SEPARATION.md.
         Evaluates whether the reachable set from the current state
         can reach Ω within k steps, even if no single step violates.
         """

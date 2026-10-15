@@ -3,7 +3,8 @@ Perturbation-manifold robustness estimation (V5 upgrade).
 
 Extends V5 from "∀ E ∈ ℰ (finite sampled set)" to bounded-ball robustness:
 
-    ∀ E ∈ B(ℰ, r),  R̂_E(t) ∩ Ω = ∅
+    OBJECTIVE (not an unconditional guarantee): ∀ E ∈ B(ℰ, r), R̂_E(t) ∩ Ω = ∅
+    Demonstrated property is authority separation — see AUTHORITY_SEPARATION.md.
 
 ℰ is represented as a union of *perturbation manifolds* ℰ = ⋃ᵢ ℰᵢ, each a
 parameterised geometric deformation family rather than a discrete list.

@@ -116,8 +116,9 @@ def analyze(package: AuditPackage) -> AuditResult:
                             if r.verdict != "PERMIT"), None)
 
         # 2. whole-trajectory verdict + full layer attribution
-        whole = (governance.evaluate_plan(calls) if len(calls) > 1
-                 else governance.evaluate(calls[0]))
+        tf = getattr(traj, "trusted_facts", None) or None
+        whole = (governance.evaluate_plan(calls, trusted_facts=tf) if len(calls) > 1
+                 else governance.evaluate(calls[0], trusted_facts=tf))
         allrep = (governance.evaluate_all_plan(calls) if len(calls) > 1
                   else governance.evaluate_all(calls[0]))
         layers_obj = sorted(k for k, v in allrep.get("layers", {}).items()

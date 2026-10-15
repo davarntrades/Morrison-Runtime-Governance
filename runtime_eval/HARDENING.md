@@ -188,7 +188,7 @@ appropriate next step and is the posture the harness is built for
 ## Governing invariant
 
 ```
-ℛ(t) ∩ Ω = ∅
+ℛ(t) ∩ Ω = ∅   [objective; see AUTHORITY_SEPARATION.md]
 ```
 
 preserved throughout. The hardening pipeline does not weaken it; it

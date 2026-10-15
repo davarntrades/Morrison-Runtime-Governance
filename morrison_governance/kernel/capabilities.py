@@ -94,9 +94,13 @@ _PERSIST_OBJECT = re.compile(
 _EGRESS_OBJECT = re.compile(
     r"(upload|export|send|post|publish|share|transmit|sync|push|email|mail|"
     r"webhook|ship|emit|forward|copy|replicate|stream)", re.I)
+# `run_?code` / `run_?script` required ADJACENCY, so `run_remote_code`,
+# `run_sandboxed_code` and `run_user_code` carrying a shell payload classified
+# as caps=[] / requirement=allow — ungoverned. An infix word now matches, which
+# is the same rename-evasion class this module exists to close.
 _EXEC_OBJECT = re.compile(
     r"(shell|exec|execute|eval|subprocess|bash|sh\b|zsh|powershell|pwsh|cmd|"
-    r"command|run_?code|run_?script|python|system|terminal|invoke)", re.I)
+    r"command|run(?:_\w+)*_?code|run(?:_\w+)*_?script|python|system|terminal|invoke)", re.I)
 _READ_OBJECT = re.compile(
     r"(read|get|fetch|list|query|select|download|export|dump|scan|search|"
     r"describe|retrieve|load|view|browse)", re.I)
@@ -126,28 +130,33 @@ _DISABLED_VALUE = re.compile(
 _RETENTION_KEY = re.compile(r"(retention|expire|expiry|ttl|keep|lifecycle|purge_after)", re.I)
 
 
-def _walk(value: Any, depth: int = 0, max_depth: int = 6):
-    """Yield every (key, value) pair reachable in a nested structure, so a
-    dangerous action hidden inside a wrapper is still visible."""
-    if depth > max_depth:
+def _walk(value: Any, depth: int = 0, max_depth: int = 0):
+    """Yield every (key, value) pair reachable in a nested structure.
+
+    Delegates to `normalize.iter_pairs`, the ONE traversal shared with
+    sensitivity and destination classification. It has no depth limit.
+
+    This module, `sensitivity` and `destinations` each used to carry a private
+    copy of this function that stopped at depth 6, so a single wrapper past
+    that horizon blinded all three simultaneously — an embedded
+    `DROP DATABASE prod;` classified as `data.destructive` at depth 3 and as
+    nothing at all at depth 7. Sharing one traversal is what stops the three
+    from drifting apart again. `depth`/`max_depth` are accepted and ignored so
+    existing call sites keep working.
+    """
+    from morrison_governance.kernel.normalize import BudgetExhausted, iter_pairs
+    try:
+        yield from iter_pairs(value)
+    except BudgetExhausted:
+        # Callers of `_walk` alone cannot fail closed. `classify` handles the
+        # budget explicitly and the kernel escalates on `truncated`; stopping
+        # here yields no more pairs rather than a partial claim of safety.
         return
-    if isinstance(value, dict):
-        for k, v in value.items():
-            yield str(k), v
-            yield from _walk(v, depth + 1, max_depth)
-    elif isinstance(value, (list, tuple)):
-        for v in value:
-            yield "", v
-            yield from _walk(v, depth + 1, max_depth)
 
 
 def _text_blob(call: dict) -> str:
-    parts = [str(call.get("tool", ""))]
-    for k, v in _walk(call.get("args") or {}):
-        parts.append(k)
-        if isinstance(v, (str, int, float, bool)):
-            parts.append(str(v))
-    return " ".join(parts)
+    from morrison_governance.kernel.normalize import normalize_action
+    return normalize_action(call).text
 
 
 def _nested_tools(call: dict) -> list[str]:

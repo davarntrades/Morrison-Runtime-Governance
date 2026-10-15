@@ -18,3 +18,13 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Finite-model verification output.
+#
+# The CI workflow writes these into the repo (`--out verification-artifacts`),
+# and ci_gate.py refuses to pin a verification to a commit when the tree is
+# dirty. Untracked-and-unignored, the artifacts the gate had just written made
+# the tree dirty, so the gate failed itself: the run is PASS 19/19 when the
+# same artifacts are written outside the tree. Ignoring the directory is what
+# lets the workflow's own output stop invalidating its own provenance check.
+verification-artifacts/

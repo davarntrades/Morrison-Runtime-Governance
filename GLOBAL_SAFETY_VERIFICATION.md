@@ -10,6 +10,8 @@ For a bounded environment (E), admissible initial-state set (X_0), prohibited st
 \forall x_0 \in X_0,\quad \operatorname{Reach}_G(x_0) \cap U = \varnothing
 \]
 
+This is the property tested **inside a declared finite model**. It is not the primary demonstrated property of the governed-execution implementation, which is authority separation — see [AUTHORITY_SEPARATION.md](AUTHORITY_SEPARATION.md).
+
 A successful result means only:
 
 > Complete state-space enumeration found no reachable prohibited state in model E under governance configuration G.

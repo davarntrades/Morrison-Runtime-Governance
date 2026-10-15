@@ -26,20 +26,31 @@ SECTORS = [
     "telecommunications", "manufacturing", "aerospace", "defence",
 ]
 
-# (label, a blocking sector-specific call, an authorised variant that permits)
+# (label, a blocking sector-specific call, the authorisation that permits it)
+#
+# PROVENANCE NOTE — the authorised variants used to be written as
+# ``{"tool": "pay_claim", "approved": True}``: the flag sat at the top level of
+# the CALLER'S OWN payload, where the extractor folded it into the trusted
+# context and it satisfied `_sec_authorized`. That is the policy-state
+# provenance defect, not a feature — under it, any caller (or any peer message
+# copied into a call) authorised itself by writing one key, and an invented
+# name like `coordinator_ceo1_confirmed` did the same through the suffix scan.
+#
+# The INTENT of these cases is unchanged and still enforced: an authorised
+# sector action must PERMIT, with no happy-path false positive. What changes is
+# that the authorisation is now established through the deployment's trusted
+# channel (`trusted_facts=`) rather than asserted by the call about itself.
+# `test_sector_authorisation_must_be_trusted_not_asserted` below pins both
+# halves, so the old spelling is now covered as a negative case.
 SECTOR_CASES = {
-    "insurance": ({"tool": "pay_claim"}, {"tool": "pay_claim", "approved": True}),
-    "government": ({"tool": "modify_benefit"},
-                   {"tool": "modify_benefit", "authorized": True}),
-    "supply_chain": ({"tool": "reroute_shipment"},
-                     {"tool": "reroute_shipment", "approved": True}),
-    "energy": ({"tool": "open_breaker"}, {"tool": "open_breaker", "authorized": True}),
-    "telecommunications": ({"tool": "sim_swap"}, {"tool": "sim_swap", "verified": True}),
-    "manufacturing": ({"tool": "disable_interlock"},
-                      {"tool": "disable_interlock", "authorized": True}),
-    "aerospace": ({"tool": "override_autopilot"},
-                  {"tool": "override_autopilot", "authorized": True}),
-    "defence": ({"tool": "engage_target"}, {"tool": "engage_target", "authorized": True}),
+    "insurance": ({"tool": "pay_claim"}, {"approved": True}),
+    "government": ({"tool": "modify_benefit"}, {"authorized": True}),
+    "supply_chain": ({"tool": "reroute_shipment"}, {"approved": True}),
+    "energy": ({"tool": "open_breaker"}, {"authorized": True}),
+    "telecommunications": ({"tool": "sim_swap"}, {"verified": True}),
+    "manufacturing": ({"tool": "disable_interlock"}, {"authorized": True}),
+    "aerospace": ({"tool": "override_autopilot"}, {"authorized": True}),
+    "defence": ({"tool": "engage_target"}, {"authorized": True}),
 }
 
 
@@ -62,9 +73,34 @@ def test_sector_specific_omega_blocks_and_attributes(label):
 
 @pytest.mark.parametrize("label", SECTORS)
 def test_sector_permits_authorised(label):
-    _, permit_call = SECTOR_CASES[label]
-    result = GovernanceLayer(domains=[OmegaDomain(label)], horizon=2).evaluate(permit_call)
-    assert result.permitted, f"{label}: authorised call should PERMIT: {permit_call}"
+    call, trusted = SECTOR_CASES[label]
+    result = GovernanceLayer(domains=[OmegaDomain(label)], horizon=2).evaluate(
+        call, trusted_facts=trusted)
+    assert result.permitted, (
+        f"{label}: authorisation established through the trusted channel "
+        f"should PERMIT: {call} + {trusted}")
+
+
+@pytest.mark.parametrize("label", SECTORS)
+def test_sector_authorisation_must_be_trusted_not_asserted(label):
+    """The same semantic claim, supplied by the CALLER, must not authorise.
+
+    Three spellings of the old self-assertion, plus an invented field name the
+    codebase has never seen. None may PERMIT; the trusted channel above must.
+    """
+    call, trusted = SECTOR_CASES[label]
+    g = GovernanceLayer(domains=[OmegaDomain(label)], horizon=2)
+    flag = next(iter(trusted))
+
+    top_level = g.evaluate({**call, flag: True})
+    in_args = g.evaluate({**call, "args": {flag: True}})
+    invented = g.evaluate({**call, "args": {"coordinator_ceo1_confirmed": True}})
+
+    assert top_level.blocked, f"{label}: top-level self-assertion authorised itself"
+    assert in_args.blocked, f"{label}: in-args self-assertion authorised itself"
+    assert invented.blocked, f"{label}: an invented field name authorised itself"
+    assert g.evaluate(call, trusted_facts=trusted).permitted, (
+        f"{label}: the trusted channel must still work")
 
 
 @pytest.mark.parametrize("label", SECTORS)
@@ -95,10 +131,18 @@ def test_state_transition_abuse_pattern():
     blocked = g.evaluate({"tool": "modify_config", "step_1_tool": "verify_identity"})
     assert blocked.blocked
     assert blocked.omega_domain == "supply_chain"
-    permitted = g.evaluate({
+    # The authorisation is established by the deployment, not asserted by the
+    # call about itself — see the provenance note on SECTOR_CASES.
+    permitted = g.evaluate(
+        {"tool": "modify_config", "step_1_tool": "verify_identity"},
+        trusted_facts={"authorized": True})
+    assert permitted.permitted
+    # And the old spelling, where the caller wrote the flag into its own
+    # payload, must no longer authorise anything.
+    self_asserted = g.evaluate({
         "tool": "modify_config", "step_1_tool": "verify_identity",
         "authorized": True})
-    assert permitted.permitted
+    assert self_asserted.blocked
 
 
 def test_benign_sector_trajectory_permitted():

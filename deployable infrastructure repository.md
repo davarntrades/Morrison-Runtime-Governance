@@ -2,7 +2,7 @@
 
 # Morrison Runtime Governance
 
-![Safety](https://img.shields.io/badge/Safety-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
+![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
 ![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
 ![False_Positives](https://img.shields.io/badge/False_Positives-0-2ea44f?style=flat-square)
 ![False_Negatives](https://img.shields.io/badge/False_Negatives-0-2ea44f?style=flat-square)
@@ -88,7 +88,7 @@ $ python3 morrison_governance/demo.py
 
 ═══════════════════════════════════════════════════════════════
   Morrison Runtime Governance — Demo
-  ℛ(t) ∩ Ω = ∅
+  ℛ(t) ∩ Ω = ∅        [objective; demonstrated property is Λ(a) ∉ 𝔄]
 ═══════════════════════════════════════════════════════════════
 
   ✓ PERMIT  Safe: read a report
@@ -187,7 +187,7 @@ graph TD
     end
 
     subgraph "Governance Layer — Structural"
-        safe_t --> GOV{{"ℛ(t) ∩ Ω = ∅ ?"}}
+        safe_t --> GOV{{"objective: ℛ(t) ∩ Ω = ∅ ?"}}
         unsafe_t --> GOV
         halluc_t --> GOV
         adv_t --> GOV
@@ -432,7 +432,7 @@ None of these operate at the trajectory level. None evaluate reachability. None 
 **Core invariant:**
 
 ```
-Safe  ⟺  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅
+Safe  ⟺  ∀ E ∈ ℰ,  ℛ_E(t) ∩ Ω = ∅        [objective, not an unconditional guarantee]
 ```
 
 A system is safe if and only if, across all operating environments, the reachable set does not intersect the forbidden region.

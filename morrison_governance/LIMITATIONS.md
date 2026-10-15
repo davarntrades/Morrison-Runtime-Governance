@@ -286,3 +286,35 @@ python3 artifacts/visualizations/layer_firing.py        # matrix + attribution
 python3 artifacts/visualizations/sweep_v2.py            # domain/adversarial heat maps
 python3 artifacts/visualizations/benchmark.py           # latency suite
 ```
+
+---
+
+## Authority continuity and the governed boundary (pre-pilot evaluation)
+
+Three rounds of adversarial falsification are recorded in
+`PRE_PILOT_ADVERSARIAL_EVALUATION.md`, with every counterexample retained as a
+permanent test. The limitations that survived remediation, in the order a pilot
+should care about them:
+
+1. **Complete mediation is assumed, not attested.** Morrison governs what calls
+   it. A second SDK, raw HTTP, a credential the agent holds directly, or a
+   compromised connector executes unseen. Enforce this at the network, IAM or
+   resource boundary; the library cannot establish it.
+2. **Continuity beyond one host needs a deployment store.**
+   `InMemoryContinuityStore` is process-wide and `FileContinuityStore` is
+   host-wide. A multi-host fleet that configures neither has governed history
+   per host. Implement `ContinuityStore` — with an atomic `consume` and a real
+   cross-writer `transaction` — against Redis or a database.
+3. **Trajectory analysis is bounded by `continuity_window_s`** (default one
+   hour). An attacker patient enough to spread one prohibited trajectory across
+   a longer span defeats it. Unbounded history is not the safer alternative: it
+   refuses everything and operators respond by widening allowlists.
+4. **`workload` isolation is an administrative judgement.** Too coarse and
+   unrelated work interferes; too fine and trajectory fragmentation returns.
+5. **Ω, the capability policy and the tool manifest are inputs.** Morrison
+   enforces them and cannot establish that they encode what was meant.
+6. **Content classification is heuristic.** Compression, a custom alphabet or
+   paraphrase defeats pattern matching. It is depth behind the structural
+   controls, which do not depend on it.
+7. **Availability is part of safety here.** A fail-open timeout in front of the
+   kernel removes the veto.

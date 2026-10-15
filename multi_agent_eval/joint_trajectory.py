@@ -8,7 +8,7 @@ and the joint trajectory; a BLOCKED call never executes (pre-execution
 blocking, fail-closed). The joint trajectory is therefore the set of
 *executed* cross-agent calls — exactly the reachable set the question
 
-    JointReach(A₁, A₂, A₃, Env, t) ∩ Ω = ∅ ?
+    JointReach(A₁, A₂, A₃, Env, t) ∩ Ω = ∅ ?   [objective under study]
 
 asks about."""
 

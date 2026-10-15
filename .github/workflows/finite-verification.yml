@@ -1,0 +1,96 @@
+# Runs the finite-model verifier itself -- not just its unit tests.
+#
+# A green pytest proves the verifier's tests pass. It does not prove the
+# verifier was ever pointed at the declared models, nor that what came out is
+# internally consistent. This workflow enumerates every declared model under
+# every declared escalation policy, validates each artifact independently, and
+# archives them with the identity needed to reproduce the run.
+#
+# What a PASS here means: each declared FINITE MODEL produced the verdict the
+# repository declares it must, within that model and its stated assumptions.
+# It is not a statement about the production environment.
+name: Finite-model verification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "morrison_governance/**"
+      - ".github/workflows/finite-verification.yml"
+  pull_request:
+    paths:
+      - "morrison_governance/**"
+      - ".github/workflows/finite-verification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The artifact records the commit it ran at; a shallow clone still
+          # resolves HEAD, but fetch the ref so `git status` is meaningful.
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: python -m pip install --upgrade pip
+
+      - name: Confirm the tree is clean before verifying
+        # The artifact pins a commit. If the tree is dirty that commit does not
+        # describe the code that ran, so the gate refuses it -- this step makes
+        # the reason obvious rather than letting the gate fail cryptically.
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::working tree is dirty; verification provenance cannot be pinned"
+            git status --porcelain
+            exit 1
+          fi
+
+      - name: Run the finite verifier
+        # Fails on: a verdict that differs from the declared expectation in
+        # either direction, an INCONCLUSIVE where a verdict is expected, an
+        # artifact that fails validation, or unestablishable model/ruleset/
+        # verifier identity. Note --allow-dirty is deliberately NOT passed.
+        run: |
+          python -m morrison_governance.global_verification.ci_gate \
+            --out verification-artifacts
+
+      - name: Record verification identity in the job log
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          p = pathlib.Path("verification-artifacts/verification-summary.json")
+          if not p.exists():
+              print("no summary produced"); raise SystemExit(0)
+          s = json.loads(p.read_text())
+          print(f"status              : {s['status']}  ({s['passed']}/{s['total']})")
+          print(f"repository_commit   : {s['verifier']['repository_commit']}")
+          print(f"repository_dirty    : {s['verifier']['repository_dirty']}")
+          print(f"verifier_version    : {s['verifier']['verifier_version']}")
+          for c in s["cases"]:
+              print(f"  {c['model']:38s} {c['escalations']:16s} {c['verdict']:28s}")
+              print(f"      verification_id={c['verification_id']} "
+                    f"complete={c['complete_enumeration']}")
+              print(f"      model_hash={c['model_hash'][:32]}…")
+              print(f"      ruleset_hash={c['ruleset_hash'][:32]}…")
+              print(f"      artifact_hash={c['artifact_hash'][:32]}… valid={c['artifact_valid']}")
+          PY
+
+      - name: Archive verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: finite-verification-${{ github.sha }}
+          path: verification-artifacts/
+          retention-days: 90
+          if-no-files-found: error

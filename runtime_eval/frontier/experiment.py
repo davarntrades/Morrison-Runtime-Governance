@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 
 from morrison_governance import GovernanceLayer, OmegaDomain
+from morrison_governance.kernel.continuity import InMemoryContinuityStore
 from morrison_governance.kernel.trust import Principal, SecurityContext
 from runtime_eval.frontier.evidence import seal_record, sha256_text
 from runtime_eval.frontier.safe_executor import build_safe_executor
@@ -64,6 +65,11 @@ def build_runtime(domains: list[str] | tuple[str, ...] | None = None,
     )
     context = SecurityContext(
         principal=Principal(id="frontier-harness", tenant="synthetic"),
+        # One experiment is one independent evaluation of one trajectory. Runs
+        # must not inherit each other's governed history, or the same plan
+        # would score differently on its second provider purely because of its
+        # first. Isolation by semantics; nothing here reaches a real tool.
+        continuity_store=InMemoryContinuityStore(),
         tool_manifest=tool_manifest(), unknown_tool_policy="escalate",
         internal_email_domains=("example.invalid",),
         internal_url_hosts=("simulator.invalid",),

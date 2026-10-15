@@ -93,8 +93,9 @@ _PATTERNS = (
     (CAT_FINANCIAL, _FINANCIAL_FORMAT),
 )
 
-# Argument keys that name a payload/body — content there is the thing being
-# sent, so it carries more weight than an incidental field name.
+# Argument keys that name a payload/body. Retained as deployment-facing
+# documentation of which fields carry transmitted content; the matcher
+# scans every key and value at any depth and does not consult this set.
 _PAYLOAD_KEYS = frozenset({
     "body", "payload", "content", "data", "text", "message", "rows", "records",
     "attachment", "attachments", "file", "files", "document", "csv", "json",
@@ -102,37 +103,29 @@ _PAYLOAD_KEYS = frozenset({
 })
 
 
-def _walk(value: Any, depth: int = 0):
-    if depth > 6:
-        return
-    if isinstance(value, dict):
-        for k, v in value.items():
-            yield str(k), v
-            yield from _walk(v, depth + 1)
-    elif isinstance(value, (list, tuple)):
-        for v in value:
-            yield "", v
-            yield from _walk(v, depth + 1)
-
-
-def classify_sensitivity(call: dict) -> frozenset:
+def classify_sensitivity(call: dict, normalized: Any = None) -> frozenset:
     """Categories of regulated/secret material this call appears to carry.
 
-    Scans argument KEYS and VALUES at any depth — a column named `ssn` is as
-    much a signal as a value that looks like one.
-    """
-    blob_parts: list[str] = [str(call.get("tool", ""))]
-    args = call.get("args") if isinstance(call.get("args"), dict) else {}
-    for k, v in _walk(args):
-        if k:
-            blob_parts.append(k)
-        if isinstance(v, (str, int, float)):
-            blob_parts.append(str(v))
-    blob = " ".join(blob_parts)
+    Matches against `normalize.normalize_action(call).text`, which contains
+    every key and scalar AT ANY DEPTH, each scalar's percent-decoded and
+    zero-width-stripped form, and the concatenation of adjacent scalars.
 
+    That last part is the substantive change. This function used to join its
+    blob with spaces, so `body: ["AKIAIOSF", "ODNN7EXAMPLE"]` matched nothing
+    while every HTTP client that joins a multipart body sent the credential
+    intact. Markers are now matched in the form the connector will transmit,
+    not the form the payload happened to be written in.
+
+    A payload too large to traverse inside the node budget returns
+    `truncated`, and the kernel escalates rather than reading the empty result
+    as "no regulated content found".
+    """
+    from morrison_governance.kernel.normalize import normalize_action
+
+    norm = normalize_action(call) if normalized is None else normalized
     found = set()
     for cat, pat in _PATTERNS:
-        if pat.search(blob):
+        if pat.search(norm.text):
             found.add(cat)
     return frozenset(found)
 

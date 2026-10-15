@@ -312,3 +312,39 @@ if __name__ == "__main__":
 
     print(f"\n  {p} passed, {f} failed\n" + "═" * 70)
     sys.exit(1 if f else 0)
+
+
+def test_atomic_joint_admission_holds_a_joint_limit_under_simultaneous_requests():
+    """Regression for falsification G4: concurrent requests each admissible
+    against the committed joint history must not jointly cross the limit."""
+    import json as _json
+    import threading as _threading
+    from morrison_governance import GovernanceLayer as _Layer, OmegaDomain as _D, OmegaRule as _R
+    from multi_agent_eval.governance_modes import AtomicJointAdmission, SharedGlobalGovernance
+
+    def over_limit(s):
+        args = s["args"] if isinstance(s["args"], dict) else _json.loads(s["args"])
+        total = sum(int((s.get(f"step_{i}_args") or {}).get("amount", 0))
+                    for i in range(int(s.get("step", 0))))
+        return total + int(args.get("amount", 0)) > 25_000
+
+    gate = AtomicJointAdmission(SharedGlobalGovernance(
+        lambda: _Layer(log_all=False, custom_rules=[_R(_D.CUSTOM, "joint_limit", "", over_limit)])))
+    for amt in (9_000, 9_000):
+        d, tok = gate.admit("seed", [], {"tool": "transfer", "args": {"amount": amt}})
+        gate.commit(tok)
+    barrier, admitted = _threading.Barrier(4), []
+
+    def go(i):
+        barrier.wait()
+        d, tok = gate.admit(f"agent-{i}", [], {"tool": "transfer", "args": {"amount": 4_000}})
+        if tok:
+            gate.commit(tok)
+            admitted.append(i)
+
+    ts = [_threading.Thread(target=go, args=(i,)) for i in range(4)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    assert len(admitted) == 1        # 18,000 + 4,000 fits; a second 4,000 would not

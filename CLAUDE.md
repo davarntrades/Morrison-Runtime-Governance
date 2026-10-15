@@ -1,0 +1,90 @@
+# Morrison Runtime Governance: notes for Claude sessions
+
+> **Current ARSB status:** v0 is frozen historical research. The original leaderboard and leader statements below are withdrawn, not current comparative conclusions. See https://github.com/davarntrades/Morrison-Runtime-Governance/issues/39 for the challenge findings. Frozen benchmark files and historical results must remain unchanged.
+
+## AgentDojo benchmark (in progress)
+
+Third-party benchmark wired up in `runtime_eval/agentdojo_bench/`. Morrison replaces AgentDojo's tool executor, so every
+proposed tool call goes through `GovernanceKernel.authorize` → `execute`. Read
+`runtime_eval/agentdojo_bench/README.md` for the design and `runtime_eval/results/AGENTDOJO_BENCHMARK.md` for results.
+
+### Status
+
+- **Offline `oracle` mode is done.** It is a model-free, fully compromised agent, and results are checked in under
+  `runtime_eval/results/agentdojo/`. Attack success on exercisable pairs went from 100% to 19.3% (494/612 stopped; banking and
+  workspace 0%). Benign utility went from 97/97 to 63/97, or 76/97 if escalations are approved.
+- The `pci_card_exposure` substring bug (`"pan"` matching `participants`) is fixed, with a regression test in
+  `morrison_governance/test_pci_card_exposure.py`.
+- **Live mode ran (2026-10-14), Claude Opus 5.5, banking sample, two paid runs.** Report:
+  `runtime_eval/results/AGENTDOJO_LIVE_OPUS55.md`; evidence in `runtime_eval/results/agentdojo-live/`. Attack success was 0/18 in
+  both arms, because the model resisted every injection, so Morrison's prevention under attack was not exercised. In the standalone
+  injection-task runs, Morrison withheld 16/16 model-proposed protected changes (0 environment effect, against 15 executed in the
+  baseline). It also blocked a legitimate bill payment (benign check: 1/2 tasks completed under Morrison, 2/2 in the baseline).
+  Global (cross-agent) safety is NOT_TESTED by this benchmark.
+- **Adversarial falsification done (2026-10-14).** Report: `runtime_eval/results/ADVERSARIAL_LOCAL_GLOBAL_FALSIFICATION.md`;
+  offline harness `runtime_eval/falsification/` (`python -m runtime_eval.falsification --output DIR --phase NAME`), results
+  and 15 live runs in `runtime_eval/results/falsification/`. One live injected prohibited attempt found (Haiku 4.5, `direct`,
+  user_task_12 × injection_task_4): executed ungoverned, blocked under Morrison. Repaired on this branch only: E5/E7
+  approval replay, E10, E11, G4 (`AtomicJointAdmission`), E13 (`issue_approval` now hashes the canonical call). The live
+  workflow has `scope`, `attack`, `arms` (incl. `morrison-policy`, `morrison-user-intent` approvers) and `model` inputs.
+- **E8, E10, E12, G1 repaired and independently re-falsified (2026-10-14).** Report:
+  `runtime_eval/results/REPAIR_REFALSIFICATION.md`. New config: `SecurityContext.resource_scopes` (G1: shared-resource
+  history across principals; rolling over `continuity_window_s`, 0 = lifetime), `owned_resource_args` +
+  `resource_tenants` (E12), execution-intent record before every effect (E10), isolated ledger behind execution leases
+  (`runtime_eval/falsification/isolation.py`, needs root; CI skips). The independent suites
+  (`runtime_eval/falsification/refalsify/`) found R1, R2 (a regression from the E10 repair), V-G1a, V-G1b, V-E12: all fixed.
+  Still open: T3b (trajectory rule blind to pre-existing state), cross-host global safety (UNSUPPORTED).
+- **ARSB v0 (branch `claude/arsb-v0`, 2026-10-15).** Implementation-neutral benchmark for local, trajectory,
+  cross-agent, authorisation, resource-side, evidence, tenancy, fail-closed and utility properties: `arsb/SPEC.md`,
+  `arsb/README.md`, `python -m arsb --output DIR`. Scripted threat model only; no inference. Adapters for ungoverned,
+  deny-all, allowlist, a reference provenance baseline, Morrison (in-process, lease-mediated), and the original
+  Progent and CaMeL implementations (installed in a separate venv). CaMeL leads trajectory and provenance; Morrison
+  leads cross-agent and resource-side; Progent matches Morrison on authorisation with better clean-workload utility.
+- Artifact and log downloads are blocked from the cloud container (blob storage hosts). The workflow prints the redacted
+  evidence as a checksummed base64 tarball in the job log (`export-log`); rebuild it from `get_job_logs` output.
+- **Live run is wired as a manual GitHub Actions workflow**, `.github/workflows/agentdojo-live.yml` ("AgentDojo Live"), using
+  the `ANTHROPIC_API_KEY` repository Actions secret. Default mode is a free preflight; the paid benchmark needs mode
+  `benchmark` plus `RUN-PAID-BENCHMARK` typed in the confirm box. `workflow_dispatch` only appears once the file is on
+  the default branch. Opus 5.5 needs `anthropic_adapter.py` (no `temperature`, adaptive thinking, `drop_block`); see the
+  bench README.
+- Live runner hardened (keyless, 2026-10-14): fixed a crash (AgentDojo's `TraceLogger` needs an `OutputLogger` around the
+  benchmark, so the old runner would have failed on its first pair); baseline now uses the same executor in record-only
+  mode so the arms differ only in enforcement; output separates attempted calls from actual environment effects.
+
+### Running live mode
+
+Needs `ANTHROPIC_API_KEY` set in the cloud environment's settings (never pasted into chat). `api.anthropic.com` is reachable
+from the cloud environment. `api.openai.com` is blocked by the network policy unless it's added under Allowed domains.
+
+```bash
+# preflight: prints only whether the key is set and the HTTP status, never the key
+[ -n "$ANTHROPIC_API_KEY" ] && echo "key set" || echo "key NOT set"
+curl -sS -o /dev/null -w "%{http_code}\n" https://api.anthropic.com/v1/models \
+    -H "x-api-key: $ANTHROPIC_API_KEY" -H "anthropic-version: 2023-06-01"   # 200 = authenticated
+
+pip install -r runtime_eval/agentdojo_bench/requirements.txt   # agentdojo==0.1.35
+# sample first: a full suite is thousands of model calls
+python -m runtime_eval.agentdojo_bench live --provider anthropic --model claude-opus-5-5 \
+    --suite banking --user-task user_task_0 --user-task user_task_1 --output artifacts/agentdojo-live
+# same command with --defense none gives the undefended baseline; always run both
+```
+
+Report live results the same way as the oracle results: paired with the baseline, every rate with its denominator,
+escalations separate from blocks, and no tuning of `manifest.py` after seeing results.
+
+### Open follow-ups
+
+- Workspace utility is now limited mostly by the intended "external egress after a read" rule blocking calendar invites
+  to outside guests (7 tasks). Open question: should those be held for approval (ESCALATE) instead of BLOCKed?
+- Known gaps, kept on purpose and documented: travel reservations and Slack DMs carry no capability.
+
+## Repo gotchas
+
+- **Published test count.** `morrison_governance/test_evidence_consistency.py` checks that the count in `README.md`
+  ("Repository test suite | **N collected**") and `limits_audit/evidence/facts.json` matches a real collection. Adding or
+  removing tests means updating both. The AgentDojo tests skip when `agentdojo` isn't installed (as in CI), so with it
+  installed locally that check is off by 20. That's expected.
+- **Lint gate.** `morrison_governance/test_lint_gate.py` requires every third-party import to be installed by the lint
+  workflow or listed in `.pylintrc` `ignored-modules`.
+- **Test side effects.** Running the full suite rewrites files under `living-boundary/artifacts/`. Don't commit those.
+- CI uses Python 3.11 and doesn't install `agentdojo`.

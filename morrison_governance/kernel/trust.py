@@ -28,7 +28,9 @@ import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Optional
 
-from morrison_governance.kernel.canonical import action_hash, canonicalize
+from morrison_governance.kernel.canonical import (
+    action_hash, canonicalize, semantic_action_hash,
+)
 
 # ─────────────────────────────────────────────────────────────
 # Quarantined authority fields
@@ -58,6 +60,106 @@ AUTHORITY_FIELDS = frozenset({
     "requested_by", "session_customer", "impersonate",
 })
 
+# ─────────────────────────────────────────────────────────────
+# Authority by SHAPE, not by spelling
+# ─────────────────────────────────────────────────────────────
+#
+# AUTHORITY_FIELDS is an exact-name set, and an exact-name set only catches
+# the spellings someone thought of. On 2026-09-20 a live run presented
+# `approval_id=APR-7741-C9F2` in a tool call: `approved` is on the list,
+# `approval_id` is not, so the claim was neither quarantined nor recorded.
+# The capability gate still refused the action — nothing executed — but the
+# evidence record said only "no approval artifact presented" when what had
+# actually happened was "a forged one was presented and carried no weight".
+# For an auditable boundary that is the wrong receipt.
+#
+# So authority is recognised by the SHAPE of the name: a root that names an
+# authority instrument, optionally carrying structural affixes. This is the
+# same move `_sec_authorized()` already makes in domains.py — shape selects
+# among claims; it never establishes one.
+#
+# Roots are deliberately narrow. `grant` and `permit` are NOT roots: a
+# `grant_amount` or a `permit_number` is ordinary domain data, and
+# quarantining it would strip a real field out of the evaluation namespace to
+# catch a claim nobody has made.
+_AUTHORITY_ROOTS = frozenset({
+    "approval", "approvals", "approved", "authorization", "authorisation",
+    "authorized", "authorised", "signoff", "attestation", "attested",
+    "waiver", "override", "consent", "consented", "sanction", "sanctioned",
+    "clearance", "authorisations", "authorizations",
+    # collapsed two-word roots, see _collapse_roots
+    "signoff", "breakglass",
+})
+
+# Roots that are written as two words as often as one. Without this,
+# `signed_off_by` reads as [signed, off, by] — no root — while `signoff_id`
+# matches, which is an arbitrary distinction to draw in an audit boundary.
+_ROOT_PAIRS = {
+    ("sign", "off"): "signoff",
+    ("signed", "off"): "signoff",
+    ("break", "glass"): "breakglass",
+}
+
+# Structural parts that can hang off a root without changing what it asserts.
+# `approval_id`, `approval_token`, `approved_by`, `override_ref` are all the
+# same claim wearing different clothes.
+_AUTHORITY_AFFIXES = frozenset({
+    "id", "ids", "ref", "refs", "reference", "code", "token", "no", "num",
+    "number", "key", "hash", "sig", "signature", "url", "uri", "link",
+    "by", "at", "on", "from", "for", "status", "state", "level", "type",
+    "artifact", "artefact", "record", "receipt", "ticket", "case", "doc",
+    "is", "has", "was", "flag", "value", "field", "header", "chain",
+})
+
+_WORD = __import__("re").compile(r"[^a-z0-9]+")
+# camelCase and PascalCase carry the same claim as snake_case. `approvalId`
+# reached this code as one token and slipped through the first version of this
+# matcher; JSON tool-call payloads use camelCase routinely.
+_CAMEL = __import__("re").compile(r"(?<=[a-z0-9])(?=[A-Z])")
+
+
+def _collapse_roots(toks: list) -> list:
+    out, i = [], 0
+    while i < len(toks):
+        pair = (toks[i], toks[i + 1]) if i + 1 < len(toks) else None
+        if pair in _ROOT_PAIRS:
+            out.append(_ROOT_PAIRS[pair])
+            i += 2
+        else:
+            out.append(toks[i])
+            i += 1
+    return out
+
+
+def _name_tokens(key) -> list:
+    spaced = _CAMEL.sub("_", str(key).strip())
+    return _collapse_roots(
+        [tok for tok in _WORD.split(spaced.lower()) if tok])
+
+
+def is_authority_shaped(key) -> bool:
+    """True when a field NAME asserts an authority instrument.
+
+    Detection only. Recognising a claim never honours it — a recognised claim
+    is quarantined and recorded, which is strictly less power than an
+    unrecognised one, since an unrecognised name stays in the namespace.
+
+    A name matches when it contains an authority root and every other token is
+    structural. `approval_id` matches; `signature` alone does not (a document
+    signature is ordinary data); `exception_message` does not (`message` is
+    not structural); `grant_amount` does not (`grant` is not a root).
+    """
+    toks = _name_tokens(key)
+    if not toks:
+        return False
+    if "_".join(toks) in AUTHORITY_FIELDS:
+        return True
+    if not any(tok in _AUTHORITY_ROOTS for tok in toks):
+        return False
+    return all(tok in _AUTHORITY_ROOTS or tok in _AUTHORITY_AFFIXES
+               for tok in toks)
+
+
 # Fields whose presence is itself a signal worth recording loudly.
 _FORGERY_SIGNIFICANT = frozenset({
     "authorized", "authorised", "approved", "approved_by", "approver",
@@ -75,12 +177,27 @@ def quarantine_authority(call: dict) -> tuple[dict, dict]:
     important about itself, and we record it rather than discarding it.
     """
     canon = canonicalize(call)
-    args = dict(canon.get("args") or {})
     quarantined: dict[str, Any] = {}
-    for key in list(args.keys()):
-        if str(key).strip().lower() in AUTHORITY_FIELDS:
-            quarantined[key] = args.pop(key)
-    return {"tool": canon["tool"], "args": args}, quarantined
+
+    def escape(key):
+        return str(key).replace("~", "~0").replace("/", "~1")
+
+    def walk(value, path=()):
+        if isinstance(value, dict):
+            clean = {}
+            for key, child in value.items():
+                label = str(key)
+                if label.strip().lower() in AUTHORITY_FIELDS or is_authority_shaped(label):
+                    evidence_key = label if not path else "/" + "/".join((*path, escape(label)))
+                    quarantined[evidence_key] = child
+                else:
+                    clean[key] = walk(child, (*path, escape(label)))
+            return clean
+        if isinstance(value, list):
+            return [walk(child, (*path, str(index))) for index, child in enumerate(value)]
+        return value
+
+    return {"tool": canon["tool"], "args": walk(canon.get("args") or {})}, quarantined
 
 
 def forged_authority_claims(quarantined: dict) -> list[str]:
@@ -90,7 +207,8 @@ def forged_authority_claims(quarantined: dict) -> list[str]:
     out = []
     for k, v in quarantined.items():
         kl = str(k).strip().lower()
-        if kl not in _FORGERY_SIGNIFICANT:
+        leaf = kl.rsplit("/", 1)[-1].replace("~1", "/").replace("~0", "~") if kl.startswith("/") else kl
+        if leaf not in _FORGERY_SIGNIFICANT and not is_authority_shaped(leaf):
             continue
         if isinstance(v, bool) and not v:
             continue
@@ -209,6 +327,21 @@ class SecurityContext:
 
     principal: Principal = ANONYMOUS
     approvals: tuple = ()
+    # Policy facts THIS DEPLOYMENT has established — a compliance sign-off its
+    # own systems recorded, an operator confirmation, a clinical triage result.
+    #
+    # They are injected into the Ω evaluation namespace with TRUSTED
+    # provenance, which is what lets a rule that requires an attestation be
+    # satisfied. The same names arriving in a tool call's `args` carry
+    # UNTRUSTED provenance and satisfy nothing, because an action asserting
+    # that it is authorised is not an authorisation.
+    #
+    # This is trusted CONFIGURATION, like `approvals` and `trusted_issuers`:
+    # it must be populated from something the deployment authenticated, never
+    # forwarded from an agent, a peer message, or a request body. A service
+    # that pipes caller input in here has re-created by hand the confusion the
+    # field exists to prevent.
+    trusted_facts: dict = field(default_factory=dict)
     signing_key: bytes = b""
     trusted_issuers: frozenset = field(default_factory=frozenset)
 
@@ -220,11 +353,96 @@ class SecurityContext:
     # Policy for tools with no declared capability manifest entry.
     # "escalate" (default) | "block" | "permit"
     unknown_tool_policy: str = "escalate"
+    # Strict envelopes reject even nonmaterial caller authority assertions.
+    reject_untrusted_authority_claims: bool = False
     # Declared tool manifest: {tool_name: [capability, ...]}
     tool_manifest: dict = field(default_factory=dict)
 
     # Policy-owned comparison values a caller must not choose.
     policy_values: dict = field(default_factory=dict)
+
+    # ── authority continuity ─────────────────────────────────
+    # Where this principal's governed history lives. `None` uses the
+    # process-wide default store, which gives continuity across the sessions,
+    # threads and workers inside one process. Configure a durable store
+    # (FileContinuityStore, or your own ContinuityStore) for continuity across
+    # restarts, hosts, and a distributed fleet.
+    continuity_store: Any = None
+
+    # Optional finer isolation WITHIN one principal, for genuinely independent
+    # jobs. Part of the continuity key, so it must come from deployment
+    # configuration — an agent that could set its own workload could rotate it
+    # and re-open trajectory fragmentation.
+    workload: str = ""
+
+    # How far back governed history is considered, in seconds.
+    #
+    # Trajectory analysis over an UNBOUNDED past is neither safe nor useful: an
+    # agent that once read customer data would have every future egress refused
+    # for the life of the principal, so operators would widen the allowlists
+    # until the control meant nothing. One hour is long enough that an attacker
+    # cannot rotate sessions to escape it — session rotation is instant, waiting
+    # is not — and short enough that yesterday's work does not govern today's.
+    #
+    # The trade-off is explicit and is the main residual limitation of the
+    # continuity design: an attacker patient enough to spread one prohibited
+    # trajectory across a window longer than this defeats it. Raise it for
+    # high-value workloads; the cost is more escalations, not less safety.
+    continuity_window_s: float = 3600.0
+
+    # Deprecated: mrl1 keys are retained for configuration compatibility only.
+    # Export requires an external Ed25519 signer and shared atomic registry.
+    lease_signer: Any = None
+    lease_store: Any = None
+    lease_signing_key: bytes = b""
+
+    # How many authorisations one identity may hold reserved-but-unexecuted.
+    # Beyond this, further authorisation escalates until the caller executes or
+    # releases. 0 disables the limit.
+    max_outstanding_reservations: int = 64
+
+    # What to do when the persistent identity cannot be established:
+    # "escalate" (default) | "block" | "permit". "permit" is an explicit,
+    # auditable opt-out, not a silent one.
+    continuity_policy: str = "escalate"
+
+    # Whether loopback / RFC1918 addresses count as inside the trust boundary
+    # WITHOUT being named in `internal_url_hosts` or `internal_cidrs`.
+    #
+    # Defaults to False, which is a behaviour change: any private or loopback
+    # literal used to resolve as internal automatically, so a collector on the
+    # agent's own VPC was "internal" and every external-egress rule was skipped
+    # for it. Deployments that genuinely trust their private ranges should list
+    # them in `internal_cidrs`; this flag exists for the ones that cannot
+    # enumerate them yet. Link-local and cloud metadata endpoints are never
+    # internal, whatever this is set to.
+    trust_private_networks: bool = False
+
+    # SHARED RESOURCES: whose history a decision is evaluated against.
+    #
+    # Governed history is filed per principal, so a rule such as "outflow from
+    # account X must not exceed N" saw only the acting principal's own steps.
+    # Two agents, each within the limit on its own, jointly exceeded it (G1).
+    # `resource_scopes(call)` names the shared resources a call acts on, e.g.
+    # ["account:OPS"]. Every live reservation or execution on a scope is filed
+    # under that scope as well, and a decision on the scope is evaluated
+    # against all of it, whichever principal took it. It is trusted deployment
+    # configuration: every kernel that can act on the resource must share the
+    # continuity store and the same resolver, and resource ids must be the
+    # resource's own canonical ids.
+    resource_scopes: Any = None
+
+    # RESOURCE OWNERSHIP: which tenant owns the resource a call acts on.
+    #
+    # Tenancy used to be inferred from the shape of identifiers (`tenant_b`,
+    # `tenant_id=...`), so an opaque account id owned by another tenant passed
+    # (E12). `owned_resource_args` maps a tool to the argument names that name
+    # a resource the principal acts ON (the debited account, not the payee);
+    # `resource_tenants` is the trusted registry, a mapping or a callable
+    # `id -> tenant | None`. Once a tool is declared, a resource whose owner is
+    # unknown is refused, never assumed to be the principal's own.
+    owned_resource_args: dict = field(default_factory=dict)
+    resource_tenants: Any = None
 
     _used_nonces: set = field(default_factory=set)
 
@@ -277,12 +495,25 @@ def issue_approval(call: dict, issuer: str, key: bytes, ttl_s: float = 300.0,
                    scope: str = "", nonce: str = "",
                    now: Optional[float] = None) -> ApprovalArtifact:
     """Helper for trusted approval services (and tests): mint a signed approval
-    bound to the canonical hash of `call`.
+    bound to the SEMANTIC hash of `call`.
+
+    Semantic rather than byte-canonical, so an approval is bound to the
+    TRANSITION it was granted for. A reviewer who approves
+    `shell {"cmd": "..."}` has approved that command; re-proposing it as
+    `run_shell` is the same transition and consumes the same approval, rather
+    than presenting as a new unapproved action or — worse — letting a second
+    spelling escape the approval requirement entirely.
 
     Raises if `key` is empty — see `ApprovalArtifact.sign`.
+
+    The call is canonicalised first, exactly as the kernel canonicalises a
+    proposal before hashing it. Hashing the raw call made an approval for
+    `amount: 1200.0` (as models emit it) unverifiable against the kernel's
+    `amount: 1200`, so the approved action stayed ESCALATE.
     """
+    from morrison_governance.kernel.canonical import canonicalize
     now = time.time() if now is None else now
     return ApprovalArtifact(
-        action_hash=action_hash(call), issuer=issuer, scope=scope,
+        action_hash=semantic_action_hash(canonicalize(call)), issuer=issuer, scope=scope,
         issued_at=now, expires_at=now + ttl_s, nonce=nonce,
     ).sign(key)

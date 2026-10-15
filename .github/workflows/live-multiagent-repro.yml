@@ -1,0 +1,195 @@
+name: Live Multi-Agent Reproduction
+
+# Runs limits_audit/live_multiagent against the real Claude API. The credential
+# lives only as a GitHub Actions secret, which is write-only and is injected
+# into workflow runs, so this workflow is the only place the experiment can run.
+#
+# Everything the agents can touch is loopback: mock_service.py binds
+# 127.0.0.1 as a module constant and run_experiment.py calls assert_local_only()
+# before every request. No third-party host is contacted except api.anthropic.com.
+#
+# The model is pinned in agents.py (claude-haiku-4-5, 5 turns per agent) and is
+# deliberately NOT read from vars.ANTHROPIC_MODEL, so the run costs what
+# estimate_cost.py priced. A budget gate below hard-fails above $1.00.
+
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: which backends (all | anthropic | hf)
+        default: all
+      only:
+        description: comma-separated model keys to keep (e.g. gpt-oss-120b)
+        default: ""
+      arms:
+        description: all | inoculated | uninoculated
+        default: all
+      repeats:
+        description: trials per cell (>1 measures a rate instead of one sample)
+        default: "1"
+      fixed_peer:
+        description: pin Agent B's board message so trials are comparable
+        type: boolean
+        default: false
+      peer_variants:
+        description: no_artifact | forged_artifact | all (implies fixed_peer)
+        default: no_artifact
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      HF_INCIDENT: ${{ secrets.HF_INCIDENT }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate credential presence
+        run: |
+          # Presence only. Neither value is echoed, interpolated into a
+          # command line, or written anywhere.
+          test -n "$ANTHROPIC_API_KEY" || {
+            echo "BLOCKED: ANTHROPIC_API_KEY secret is not available to this run."
+            exit 1
+          }
+          test -n "$HF_INCIDENT" || {
+            echo "BLOCKED: HF_INCIDENT secret is not available to this run."
+            exit 1
+          }
+          echo "Both credentials present (values never printed)."
+
+      - name: Install dependencies
+        run: python -m pip install "anthropic>=0.39" "openai>=1.0"
+
+      - name: Cost estimate and budget gate
+        run: |
+          # Model-aware. The previous gate priced the Anthropic envelope x
+          # repeats even on an HF-only sweep, which charged a run for a
+          # backend it never called: run 35485983996 spent $0 on Anthropic
+          # and scored $0.907 against a $1.00 ceiling. A gate that blocks the
+          # wrong runs is a gate that gets raised until it means nothing.
+          python limits_audit/live_multiagent/estimate_cost.py \
+            --models "${{ inputs.models || 'all' }}" \
+            --arms "${{ inputs.arms || 'all' }}" \
+            --repeats "${{ inputs.repeats || '1' }}" \
+            --only "${{ inputs.only || '' }}" \
+            --peer-variants "${{ inputs.peer_variants || 'no_artifact' }}" \
+            --ceiling 1.00
+
+      - name: Prove the loopback guard refuses a real host
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "limits_audit/live_multiagent")
+          from mock_service import assert_local_only
+          try:
+              assert_local_only("https://huggingface.co/api/models")
+          except RuntimeError as exc:
+              print("guard OK:", exc)
+          else:
+              raise SystemExit("GUARD FAILED: a non-loopback URL was accepted")
+          PY
+
+      - name: Zero-spend wiring proof
+        run: python limits_audit/live_multiagent/dry_run_governance.py
+
+      - name: Zero-spend multi-model self-test
+        run: python limits_audit/live_multiagent/offline_selftest.py
+
+      - name: Run the live experiment (Claude + open-weight comparison)
+        run: |
+          python limits_audit/live_multiagent/run_experiment.py \
+            --models "${{ inputs.models || 'all' }}" \
+            --arms "${{ inputs.arms || 'all' }}" \
+            --repeats "${{ inputs.repeats || '1' }}" \
+            ${{ inputs.only && format('--only {0}', inputs.only) || '' }} \
+            ${{ inputs.fixed_peer && '--fixed-peer' || '' }} \
+            --peer-variants "${{ inputs.peer_variants || 'no_artifact' }}" \
+            --out results.json --board board.json
+
+      - name: Scan artifacts for the credential
+        if: always()
+        run: |
+          python - <<'PY'
+          import os, pathlib, sys
+          secrets = [v for v in (os.environ.get(k, "") for k in
+                                 ("ANTHROPIC_API_KEY", "HF_INCIDENT"))
+                     if v and len(v) >= 8]
+          if not secrets:
+              raise SystemExit("scan could not read the secrets to scan for")
+          hits = []
+          for name in ("results.json", "board.json"):
+              p = pathlib.Path(name)
+              if not p.exists():
+                  continue
+              body = p.read_text(errors="ignore")
+              # The secret name is reported, never the value.
+              for key, value in (("ANTHROPIC_API_KEY", os.environ.get("ANTHROPIC_API_KEY", "")),
+                                 ("HF_INCIDENT", os.environ.get("HF_INCIDENT", ""))):
+                  if value and len(value) >= 8 and value in body:
+                      hits.append(f"{key} in {name}")
+          if hits:
+              raise SystemExit(f"credential found in artifacts: {hits}")
+          print(f"credential scan clean ({len(secrets)} secrets checked)")
+          PY
+
+      - name: Print full transcripts to the log
+        if: always()
+        run: |
+          echo "===== results.json ====="
+          cat results.json || echo "(no results.json produced)"
+          echo "===== board.json ====="
+          cat board.json || echo "(no board.json produced)"
+
+      - name: Spend summary (printed last, so it survives log truncation)
+        if: always()
+        run: |
+          # The per-run totals are printed by the harness BEFORE it cats the
+          # transcripts, which on a large sweep puts them thousands of lines
+          # from the end — out of reach of a tail-only log read, while the
+          # artifact itself sits behind an egress policy. Printing them last
+          # makes exact spend always recoverable.
+          python - <<'PY'
+          import json, pathlib
+          p = pathlib.Path("results.json")
+          if not p.exists():
+              raise SystemExit("no results.json")
+          r = json.loads(p.read_text())
+          runs = r.get("runs", [])
+          tin = sum(x.get("usage", {}).get("input_tokens", 0) for x in runs)
+          tout = sum(x.get("usage", {}).get("output_tokens", 0) for x in runs)
+          priced = sum(x.get("usage", {}).get("cost_usd") or 0.0 for x in runs)
+          by = {}
+          for x in runs:
+              u = x.get("usage", {})
+              k = (x["key"], x.get("peer_variant", "-"), x["arm"])
+              a, b, c = by.get(k, (0, 0, 0))
+              by[k] = (a + u.get("input_tokens", 0),
+                       b + u.get("output_tokens", 0), c + 1)
+          print("═══════ EXACT SPEND ═══════")
+          for k in sorted(by):
+              i, o, n = by[k]
+              print(f"  {k[0]} · {k[1]} · {k[2]}: {n} model-runs, "
+                    f"{i} in / {o} out")
+          print(f"  TOTAL: {len(runs)} model-runs, {tin} in / {tout} out")
+          print(f"  priced (Anthropic) spend: ${round(priced, 4)}")
+          PY
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-multiagent-repro-${{ github.run_id }}
+          path: |
+            results.json
+            board.json
+          if-no-files-found: warn
+          retention-days: 30

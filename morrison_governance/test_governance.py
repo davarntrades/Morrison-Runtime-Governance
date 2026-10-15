@@ -53,15 +53,33 @@ def test_unauthorized_transfer_blocked():
 
 
 def test_authorized_transfer_permitted():
-    """Authorized financial transfers must be permitted."""
+    """Authorized financial transfers must be permitted.
+
+    The authorisation is established through the deployment's trusted channel.
+    Written into the call's own `args` it would be the transfer asserting its
+    own authority, which carries UNTRUSTED provenance and grants nothing —
+    see morrison_governance.provenance and the negative case below.
+    """
     gov = GovernanceLayer(domains=[OmegaDomain.FINANCE])
 
     result = gov.evaluate({
         "tool": "transfer",
-        "args": {"amount": 50000, "to": "internal_account", "authorized": True},
-    })
+        "args": {"amount": 50000, "to": "internal_account"},
+    }, trusted_facts={"authorized": True})
 
     assert result.permitted
+
+
+def test_self_asserted_transfer_authorization_is_not_authorization():
+    gov = GovernanceLayer(domains=[OmegaDomain.FINANCE])
+    for shape in ({"tool": "transfer",
+                   "args": {"amount": 50000, "to": "x", "authorized": True}},
+                  {"tool": "transfer", "args": {"amount": 50000, "to": "x"},
+                   "authorized": True},
+                  {"tool": "transfer",
+                   "args": {"amount": 50000, "to": "x",
+                            "treasury_desk_confirmed": True}}):
+        assert gov.evaluate(shape).blocked, shape
 
 
 def test_credential_exfiltration_blocked():
