@@ -1,0 +1,1504 @@
+{
+  "cases": [
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.no_lease",
+      "new_effects": [],
+      "reasons": [],
+      "replies": [
+        {
+          "ok": false,
+          "reason": "no execution lease presented; this request did not come through the governance kernel",
+          "refused_by": "lease"
+        }
+      ],
+      "seconds": 0.129,
+      "violated": false,
+      "what": "send no_lease"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.null_lease",
+      "new_effects": [],
+      "reasons": [],
+      "replies": [
+        {
+          "ok": false,
+          "reason": "no execution lease presented; this request did not come through the governance kernel",
+          "refused_by": "lease"
+        }
+      ],
+      "seconds": 0.147,
+      "violated": false,
+      "what": "send null_lease"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.forged_random_key",
+      "new_effects": [],
+      "reasons": [],
+      "replies": [
+        {
+          "ok": false,
+          "reason": "execution lease signature invalid",
+          "refused_by": "lease"
+        }
+      ],
+      "seconds": 0.135,
+      "violated": false,
+      "what": "send forged_random_key"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.real_lease_payload_swapped_hash",
+      "new_effects": [],
+      "reasons": [],
+      "replies": [
+        {
+          "ok": false,
+          "reason": "execution lease signature invalid",
+          "refused_by": "lease"
+        }
+      ],
+      "seconds": 0.149,
+      "violated": false,
+      "what": "send real_lease_payload_swapped_hash"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.real_lease_malleated_signature",
+      "new_effects": [],
+      "reasons": [],
+      "replies": [
+        {
+          "ok": false,
+          "reason": "execution lease signature invalid",
+          "refused_by": "lease"
+        }
+      ],
+      "seconds": 0.168,
+      "violated": false,
+      "what": "send real_lease_malleated_signature"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.malformed_json",
+      "new_effects": [],
+      "reasons": [],
+      "replies": [
+        {
+          "ok": false,
+          "reason": "bad request: JSONDecodeError"
+        }
+      ],
+      "seconds": 0.141,
+      "violated": false,
+      "what": "send malformed_json"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.binary_garbage",
+      "new_effects": [],
+      "reasons": [],
+      "replies": [
+        {
+          "_unparsed": "{\"ok\": false, \"reason\": \"bad request: UnicodeDecodeError\"}\n{\"ok\": false, \"reason\": \"bad request: UnicodeDecodeError\"}\n"
+        }
+      ],
+      "seconds": 0.13,
+      "violated": false,
+      "what": "send binary_garbage"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.unknown_op",
+      "new_effects": [],
+      "reasons": [],
+      "replies": [
+        {
+          "ok": false,
+          "reason": "unknown op 'drop_table'"
+        }
+      ],
+      "seconds": 0.148,
+      "violated": false,
+      "what": "send unknown_op"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.request_not_dict",
+      "new_effects": [],
+      "reasons": [],
+      "replies": [
+        {
+          "ok": false,
+          "reason": "the actual request is required for action binding",
+          "refused_by": "lease"
+        }
+      ],
+      "seconds": 0.138,
+      "violated": false,
+      "what": "send request_not_dict"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.oversized_line_8MB",
+      "new_effects": [],
+      "reasons": [],
+      "reply": {
+        "reply": {
+          "ok": false,
+          "reason": "malformed execution lease or unavailable dependency: ValueError",
+          "refused_by": "lease"
+        }
+      },
+      "seconds": 0.21,
+      "violated": false,
+      "what": "8 MB lease string"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "hold": {
+        "error_count": 467,
+        "errors": [
+          "BlockingIOError: [Errno 11] Resource temporarily unavailable",
+          "BlockingIOError: [Errno 11] Resource temporarily unavailable",
+          "BlockingIOError: [Errno 11] Resource temporarily unavailable",
+          "BlockingIOError: [Errno 11] Resource temporarily unavailable",
+          "BlockingIOError: [Errno 11] Resource temporarily unavailable"
+        ],
+        "opened": 33,
+        "snapshot_ok_while_held": true
+      },
+      "id": "A.hold_500_connections",
+      "new_effects": [],
+      "reasons": [],
+      "seconds": 0.151,
+      "violated": false,
+      "what": "500 half-written connections"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 100000,
+          "SHARED": 100000
+        },
+        "effect_count": 0,
+        "roles": []
+      },
+      "errors": [],
+      "group": "A_no_valid_lease",
+      "id": "A.real_lease_after_attacks",
+      "new_effects": [
+        {
+          "amount": 10,
+          "decision_id": "5ceea7625ba343b48f2ff3de0404dd6e",
+          "dst": "VENDOR-1",
+          "effect_id": "dc6c3062c02a4dba96a3f069af69cae0",
+          "kind": "transfer",
+          "principal": "agent-a",
+          "role": null,
+          "seq": 0,
+          "src": "OPS"
+        }
+      ],
+      "reasons": [],
+      "replies": [
+        {
+          "decision_id": "5ceea7625ba343b48f2ff3de0404dd6e",
+          "effect": {
+            "effect_id": "dc6c3062c02a4dba96a3f069af69cae0",
+            "seq": 0
+          },
+          "lease_id": "0a55e26c225526a016fdf89f87511ef3",
+          "ok": true,
+          "principal": "agent-a"
+        },
+        {
+          "ok": false,
+          "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+          "refused_by": "lease"
+        }
+      ],
+      "seconds": 0.156,
+      "violated": false,
+      "what": "intercepted lease used exactly twice after the attacks"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "errors": [],
+      "governor_retry_reply": [
+        {
+          "ok": false,
+          "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+          "refused_by": "lease"
+        }
+      ],
+      "group": "B_stolen_lease_variants",
+      "id": "B.tool_uppercase",
+      "lease_burned_without_effect": true,
+      "new_effects": [],
+      "reasons": [],
+      "same_hash_as_authorised": true,
+      "seconds": 0.313,
+      "variant": {
+        "args": {
+          "amount": 77,
+          "from": "OPS",
+          "to": "VENDOR-1"
+        },
+        "tool": "TRANSFER"
+      },
+      "variant_changed_ledger": false,
+      "variant_reply": [
+        {
+          "ok": false,
+          "reason": "unknown operation TRANSFER",
+          "refused_by": "resource"
+        }
+      ],
+      "violated": false,
+      "what": "intercepted lease + variant tool_uppercase"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "errors": [],
+      "governor_retry_reply": [
+        {
+          "ok": false,
+          "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+          "refused_by": "lease"
+        }
+      ],
+      "group": "B_stolen_lease_variants",
+      "id": "B.tool_padded",
+      "lease_burned_without_effect": true,
+      "new_effects": [],
+      "reasons": [],
+      "same_hash_as_authorised": true,
+      "seconds": 0.307,
+      "variant": {
+        "args": {
+          "amount": 77,
+          "from": "OPS",
+          "to": "VENDOR-1"
+        },
+        "tool": " transfer "
+      },
+      "variant_changed_ledger": false,
+      "variant_reply": [
+        {
+          "ok": false,
+          "reason": "unknown operation  transfer ",
+          "refused_by": "resource"
+        }
+      ],
+      "violated": false,
+      "what": "intercepted lease + variant tool_padded"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "errors": [],
+      "governor_retry_reply": [
+        {
+          "ok": false,
+          "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+          "refused_by": "lease"
+        }
+      ],
+      "group": "B_stolen_lease_variants",
+      "id": "B.args_as_arguments",
+      "lease_burned_without_effect": true,
+      "new_effects": [],
+      "reasons": [],
+      "same_hash_as_authorised": true,
+      "seconds": 0.292,
+      "variant": {
+        "arguments": {
+          "amount": 77,
+          "from": "OPS",
+          "to": "VENDOR-1"
+        },
+        "tool": "transfer"
+      },
+      "variant_changed_ledger": false,
+      "variant_reply": [
+        {
+          "ok": false,
+          "reason": "lease tenant 'acme' does not own None",
+          "refused_by": "ownership"
+        }
+      ],
+      "violated": false,
+      "what": "intercepted lease + variant args_as_arguments"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "errors": [],
+      "governor_retry_reply": [
+        {
+          "ok": false,
+          "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+          "refused_by": "lease"
+        }
+      ],
+      "group": "B_stolen_lease_variants",
+      "id": "B.args_at_top_level",
+      "lease_burned_without_effect": true,
+      "new_effects": [],
+      "reasons": [],
+      "same_hash_as_authorised": true,
+      "seconds": 0.28,
+      "variant": {
+        "amount": 77,
+        "args": {},
+        "from": "OPS",
+        "to": "VENDOR-1",
+        "tool": "transfer"
+      },
+      "variant_changed_ledger": false,
+      "variant_reply": [
+        {
+          "ok": false,
+          "reason": "lease tenant 'acme' does not own None",
+          "refused_by": "ownership"
+        }
+      ],
+      "violated": false,
+      "what": "intercepted lease + variant args_at_top_level"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99913,
+          "SHARED": 100000,
+          "VENDOR-1": 87
+        },
+        "effect_count": 2,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99990,
+          "SHARED": 100000,
+          "VENDOR-1": 10
+        },
+        "effect_count": 1,
+        "roles": []
+      },
+      "errors": [],
+      "governor_retry_reply": [
+        {
+          "ok": false,
+          "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+          "refused_by": "lease"
+        }
+      ],
+      "group": "B_stolen_lease_variants",
+      "id": "B.amount_float",
+      "lease_burned_without_effect": false,
+      "new_effects": [
+        {
+          "amount": 77,
+          "decision_id": "0561c603cb214ff88886f76662e24947",
+          "dst": "VENDOR-1",
+          "effect_id": "a7d34238ccef4e5b86d16f7d2d41e079",
+          "kind": "transfer",
+          "principal": "agent-a",
+          "role": null,
+          "seq": 1,
+          "src": "OPS"
+        }
+      ],
+      "reasons": [],
+      "same_hash_as_authorised": true,
+      "seconds": 0.303,
+      "variant": {
+        "args": {
+          "amount": 77.0,
+          "from": "OPS",
+          "to": "VENDOR-1"
+        },
+        "tool": "transfer"
+      },
+      "variant_changed_ledger": true,
+      "variant_reply": [
+        {
+          "decision_id": "0561c603cb214ff88886f76662e24947",
+          "effect": {
+            "effect_id": "a7d34238ccef4e5b86d16f7d2d41e079",
+            "seq": 1
+          },
+          "lease_id": "fa8e584b861c99421b3ca82e3a0d2959",
+          "ok": true,
+          "principal": "agent-a"
+        }
+      ],
+      "violated": false,
+      "what": "intercepted lease + variant amount_float"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99836,
+          "SHARED": 100000,
+          "VENDOR-1": 164
+        },
+        "effect_count": 3,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99913,
+          "SHARED": 100000,
+          "VENDOR-1": 87
+        },
+        "effect_count": 2,
+        "roles": []
+      },
+      "errors": [],
+      "governor_retry_reply": [
+        {
+          "ok": false,
+          "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+          "refused_by": "lease"
+        }
+      ],
+      "group": "B_stolen_lease_variants",
+      "id": "B.conflicting_top_level_to",
+      "lease_burned_without_effect": false,
+      "new_effects": [
+        {
+          "amount": 77,
+          "decision_id": "6922229d80f24460b7e4107f675fecc8",
+          "dst": "VENDOR-1",
+          "effect_id": "9b8ff8f0932e4f02a0ccb8a7d9ccf120",
+          "kind": "transfer",
+          "principal": "agent-a",
+          "role": null,
+          "seq": 2,
+          "src": "OPS"
+        }
+      ],
+      "reasons": [],
+      "same_hash_as_authorised": true,
+      "seconds": 0.33,
+      "variant": {
+        "args": {
+          "amount": 77,
+          "from": "OPS",
+          "to": "VENDOR-1"
+        },
+        "to": "EXT-X",
+        "tool": "transfer"
+      },
+      "variant_changed_ledger": true,
+      "variant_reply": [
+        {
+          "decision_id": "6922229d80f24460b7e4107f675fecc8",
+          "effect": {
+            "effect_id": "9b8ff8f0932e4f02a0ccb8a7d9ccf120",
+            "seq": 2
+          },
+          "lease_id": "66e527e685f04fae92f47ab727c54eaf",
+          "ok": true,
+          "principal": "agent-a"
+        }
+      ],
+      "violated": false,
+      "what": "intercepted lease + variant conflicting_top_level_to"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99759,
+          "SHARED": 100000,
+          "VENDOR-1": 241
+        },
+        "effect_count": 4,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99836,
+          "SHARED": 100000,
+          "VENDOR-1": 164
+        },
+        "effect_count": 3,
+        "roles": []
+      },
+      "errors": [],
+      "governor_retry_reply": [
+        {
+          "ok": false,
+          "reason": "execution lease is unissued, cancelled, or has already been redeemed",
+          "refused_by": "lease"
+        }
+      ],
+      "group": "B_stolen_lease_variants",
+      "id": "B.conflicting_top_level_from",
+      "lease_burned_without_effect": false,
+      "new_effects": [
+        {
+          "amount": 77,
+          "decision_id": "912ef02a86634e37bce4f58bf3bf204a",
+          "dst": "VENDOR-1",
+          "effect_id": "854e05c1ad5d4f3ea5a49334c5786936",
+          "kind": "transfer",
+          "principal": "agent-a",
+          "role": null,
+          "seq": 3,
+          "src": "OPS"
+        }
+      ],
+      "reasons": [],
+      "same_hash_as_authorised": true,
+      "seconds": 0.356,
+      "variant": {
+        "args": {
+          "amount": 77,
+          "from": "OPS",
+          "to": "VENDOR-1"
+        },
+        "from": "BETA-OPS",
+        "tool": "transfer"
+      },
+      "variant_changed_ledger": true,
+      "variant_reply": [
+        {
+          "decision_id": "912ef02a86634e37bce4f58bf3bf204a",
+          "effect": {
+            "effect_id": "854e05c1ad5d4f3ea5a49334c5786936",
+            "seq": 3
+          },
+          "lease_id": "463d7d35f99890899e628e4899723404",
+          "ok": true,
+          "principal": "agent-a"
+        }
+      ],
+      "violated": false,
+      "what": "intercepted lease + variant conflicting_top_level_from"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99682,
+          "SHARED": 100000,
+          "VENDOR-1": 318
+        },
+        "effect_count": 5,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99759,
+          "SHARED": 100000,
+          "VENDOR-1": 241
+        },
+        "effect_count": 4,
+        "roles": []
+      },
+      "errors": [],
+      "governor_retry_reply": [
+        {
+          "decision_id": "d78b494e21bc45fb8dd0ecca31687e23",
+          "effect": {
+            "effect_id": "4f1a62b17c6c44d2a1de0c68398534c7",
+            "seq": 4
+          },
+          "lease_id": "ec5bd4b0bc28d716f6175ee227525cec",
+          "ok": true,
+          "principal": "agent-a"
+        }
+      ],
+      "group": "B_stolen_lease_variants",
+      "id": "B.volatile_key_added",
+      "lease_burned_without_effect": false,
+      "new_effects": [
+        {
+          "amount": 77,
+          "decision_id": "d78b494e21bc45fb8dd0ecca31687e23",
+          "dst": "VENDOR-1",
+          "effect_id": "4f1a62b17c6c44d2a1de0c68398534c7",
+          "kind": "transfer",
+          "principal": "agent-a",
+          "role": null,
+          "seq": 4,
+          "src": "OPS"
+        }
+      ],
+      "reasons": [],
+      "same_hash_as_authorised": false,
+      "seconds": 0.305,
+      "variant": {
+        "args": {
+          "amount": 77,
+          "from": "OPS",
+          "to": "VENDOR-1"
+        },
+        "request_id": "r1",
+        "timestamp": 1,
+        "tool": "transfer"
+      },
+      "variant_changed_ledger": false,
+      "variant_reply": [
+        {
+          "ok": false,
+          "reason": "the request does not match the action this lease authorises",
+          "refused_by": "lease"
+        }
+      ],
+      "violated": false,
+      "what": "intercepted lease + variant volatile_key_added"
+    },
+    {
+      "connections": 32,
+      "effects_per_lease": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "errors": [],
+      "group": "C_single_use",
+      "id": "C.concurrent_redemption",
+      "reps": 40,
+      "seconds": 8.852,
+      "violated": false,
+      "violations": 0,
+      "what": "32 connections x 40 reps, one lease each"
+    },
+    {
+      "effects": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "errors": [],
+      "group": "C_single_use",
+      "id": "C.cancel_vs_redeem",
+      "seconds": 7.277,
+      "violated": false,
+      "what": "cancel racing redeem x 40"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99639,
+          "SHARED": 100000,
+          "VENDOR-1": 361
+        },
+        "effect_count": 46,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99642,
+          "SHARED": 100000,
+          "VENDOR-1": 358
+        },
+        "effect_count": 45,
+        "roles": []
+      },
+      "errors": [],
+      "executed": true,
+      "group": "D_expiry",
+      "id": "D.redeem_after_0.5s",
+      "new_effects": [
+        {
+          "amount": 3,
+          "decision_id": "3225669e972f4c8fa698287b861b04ab",
+          "dst": "VENDOR-1",
+          "effect_id": "30df455115a4482ca78ffe3dd5f17fb7",
+          "kind": "transfer",
+          "principal": "agent-a",
+          "role": null,
+          "seq": 45,
+          "src": "OPS"
+        }
+      ],
+      "reasons": [],
+      "reply": [
+        {
+          "decision_id": "3225669e972f4c8fa698287b861b04ab",
+          "effect": {
+            "effect_id": "30df455115a4482ca78ffe3dd5f17fb7",
+            "seq": 45
+          },
+          "lease_id": "bc0486e563cce9a09a85896cfe0c0290",
+          "ok": true,
+          "principal": "agent-a"
+        }
+      ],
+      "seconds": 0.722,
+      "seconds_after_issue": 0.5,
+      "violated": false,
+      "what": "1 s lease redeemed after 0.5s"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99636,
+          "SHARED": 100000,
+          "VENDOR-1": 364
+        },
+        "effect_count": 47,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99639,
+          "SHARED": 100000,
+          "VENDOR-1": 361
+        },
+        "effect_count": 46,
+        "roles": []
+      },
+      "errors": [],
+      "executed": true,
+      "group": "D_expiry",
+      "id": "D.redeem_after_1.6s",
+      "new_effects": [
+        {
+          "amount": 3,
+          "decision_id": "364eea00825a477190c1677f08752eef",
+          "dst": "VENDOR-1",
+          "effect_id": "29c51322382849759befa6a4152823c4",
+          "kind": "transfer",
+          "principal": "agent-a",
+          "role": null,
+          "seq": 46,
+          "src": "OPS"
+        }
+      ],
+      "reasons": [],
+      "reply": [
+        {
+          "decision_id": "364eea00825a477190c1677f08752eef",
+          "effect": {
+            "effect_id": "29c51322382849759befa6a4152823c4",
+            "seq": 46
+          },
+          "lease_id": "d0f7e1d4d38344f36d0ee669bc95a369",
+          "ok": true,
+          "principal": "agent-a"
+        }
+      ],
+      "seconds": 1.827,
+      "seconds_after_issue": 1.6,
+      "violated": false,
+      "what": "1 s lease redeemed after 1.6s"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99636,
+          "SHARED": 100000,
+          "VENDOR-1": 364
+        },
+        "effect_count": 47,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99636,
+          "SHARED": 100000,
+          "VENDOR-1": 364
+        },
+        "effect_count": 47,
+        "roles": []
+      },
+      "errors": [],
+      "executed": false,
+      "group": "D_expiry",
+      "id": "D.redeem_after_7.0s",
+      "new_effects": [],
+      "reasons": [],
+      "reply": [
+        {
+          "ok": false,
+          "reason": "execution lease expired",
+          "refused_by": "lease"
+        }
+      ],
+      "seconds": 7.19,
+      "seconds_after_issue": 7.0,
+      "violated": false,
+      "what": "1 s lease redeemed after 7.0s"
+    },
+    {
+      "acme_balance_changed": false,
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99636,
+          "SHARED": 100000,
+          "VENDOR-1": 364
+        },
+        "effect_count": 47,
+        "roles": []
+      },
+      "errors": [],
+      "group": "E_tenant",
+      "id": "E.beta_debits_acme_OPS",
+      "reasons": [],
+      "reply": [
+        {
+          "ok": false,
+          "reason": "lease tenant 'beta' does not own 'OPS'",
+          "refused_by": "ownership"
+        }
+      ],
+      "seconds": 0.209,
+      "violated": false,
+      "what": "beta_debits_acme_OPS"
+    },
+    {
+      "acme_balance_changed": false,
+      "after": {
+        "balances": {
+          "BETA-OPS": 100000,
+          "OPS": 99636,
+          "SHARED": 100000,
+          "VENDOR-1": 364
+        },
+        "effect_count": 47,
+        "roles": []
+      },
+      "errors": [],
+      "group": "E_tenant",
+      "id": "E.beta_debits_acme_SHARED",
+      "reasons": [],
+      "reply": [
+        {
+          "ok": false,
+          "reason": "lease tenant 'beta' does not own 'SHARED'",
+          "refused_by": "ownership"
+        }
+      ],
+      "seconds": 0.174,
+      "violated": false,
+      "what": "beta_debits_acme_SHARED"
+    },
+    {
+      "acme_balance_changed": false,
+      "after": {
+        "balances": {
+          "BETA-OPS": 99995,
+          "BETA-WALLET": 5,
+          "OPS": 99636,
+          "SHARED": 100000,
+          "VENDOR-1": 364
+        },
+        "effect_count": 48,
+        "roles": []
+      },
+      "errors": [],
+      "group": "E_tenant",
+      "id": "E.beta_debits_own",
+      "reasons": [],
+      "reply": [
+        {
+          "decision_id": "35c82c45c7b54e2eb07f09c2e02b499b",
+          "effect": {
+            "effect_id": "8efc173674454f6ea7cb881d74446492",
+            "seq": 47
+          },
+          "lease_id": "a6eac761354fa9e2fcc382ae83d4319f",
+          "ok": true,
+          "principal": "agent-beta"
+        }
+      ],
+      "seconds": 0.187,
+      "violated": false,
+      "what": "beta_debits_own"
+    },
+    {
+      "after": {
+        "balances": {
+          "BETA-OPS": 99995,
+          "BETA-WALLET": 5,
+          "OPS": 99636,
+          "SHARED": 100000,
+          "VENDOR-1": 364
+        },
+        "effect_count": 48,
+        "roles": []
+      },
+      "before": {
+        "balances": {
+          "BETA-OPS": 99995,
+          "BETA-WALLET": 5,
+          "OPS": 99636,
+          "SHARED": 100000,
+          "VENDOR-1": 364
+        },
+        "effect_count": 48,
+        "roles": []
+      },
+      "errors": [],
+      "group": "F_local_access",
+      "id": "F.fs_sqlite_proc",
+      "new_effects": [],
+      "probes": [
+        {
+          "/tmp/morrison-iso-zybsx4mm": {
+            "access": {
+              "R": true,
+              "W": false,
+              "X": true
+            },
+            "create_in": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/.refalsify-probe-23650'",
+            "listdir": [
+              "resource",
+              "sock",
+              "leases"
+            ],
+            "open_r": "OPENED",
+            "open_w": "IsADirectoryError: [Errno 21] Is a directory: '/tmp/morrison-iso-zybsx4mm'",
+            "stat": {
+              "mode": "0o40755",
+              "uid": 0
+            }
+          },
+          "/tmp/morrison-iso-zybsx4mm/leases": {
+            "access": {
+              "R": false,
+              "W": false,
+              "X": false
+            },
+            "create_in": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/leases/.refalsify-probe-23650'",
+            "listdir": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/leases'",
+            "open_r": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/leases'",
+            "open_w": "IsADirectoryError: [Errno 21] Is a directory: '/tmp/morrison-iso-zybsx4mm/leases'",
+            "stat": {
+              "mode": "0o40700",
+              "uid": 10001
+            }
+          },
+          "/tmp/morrison-iso-zybsx4mm/leases/leases.db": {
+            "access": {
+              "R": false,
+              "W": false,
+              "X": false
+            },
+            "create_in": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/leases/leases.db/.refalsify-probe-23650'",
+            "listdir": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/leases/leases.db'",
+            "open_r": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/leases/leases.db'",
+            "open_w": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/leases/leases.db'",
+            "stat": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/leases/leases.db'"
+          },
+          "/tmp/morrison-iso-zybsx4mm/resource": {
+            "access": {
+              "R": false,
+              "W": false,
+              "X": false
+            },
+            "create_in": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/resource/.refalsify-probe-23650'",
+            "listdir": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/resource'",
+            "open_r": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/resource'",
+            "open_w": "IsADirectoryError: [Errno 21] Is a directory: '/tmp/morrison-iso-zybsx4mm/resource'",
+            "stat": {
+              "mode": "0o40700",
+              "uid": 10001
+            }
+          },
+          "/tmp/morrison-iso-zybsx4mm/resource/ledger.db": {
+            "access": {
+              "R": false,
+              "W": false,
+              "X": false
+            },
+            "create_in": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/resource/ledger.db/.refalsify-probe-23650'",
+            "listdir": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/resource/ledger.db'",
+            "open_r": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/resource/ledger.db'",
+            "open_w": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/resource/ledger.db'",
+            "stat": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/resource/ledger.db'"
+          },
+          "/tmp/morrison-iso-zybsx4mm/sock": {
+            "access": {
+              "R": true,
+              "W": false,
+              "X": true
+            },
+            "create_in": "PermissionError: [Errno 13] Permission denied: '/tmp/morrison-iso-zybsx4mm/sock/.refalsify-probe-23650'",
+            "listdir": [
+              "resource.sock"
+            ],
+            "open_r": "OPENED",
+            "open_w": "IsADirectoryError: [Errno 21] Is a directory: '/tmp/morrison-iso-zybsx4mm/sock'",
+            "stat": {
+              "mode": "0o40755",
+              "uid": 10001
+            }
+          },
+          "/tmp/morrison-iso-zybsx4mm/sock/resource.sock": {
+            "access": {
+              "R": true,
+              "W": true,
+              "X": false
+            },
+            "create_in": "NotADirectoryError: [Errno 20] Not a directory: '/tmp/morrison-iso-zybsx4mm/sock/resource.sock/.refalsify-probe-23650'",
+            "listdir": "NotADirectoryError: [Errno 20] Not a directory: '/tmp/morrison-iso-zybsx4mm/sock/resource.sock'",
+            "open_r": "OSError: [Errno 6] No such device or address: '/tmp/morrison-iso-zybsx4mm/sock/resource.sock'",
+            "open_w": "OSError: [Errno 6] No such device or address: '/tmp/morrison-iso-zybsx4mm/sock/resource.sock'",
+            "stat": {
+              "mode": "0o140666",
+              "uid": 10001
+            }
+          }
+        },
+        {
+          "/tmp/morrison-iso-zybsx4mm/leases/leases.db": {
+            "read": "OperationalError: unable to open database file",
+            "write": "OperationalError: unable to open database file"
+          },
+          "/tmp/morrison-iso-zybsx4mm/resource/ledger.db": {
+            "read": "OperationalError: unable to open database file",
+            "write": "OperationalError: unable to open database file"
+          }
+        },
+        {
+          "19290": {
+            "cmdline": 154,
+            "cwd": "PermissionError: [Errno 13] Permission denied: '/proc/19290/cwd'",
+            "environ": "PermissionError: [Errno 13] Permission denied: '/proc/19290/environ'",
+            "fd": "PermissionError: [Errno 13] Permission denied: '/proc/19290/fd'",
+            "maps": "PermissionError: [Errno 13] Permission denied: '/proc/19290/maps'",
+            "mem": "PermissionError: [Errno 13] Permission denied: '/proc/19290/mem'",
+            "root": "PermissionError: [Errno 13] Permission denied: '/proc/19290/root'",
+            "signal0": "PermissionError: [Errno 1] Operation not permitted",
+            "status": 1431
+          },
+          "19313": {
+            "cmdline": 170,
+            "cwd": "PermissionError: [Errno 13] Permission denied: '/proc/19313/cwd'",
+            "environ": "PermissionError: [Errno 13] Permission denied: '/proc/19313/environ'",
+            "fd": "PermissionError: [Errno 13] Permission denied: '/proc/19313/fd'",
+            "maps": "PermissionError: [Errno 13] Permission denied: '/proc/19313/maps'",
+            "mem": "PermissionError: [Errno 13] Permission denied: '/proc/19313/mem'",
+            "root": "PermissionError: [Errno 13] Permission denied: '/proc/19313/root'",
+            "signal0": "PermissionError: [Errno 1] Operation not permitted",
+            "status": 1462
+          }
+        }
+      ],
+      "reasons": [],
+      "seconds": 0.127,
+      "sqlite_writes": [],
+      "violated": false,
+      "what": "permissions, SQLite and /proc as the agent",
+      "writable_or_readable_protected_paths": []
+    },
+    {
+      "dirs_created_in": [],
+      "effects": 1,
+      "errors": [],
+      "group": "G_setup_race",
+      "id": "G.watcher_races_deployment_creation",
+      "protected_files_opened": [],
+      "seconds": 2.477,
+      "violated": false,
+      "watch": {
+        "bases_seen": 1,
+        "create_through_fd": [],
+        "dir_fd_open_errors": 3989,
+        "dir_fds": 1,
+        "file_attempts": 7972,
+        "file_open_through_fd": [],
+        "listdir_through_fd_ok": 1993,
+        "polls": 3325
+      },
+      "what": "agent watches /tmp and grabs directory fds during setup"
+    }
+  ],
+  "errored": [],
+  "git_commit": "b96ce2520b19615b44b6b0658504f36cd1491874",
+  "property": "code running as uid 10002 cannot change the ledger except with a valid, registered, unredeemed lease for exactly the request it sends; one lease, at most one effect",
+  "python": "3.13.16",
+  "started_at": 1792000116.460809,
+  "violated": []
+}

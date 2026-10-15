@@ -25,6 +25,7 @@ import hashlib
 import hmac
 import json
 import re
+import threading
 import time
 from dataclasses import dataclass, field, asdict
 from typing import Any, Optional
@@ -230,6 +231,9 @@ class EvidenceRecord:
         return json.dumps(asdict(self), sort_keys=True, ensure_ascii=False, default=str)
 
 
+_APPEND_LOCK = threading.RLock()
+
+
 @dataclass
 class EvidenceChain:
     """Append-only, hash-chained decision log.
@@ -247,11 +251,17 @@ class EvidenceChain:
         return self.records[-1].record_hash if self.records else GENESIS
 
     def append(self, rec: EvidenceRecord) -> EvidenceRecord:
-        rec.seq = len(self.records)
-        rec.prev_hash = self.head
-        rec.seal(self.key)
-        self.records.append(rec)
-        return rec
+        # Read-head, link, seal and append must be one step. Two threads
+        # appending at once (an execution outcome recorded outside the kernel
+        # lock while another execution's intent is sealed inside it) took the
+        # same head and seq and broke the chain (R2). A module lock rather than
+        # a field keeps the chain copyable and picklable.
+        with _APPEND_LOCK:
+            rec.seq = len(self.records)
+            rec.prev_hash = self.head
+            rec.seal(self.key)
+            self.records.append(rec)
+            return rec
 
     def record_execution(self, rec: EvidenceRecord, executed: bool,
                          result: Optional[str] = None) -> EvidenceRecord:

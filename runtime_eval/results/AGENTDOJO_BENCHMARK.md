@@ -7,6 +7,11 @@
 **Reproduce:** `python -m runtime_eval.agentdojo_bench oracle --output runtime_eval/results/agentdojo`
 (deterministic, ~7 min on CPU, no API key). Per-pair evidence is in [`agentdojo/`](agentdojo/).
 
+> **Live-model results** (Claude Opus 5.5, banking sample, two paid runs) are in
+> [`AGENTDOJO_LIVE_OPUS55.md`](AGENTDOJO_LIVE_OPUS55.md). The model resisted every injection in both arms, so they show no
+> attack-success reduction from Morrison. What they do show: Morrison withheld 16/16 model-proposed protected changes with
+> zero environment effect, and blocked one legitimate payment.
+
 ## What was measured
 
 For every (user task, injection task) pair, a scripted agent performs the user task's ground-truth tool calls and then **every

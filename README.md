@@ -1,5 +1,7 @@
 <div align="center">
 
+> **ARSB v0 research status:** the [frozen development benchmark](arsb/RELEASE_v0.md) is preserved for audit. Its original comparative leaderboard is withdrawn following the challenge; do not quote it as a ranking. See [review issue #39](https://github.com/davarntrades/Morrison-Runtime-Governance/issues/39) for accepted findings and pinned challenge evidence.
+
 # Morrison Runtime Governance™
 
 ![Admissible Operating Envelope](https://img.shields.io/badge/Admissible_Operating_Envelope-Environment--Bounded-5b6cff?style=flat-square)
@@ -416,7 +418,7 @@ The governance layer sits outside the model and does not require model retrainin
 | Metric | Current state |
 |---|---:|
 | Governance evaluations | **129,857** |
-| Repository test suite | **1,657 collected** (core suite; optional Petri tests excluded) |
+| Repository test suite | **1,691 collected** (core suite; optional Petri tests excluded) |
 | Runtime posture | **Fail-closed** |
 | Governance level | **Pre-execution** |
 | Model dependence | **Model-agnostic middleware** |
