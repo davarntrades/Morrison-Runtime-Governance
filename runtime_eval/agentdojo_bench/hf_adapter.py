@@ -55,7 +55,7 @@ class HFBudget:
     failures retain the reservation and stop; retries cannot evade metering.
     This is a client-side conservative estimate, not an invoice guarantee.
     """
-    def __init__(self, path: Path, max_usd=4.0, arm_cap=1.95, max_requests=300):
+    def __init__(self, path: Path, max_usd=4.0, arm_cap=1.95, max_requests=300, prior_usage_usd=0.0):
         self.path, self.max_usd = path, max_usd
         self.arm_cap, self.max_requests = arm_cap, max_requests
         self.arm = 'canary'
@@ -64,6 +64,11 @@ class HFBudget:
             raise ValueError('initial total budget must be <= $4')
         if self.state.get('max_usd', max_usd) != max_usd:
             raise ValueError('cannot change a persisted budget')
+        if not 0 <= prior_usage_usd < max_usd:
+            raise ValueError('prior usage must leave positive authorized budget')
+        if self.state.get('prior_usage_usd', prior_usage_usd) != prior_usage_usd:
+            raise ValueError('cannot change persisted prior usage')
+        self.state['prior_usage_usd'] = prior_usage_usd
         self.state['max_usd'] = max_usd
 
     @property
@@ -82,7 +87,7 @@ class HFBudget:
         if len(encoded) > CONTEXT - settings.max_tokens - 2048:
             raise ValueError('request exceeds conservative context bound; no truncation')
         reserve = (CONTEXT * INPUT_PRICE + settings.max_tokens * OUTPUT_PRICE) / 1e6
-        total = sum(r['budget_charge_usd'] for r in self.state['attempts'])
+        total = self.state['prior_usage_usd'] + sum(r['budget_charge_usd'] for r in self.state['attempts'])
         arm_spent = sum(r['budget_charge_usd'] for r in self.requests)
         cap = 0.10 if self.arm == 'canary' else self.arm_cap
         if len(self.requests) >= self.max_requests or total + reserve > self.max_usd or arm_spent + reserve > cap:
@@ -98,7 +103,7 @@ class HFBudget:
 
     def summary(self):
         reqs = self.requests
-        return {'model': MODEL, 'max_usd': self.arm_cap, 'total_run_cap_usd': self.max_usd,
+        return {'model': MODEL, 'max_usd': self.arm_cap, 'total_run_cap_usd': self.max_usd, 'prior_usage_usd': self.state['prior_usage_usd'],
                 'max_requests': self.max_requests, 'requests': len(reqs),
                 'input_tokens': sum(r['input_tokens'] or 0 for r in reqs),
                 'output_tokens': sum(r['output_tokens'] or 0 for r in reqs),

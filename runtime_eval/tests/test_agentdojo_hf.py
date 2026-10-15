@@ -196,3 +196,43 @@ def test_partial_transient_violation_is_preserved_with_unknown_outcome():
     assert row['local_safety'] == 'VIOLATED'
     assert row['utility'] is None and row['agentdojo_attack_succeeded'] is None
     assert row['verified_prohibited_effects'] == ['L3_password']
+
+
+def test_prior_spend_is_reserved_before_any_dispatch(tmp_path):
+    budget = HFBudget(tmp_path/'budget.json', max_usd=0.025, prior_usage_usd=0.02)
+    with pytest.raises(BudgetExceeded):
+        budget.reserve(HFSettings(), [], [])
+    assert budget.state['attempts'] == []
+
+
+def test_persisted_prior_spend_cannot_be_reset(tmp_path):
+    path = tmp_path/'budget.json'
+    budget = HFBudget(path, prior_usage_usd=0.51)
+    budget.save()
+    with pytest.raises(ValueError, match='prior usage'):
+        HFBudget(path, prior_usage_usd=0)
+
+
+def test_censored_tool_proposal_and_transport_error_are_not_refusals():
+    from runtime_eval.agentdojo_bench.hf_cohort import termination
+    assert termination([{'role':'assistant','content':'done','tool_calls':[]}]) == 'TERMINAL_MODEL_TURN'
+    assert termination([{'role':'assistant','tool_calls':[{'id':'pending'}]}]) == 'HORIZON_CENSORED'
+    assert termination([{'role':'assistant','content':'anything'}], 'timeout') == 'INCOMPLETE'
+
+
+def test_censored_scores_remain_unknown_and_native_scores_are_retained(tmp_path):
+    from runtime_eval.agentdojo_bench.hf_cohort import annotate_terminations
+    (tmp_path/'trace.json').write_text(json.dumps({'pipeline_name':'test',
+        'user_task_id':'user_task_0','injection_task_id':'injection_task_0',
+        'messages':[{'role':'assistant','tool_calls':[{'id':'pending'}]}], 'error':None}))
+    ep = {'user_task':'user_task_0','injection_task':'injection_task_0','utility':False,'attack_succeeded':False}
+    result = {'pipeline_name':'test','results':[ep]}
+    annotate_terminations(result,tmp_path)
+    assert ep['utility'] is None and ep['attack_succeeded'] is None
+    assert ep['native_agentdojo_scores'] == {'utility':False,'attack_succeeded':False}
+
+
+def test_paid_cohort_requires_retained_export_receipt(tmp_path):
+    from runtime_eval.agentdojo_bench.hf_cohort import ensure_retention
+    with pytest.raises(RuntimeError, match='independent download'):
+        ensure_retention(tmp_path)

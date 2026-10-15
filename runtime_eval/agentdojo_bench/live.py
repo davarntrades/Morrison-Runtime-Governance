@@ -68,6 +68,7 @@ def build_pipeline(provider: str, model: str, suite_name: str,
                    defense: str = "morrison", *, budget: Budget | None = None,
                    benchmark_version: str = DEFAULT_BENCHMARK_VERSION,
                    settings: RequestSettings | None = None,
+                   tool_loop_max_iters: int = 15,
                    ) -> tuple[AgentPipeline, MorrisonToolsExecutor]:
     """AgentDojo's default pipeline, with the tool executor swapped.
 
@@ -88,7 +89,7 @@ def build_pipeline(provider: str, model: str, suite_name: str,
         InitQuery(),
         EpisodeStart(executor),
         llm,
-        ToolsExecutionLoop([executor, llm]),
+        ToolsExecutionLoop([executor, llm], max_iters=tool_loop_max_iters),
     ])
     # Distinct names keep the two arms' AgentDojo logs apart. AgentDojo's
     # attacks look the model name up in this string; run_live checks both
@@ -136,7 +137,8 @@ def run_live(provider: str, model: str, suite_name: str, *,
              max_requests: int = 10**9,
              settings: RequestSettings | None = None,
              benign: bool = False,
-             budget_override=None) -> dict:
+             budget_override=None,
+             tool_loop_max_iters: int = 15) -> dict:
     suite = get_suite(benchmark_version, suite_name)
     settings = settings or RequestSettings(model=model)
     if provider == "anthropic" and max_usd != float("inf"):
@@ -147,7 +149,8 @@ def run_live(provider: str, model: str, suite_name: str, *,
     budget = budget_override or Budget(model, max_usd, max_requests)
     pipeline, executor = build_pipeline(provider, model, suite_name, defense,
                                         budget=budget, settings=settings,
-                                        benchmark_version=benchmark_version)
+                                        benchmark_version=benchmark_version,
+                                        tool_loop_max_iters=tool_loop_max_iters)
     target_name = register_model_name(provider, model)
     resolved = get_model_name_from_pipeline(pipeline)
     if resolved != target_name:
