@@ -25,6 +25,21 @@ additive provider layer; it does not implement or modify governance policy.
 This is **additive** to the existing repository. Nothing under
 `morrison_governance/` changes; this package extends it.
 
+## AgentDojo (third-party prompt-injection benchmark)
+
+`runtime_eval.agentdojo_bench` runs the AgentDojo suites (workspace, travel,
+banking, slack) with Morrison as the agent's tool executor. `oracle` mode is
+model-free and needs no API key: it replays a fully compromised agent through
+the gate. `live` mode runs a real model under AgentDojo's own attacks.
+
+```bash
+pip install -r runtime_eval/agentdojo_bench/requirements.txt
+python -m runtime_eval.agentdojo_bench oracle --output runtime_eval/results/agentdojo
+```
+
+See [`agentdojo_bench/README.md`](agentdojo_bench/README.md) and the results in
+[`results/AGENTDOJO_BENCHMARK.md`](results/AGENTDOJO_BENCHMARK.md).
+
 ## Dynamical + SCM causal overlay (prototype)
 
 `runtime_eval.causal_overlay` consumes an already-governed trajectory or a
@@ -283,9 +298,9 @@ planner-agreement scores, latency percentiles — is bounded to the
 safety guarantee. The harness is an empirical reachability-evaluation
 surface, not a certification.
 
-## Safety Envelope (additive prototype)
+## Admissible Operating Envelope (additive prototype)
 
-`runtime_eval.safety_envelope` turns already-governed Morrison evidence,
+`runtime_eval.safety_envelope` is the legacy-compatible module path. It turns already-governed Morrison evidence,
 causal-analysis evidence, and an explicit evaluation manifest into a bounded
 assurance artifact. It is downstream and non-authoritative: it cannot alter a
 Morrison verdict, execute or block an action, change policy, or redefine Ω.
@@ -308,7 +323,7 @@ horizon, scenario and perturbation family, environment identifiers, and
 material destination classification. Missing values remain explicit; changes
 do not inherit an earlier observation.
 
-The sealed `SafetyEvidencePackage` contains the envelope and result, scenario,
+The sealed `SafetyEvidencePackage` retains its legacy compatibility name and contains the envelope and result, scenario,
 perturbation, planner, and tool/capability manifests, tests and failures,
 replay results, unsupported regions, claim wording, and provenance. Timestamps
 are caller-supplied evaluation facts rather than wall-clock values generated

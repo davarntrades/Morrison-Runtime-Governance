@@ -180,13 +180,27 @@ def quarantine_authority(call: dict) -> tuple[dict, dict]:
     important about itself, and we record it rather than discarding it.
     """
     canon = canonicalize(call)
-    args = dict(canon.get("args") or {})
     quarantined: dict[str, Any] = {}
-    for key in list(args.keys()):
-        if str(key).strip().lower() in AUTHORITY_FIELDS \
-                or is_authority_shaped(key):
-            quarantined[key] = args.pop(key)
-    return {"tool": canon["tool"], "args": args}, quarantined
+
+    def escape(key):
+        return str(key).replace("~", "~0").replace("/", "~1")
+
+    def walk(value, path=()):
+        if isinstance(value, dict):
+            clean = {}
+            for key, child in value.items():
+                label = str(key)
+                if label.strip().lower() in AUTHORITY_FIELDS or is_authority_shaped(label):
+                    evidence_key = label if not path else "/" + "/".join((*path, escape(label)))
+                    quarantined[evidence_key] = child
+                else:
+                    clean[key] = walk(child, (*path, escape(label)))
+            return clean
+        if isinstance(value, list):
+            return [walk(child, (*path, str(index))) for index, child in enumerate(value)]
+        return value
+
+    return {"tool": canon["tool"], "args": walk(canon.get("args") or {})}, quarantined
 
 
 def forged_authority_claims(quarantined: dict) -> list[str]:
@@ -196,7 +210,8 @@ def forged_authority_claims(quarantined: dict) -> list[str]:
     out = []
     for k, v in quarantined.items():
         kl = str(k).strip().lower()
-        if kl not in _FORGERY_SIGNIFICANT and not is_authority_shaped(kl):
+        leaf = kl.rsplit("/", 1)[-1].replace("~1", "/").replace("~0", "~") if kl.startswith("/") else kl
+        if leaf not in _FORGERY_SIGNIFICANT and not is_authority_shaped(leaf):
             continue
         if isinstance(v, bool) and not v:
             continue
@@ -365,6 +380,8 @@ class SecurityContext:
     # Policy for tools with no declared capability manifest entry.
     # "escalate" (default) | "block" | "permit"
     unknown_tool_policy: str = "escalate"
+    # Strict envelopes reject even nonmaterial caller authority assertions.
+    reject_untrusted_authority_claims: bool = False
     # Declared tool manifest: {tool_name: [capability, ...]}
     tool_manifest: dict = field(default_factory=dict)
 
@@ -405,10 +422,10 @@ class SecurityContext:
     # high-value workloads; the cost is more escalations, not less safety.
     continuity_window_s: float = 3600.0
 
-    # Secret shared with the resource-side enforcement points that verify
-    # execution leases. Separate from `signing_key` (approvals) because the
-    # verifier is a DIFFERENT trust domain: a gateway needs to check leases and
-    # has no business being able to mint approvals.
+    # Deprecated: mrl1 keys are retained for configuration compatibility only.
+    # Export requires an external Ed25519 signer and shared atomic registry.
+    lease_signer: Any = None
+    lease_store: Any = None
     lease_signing_key: bytes = b""
 
     # How many authorisations one identity may hold reserved-but-unexecuted.
@@ -432,6 +449,32 @@ class SecurityContext:
     # enumerate them yet. Link-local and cloud metadata endpoints are never
     # internal, whatever this is set to.
     trust_private_networks: bool = False
+
+    # SHARED RESOURCES: whose history a decision is evaluated against.
+    #
+    # Governed history is filed per principal, so a rule such as "outflow from
+    # account X must not exceed N" saw only the acting principal's own steps.
+    # Two agents, each within the limit on its own, jointly exceeded it (G1).
+    # `resource_scopes(call)` names the shared resources a call acts on, e.g.
+    # ["account:OPS"]. Every live reservation or execution on a scope is filed
+    # under that scope as well, and a decision on the scope is evaluated
+    # against all of it, whichever principal took it. It is trusted deployment
+    # configuration: every kernel that can act on the resource must share the
+    # continuity store and the same resolver, and resource ids must be the
+    # resource's own canonical ids.
+    resource_scopes: Any = None
+
+    # RESOURCE OWNERSHIP: which tenant owns the resource a call acts on.
+    #
+    # Tenancy used to be inferred from the shape of identifiers (`tenant_b`,
+    # `tenant_id=...`), so an opaque account id owned by another tenant passed
+    # (E12). `owned_resource_args` maps a tool to the argument names that name
+    # a resource the principal acts ON (the debited account, not the payee);
+    # `resource_tenants` is the trusted registry, a mapping or a callable
+    # `id -> tenant | None`. Once a tool is declared, a resource whose owner is
+    # unknown is refused, never assumed to be the principal's own.
+    owned_resource_args: dict = field(default_factory=dict)
+    resource_tenants: Any = None
 
     _used_nonces: set = field(default_factory=set)
 

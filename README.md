@@ -1,5 +1,7 @@
 <div align="center">
 
+> **ARSB v0 research status:** the [frozen development benchmark](arsb/RELEASE_v0.md) is preserved for audit. Its original comparative leaderboard is withdrawn following the challenge; do not quote it as a ranking. See [review issue #39](https://github.com/davarntrades/Morrison-Runtime-Governance/issues/39) for accepted findings and pinned challenge evidence.
+
 # Morrison Runtime Governance™
 
 ![Admissible Operating Envelope](https://img.shields.io/badge/Admissible_Operating_Envelope-Environment--Bounded-5b6cff?style=flat-square)
@@ -9,7 +11,9 @@
 ![Tests](https://img.shields.io/badge/Tests-1%2C092_Passing-2ea44f?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
 
-**Admissible Operating Envelopes for autonomous AI — established, tested, and enforced before execution.**
+**Admissible Operating Envelopes for autonomous systems — defined, tested, and enforced before execution.**
+
+**Morrison shows what locally safe operation actually looks like inside a real environment, under its tools, permissions, policies, workflows, and reachable states.**
 
 </div>
 
@@ -48,6 +52,17 @@ The same runs exposed a gap in our own audit trail — a forged
 `approval_id` was refused but never *named* in the evidence record. That is
 fixed (`be0e389`) and re-verified live, and the cheat sheet now points at
 the next version of the same attack rather than calling it closed.
+
+## Independent external reproduction — Kalaris Labs (October 2026)
+
+Sayan Chowdhury of Kalaris Labs independently reran selected Morrison Runtime Governance experiments at pinned commit [`fba06b75dd6b16fb6e093364eee67359afa3942b`](https://github.com/davarntrades/Morrison-Runtime-Governance/tree/fba06b75dd6b16fb6e093364eee67359afa3942b) and published the methodology and limitations.
+
+- **[Independent research reproduction — Morrison Runtime Governance: A Bounded Reproduction](https://kalarislabs.com/research/morrison-agent-execution-boundary).** Reports **154 selected passing tests** (not the entire suite), three finite-state control-versus-governed scenarios with **zero unsafe governed states within their declared models**, and reproduced negative findings: seven investigator-supplied synthetic all-PERMIT unsafe paths, a released-lease continuity counterexample, and token redemption across verifiers without a shared consume store.
+- **[External architecture analysis — Can the Agent Bypass the Gate?](https://kalarislabs.com/blog/can-the-agent-bypass-the-gate).** Examines complete mediation across shell, MCP, credentials, and network egress, including the deployment requirements for an unavoidable resource-side execution boundary.
+
+**Scope:** This is independent reproduction of repository-supplied tests, models, and offline mocks—not a production deployment audit, certification, or proof of universal safety. The negative findings and mediation dependencies remain part of the published evidence. The linked articles are independently authored by Kalaris Labs.
+
+---
 
 ## Try Morrison now
 
@@ -110,7 +125,7 @@ python -m morrison_governance.global_verification --perturbations
 python -m morrison_governance.global_verification --composition-experiment
 ```
 
-Verify the Admissible Operating Envelope and causal overlay regression suites directly:
+Verify the Admissible Operating Envelope and causal-overlay regression suites directly (legacy module paths remain stable):
 
 ```bash
 python -m pytest \
@@ -137,7 +152,7 @@ Morrison is not positioned as a universal claim that an AI model is “safe.”
 
 Its strongest enterprise result is narrower, testable, and deployment-specific:
 
-> **Morrison has established and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
+> **Morrison has defined and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, authority boundaries, policies, and reachable states.**
 
 That statement is intentionally bounded to the evaluated deployment configuration. It is supported by trajectory evidence, reachable-state analysis, governance decisions, environment context, and the documented limits of the evaluation.
 
@@ -155,9 +170,19 @@ The principle is familiar in:
 
 Morrison applies the same engineering idea to autonomous AI.
 
-> **An Admissible Operating Envelope is the environment-bounded region within which an autonomous system has been evaluated as locally admissible under the tools, permissions, policies, workflows, state, and reachable consequences present in that deployment.**
+> **An Admissible Operating Envelope is the set of states, actions, transitions and operating conditions that a system is permitted to occupy or execute within a defined environment.**
 
-Ω remains the configured forbidden region. The Admissible Operating Envelope is broader: it describes the region in which operation is locally admissible, where the boundary sits, and what must happen when a proposed trajectory leaves it.
+For Morrison, that definition is deployment-bounded by the actual tools, permissions, authority boundaries, policies, workflows, state and reachable consequences under evaluation. Ω remains the configured prohibited region. The Admissible Operating Envelope is broader: it defines what is permitted, where the operating boundary sits, and which proposed transitions require independent authorization, escalation or blocking.
+
+---
+
+## Representation is not enforcement
+
+> **Representation of the operating envelope is not causal enforcement of the operating envelope.**
+
+A policy describes a boundary. Constraint awareness means a system can represent that boundary. Compliance means a trajectory happened to remain inside it. Runtime control changes which transitions can actually execute. Verification tests whether prohibited states or transitions became unreachable within the defined environment.
+
+**Constraint awareness changes information. Enforcement changes reachability.**
 
 ---
 
@@ -165,7 +190,7 @@ Morrison applies the same engineering idea to autonomous AI.
 
 Autonomous agents are no longer just generating text. They can move money, read secrets, write files, call APIs, modify repositories, operate security tooling, and coordinate across multi-agent workflows.
 
-Prompts, permissions, and policies do not enforce themselves at the moment an AI system acts.
+Prompts, permissions, and policies do not enforce themselves at the moment an AI system acts. The missing layer is not another representation of the rule. It is causal enforcement of the operating boundary.
 
 A sequence can become unsafe even when every individual step looks acceptable in isolation:
 
@@ -328,12 +353,12 @@ before side effects occur.
 
 ```mermaid
 flowchart LR
-    A[Autonomous AI / Agent] --> T[Proposed trajectory]
-    T --> M[Morrison Runtime Governance]
-    M --> E[Admissible Operating Envelope evaluation]
-    E -->|ALLOW| X[Execute]
-    E -->|ESCALATE| H[Human / Policy Review]
-    E -->|BLOCK| B[Prevent + Evidence]
+    E[Environment + authority define the Admissible Operating Envelope]
+    E --> A[Autonomous system proposes a transition]
+    A --> M[Morrison independently authorizes before execution]
+    M -->|ALLOW| X[Execute + evidence]
+    M -->|ESCALATE| H[Human / policy review]
+    M -->|BLOCK| B[Remove from executable path + evidence]
 ```
 
 The planner can change. The model can change. The governance invariant remains external to the model.
@@ -405,7 +430,7 @@ The governance layer sits outside the model and does not require model retrainin
 | Metric | Current state |
 |---|---:|
 | Governance evaluations | **129,857** |
-| Repository test suite | **1,612 passing** |
+| Repository test suite | **1,760 collected** (core suite; optional Petri tests excluded) |
 | Runtime posture | **Fail-closed** |
 | Governance level | **Pre-execution** |
 | Model dependence | **Model-agnostic middleware** |
@@ -453,7 +478,7 @@ It should expose the scope of the claim:
 
 A deployment-level conclusion can then be stated clearly:
 
-> **Morrison has established and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
+> **Morrison has defined and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, authority boundaries, policies, and reachable states.**
 
 That is the assurance artifact Morrison is designed to produce and enforce.
 
@@ -510,8 +535,8 @@ The commercial entry point is no longer only “find catastrophic actions.”
 
 It is to establish the deployment's local operating boundary and prove where autonomous operation remains admissible.
 
-### Admissible Operating Envelope Assessment
-A bounded assessment of the deployment's architecture, tools, permissions, policies, reachable states, and constraints.
+### Operating Envelope Assessment
+A bounded assessment of the deployment's environment, architecture, tools, permissions, authority boundaries, policies, reachable states, prohibited region Ω, and constraints.
 
 ### Shadow Mode / Limited Pilot
 Observe live or sandboxed trajectories without enforcing, and show which remain inside the envelope, approach the boundary, or would leave it.
@@ -524,7 +549,7 @@ Continuously revalidate the Admissible Operating Envelope as models, tools, perm
 
 The target proof is explicit:
 
-> **Morrison has established and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, policies, and reachable states.**
+> **Morrison has defined and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, authority boundaries, policies, and reachable states.**
 
 ---
 
@@ -539,7 +564,7 @@ Morrison does **not** claim:
 
 Instead, Morrison makes a narrower claim that can be tested, enforced, and audited:
 
-> **For this evaluated deployment, under this specified environment and constraint set, these trajectories were established as locally admissible, these boundary violations were identified, and runtime governance enforced the resulting Admissible Operating Envelope before execution.**
+> **For this evaluated deployment, under this specified environment and constraint set, these trajectories were established as locally admissible, these boundary violations were identified, and Morrison independently enforced the resulting Admissible Operating Envelope before execution.**
 
 ---
 
@@ -570,7 +595,7 @@ Detailed implementation and evaluation artefacts live throughout this repository
 
 ## The positioning in one sentence
 
-> **See the Admissible Operating Envelope your AI can actually operate within — in your environment, before actions execute.**
+> **Define the Admissible Operating Envelope. Evaluate proposed transitions. Authorize independently. Enforce before execution. Verify what became unreachable.**
 
 ---
 
@@ -578,7 +603,7 @@ Detailed implementation and evaluation artefacts live throughout this repository
 
 ### Resurrection Tech Ltd
 
-**Admissible Operating Envelopes for autonomous AI · Runtime governance before execution · Evidence after every decision**
+**Admissible Operating Envelopes for autonomous systems · Runtime governance before execution · Evidence after every decision**
 
 [Website](https://resurrection-tech.com) · [GitHub](https://github.com/davarntrades) · [LinkedIn](https://www.linkedin.com/in/davarn-morrison-14b93b263) · [Email](mailto:davarn@resurrection-tech.com)
 
