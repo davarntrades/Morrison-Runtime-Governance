@@ -49,7 +49,7 @@ def annotate_terminations(result, logs):
     traces = {}
     for path in logs.rglob('*.json'):
         data = json.loads(path.read_text())
-        if data.get('pipeline_name') != result['pipeline_name']:
+        if not isinstance(data, dict) or data.get('pipeline_name') != result['pipeline_name']:
             continue
         key = (str(data.get('user_task_id')), str(data.get('injection_task_id')))
         traces[key] = data
@@ -124,10 +124,12 @@ def worker(root, phase):
                           user_tasks=PROTOCOL['users'], injection_tasks=PROTOCOL['injections'],
                           logdir=root / 'logs', force_rerun=True, benign=True,
                           settings=settings, budget_override=budget, tool_loop_max_iters=4)
+        signal.alarm(0)
         result['phase_deadline_expired'] = deadline['expired']
         result['provenance'] = provenance()
         result['shared_multi_agent_state'] = False
         result['separate_global_governor'] = None
+        write(root / f'live-cohort-{phase}-banking.json', result)
         annotate_terminations(result, root / 'logs')
         write(root / f'live-cohort-{phase}-banking.json', result)
         print(json.dumps({'phase': phase, 'status': result['status'], 'error': result.get('error'),

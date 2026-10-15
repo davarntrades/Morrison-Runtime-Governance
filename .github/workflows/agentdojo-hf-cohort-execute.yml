@@ -1,0 +1,175 @@
+name: AgentDojo HF retained paired cohort ($1.50 remaining-budget ceiling)
+on:
+  push:
+    branches: [codex/agentdojo-hf-api-resume]
+    paths: [.github/workflows/agentdojo-hf-cohort-execute.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: agentdojo-hf-qwen-initial
+  cancel-in-progress: false
+jobs:
+  experiment:
+    if: github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      EVIDENCE_DIR: artifacts/retained-cohort-${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONUNBUFFERED: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r runtime_eval/agentdojo_bench/hf-requirements.lock
+      - name: Offline controls (no secrets, no inference)
+        run: python -m pytest -q runtime_eval/tests/test_agentdojo_hf.py runtime_eval/tests/test_agentdojo_bench.py
+      - name: Prepare synthetic retention probe (no inference)
+        run: |
+          python - <<'PYCODE'
+          import json
+          from pathlib import Path
+          from runtime_eval.agentdojo_bench.hf_runner import package_evidence
+          from runtime_eval.agentdojo_bench.hf_cohort import PROTOCOL
+          root=Path('artifacts/retention-probe')
+          p=root/'synthetic:provider'/'probe.json'
+          p.parent.mkdir(parents=True,exist_ok=True)
+          p.write_text(json.dumps({'synthetic':True,'live_evidence':False,'model':PROTOCOL['model']}))
+          package_evidence(root)
+          PYCODE
+      - name: Validate artifact destination before any inference
+        id: retention
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: retention-probe-${{ github.run_id }}
+          path: artifacts/retention-probe.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Independently download and verify retained probe before spending
+        id: receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.retention.outputs.artifact-id }}
+          EXPECTED_SHA: ${{ steps.retention.outputs.artifact-digest }}
+        run: |
+          python - <<'PYCODE'
+          import os,json,hashlib,urllib.request,urllib.error,zipfile,io
+          from pathlib import Path
+          from runtime_eval.agentdojo_bench.hf_cohort import PROTOCOL
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args,**kwargs): return None
+          url=f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/actions/artifacts/{os.environ['ARTIFACT_ID']}/zip"
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+          try:
+              response=urllib.request.build_opener(NoRedirect).open(req,timeout=30)
+              raw=response.read()
+          except urllib.error.HTTPError as exc:
+              if exc.code not in (302,303,307): raise
+              raw=urllib.request.urlopen(exc.headers['Location'],timeout=30).read()
+          digest=hashlib.sha256(raw).hexdigest()
+          assert digest==os.environ['EXPECTED_SHA'],'retention digest mismatch'
+          outer=zipfile.ZipFile(io.BytesIO(raw)); assert outer.testzip() is None
+          inner=zipfile.ZipFile(io.BytesIO(outer.read('retention-probe.zip'))); assert inner.testzip() is None
+          fixture=json.loads(inner.read('synthetic:provider/probe.json'))
+          assert fixture=={'synthetic':True,'live_evidence':False,'model':PROTOCOL['model']}
+          root=Path(os.environ['EVIDENCE_DIR']);root.mkdir(parents=True,exist_ok=True)
+          (root/'retention-receipt.json').write_text(json.dumps({'download_verified':True,'artifact_id':os.environ['ARTIFACT_ID'],'archive_sha256':digest,'source_commit':os.environ['GITHUB_SHA'],'probe_is_synthetic':True},indent=2))
+          print('Artifact upload, independent download, SHA-256 and nested ZIP verification PASSED; no inference sent.')
+          PYCODE
+      - name: Authenticated metadata preflight (no inference)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python -m runtime_eval.agentdojo_bench.hf_runner preflight --output "$EVIDENCE_DIR"
+      - name: Paid phase canary (shared prior-reserved ledger, no retries)
+        id: canary
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python -m runtime_eval.agentdojo_bench.hf_cohort canary --output "$EVIDENCE_DIR"
+      - name: Redact and snapshot after canary
+        id: snapshot_canary
+        if: always() && steps.canary.outcome != 'skipped' && steps.receipt.outcome == 'success'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python -m runtime_eval.agentdojo_bench.hf_cohort snapshot --output "$EVIDENCE_DIR"
+      - name: Retain canary snapshot
+        if: always() && steps.snapshot_canary.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: hf-cohort-canary-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_DIR }}.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Paid phase none (shared prior-reserved ledger, no retries)
+        id: none
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python -m runtime_eval.agentdojo_bench.hf_cohort none --output "$EVIDENCE_DIR"
+      - name: Redact and snapshot after none
+        id: snapshot_none
+        if: always() && steps.none.outcome != 'skipped' && steps.receipt.outcome == 'success'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python -m runtime_eval.agentdojo_bench.hf_cohort snapshot --output "$EVIDENCE_DIR"
+      - name: Retain none snapshot
+        if: always() && steps.snapshot_none.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: hf-cohort-none-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_DIR }}.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Paid phase morrison (shared prior-reserved ledger, no retries)
+        id: morrison
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python -m runtime_eval.agentdojo_bench.hf_cohort morrison --output "$EVIDENCE_DIR"
+      - name: Redact and snapshot after morrison
+        id: snapshot_morrison
+        if: always() && steps.morrison.outcome != 'skipped' && steps.receipt.outcome == 'success'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python -m runtime_eval.agentdojo_bench.hf_cohort snapshot --output "$EVIDENCE_DIR"
+      - name: Retain morrison snapshot
+        if: always() && steps.snapshot_morrison.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: hf-cohort-morrison-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_DIR }}.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Independently verify chains, effects, identity, costs and matched conditions
+        id: verify
+        if: always() && steps.receipt.outcome == 'success'
+        run: python -m runtime_eval.agentdojo_bench.hf_cohort verify --output "$EVIDENCE_DIR"
+      - name: Final redaction and complete archive (including failures)
+        id: final_snapshot
+        if: always() && steps.receipt.outcome == 'success'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python -m runtime_eval.agentdojo_bench.hf_cohort snapshot --output "$EVIDENCE_DIR"
+      - name: Retain complete evidence
+        if: always() && steps.final_snapshot.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: hf-cohort-final-${{ github.run_id }}
+          path: ${{ env.EVIDENCE_DIR }}.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Run summary
+        if: always() && steps.final_snapshot.outcome == 'success'
+        run: |
+          python - <<'PYCODE'
+          import os
+          from pathlib import Path
+          root=Path(os.environ['EVIDENCE_DIR'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as out:
+              out.write('Exact abliterated Qwen3-32B; explicit Featherless route. Served revision UNVERIFIED.\n\n')
+              p=root/'RESEARCH_REPORT.md'
+              if p.exists():out.write(p.read_text())
+              p=root/'blocker.json'
+              if p.exists():out.write('\n```json\n'+p.read_text()+'\n```\n')
+          PYCODE
