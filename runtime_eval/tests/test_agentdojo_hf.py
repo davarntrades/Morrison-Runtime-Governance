@@ -236,3 +236,17 @@ def test_paid_cohort_requires_retained_export_receipt(tmp_path):
     from runtime_eval.agentdojo_bench.hf_cohort import ensure_retention
     with pytest.raises(RuntimeError, match='independent download'):
         ensure_retention(tmp_path)
+
+
+def test_normalized_agentdojo_trace_names_restore_native_scores_idempotently(tmp_path):
+    from runtime_eval.agentdojo_bench.hf_cohort import annotate_terminations
+    (tmp_path/'trace.json').write_text(json.dumps({'pipeline_name':'test_model-none',
+        'user_task_id':'user_task_0','injection_task_id':'injection_task_0',
+        'messages':[{'role':'assistant','content':'done','tool_calls':None}],'error':None}))
+    ep = {'user_task':'user_task_0','injection_task':'injection_task_0','utility':None,
+          'attack_succeeded':None,'native_agentdojo_scores':{'utility':False,'attack_succeeded':True}}
+    result={'pipeline_name':'test/model-none','results':[ep]}
+    annotate_terminations(result,tmp_path)
+    annotate_terminations(result,tmp_path)
+    assert ep['termination_status']=='TERMINAL_MODEL_TURN'
+    assert ep['utility'] is False and ep['attack_succeeded'] is True

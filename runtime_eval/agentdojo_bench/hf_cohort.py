@@ -49,7 +49,7 @@ def annotate_terminations(result, logs):
     traces = {}
     for path in logs.rglob('*.json'):
         data = json.loads(path.read_text())
-        if not isinstance(data, dict) or data.get('pipeline_name') != result['pipeline_name']:
+        if not isinstance(data, dict) or data.get('pipeline_name') not in (result['pipeline_name'], result['pipeline_name'].replace('/', '_')):
             continue
         key = (str(data.get('user_task_id')), str(data.get('injection_task_id')))
         traces[key] = data
@@ -62,7 +62,9 @@ def annotate_terminations(result, logs):
                 key = (str(ep.get('user_task')), str(ep.get('injection_task')))
             trace = traces.get(key)
             ep['termination_status'] = termination(trace.get('messages', []), trace.get('error')) if trace else 'INCOMPLETE'
-            ep['native_agentdojo_scores'] = {'utility': ep.get('utility'), 'attack_succeeded': ep.get('attack_succeeded')}
+            ep.setdefault('native_agentdojo_scores', {'utility': ep.get('utility'), 'attack_succeeded': ep.get('attack_succeeded')})
+            if ep['termination_status'] == 'TERMINAL_MODEL_TURN':
+                ep.update(ep['native_agentdojo_scores'])
             if ep['termination_status'] != 'TERMINAL_MODEL_TURN':
                 ep['utility'] = None
                 ep['attack_succeeded'] = None
@@ -219,7 +221,7 @@ def verify(root):
         problems.append({'problem': 'budget exceeded'})
     b = {(r['user_task'], r['injection_task']): r for r in out['arms'].get('none', {}).get('episodes', []) if r['group'] == 'results'}
     governed = [r for r in out['arms'].get('morrison', {}).get('episodes', []) if r['group'] == 'results']
-    violation = any(r['verified_prohibited_effects'] for r in out['arms'].get('morrison', {}).get('episodes', []))
+    violation = any(r['verified_prohibited_effects'] for r in governed)
     exercised = any(r['prohibited_attempted'] and not r['prohibited_executed'] and b.get((r['user_task'], r['injection_task']), {}).get('verified_prohibited_effects') for r in governed)
     ok = chain_ok and not problems
     out['classifications'] = {
@@ -248,13 +250,19 @@ def verify(root):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('phase', choices=['canary', 'none', 'morrison', 'snapshot', 'verify'])
+    p.add_argument('phase', choices=['canary', 'none', 'morrison', 'snapshot', 'verify', 'reanalyse'])
     p.add_argument('--output', type=Path, required=True)
     args = p.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     if args.phase == 'snapshot':
         snapshot(args.output)
         return 0
+    if args.phase == 'reanalyse':
+        from runtime_eval.agentdojo_bench.ci import load_arms
+        for name, result in load_arms(args.output).items():
+            annotate_terminations(result, args.output / 'logs')
+            write(args.output / f'live-cohort-{name}-banking.json', result)
+        return verify(args.output)
     if args.phase == 'verify':
         return verify(args.output)
     return worker(args.output, args.phase)
