@@ -45,7 +45,10 @@ ignored-modules = camel,secagent,torch,transformers,numpy,matplotlib,fastapi,pyd
                   bitsandbytes,accelerate,datasets,vllm,pytest,openai,anthropic,huggingface_hub,agentdojo,tenacity,
                   kernel_config,cyber_rules,finance_rules,coverage_rules,domain_rules,
                   sector_rules,healthcare_rules,operations_rules,dynamic_rules,escalation,
-                  policy_bundle,ed25519_verify,assess,app
+                  policy_bundle,ed25519_verify,assess,app,
+                  # stripe-collection-agent/: a separate hackathon application with its own
+                  # requirements.txt; its package is on the path only when run from there.
+                  stripe,cryptography,collection_agent
 
 # The ratchet. Set to the score achieved with this configuration, floored to two
 # decimals. Raise it when the score improves; never lower it to make a build

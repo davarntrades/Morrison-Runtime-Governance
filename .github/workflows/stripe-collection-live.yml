@@ -1,0 +1,103 @@
+name: Stripe Collection Agent (test mode, live)
+
+# Runs the Morrison-governed Stripe collection agent end to end against
+# api.stripe.com in TEST MODE, then the adversarial scenarios S0-S12.
+#
+# Needs repository Actions secret STRIPE_TEST_SECRET_KEY (sk_test_... or
+# rk_test_...). A live-mode key is refused by the gateway. ANTHROPIC_API_KEY,
+# when present, makes S1 interpret the natural-language request with Claude;
+# without it the rule-based interpreter is used and the evidence says so.
+#
+# Without the Stripe secret the live job reports NOT_TESTED and does not fake
+# anything. The offline job runs the suite against the LOCAL Stripe double.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/stripe-morrison-collection-agent-7y0a6p]
+    paths:
+      - "stripe-collection-agent/**"
+      - ".github/workflows/stripe-collection-live.yml"
+
+permissions:
+  contents: read
+
+env:
+  # The app imports the UNMODIFIED Morrison package from this repository.
+  PYTHONPATH: ${{ github.workspace }}/stripe-collection-agent:${{ github.workspace }}
+
+concurrency:
+  group: stripe-collection-live
+  cancel-in-progress: false
+
+jobs:
+  offline:
+    name: Offline suite (local Stripe double, not Stripe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r stripe-collection-agent/requirements.txt pytest
+      - working-directory: stripe-collection-agent
+        run: python -m pytest -q
+
+  live:
+    name: Live Stripe test mode
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      COLLECTION_AGENT_MODEL: claude-opus-5-5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r stripe-collection-agent/requirements.txt
+      - name: Preflight (never prints the key)
+        id: pre
+        run: |
+          if [ -z "$STRIPE_SECRET_KEY" ]; then
+            echo "STRIPE_TEST_SECRET_KEY is not set: live Stripe scenarios NOT_TESTED."
+            echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          case "$STRIPE_SECRET_KEY" in
+            sk_test_*|rk_test_*) ;;
+            *) echo "Refusing: the secret is not a Stripe TEST-mode key."; exit 1 ;;
+          esac
+          code=$(curl -sS -o /dev/null -w "%{http_code}" https://api.stripe.com/v1/account -u "$STRIPE_SECRET_KEY:")
+          echo "Stripe /v1/account HTTP $code"
+          [ "$code" = "200" ] || exit 1
+          [ -n "$ANTHROPIC_API_KEY" ] && echo "LLM interpreter: enabled" || echo "LLM interpreter: not configured (rule-based)"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Run scenarios against Stripe test mode
+        if: steps.pre.outputs.ready == 'true'
+        working-directory: stripe-collection-agent
+        run: |
+          OUT="evidence/live-$(date -u +%Y%m%dT%H%M%SZ)"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+          set +e
+          python -m collection_agent.scenarios --output "$OUT"
+          echo "SCEN_EXIT=$?" >> "$GITHUB_ENV"
+          cat "$OUT/RESULTS.md" >> "$GITHUB_STEP_SUMMARY"
+          cat "$OUT/RESULTS.md"
+      - name: Export evidence into the log (checksummed base64 tarball)
+        if: steps.pre.outputs.ready == 'true'
+        working-directory: stripe-collection-agent
+        run: |
+          rm -rf "$OUT/_stack/logs" "$OUT/_stack/governance" "$OUT/_stack/executor"
+          tar czf /tmp/evidence.tgz "$OUT"
+          echo "EVIDENCE_SHA256 $(sha256sum /tmp/evidence.tgz | cut -d' ' -f1)"
+          echo "-----BEGIN EVIDENCE-----"; base64 -w 0 /tmp/evidence.tgz; echo; echo "-----END EVIDENCE-----"
+      - uses: actions/upload-artifact@v4
+        if: steps.pre.outputs.ready == 'true'
+        with:
+          name: stripe-collection-evidence
+          path: stripe-collection-agent/evidence/
+      - name: Fail on FAILED / INCONCLUSIVE scenarios
+        if: steps.pre.outputs.ready == 'true'
+        run: exit "${SCEN_EXIT:-1}"

@@ -1,0 +1,6 @@
+# Morrison Runtime Governance itself is NOT installed from PyPI: the app imports
+# the unmodified `morrison_governance` package from the Morrison repository
+# (put the repository root on PYTHONPATH, see README).
+stripe==12.5.1          # executor + operator/auditor only; the agent never imports it
+cryptography>=42        # external Ed25519 lease signer (Morrison's kernel is verify-only)
+anthropic>=1.14         # agent interpretation (optional: rule-based fallback without a key)

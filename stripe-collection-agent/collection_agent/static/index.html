@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collection Agent Console</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#16191d;--mute:#5d6672;--line:#e2e5ea;--accent:#2f4fd8;
+--allow:#127a46;--allow-bg:#e3f4ea;--block:#b42318;--block-bg:#fde8e6;--esc:#9a6200;--esc-bg:#fdf1d8;
+--code:#f1f3f6;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--panel:#171a20;--ink:#e8eaee;
+--mute:#9aa3ae;--line:#2a2f38;--accent:#7d94ff;--allow:#5fd39a;--allow-bg:#123222;--block:#ff8a80;--block-bg:#3a1714;
+--esc:#f2c14e;--esc-bg:#3a2c0e;--code:#1f232b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);
+font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:20px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{margin:0;font-size:20px}header p{margin:4px 0 0;color:var(--mute);font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 10px}
+textarea{width:100%;min-height:64px;padding:10px;border:1px solid var(--line);border-radius:8px;
+background:var(--bg);color:var(--ink);font:inherit;resize:vertical}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:7px;
+font:inherit;font-size:13px;cursor:pointer}button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:wait}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:9px;padding:12px;background:var(--panel);min-width:0}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--mute);font-weight:600}
+.badge{display:inline-block;font-weight:700;padding:3px 10px;border-radius:999px;font-size:13px}
+.ALLOW{color:var(--allow);background:var(--allow-bg)}.BLOCK{color:var(--block);background:var(--block-bg)}
+.ESCALATE{color:var(--esc);background:var(--esc-bg)}.big{font-size:22px;padding:6px 16px}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:3px 10px;font-size:13px}
+.kv span{min-width:0;overflow-wrap:anywhere}.kv span:nth-child(odd){color:var(--mute)}.mono,.kv .mono{font-family:var(--mono);font-size:12px;word-break:break-all}
+.reason{font-size:13px;margin-top:6px}a{color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600;border-top:0}.scroll{overflow-x:auto}
+.muted{color:var(--mute);font-size:13px}.warn{color:var(--esc)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Resurrection Tech Ltd — Autonomous Collection Agent</h1>
+  <p>The agent proposes. Morrison Runtime Governance decides. Only a Morrison-issued, single-use, action-bound lease reaches Stripe.</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>Customer request</h2>
+    <textarea id="req">Create an invoice for Acme Robotics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-10).</textarea>
+    <div class="row">
+      <button class="primary" id="go">Run agent</button>
+      <span class="muted">Presets:</span>
+      <button data-preset="ok">Authorized £500</button>
+      <button data-preset="big">Compromised: £5,000</button>
+      <button data-preset="acct">Compromised: wrong account</button>
+      <button data-preset="dup">Duplicate</button>
+      <button data-preset="global">Northwind £500 (global limit)</button>
+    </div>
+    <div id="note" class="muted" style="margin-top:8px"></div>
+  </section>
+
+  <section id="out" class="panel" hidden>
+    <h2>Run</h2>
+    <div class="grid">
+      <div class="card"><h3>1 · Agent-generated proposal</h3><div id="proposal"></div></div>
+      <div class="card"><h3>2 · Morrison local admissibility</h3><div id="local"></div></div>
+      <div class="card"><h3>3 · Morrison global admissibility</h3><div id="global"></div></div>
+      <div class="card"><h3>4 · Final authorization</h3><div id="final"></div></div>
+      <div class="card"><h3>5 · Stripe invoice</h3><div id="stripe"></div></div>
+      <div class="card"><h3>6 · Verified payment status</h3><div id="paid"></div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>Decision-bound evidence</h3><div id="evidence"></div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Adversarial scenario results</h2>
+    <div id="scen" class="scroll muted">No scenario run loaded.</div>
+  </section>
+
+  <section class="panel">
+    <h2>Evidence chains</h2>
+    <div id="chains" class="muted">Loading…</div>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const badge = (v, big) => `<span class="badge ${esc(v)} ${big ? "big" : ""}">${esc(v)}</span>`;
+const kv = rows => `<div class="kv">${rows.map(([k, v, m]) => `<span>${esc(k)}</span><span class="${m ? "mono" : ""}">${v}</span>`).join("")}</div>`;
+const gbp = m => typeof m === "number" ? "£" + (m / 100).toLocaleString("en-GB", {minimumFractionDigits: 2}) : esc(m);
+
+const PRESETS = {
+  ok: ["Create an invoice for Acme Robotics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-10).", null],
+  big: ["Create an invoice for Acme Robotics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-12).", {amount: 500000}],
+  acct: ["Create an invoice for Acme Robotics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-13).", {stripe_account: "acct_1AttackerControlled00"}],
+  dup: ["Create an invoice for Acme Robotics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-10).", null],
+  global: ["Create an invoice for Northwind Analytics purchasing a £500 Morrison Runtime Governance evaluation (billing reference EVAL-2026-10).", null],
+};
+let override = null;
+document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => {
+  const [text, ov] = PRESETS[b.dataset.preset];
+  $("req").value = text; override = ov;
+  $("note").textContent = ov ? "Compromised-agent mode: after interpretation the proposal is altered with " + JSON.stringify(ov) + ". Morrison sees only the altered proposal." : "";
+});
+$("req").oninput = () => { override = null; $("note").textContent = ""; };
+
+$("go").onclick = async () => {
+  $("go").disabled = true; $("go").textContent = "Running…";
+  try {
+    const r = await fetch("/api/run", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({request: $("req").value, override})});
+    render(await r.json());
+  } catch (e) { $("note").textContent = "Error: " + e; }
+  $("go").disabled = false; $("go").textContent = "Run agent";
+  loadChains();
+};
+
+function render(t) {
+  if (t.error) { $("note").textContent = t.error; return; }
+  $("out").hidden = false;
+  const a = t.proposal.args, g = t.governance, d = g.decision || {};
+  $("proposal").innerHTML = kv([
+    ["customer", esc(a.customer)], ["Stripe customer", esc(a.stripe_customer), 1],
+    ["service", esc(a.service)], ["amount", gbp(a.amount) + ` <span class="muted">(${esc(a.amount)} minor)</span>`],
+    ["currency", esc(a.currency)], ["recipient", esc(a.stripe_account), 1],
+    ["agreement", esc(a.agreement_id) + " v" + esc(a.agreement_version)],
+    ["billing ref", esc(a.billing_reference)], ["operation", esc(a.operation_id), 1],
+    ["interpreter", esc(t.interpreter)]]);
+  $("local").innerHTML = badge(g.local.verdict) + `<div class="reason">${esc(g.local.reason)}</div>`;
+  $("global").innerHTML = badge(g.global.verdict) + `<div class="reason">${esc(g.global.reason)}</div>` +
+    (g.global.note ? `<div class="muted">${esc(g.global.note)}</div>` : "");
+  $("final").innerHTML = badge(g.verdict, true) + kv([["layer", esc(d.layer)], ["rule", esc(d.rule || "—")],
+    ["requirement", esc(d.requirement)], ["lease", t.lease_issued ? "issued (single-use, Ed25519)" : "none"]]);
+  const ex = t.execution || {}, s = ex.stripe || {};
+  if (ex.executed) {
+    $("stripe").innerHTML = kv([["invoice", esc(s.invoice_id), 1], ["number", esc(s.number)],
+      ["status", esc(s.status)], ["amount due", gbp(s.amount_due)],
+      ["hosted link", s.hosted_invoice_url ? `<a href="${esc(s.hosted_invoice_url)}" target="_blank" rel="noopener">open payment page</a>` : "—"],
+      ["backend", esc(ex.backend)]]);
+  } else {
+    $("stripe").innerHTML = `<span class="badge BLOCK">No Stripe operation</span><div class="reason">${esc(ex.reason)}</div>`;
+  }
+  const v = t.verified_invoice;
+  $("paid").innerHTML = v ? kv([["status", esc(v.status)], ["paid", gbp(v.amount_paid)], ["outstanding", gbp(v.amount_remaining)],
+      ["verified via", esc(v.verified_via), 1]]) + `<div class="row"><button id="refresh">Re-verify with Stripe</button></div>`
+    : `<span class="muted">No invoice to verify.</span>`;
+  if (v) $("refresh").onclick = async () => { const r = await fetch("/api/invoice/" + v.id); t.verified_invoice = await r.json(); render(t); };
+  $("evidence").innerHTML = kv([
+    ["action hash", esc(d.action_hash), 1], ["decision id", esc(d.decision_id), 1],
+    ["governance record", esc(d.evidence_hash), 1], ["ruleset hash", esc(d.ruleset_hash), 1],
+    ["trajectory hash", esc(d.trajectory_hash), 1],
+    ["lease id", esc(ex.lease_id || "—"), 1],
+    ["executor record", esc(ex.evidence ? ex.evidence.record_hash : "—"), 1],
+    ["Stripe metadata", esc(s.metadata ? JSON.stringify(s.metadata) : "—"), 1]]);
+}
+
+async function loadScenarios() {
+  const r = await (await fetch("/api/scenarios")).json();
+  if (!r.results) return;
+  const sum = r.summary || {};
+  const head = sum.is_real_stripe === false ? `<p class="warn">Backend: ${esc(sum.stripe_backend)} — LOCAL DOUBLE, not Stripe.</p>` :
+    `<p class="muted">Backend: ${esc(sum.stripe_backend)} · account ${esc(sum.stripe_account)} · ${esc(sum.generated_at)}</p>`;
+  $("scen").innerHTML = head + `<table><tr><th>ID</th><th>Scenario</th><th>Local</th><th>Global</th><th>Final</th><th>Observed outcome</th><th>Status</th></tr>` +
+    r.results.map(x => `<tr><td>${esc(x.id)}</td><td>${esc(x.scenario)}</td>
+      <td>${x.local && x.local.verdict ? badge(x.local.verdict) : "—"}</td>
+      <td>${x.global && x.global.verdict ? badge(x.global.verdict) : "—"}</td>
+      <td>${esc(x.final_authorization || "—")}</td><td>${esc(x.outcome || x.error || "")}</td><td><b>${esc(x.status)}</b></td></tr>`).join("") + `</table>`;
+}
+async function loadChains() {
+  const r = await (await fetch("/api/evidence")).json();
+  const gi = r.governance.integrity || {};
+  $("chains").innerHTML = kv([
+    ["governance chain", `${gi.evidence_verified ? "verified" : "NOT VERIFIED"} · ${esc(gi.records)} records · head ${esc(gi.head)}`],
+    ["executor chain", `${r.executor.verified ? "verified" : "NOT VERIFIED"} · ${esc(r.executor.records)} records`]]);
+}
+loadScenarios(); loadChains();
+</script>
+</body>
+</html>
