@@ -106,3 +106,11 @@ with `STRIPE_SECRET_KEY` set. The banner at the top must read **Stripe TEST MODE
 4. Export and push the standalone public repository (section 4), after step 3.
 5. Rehearse the demo once on a machine with the test key (`DEMO_PLAN.md`), including paying the hosted invoice with card `4242 4242 4242 4242`.
 6. Submit the public repository URL and the green workflow-run URL.
+
+## Demo media (recorded 2026-10-15, Stripe test mode)
+
+- Recording run: https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38793941960 (manual, `RECORD-DEMO`, rule-based interpreter, no model calls)
+- MP4 (94 s, 1920×1080 H.264), direct: https://github.com/davarntrades/Morrison-Runtime-Governance/raw/demo-media/morrison-stripe-collection-demo.mp4
+- Screenshots and manifest: https://github.com/davarntrades/Morrison-Runtime-Governance/tree/demo-media
+- Artifacts (zip): `morrison-demo-video` and `morrison-demo-screenshots` on the run page
+- Copies of the live screenshots: `docs/screenshots/live-stripe-test-mode/`
