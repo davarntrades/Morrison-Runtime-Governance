@@ -1,0 +1,119 @@
+name: Stripe Collection Agent (demo recording)
+
+# MANUAL ONLY (confirm = RECORD-DEMO). Records the existing dashboard with
+# Playwright/Chromium against Stripe TEST MODE and produces:
+#   - morrison-stripe-collection-demo.mp4 (H.264, 1920x1080, <= 120 s)
+#   - desktop + mobile screenshots at ALLOW, local BLOCK and global BLOCK
+#   - MANIFEST.md / manifest.json (every on-screen verdict cross-checked
+#     against the backend response that produced it)
+#
+# Rule-based interpreter: no ANTHROPIC_API_KEY is passed, so no model calls.
+# Fresh Stripe test-mode operations are the minimum for a live recording:
+# fixture customers, Northwind's £600 operator invoice, one £500 invoice
+# (through a Morrison lease) and a test-card payment of it.
+
+on:
+  # The push trigger only registers the workflow from this branch; the record
+  # job is skipped on push (it requires a manual dispatch with RECORD-DEMO).
+  push:
+    branches: [claude/stripe-morrison-collection-agent-7y0a6p]
+    paths: [".github/workflows/stripe-collection-media.yml"]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type RECORD-DEMO to record against Stripe test mode"
+        type: string
+        required: true
+        default: ""
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: ${{ github.workspace }}/stripe-collection-agent:${{ github.workspace }}
+
+concurrency:
+  group: stripe-collection-media
+  cancel-in-progress: false
+
+jobs:
+  record:
+    name: Record dashboard demo (Stripe test mode)
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'RECORD-DEMO'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write          # only to publish the media to the demo-media branch
+    env:
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install app, Playwright 1.56 + Chromium, ffmpeg
+        run: |
+          pip install -r stripe-collection-agent/requirements.txt playwright==1.56.0
+          python -m playwright install --with-deps chromium
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          ffmpeg -version | head -1
+      - name: Preflight (never prints the key)
+        run: |
+          case "$STRIPE_SECRET_KEY" in
+            sk_test_*|rk_test_*) ;;
+            *) echo "::error::STRIPE_TEST_SECRET_KEY missing or not a test-mode key"; exit 1 ;;
+          esac
+          code=$(curl -sS -o /dev/null -w "%{http_code}" https://api.stripe.com/v1/account -u "$STRIPE_SECRET_KEY:")
+          echo "Stripe GET /v1/account -> HTTP $code"; [ "$code" = "200" ]
+      - name: Record
+        working-directory: stripe-collection-agent
+        run: |
+          python -m collection_agent.record_demo --output "$GITHUB_WORKSPACE/media" \
+            --results evidence/live-STRIPE-TEST-MODE-CLAUDE-20261015T184811Z
+          cat "$GITHUB_WORKSPACE/media/MANIFEST.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Credential scan of every output file
+        run: |
+          rm -rf media/_stack
+          if grep -rqF -- "$STRIPE_SECRET_KEY" media; then echo "::error::secret found in media"; exit 1; fi
+          if grep -rlE "sk_(test|live)_[A-Za-z0-9]{8,}|rk_(test|live)_[A-Za-z0-9]{8,}|whsec_[A-Za-z0-9]{8,}" media; then
+            echo "::error::credential-shaped string found in media"; exit 1; fi
+          echo "credential scan: clean"; ls -la media media/screenshots
+      - name: Verify outputs
+        run: |
+          python - <<'EOF'
+          import json, pathlib
+          m = json.loads(pathlib.Path("media/manifest.json").read_text())
+          v = m["video"]
+          assert pathlib.Path("media", v["file"]).stat().st_size > 100_000
+          assert v["codec"] == "h264" and v["seconds"] <= 120 and v["decodes_cleanly"], v
+          assert m["backend"]["is_real_stripe"] is True, m["backend"]
+          assert all(not c["problems"] for c in m["checks"]) and len(m["checks"]) == 3
+          assert m["payment"]["status_from_stripe"] == "paid"
+          for s in m["screenshots"]:
+              assert pathlib.Path("media", s["file"]).stat().st_size > 20_000, s
+          print("outputs verified:", v["seconds"], "s,", len(m["screenshots"]), "screenshots")
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: morrison-demo-video
+          path: media/morrison-stripe-collection-demo.mp4
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: morrison-demo-screenshots
+          path: |
+            media/screenshots/
+            media/frames/
+            media/MANIFEST.md
+            media/manifest.json
+      - name: Publish to the demo-media branch (direct links for phones)
+        run: |
+          cd media
+          git init -q -b demo-media
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '# Demo media\n\nRecorded by GitHub Actions run %s from commit %s. See MANIFEST.md.\n' \
+            "$GITHUB_RUN_ID" "$GITHUB_SHA" > README.md
+          git add -A && git commit -q -m "Demo recording from run $GITHUB_RUN_ID"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" demo-media
+          echo "published: https://github.com/${{ github.repository }}/tree/demo-media"
