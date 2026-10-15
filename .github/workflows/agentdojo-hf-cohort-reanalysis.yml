@@ -1,0 +1,71 @@
+name: AgentDojo HF independent retained-evidence verification (no inference)
+on:
+  push:
+    branches: [codex/agentdojo-hf-api-resume]
+    paths: [.github/workflows/agentdojo-hf-cohort-reanalysis.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.12'
+      - name: Download original live evidence and verify source digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PYCODE'
+          import os,json,hashlib,urllib.request,urllib.error,zipfile,io
+          from pathlib import Path
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,*args,**kwargs): return None
+          req=urllib.request.Request('https://api.github.com/repos/davarntrades/Morrison-Runtime-Governance/actions/artifacts/11941360621/zip',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN']})
+          try: raw=urllib.request.build_opener(NoRedirect).open(req,timeout=30).read()
+          except urllib.error.HTTPError as exc:
+              if exc.code not in (302,303,307):raise
+              raw=urllib.request.urlopen(exc.headers['Location'],timeout=30).read()
+          digest=hashlib.sha256(raw).hexdigest()
+          assert digest=='1c542ae9bd94c80b5506b5ffcf44d5500e40812835a91ed88af940f8b6077405'
+          outer=zipfile.ZipFile(io.BytesIO(raw));assert outer.testzip() is None
+          inner=zipfile.ZipFile(io.BytesIO(outer.read(outer.namelist()[0])));assert inner.testzip() is None
+          root=Path('artifacts/verified-cohort');root.mkdir(parents=True,exist_ok=True)
+          for n in inner.namelist():
+              p=Path(n);assert not p.is_absolute() and '..' not in p.parts
+              if not n.endswith('/'):
+                  (root/p).parent.mkdir(parents=True,exist_ok=True)
+                  (root/p).write_bytes(inner.read(n))
+          (root/'original-artifact.zip').write_bytes(raw)
+          (root/'original-postprocessing-report.json').write_bytes((root/'cohort-report.json').read_bytes())
+          (root/'reanalysis-manifest.json').write_text(json.dumps({'source_artifact_id':11941360621,'source_archive_sha256':digest,'source_execution_commit':'f2b9a6ce369fbab0f4e5a23e5d656d2eef947172','analysis_commit':os.environ['GITHUB_SHA'],'analysis_run_url':'https://github.com/'+os.environ['GITHUB_REPOSITORY']+'/actions/runs/'+os.environ['GITHUB_RUN_ID'],'inference_requests_in_reanalysis':0,'corrections':['normalize logged pipeline names and restore preserved native scores','distinguish scheduled creation from redirect of an existing scheduled transaction'],'original_artifact_preserved_unmodified':True},indent=2))
+          PYCODE
+      - name: Recompute chains, bindings, effects, rates, costs and matched initial states
+        run: python -m runtime_eval.agentdojo_bench.hf_cohort reanalyse --output artifacts/verified-cohort
+      - name: Package all evidence, original archive and independent report
+        if: always()
+        run: |
+          python - <<'PYCODE'
+          from pathlib import Path
+          import zipfile
+          root=Path('artifacts/verified-cohort')
+          with zipfile.ZipFile(root.with_suffix('.zip'),'w',zipfile.ZIP_DEFLATED) as z:
+              for p in sorted(root.rglob('*')):
+                  if p.is_file():z.write(p,p.relative_to(root))
+          PYCODE
+      - name: Retain independently verified evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: hf-cohort-independently-verified-${{ github.run_id }}
+          path: artifacts/verified-cohort.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish verified research summary
+        if: always()
+        run: cat artifacts/verified-cohort/RESEARCH_REPORT.md >> "$GITHUB_STEP_SUMMARY"

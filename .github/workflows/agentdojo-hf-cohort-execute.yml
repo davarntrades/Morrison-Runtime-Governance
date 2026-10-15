@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   experiment:
-    if: github.run_attempt == 1
+    if: ${{ false }} # Completed paid cohort; no automatic replay.
     runs-on: ubuntu-latest
     timeout-minutes: 75
     env:

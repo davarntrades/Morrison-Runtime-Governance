@@ -197,7 +197,7 @@ def preflight():
     token = os.environ.get('HF_TOKEN')
     report = {'checkpoint': CHECKPOINT, 'provider': 'featherless-ai', 'key_present': bool(token),
               'served_revision': None, 'served_revision_status': 'UNVERIFIED',
-              'balance_usd': 9.65, 'balance_source': 'user-reported; no billing setting modified',
+              'balance_usd': None, 'balance_source': 'not queried by metadata preflight; see dated protocol billing reconciliation',
               'credit_eligibility': 'HF-routed requests eligible; canary verifies actual inference access'}
     hub = get_json(f'https://huggingface.co/api/models/{CHECKPOINT}?expand=sha&expand=gated&expand=inferenceProviderMapping')
     provider = get_json(f'https://api.featherless.ai/v1/models/{CHECKPOINT}')
