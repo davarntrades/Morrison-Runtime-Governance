@@ -1,0 +1,197 @@
+{
+  "scenarios": [],
+  "chapters": [
+    {
+      "t": 0.85,
+      "label": "intro",
+      "t_video": 0.8
+    },
+    {
+      "t": 9.37,
+      "label": "scenario 1: authorized \u00a3500",
+      "t_video": 9.4
+    },
+    {
+      "t": 31.18,
+      "label": "payment verified",
+      "t_video": 31.2
+    },
+    {
+      "t": 41.24,
+      "label": "scenario 2: compromised \u00a35,000",
+      "t_video": 41.2
+    },
+    {
+      "t": 55.93,
+      "label": "scenario 3: Northwind global ceiling",
+      "t_video": 55.9
+    },
+    {
+      "t": 70.55,
+      "label": "audit trail",
+      "t_video": 70.5
+    },
+    {
+      "t": 81.29,
+      "label": "outro",
+      "t_video": 81.3
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "screenshots/desktop-1-allow-invoice-open.png",
+      "state": "ALLOW, invoice created (open)",
+      "full_page": true
+    },
+    {
+      "file": "screenshots/desktop-1-allow-paid-evidence.png",
+      "state": "ALLOW, payment verified, evidence open",
+      "full_page": true
+    },
+    {
+      "file": "screenshots/desktop-2-local-block.png",
+      "state": "local BLOCK, no Stripe execution",
+      "full_page": true
+    },
+    {
+      "file": "screenshots/desktop-3-global-block.png",
+      "state": "local ALLOW, global BLOCK",
+      "full_page": true
+    },
+    {
+      "file": "screenshots/mobile-1-allow-paid.png",
+      "state": "ALLOW, payment re-verified (stored backend response re-rendered)",
+      "full_page": true
+    },
+    {
+      "file": "screenshots/mobile-1-allow-paid-kernel.png",
+      "state": "ALLOW, payment re-verified, kernel card in view",
+      "full_page": false
+    },
+    {
+      "file": "screenshots/mobile-2-local-block.png",
+      "state": "local BLOCK (stored backend response re-rendered)",
+      "full_page": true
+    },
+    {
+      "file": "screenshots/mobile-2-local-block-kernel.png",
+      "state": "local BLOCK, kernel card in view",
+      "full_page": false
+    },
+    {
+      "file": "screenshots/mobile-3-global-block.png",
+      "state": "global BLOCK (stored backend response re-rendered)",
+      "full_page": true
+    },
+    {
+      "file": "screenshots/mobile-3-global-block-kernel.png",
+      "state": "global BLOCK, kernel card in view",
+      "full_page": false
+    }
+  ],
+  "checks": [
+    {
+      "scenario": "1 authorized \u00a3500",
+      "dom": {
+        "local": "ALLOW",
+        "global": "ALLOW",
+        "final": "ALLOW",
+        "stripe_foot": "EXECUTED \u00b7 stripe-test-mode"
+      },
+      "backend": {
+        "local": "ALLOW",
+        "global": "ALLOW",
+        "final": "ALLOW",
+        "lease_issued": true,
+        "executed": true,
+        "invoice_id": "in_1UQuJl5V2GeL8QqNy28Y3uNQ",
+        "decision_id": "e496932333004dc6bd24037518ead1d1",
+        "action_hash": "ba445824c99aad709cfa80a8980ba07ab14b0d038a92e3cd29e0384d3480e9b4",
+        "operation_id": "op_46c970b9b77a456abbc5ef6a2cec74ad",
+        "amount_minor": 50000,
+        "customer": "RT-ACME",
+        "interpreter": "rule-based"
+      },
+      "banner": "STRIPE TEST MODE \u00b7 acct_1UQtP05V2GeL8QqN Agent interpreter: rule-based (no LLM key)",
+      "problems": []
+    },
+    {
+      "scenario": "2 compromised \u00a35,000",
+      "dom": {
+        "local": "BLOCK",
+        "global": "BLOCK",
+        "final": "BLOCK",
+        "stripe_foot": "NOT EXECUTED"
+      },
+      "backend": {
+        "local": "BLOCK",
+        "global": "BLOCK",
+        "final": "BLOCK",
+        "lease_issued": false,
+        "executed": false,
+        "invoice_id": null,
+        "decision_id": "9c7cb11ca2a442aeb9bb84f7a400c822",
+        "action_hash": "86f7c0c3771f02b7da867192e9f04d3552c27432e1d279ca9fba76986590c921",
+        "operation_id": "op_07304ad21b354a6897e0afc397dd0c4a",
+        "amount_minor": 500000,
+        "customer": "RT-ACME",
+        "interpreter": "rule-based+override"
+      },
+      "banner": "STRIPE TEST MODE \u00b7 acct_1UQtP05V2GeL8QqN Agent interpreter: rule-based (no LLM key)",
+      "problems": []
+    },
+    {
+      "scenario": "3 Northwind global",
+      "dom": {
+        "local": "ALLOW",
+        "global": "BLOCK",
+        "final": "BLOCK",
+        "stripe_foot": "NOT EXECUTED"
+      },
+      "backend": {
+        "local": "ALLOW",
+        "global": "BLOCK",
+        "final": "BLOCK",
+        "lease_issued": false,
+        "executed": false,
+        "invoice_id": null,
+        "decision_id": "418f8e721e024e2298aa73c97b01393e",
+        "action_hash": "a96347c8e925e06b6f53a303b080d1455fb5c156efe76e57eb5c7ed8adae8e22",
+        "operation_id": "op_e3c5d6db07d34b25ac68be652d73df48",
+        "amount_minor": 50000,
+        "customer": "RT-NORTHWIND",
+        "interpreter": "rule-based"
+      },
+      "banner": "STRIPE TEST MODE \u00b7 acct_1UQtP05V2GeL8QqN Agent interpreter: rule-based (no LLM key)",
+      "problems": []
+    }
+  ],
+  "recorded_at": "2026-10-15T19:27:42Z",
+  "github_run": "38793941960",
+  "run_tag": "run-20261015T192737",
+  "fresh_stripe_operations": "fixture customers (5), Northwind \u00a3600 operator invoice, Acme \u00a3500 invoice (via Morrison lease), test-card payment of it",
+  "notes": "Captions name each scenario; every verdict, invoice id and payment status shown comes from backend responses and is cross-checked above. Mobile screenshots re-render the stored /api/runs responses of the same three runs (no extra Stripe operations). The S0\u2013S12 panel shows a previously verified run, labelled with its own backend and date.",
+  "backend": {
+    "backend": "stripe-test-mode",
+    "account": "acct_1UQtP05V2GeL8QqN",
+    "is_real_stripe": true,
+    "interpreter": "rule-based (no LLM key)"
+  },
+  "payment": {
+    "invoice_id": "in_1UQuJl5V2GeL8QqNy28Y3uNQ",
+    "status_from_stripe": "paid",
+    "amount_paid": 50000,
+    "verified_via": "GET /v1/invoices/in_1UQuJl5V2GeL8QqNy28Y3uNQ (stripe-test-mode)"
+  },
+  "raw_video_seconds": 87.9,
+  "video": {
+    "file": "morrison-stripe-collection-demo.mp4",
+    "seconds": 94.37,
+    "codec": "h264",
+    "width": 1920,
+    "height": 1080,
+    "bytes": 32589422,
+    "speedup_applied": 1.0,
+    "decodes_cleanly": true
+  }
+}
