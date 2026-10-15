@@ -1,4 +1,7 @@
-"""Boundary and authority invariants for the Safety Envelope."""
+"""Boundary and authority invariants for the Admissible Operating Envelope.
+
+The legacy module and type names remain stable for compatibility.
+"""
 
 from __future__ import annotations
 
