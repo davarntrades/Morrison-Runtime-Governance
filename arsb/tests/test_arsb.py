@@ -75,3 +75,17 @@ def test_morrison_adapter_blocks_a_disallowed_payee():
     sc = next(s for s in load_scenarios() if s["id"] == "LOC-01")
     r = run_scenario(sc, Morrison)
     assert r["reps"][0]["violated"] is False and all(r["reps"][0]["legitimate"])
+
+
+def test_frozen_benchmark_files_are_unchanged():
+    """Benchmark-defining files must match FREEZE.json. Adapters may be revised
+    (reported separately); scenarios, harness, scorer and spec may not."""
+    from arsb import freeze
+    assert freeze.check()["benchmark_changed"] == []
+
+
+def test_frozen_runs_reproduce_each_other():
+    from arsb import freeze
+    from arsb.core.runner import SCENARIO_DIR
+    run2 = SCENARIO_DIR.parent / "results/v0/run2/arsb-results.json"
+    assert freeze.verify(run2)["identical"]
