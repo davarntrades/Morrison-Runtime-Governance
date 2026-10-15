@@ -444,6 +444,23 @@ class SecurityContext:
     owned_resource_args: dict = field(default_factory=dict)
     resource_tenants: Any = None
 
+    # ARGUMENT PROVENANCE: arguments that must not be chosen by untrusted data.
+    #
+    # Morrison judges actions, so an action that is admissible in itself — a
+    # payment to an established payee within every limit — passed even when
+    # an injected document had picked the payee (ARSB LOC-02).
+    # `argument_provenance` maps a tool to the argument names to protect.
+    # Outputs of executed calls are recorded (see GovernanceKernel.record_output);
+    # `output_trust(call, result) -> bool` says whether an output is a trusted
+    # source (default: untrusted). A protected argument whose value occurs in an
+    # untrusted output, and in no trusted output or `trusted_facts["request_values"]`,
+    # needs an approval for that exact action.
+    #
+    # This is value-level taint: it recognises a value copied from untrusted
+    # data, not one transformed on the way (re-encoded, split, computed).
+    argument_provenance: dict = field(default_factory=dict)
+    output_trust: Any = None
+
     _used_nonces: set = field(default_factory=set)
 
     # ── approvals ────────────────────────────────────────────

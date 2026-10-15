@@ -311,6 +311,47 @@ APPROVALS_NAMESPACE = "__approvals__"
 # a resource, from every principal, filed under "__resource__/<scope>".
 RESOURCE_NAMESPACE = "__resource__"
 
+# Recorded outputs of executed calls (argument provenance), per principal.
+OUTPUTS_NAMESPACE = "__outputs__"
+_MIN_TAINT_LEN = 4
+
+
+def _scalar_values(obj, depth: int = 0) -> set:
+    """Every scalar inside a tool result, as strings."""
+    out: set = set()
+    if depth > 8:
+        return out
+    if isinstance(obj, dict):
+        for v in obj.values():
+            out |= _scalar_values(v, depth + 1)
+    elif isinstance(obj, (list, tuple, set)):
+        for v in obj:
+            out |= _scalar_values(v, depth + 1)
+    elif isinstance(obj, bool) or obj is None:
+        pass
+    elif isinstance(obj, (str, int, float)):
+        s = str(obj).strip()
+        if s:
+            out.add(s)
+    return out
+
+
+def _occurs(value: str, sources: list) -> bool:
+    """`value` equals a recorded scalar, or (if long enough to be specific)
+    appears inside a recorded text."""
+    if value in sources:
+        return True
+    if len(value) < _MIN_TAINT_LEN:
+        return False
+    return any(len(src) > len(value) and value in src for src in sources)
+
+
+# Authority facts the kernel attests for an ALREADY-ADMITTED history step when
+# it re-evaluates the trajectory for a new candidate (see _evaluate_with_context).
+_ADMITTED_STEP = {"authorized": True, "approved": True, "verified": True,
+                  "admin_approved": True, "change_approved": True, "sanctioned": True,
+                  "admitted_history_step": True}
+
 
 def approval_replay_token(approval) -> str:
     """What makes an approval artifact single-use. Its nonce when it has one;
@@ -524,6 +565,52 @@ class GovernanceKernel:
                 op(key)
             except Exception:                        # noqa: BLE001
                 pass
+
+    # ── argument provenance ───────────────────────────────────
+    def _outputs_key(self) -> str:
+        return f"{OUTPUTS_NAMESPACE}/{self.continuity_key}" if self.continuity_key else ""
+
+    def record_output(self, call: dict, result: Any) -> None:
+        """Record what an executed call returned, labelled trusted or untrusted,
+        so later arguments can be checked against it. Called by `execute`; a
+        deployment that executes remotely calls it with the remote result."""
+        if not getattr(self.ctx, "argument_provenance", None) or not self._outputs_key():
+            return
+        trust = getattr(self.ctx, "output_trust", None)
+        trusted = bool(trust(call, result)) if callable(trust) else False
+        values = sorted(_scalar_values(result))
+        if not values:
+            return
+        now = time.time()
+        self.store.append(self._outputs_key(), LedgerEntry(
+            decision_id=uuid.uuid4().hex, action={"tool": "__output__", "args": {
+                "source": call.get("tool"), "trusted": trusted, "values": values}},
+            verdict="OBSERVED", state="observed", actor=self.ctx.principal.id,
+            session_id=self.session_id, timestamp=now, wall_timestamp=now))
+
+    def _untrusted_arguments(self, call: dict) -> list[str]:
+        protected = (getattr(self.ctx, "argument_provenance", None) or {}).get(call.get("tool"))
+        if not protected or not self._outputs_key():
+            return []
+        window = float(getattr(self.ctx, "continuity_window_s", 0.0) or 0.0)
+        horizon = (time.time() - window) if window > 0 else None
+        untrusted, trusted = [], [str(v) for v in
+                                  (getattr(self.ctx, "trusted_facts", None) or {}).get("request_values", ())]
+        for e in self.store.entries(self._outputs_key()):
+            if horizon is not None and (e.wall_timestamp or e.timestamp) < horizon:
+                continue
+            (trusted if e.action["args"].get("trusted") else untrusted).extend(e.action["args"]["values"])
+        if not untrusted:
+            return []
+        out = []
+        for name in protected:
+            value = (call.get("args") or {}).get(name)
+            if value is None or isinstance(value, bool):
+                continue
+            v = str(value)
+            if _occurs(v, untrusted) and not _occurs(v, trusted):
+                out.append(name)
+        return out
 
     def _clock_basis(self) -> float:
         """The clock this session is actually being driven on.
@@ -821,6 +908,18 @@ class GovernanceKernel:
         extractor = TrajectoryExtractor(context=trusted)
         traj = (extractor.from_plan(prefix) if len(prefix) > 1
                 else extractor.from_dict(prefix[0]))
+        # ARSB-UTL-01. Every state before the candidate is governed history:
+        # a step this kernel (or, for a shared resource, another kernel)
+        # already admitted under the authority established FOR THAT STEP. The
+        # engine applies single-step rules to every state under one context,
+        # so an earlier payment was re-judged against the CURRENT request's
+        # authority — and after any payment, every later action failed
+        # `unauthorized_transfer`. The kernel now records on each earlier state
+        # that it was admitted. That attests nothing about the candidate, whose
+        # context is untouched, and nothing about composition: trajectory rules
+        # still see every step.
+        for state in traj.states[:-1]:
+            state.context.update(_ADMITTED_STEP)
         return self.layer.evaluate_trajectory(traj)
 
     # ── the gate ─────────────────────────────────────────────
@@ -1283,6 +1382,15 @@ class GovernanceKernel:
         owner = _resource_owner_problem(proposed, self.ctx)
         if owner:
             candidates.append((BLOCK, "tenancy", owner[1], owner[0], None))
+        # Only an approval of this exact action resolves it: an auto-approval
+        # threshold or a standing grant says nothing about where a payee came from.
+        if not approval:
+            tainted = self._untrusted_arguments(proposed)
+            if tainted:
+                candidates.append((ESCALATE, "provenance",
+                                   f"argument(s) {tainted} carry a value that appeared in untrusted "
+                                   f"data and in no trusted source; an approval for this exact "
+                                   f"action is required", "untrusted_argument_provenance", None))
 
         _sw.totals["policy_evaluation"] = (
             _sw.totals.get("policy_evaluation", 0.0)
@@ -1590,6 +1698,10 @@ class GovernanceKernel:
 
         if decision.evidence is not None:
             self._record_execution_outcome(decision, "ok")
+        try:
+            self.record_output(target, result)
+        except Exception:                            # noqa: BLE001 - never turns success into failure
+            pass
         return True, result
 
     def _record_intent(self, decision: "Decision", target: dict) -> EvidenceRecord:
