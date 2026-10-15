@@ -50,5 +50,6 @@ sed -e 's#stripe-collection-agent/##g' \
 } > README.tmp && mv README.tmp README.md
 
 git add -A
-git commit -q -m "Morrison-governed autonomous Stripe collection agent (Stripe × Briefcase hackathon)"
+git commit -q -m "Morrison-governed autonomous Stripe collection agent (Stripe × Briefcase hackathon)" \
+  -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 echo "standalone repository ready at $DEST"
