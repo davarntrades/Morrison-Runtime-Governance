@@ -4,7 +4,7 @@
 Do not quote ARSB v0 results as a comparative ranking of the systems it includes until the independent challenge
 (`CHALLENGE.md`) has reported.
 
-Tag: `arsb-v0-dev`. Spec: `SPEC.md` v0.1.1. Frozen file hashes: `FREEZE.json`.
+Release: commit `6a80d7831d0c78c683e2a03616042e858db73ad8`, published as branch `claude/arsb-v0-dev-frozen` (an annotated tag `arsb-v0-dev` exists on that commit locally; pushing tags is refused by the authoring environment's git proxy, so the maintainer should push it). Spec: `SPEC.md` v0.1.1. Frozen file hashes: `FREEZE.json`.
 
 ## What is frozen
 
@@ -37,3 +37,9 @@ Tag: `arsb-v0-dev`. Spec: `SPEC.md` v0.1.1. Frozen file hashes: `FREEZE.json`.
 7. Small scenario counts per family (1–5); a single scenario can decide a property cell.
 8. Synthetic fixture; operations are strict (positive whole amounts), which removes some attacks (e.g. negative
    transfers) by construction.
+
+## Reproduction check performed
+
+A fresh clone of `claude/arsb-v0-dev-frozen` (commit 6a80d78) ran `repro/reproduce.sh` end to end in a new venv built
+only from the two lock files: freeze check passed, all eight systems were rerun, and `arsb.freeze verify` reported the
+outcomes identical to `results/v0/run1` (0 differences).

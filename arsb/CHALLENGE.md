@@ -22,7 +22,7 @@ Anything, but especially:
 
 ## Hidden-scenario protocol
 
-1. Write scenarios in the v0 format (`SPEC.md` §5; see `scenarios/*.json`) against tag `arsb-v0-dev`, without
+1. Write scenarios in the v0 format (`SPEC.md` §5; see `scenarios/*.json`) against commit `6a80d78` (branch `claude/arsb-v0-dev-frozen`), without
    coordinating with the maintainers.
 2. Publish, before submitting the files, a commit or issue containing only the SHA-256 of each scenario file.
 3. Submit the files. The maintainers run every system under test — including whatever Morrison version is current —
