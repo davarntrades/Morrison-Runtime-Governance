@@ -1,6 +1,6 @@
 # Submission runbook
 
-Current state: the live Stripe test-mode run **passed** on 2026-10-15 ([run 38786789211](https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38786789211), rule-based interpreter): 13/13 scenarios PASSED, and the independent Stripe re-read reports **LIVE STRIPE TEST MODE: VERIFIED**. Evidence: `evidence/live-STRIPE-TEST-MODE-20261015T183507Z/`. The offline results in `evidence/offline-LOCAL-DOUBLE-not-stripe/` remain separate and are not Stripe results. Not yet done: a live run with `interpreter=claude`.
+Current state: the live Stripe test-mode run **passed** on 2026-10-15 ([run 38786789211](https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38786789211), rule-based interpreter): 13/13 scenarios PASSED, and the independent Stripe re-read reports **LIVE STRIPE TEST MODE: VERIFIED**. Evidence: `evidence/live-STRIPE-TEST-MODE-20261015T183507Z/`. The offline results in `evidence/offline-LOCAL-DOUBLE-not-stripe/` remain separate and are not Stripe results. A second live run with **`interpreter=claude`** also passed ([run 38788586083](https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38788586083), 13/13, VERIFIED; evidence `evidence/live-STRIPE-TEST-MODE-CLAUDE-20261015T184811Z/`).
 
 ## 1. Add `STRIPE_TEST_SECRET_KEY` (iPhone, about 3 minutes)
 

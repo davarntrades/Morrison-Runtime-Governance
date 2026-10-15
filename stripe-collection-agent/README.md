@@ -12,7 +12,7 @@ An AI agent turns a customer request ("invoice Acme £500 for a Morrison Runtime
 | Process separation (the agent holds no Stripe key and has no route to Stripe) | Working; verified by scenario S0 and the executor tests |
 | Adversarial scenarios S0–S12 against the **local Stripe double** | 13/13 PASSED, `evidence/offline-LOCAL-DOUBLE-not-stripe/`. **These are not Stripe results.** |
 | Adversarial scenarios against **Stripe test mode** (`api.stripe.com`) | **13/13 PASSED, independently re-verified against Stripe (20/20 checks)**, 2026-10-15, [run 38786789211](https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38786789211), account `acct_1UQtP05V2GeL8QqN`. Evidence: `evidence/live-STRIPE-TEST-MODE-20261015T183507Z/` (rule-based interpreter) |
-| LLM interpretation with Claude | Implemented; **not yet run live**. The first live run used the rule-based interpreter. Run the workflow with `interpreter=claude` to exercise it |
+| LLM interpretation with Claude | **Run live**: 13/13 PASSED, Stripe re-read VERIFIED, [run 38788586083](https://github.com/davarntrades/Morrison-Runtime-Governance/actions/runs/38788586083). Claude (`claude-opus-5-5`) turned the S1 request into the £500 proposal that Morrison allowed. Evidence: `evidence/live-STRIPE-TEST-MODE-CLAUDE-20261015T184811Z/` |
 
 No Stripe response, test result or payment confirmation in this repository is fabricated. Evidence produced against the double says `backend: override:http://127.0.0.1:…` and `is_real_stripe: false`. Live evidence says `backend: stripe-test-mode` and `is_real_stripe: true`, and its provenance (workflow run, commit, bundle SHA-256) is in that directory's `PROVENANCE.md`.
 
@@ -145,7 +145,6 @@ The harness never trusts a UI message. For each scenario it lists the customer's
 
 ## Known weaknesses and deployment gaps
 
-- **The Claude interpreter has not been run live yet.** The live Stripe run used the rule-based interpreter (see Status).
 - **Single host.** `FileContinuityStore` and `SQLiteLeaseStore` are host-local by design (Morrison documents this). Multi-host deployment needs a shared atomic store. Cross-host global safety is not provided.
 - **Observed state is read per decision, not locked.** An invoice created in Stripe outside this system *between* the state read and the agent's execution is not counted for that decision. Everything the agent itself does is serialised by Morrison reservations.
 - **The executor does not re-check terms at redemption.** A lease is valid for ≤60 s. Agreement changes cancel unredeemed leases through `release`, but a lease redeemed in the gap before cancellation stands, and is counted as an effect.
