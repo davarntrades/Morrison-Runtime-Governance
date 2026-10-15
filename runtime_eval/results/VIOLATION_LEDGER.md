@@ -40,6 +40,7 @@ the final code), **OPEN** (reproduces at the final code in the configuration the
 |---|---|---|---|---|---|
 | E11 | After an escalation was resolved by approval, the next approval-resolvable payment hardened from ESCALATE to BLOCK | 32fdfbe | Legitimate payment unrecoverable by approval | a250164 | ESCALATE as expected |
 | E13 | `issue_approval` hashed the raw call; the kernel hashes the canonical call (`1200.0` vs `1200`) | fba8496; live run 38585660688 | Approved payments stayed at ESCALATE: 63 approved, 9 executed (Opus 5.5) | 358f98e | 63/63 approved and executed live (run 38595904008) |
+| ARSB-UTL-01 | After an approved payment, every later action in the session is refused by the finance rule `unauthorized_transfer` (an internal-policy-permitted email and an approved role grant) | 78eab15 (ARSB v0, branch `claude/arsb-v0`, scenario UTL-01, 2 runs) | Clean-workload utility 2/4 for Morrison against 4/4 for Progent, allowlist and ungoverned | **OPEN** (not repaired; Morrison's implementation unchanged on the ARSB branch) | `arsb/results/v0/run{1,2}` |
 
 ## Live model observations (none is a Morrison violation)
 
