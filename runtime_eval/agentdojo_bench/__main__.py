@@ -54,23 +54,101 @@ def _oracle(args) -> int:
     return 0
 
 
+def _provenance(args) -> dict:
+    import subprocess
+    from importlib.metadata import version
+    try:
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                                text=True, check=False).stdout.strip() or None
+        dirty = bool(subprocess.run(["git", "status", "--porcelain"],
+                                    capture_output=True, text=True,
+                                    check=False).stdout.strip())
+    except OSError:
+        commit, dirty = None, None
+    return {"argv": sys.argv[1:], "git_commit": commit, "git_dirty": dirty,
+            "agentdojo_version": version("agentdojo"),
+            "python": sys.version.split()[0]}
+
+
 def _live(args) -> int:
     from runtime_eval.agentdojo_bench.live import run_live
+    status = 0
     for suite in args.suite or SUITES:
+        started = datetime.now(timezone.utc).isoformat()
         result = run_live(
             args.provider, args.model, suite, attack=args.attack,
             defense=args.defense, benchmark_version=args.benchmark_version,
             user_tasks=args.user_task, injection_tasks=args.injection_task,
             logdir=(args.output / "logs") if args.output else None,
-            force_rerun=args.force_rerun)
+            force_rerun=args.force_rerun, max_usd=args.max_usd,
+            max_requests=args.max_requests, settings=_settings(args),
+            benign=args.benign)
+        result["provenance"] = {**_provenance(args), "started_at": started,
+                                "finished_at": datetime.now(timezone.utc).isoformat()}
         _write(args.output,
                f"live-{args.model.replace('/', '_')}-{args.defense}-{suite}.json",
                result)
+        if result.get("status") != "complete":
+            status = 1
+        if "error" in result:
+            print(f"{suite:10s} {args.model} [{args.defense}] FAILED: {result['error']} "
+                  f"({len(result['partial_episodes'])} episodes recorded before failure)")
+            continue
         print(f"{suite:10s} {args.model} [{args.defense}] attack={result['attack']} "
-              f"ASR {result['attack_success_rate']}  "
-              f"utility under attack {result['utility_under_attack']}  "
-              f"({result['pairs']} pairs)")
-    return 0
+              f"ASR {result['attack_success_count']}  "
+              f"utility under attack {result['utility_count']}  "
+              f"calls attempted/executed {result['calls_attempted']}/"
+              f"{result['calls_executed']}  pairs with env changes "
+              f"{result['pairs_with_resource_effects']}/{result['pairs_with_evidence']}")
+    return status
+
+
+def _settings(args):
+    from runtime_eval.agentdojo_bench.anthropic_adapter import RequestSettings
+    return RequestSettings(model=args.model, max_tokens=args.max_tokens,
+                           effort=args.effort,
+                           profile=getattr(args, "request_profile", ""))
+
+
+def _preflight(args) -> int:
+    from runtime_eval.agentdojo_bench.ci import preflight
+    return preflight(args.model, args.output, canary=args.canary,
+                     settings=_settings(args), list_models=args.list_models)
+
+
+def _verify(args) -> int:
+    import os
+    from runtime_eval.agentdojo_bench.ci import summary_markdown, verify
+    status = verify(args.output, os.environ.get("ANTHROPIC_API_KEY", ""))
+    md = summary_markdown(args.output)
+    (args.output / "SUMMARY.md").write_text(md + "\n")
+    print(md)
+    return status
+
+
+def _analyze(args) -> int:
+    from runtime_eval.agentdojo_bench.analyze import main as analyze_main
+    return analyze_main(args.output)
+
+
+def _redact(args) -> int:
+    import os
+    from runtime_eval.agentdojo_bench.ci import redact_tree
+    found = redact_tree(args.output, os.environ.get("ANTHROPIC_API_KEY", ""))
+    print(json.dumps({"redacted_files": found}, indent=2))
+    return 1 if found else 0
+
+
+def _export(args) -> int:
+    from runtime_eval.agentdojo_bench.ci import export_to_log
+    return export_to_log(args.output)
+
+
+def _model_settings_args(sp) -> None:
+    sp.add_argument("--max-tokens", type=int, default=16000,
+                    help="per-request max_tokens (thinking counts toward it)")
+    sp.add_argument("--effort", default="medium",
+                    choices=["low", "medium", "high", "xhigh", "max"])
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -93,12 +171,47 @@ def main(argv: list[str] | None = None) -> int:
                            "together, cohere, local, vllm_parsed")
     live.add_argument("--model", required=True)
     live.add_argument("--attack", default="important_instructions")
-    live.add_argument("--defense", choices=["morrison", "none"],
-                      default="morrison")
+    from runtime_eval.agentdojo_bench.live import DEFENSES
+    live.add_argument("--defense", choices=list(DEFENSES), default="morrison")
     live.add_argument("--force-rerun", action="store_true")
+    live.add_argument("--max-usd", type=float, default=float("inf"),
+                      help="stop the arm before a request once its estimated "
+                           "spend reaches this (Anthropic only)")
+    live.add_argument("--max-requests", type=int, default=10**9,
+                      help="stop the arm before its Nth+1 model request")
+    live.add_argument("--benign", action="store_true",
+                      help="also run the same user tasks with no injection")
+    _model_settings_args(live)
+    live.add_argument("--request-profile", choices=["", "adaptive", "legacy"],
+                      default="", help="'' = chosen by model")
+
+    pre = sub.add_parser("preflight", help="verify API auth and model access "
+                                           "without printing the key")
+    pre.add_argument("--model", required=True)
+    pre.add_argument("--output", type=Path)
+    pre.add_argument("--canary", action="store_true",
+                     help="also send ONE minimal billed request with the "
+                          "benchmark's exact settings")
+    _model_settings_args(pre)
+    pre.add_argument("--list-models", action="store_true")
+    pre.add_argument("--request-profile", choices=["", "adaptive", "legacy"], default="")
+
+    ver = sub.add_parser("verify", help="redact credentials, re-verify "
+                                        "evidence chains, check matched arms")
+    ver.add_argument("--output", type=Path, required=True)
+    ana = sub.add_parser("analyze", help="outcome analysis: attempted vs "
+                                         "executed vs verified effects")
+    ana.add_argument("--output", type=Path, required=True)
+    red = sub.add_parser("redact", help="redact credentials under --output in place")
+    red.add_argument("--output", type=Path, required=True)
+    exp = sub.add_parser("export-log", help="print the redacted evidence "
+                                            "directory as base64 to stdout")
+    exp.add_argument("--output", type=Path, required=True)
 
     args = p.parse_args(argv)
-    return _oracle(args) if args.mode == "oracle" else _live(args)
+    return {"oracle": _oracle, "live": _live, "preflight": _preflight,
+            "verify": _verify, "analyze": _analyze, "redact": _redact,
+            "export-log": _export}[args.mode](args)
 
 
 if __name__ == "__main__":

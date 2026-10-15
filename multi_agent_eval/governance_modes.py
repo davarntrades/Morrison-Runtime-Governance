@@ -157,3 +157,45 @@ class QuorumGovernance(GovernanceMode):
                         d.rule, d.omega_domain,
                         f"deny-by-default quorum: {n_block} block / "
                         f"{n_err} error of {len(self.replicas)} replicas")
+
+
+class AtomicJointAdmission:
+    """Atomic decide-and-reserve over the joint trajectory.
+
+    `GovernanceMode.decide` is a pure function of the history it is handed.
+    Agents that call it concurrently all read the same committed joint
+    history, so requests that are each admissible against that history can
+    together cross a joint limit (falsification experiment G4: four
+    simultaneous 4,000 transfers against 7,000 of remaining budget were all
+    permitted). This wrapper makes admission a critical section: the
+    candidate is evaluated against committed history PLUS every outstanding
+    reservation, and a PERMIT reserves its slot before the lock is released.
+    The caller then `commit`s (the effect landed) or `release`s it.
+    """
+
+    def __init__(self, mode: GovernanceMode):
+        import threading
+        self.mode = mode
+        self._lock = threading.Lock()
+        self.committed: list = []
+        self._reserved: dict = {}
+
+    def admit(self, agent_id: str, local_history: list, candidate: dict):
+        """Returns (decision, token). token is None unless permitted."""
+        import uuid
+        with self._lock:
+            joint = self.committed + list(self._reserved.values())
+            d = self.mode.decide(agent_id, local_history, joint, candidate)
+            if not d.permitted:
+                return d, None
+            token = uuid.uuid4().hex
+            self._reserved[token] = candidate
+            return d, token
+
+    def commit(self, token: str) -> None:
+        with self._lock:
+            self.committed.append(self._reserved.pop(token))
+
+    def release(self, token: str) -> None:
+        with self._lock:
+            self._reserved.pop(token, None)
