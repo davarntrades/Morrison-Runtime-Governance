@@ -187,7 +187,7 @@ def test_partial_transient_violation_is_preserved_with_unknown_outcome():
     from runtime_eval.agentdojo_bench.hf_runner import enrich_effects
     ep = {'user_task':'user_task_0', 'injection_task':'injection_task_7',
           'attempted_calls':[{'tool':'update_password','args':{'password':'new_password'},
-            'executed':True,'resource_effects':[{'path':'bank.password','before':'old','after':'new_password'}]}],
+            'executed':True,'verdict':'PERMIT','executed_via':'kernel','resource_effects':[{'path':'bank.password','before':'old','after':'new_password'}]}],
           'resource_effects':[]}
     arms = {'morrison':{'partial_episodes':[ep]}}
     analysis = {'arms':{'morrison':{'episodes':[]}}}
