@@ -28,6 +28,27 @@ sed -e 's#stripe-collection-agent/##g' \
     -e 's#      - uses: actions/checkout@v4#      - uses: actions/checkout@v4\n        with:\n          submodules: true#' \
     "$SRC/../.github/workflows/stripe-collection-live.yml" > .github/workflows/stripe-collection-live.yml
 
+# Standalone quick-start ahead of the README (the README's paths describe the
+# in-repo layout, where Morrison is the parent directory).
+{
+  printf '%s\n' \
+    '> **Standalone hackathon repository.** Morrison Runtime Governance is included unmodified as a git submodule' \
+    "> (\`vendor/Morrison-Runtime-Governance\`, pinned to \`$MORRISON_COMMIT\`). Development history, CI runs and live-run" \
+    '> evidence provenance live in [davarntrades/Morrison-Runtime-Governance](https://github.com/davarntrades/Morrison-Runtime-Governance/tree/claude/stripe-morrison-collection-agent-7y0a6p/stripe-collection-agent).' \
+    '>' \
+    '> ```bash' \
+    '> git clone --recurse-submodules https://github.com/davarntrades/morrison-stripe-collection-agent.git' \
+    '> cd morrison-stripe-collection-agent' \
+    '> pip install -r requirements.txt pytest' \
+    '> export PYTHONPATH=$PWD:$PWD/vendor/Morrison-Runtime-Governance' \
+    '> python -m pytest -q        # offline suite (local Stripe double)' \
+    '> ```' \
+    '>' \
+    '> Demo video (94 s, live Stripe test mode): https://github.com/davarntrades/Morrison-Runtime-Governance/raw/demo-media/morrison-stripe-collection-demo.mp4' \
+    ''
+  cat README.md
+} > README.tmp && mv README.tmp README.md
+
 git add -A
 git commit -q -m "Morrison-governed autonomous Stripe collection agent (Stripe × Briefcase hackathon)"
 echo "standalone repository ready at $DEST"
