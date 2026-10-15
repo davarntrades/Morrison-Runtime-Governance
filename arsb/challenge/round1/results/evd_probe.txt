@@ -1,0 +1,8 @@
+records: 7 verifier on untampered: True
+frozen one-byte flip (still valid JSON?)   True; verifier says ok = False
+semantic edit of last record               verifier says ok = False
+truncate last record                       verifier says ok = True
+truncate to first record                   verifier says ok = True
+reorder last two records                   verifier says ok = False
+delete one principal chain entirely        verifier says ok = True
+empty export {}                            verifier says ok = True

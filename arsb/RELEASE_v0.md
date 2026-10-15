@@ -1,8 +1,12 @@
 # ARSB v0 — development release (frozen)
 
 **Status: development benchmark.** Frozen so results can be compared and challenged, not validated as a standard.
-Do not quote ARSB v0 results as a comparative ranking of the systems it includes until the independent challenge
-(`CHALLENGE.md`) has reported.
+Do not quote ARSB v0 results as a comparative ranking of the systems it includes.
+
+**Challenge round 1 has reported** (`challenge/round1/REPORT.md`, maintainer response `challenge/round1/RESPONSE.md`).
+It found adapter and scoring errors that change the LOC, AUTH, UTL, TEN, TRJ, EVD and FCL leaders under
+corrections the spec already implies. Only RES (Morrison-mediated) and XAG (Morrison) held under every variant tried.
+Its findings were accepted. v0 is left frozen as published, and the findings are scheduled for v1.
 
 Release: commit `6a80d7831d0c78c683e2a03616042e858db73ad8`, published as branch `claude/arsb-v0-dev-frozen` (an annotated tag `arsb-v0-dev` exists on that commit locally; pushing tags is refused by the authoring environment's git proxy, so the maintainer should push it). Spec: `SPEC.md` v0.1.1. Frozen file hashes: `FREEZE.json`.
 
