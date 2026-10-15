@@ -36,6 +36,9 @@ button:disabled{opacity:.5;cursor:wait}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
 th{color:var(--mute);font-weight:600;border-top:0}.scroll{overflow-x:auto}
 .muted{color:var(--mute);font-size:13px}.warn{color:var(--esc)}
+.banner{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 24px;font-size:13px;font-weight:600;
+border-bottom:1px solid var(--line)}.banner.live{background:var(--allow-bg);color:var(--allow)}
+.banner.double{background:var(--esc-bg);color:var(--esc)}.banner.down{background:var(--block-bg);color:var(--block)}
 </style>
 </head>
 <body>
@@ -43,6 +46,7 @@ th{color:var(--mute);font-weight:600;border-top:0}.scroll{overflow-x:auto}
   <h1>Resurrection Tech Ltd — Autonomous Collection Agent</h1>
   <p>The agent proposes. Morrison Runtime Governance decides. Only a Morrison-issued, single-use, action-bound lease reaches Stripe.</p>
 </header>
+<div id="banner" class="banner down">Checking Stripe backend…</div>
 <main>
   <section class="panel">
     <h2>Customer request</h2>
@@ -173,7 +177,18 @@ async function loadChains() {
     ["governance chain", `${gi.evidence_verified ? "verified" : "NOT VERIFIED"} · ${esc(gi.records)} records · head ${esc(gi.head)}`],
     ["executor chain", `${r.executor.verified ? "verified" : "NOT VERIFIED"} · ${esc(r.executor.records)} records`]]);
 }
-loadScenarios(); loadChains();
+async function loadHealth() {
+  try {
+    const h = await (await fetch("/api/health")).json();
+    const b = $("banner");
+    b.className = "banner " + (h.is_real_stripe ? "live" : h.backend === "unreachable" ? "down" : "double");
+    b.innerHTML = (h.is_real_stripe ? `Stripe TEST MODE · account ${esc(h.account)}`
+      : h.backend === "unreachable" ? "Stripe executor unreachable"
+      : `LOCAL STRIPE DOUBLE (${esc(h.backend)}) · NOT STRIPE · offline rehearsal only`) +
+      `<span class="muted" style="font-weight:400">Agent interpreter: ${esc(h.interpreter)}</span>`;
+  } catch (e) { $("banner").textContent = "Backend status unavailable"; }
+}
+loadHealth(); loadScenarios(); loadChains();
 </script>
 </body>
 </html>

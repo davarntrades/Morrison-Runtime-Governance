@@ -9,6 +9,7 @@ import json
 
 from collection_agent.scenarios import FAILED, INCONCLUSIVE, Harness, write_evidence
 from collection_agent.launcher import Stack
+from collection_agent.verify_live import verify
 
 
 def test_all_scenarios_against_local_double(tmp_path):
@@ -16,6 +17,10 @@ def test_all_scenarios_against_local_double(tmp_path):
         h = Harness(stack)
         results = h.run_all()
         summary = write_evidence(tmp_path / "ev", stack, results)
+        report = verify(tmp_path / "ev", stack.gateway, allow_double=True)
+    assert report["failed"] == 0, json.dumps(report["checks"], indent=2)
+    assert report["is_real_stripe"] is False
+    assert report["verdict"].startswith("LOCAL DOUBLE")
     bad = [r for r in results if r["status"] in (FAILED, INCONCLUSIVE)]
     assert not bad, json.dumps(bad, indent=2, default=str)[:4000]
     assert summary["governance_evidence"]["verified"]

@@ -67,6 +67,14 @@ def main() -> None:
                 out[key] = json.loads(Path(f).read_text(encoding="utf-8"))
         return 200, out
 
+    def health(body, q, h):
+        status, exe = call("GET", f"{agent.exe}/health")
+        backend = exe.get("backend", "unreachable") if status == 200 else "unreachable"
+        return 200, {"backend": backend, "account": exe.get("account"),
+                     "is_real_stripe": backend == "stripe-test-mode",
+                     "interpreter": ("claude:" + os.environ.get("COLLECTION_AGENT_MODEL", "claude-opus-5-5"))
+                     if os.environ.get("ANTHROPIC_API_KEY") else "rule-based (no LLM key)"}
+
     def customers(body, q, h):
         return 200, agent.customers()
 
@@ -76,6 +84,7 @@ def main() -> None:
                        ("GET", "/api/evidence"): evidence,
                        ("GET", "/api/scenarios"): scenarios,
                        ("GET", "/api/customers"): customers,
+                       ("GET", "/api/health"): health,
                        ("GET", "/api/runs"): lambda b, q, h: (200, runs)},
                       host=os.environ.get("DASHBOARD_HOST", "127.0.0.1"),
                       port=int(os.environ.get("DASHBOARD_PORT", "8765")), static=static)

@@ -11,7 +11,7 @@ An AI agent turns a customer request ("invoice Acme £500 for a Morrison Runtime
 | Morrison enforcement (local + global envelope, leases, evidence) | Working; 26 automated tests pass |
 | Process separation (the agent holds no Stripe key and has no route to Stripe) | Working; verified by scenario S0 and the executor tests |
 | Adversarial scenarios S0–S12 against the **local Stripe double** | 13/13 PASSED, `evidence/offline-LOCAL-DOUBLE-not-stripe/`. **These are not Stripe results.** |
-| Adversarial scenarios against **Stripe test mode** (`api.stripe.com`) | **NOT_TESTED yet.** Stripe was unreachable from the build environment. Run it with the workflow or the command below |
+| Adversarial scenarios against **Stripe test mode** (`api.stripe.com`) | **NOT_TESTED yet.** Stripe was unreachable from the build environment, and `STRIPE_TEST_SECRET_KEY` is not yet set for the workflow. See `SUBMISSION.md` |
 | LLM interpretation with Claude | Implemented, but not run in the build environment (no key). The rule-based fallback was used, and every trace records which interpreter ran |
 
 No Stripe response, test result or payment confirmation in this repository is fabricated. Evidence produced against the double says `backend: override:http://127.0.0.1:…` and `is_real_stripe: false`.
@@ -117,7 +117,7 @@ python -m collection_agent.scenarios --double --output var/offline
 python -m collection_agent.demo --results evidence/<a scenario run>
 ```
 
-**In GitHub Actions:** `.github/workflows/stripe-collection-live.yml` runs the offline suite, then the live scenarios against `api.stripe.com` when the repository secret `STRIPE_TEST_SECRET_KEY` is set. Without the secret it reports NOT_TESTED. Evidence is uploaded as an artifact and also printed to the log as a checksummed base64 tarball.
+**In GitHub Actions:** `.github/workflows/stripe-collection-live.yml`. Pushes run only the free offline suite. The live job runs **only on manual dispatch** with confirm `RUN-LIVE-STRIPE`. It runs S0–S12 against `api.stripe.com` in test mode, then an independent re-read of Stripe (`python -m collection_agent.verify_live`), and fails unless both pass. It needs the repository secret `STRIPE_TEST_SECRET_KEY`. Evidence is uploaded as an artifact and printed to the log as a checksummed base64 tarball. Step-by-step (including from an iPhone): `SUBMISSION.md`.
 
 **As a separate public repository:** `scripts/export_standalone.sh DEST` writes a self-contained repository with Morrison as a git submodule pinned to the unmodified commit `06b9b55`, plus its own copy of the workflow. Push it to a new GitHub repository. (The build session's GitHub integration was not permitted to create repositories, so this step is left to the owner.)
 

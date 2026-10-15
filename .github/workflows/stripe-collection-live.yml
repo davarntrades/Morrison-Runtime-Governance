@@ -1,23 +1,34 @@
 name: Stripe Collection Agent (test mode, live)
 
-# Runs the Morrison-governed Stripe collection agent end to end against
-# api.stripe.com in TEST MODE, then the adversarial scenarios S0-S12.
+# PUSH  -> offline job only: the suite against the LOCAL Stripe double.
+#          No Stripe call, no model call, no cost.
+# MANUAL (workflow_dispatch, confirm = RUN-LIVE-STRIPE)
+#       -> live job: scenarios S0-S12 against api.stripe.com in TEST MODE,
+#          then an independent re-read of Stripe (verify_live), then the
+#          evidence is exported to the log and uploaded as an artifact.
 #
-# Needs repository Actions secret STRIPE_TEST_SECRET_KEY (sk_test_... or
-# rk_test_...). A live-mode key is refused by the gateway. ANTHROPIC_API_KEY,
-# when present, makes S1 interpret the natural-language request with Claude;
-# without it the rule-based interpreter is used and the evidence says so.
-#
-# Without the Stripe secret the live job reports NOT_TESTED and does not fake
-# anything. The offline job runs the suite against the LOCAL Stripe double.
+# Needs repository Actions secret STRIPE_TEST_SECRET_KEY (sk_test_...).
+# A live-mode key is refused. With interpreter=claude, S1 makes a few
+# Claude API calls (ANTHROPIC_API_KEY secret); rule-based makes none.
 
 on:
-  workflow_dispatch:
   push:
     branches: [claude/stripe-morrison-collection-agent-7y0a6p]
     paths:
       - "stripe-collection-agent/**"
       - ".github/workflows/stripe-collection-live.yml"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type RUN-LIVE-STRIPE to run against Stripe test mode"
+        type: string
+        required: true
+        default: ""
+      interpreter:
+        description: "S1 request interpretation: claude (paid API calls) or rule-based (free)"
+        type: choice
+        options: [claude, rule-based]
+        default: claude
 
 permissions:
   contents: read
@@ -27,7 +38,7 @@ env:
   PYTHONPATH: ${{ github.workspace }}/stripe-collection-agent:${{ github.workspace }}
 
 concurrency:
-  group: stripe-collection-live
+  group: stripe-collection-${{ github.event_name }}
   cancel-in-progress: false
 
 jobs:
@@ -46,11 +57,12 @@ jobs:
 
   live:
     name: Live Stripe test mode
+    if: github.event_name == 'workflow_dispatch' && inputs.confirm == 'RUN-LIVE-STRIPE'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ inputs.interpreter == 'claude' && secrets.ANTHROPIC_API_KEY || '' }}
       COLLECTION_AGENT_MODEL: claude-opus-5-5
     steps:
       - uses: actions/checkout@v4
@@ -59,23 +71,21 @@ jobs:
           python-version: "3.11"
       - run: pip install -r stripe-collection-agent/requirements.txt
       - name: Preflight (never prints the key)
-        id: pre
         run: |
           if [ -z "$STRIPE_SECRET_KEY" ]; then
-            echo "STRIPE_TEST_SECRET_KEY is not set: live Stripe scenarios NOT_TESTED."
-            echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0
+            echo "::error::Repository secret STRIPE_TEST_SECRET_KEY is not set. Live Stripe run: NOT_TESTED."
+            exit 1
           fi
           case "$STRIPE_SECRET_KEY" in
             sk_test_*|rk_test_*) ;;
-            *) echo "Refusing: the secret is not a Stripe TEST-mode key."; exit 1 ;;
+            *) echo "::error::The secret is not a Stripe TEST-mode key (sk_test_...). Refusing."; exit 1 ;;
           esac
           code=$(curl -sS -o /dev/null -w "%{http_code}" https://api.stripe.com/v1/account -u "$STRIPE_SECRET_KEY:")
-          echo "Stripe /v1/account HTTP $code"
-          [ "$code" = "200" ] || exit 1
-          [ -n "$ANTHROPIC_API_KEY" ] && echo "LLM interpreter: enabled" || echo "LLM interpreter: not configured (rule-based)"
-          echo "ready=true" >> "$GITHUB_OUTPUT"
-      - name: Run scenarios against Stripe test mode
-        if: steps.pre.outputs.ready == 'true'
+          echo "Stripe GET /v1/account -> HTTP $code"
+          [ "$code" = "200" ] || { echo "::error::Stripe rejected the key (HTTP $code)."; exit 1; }
+          if [ -n "$ANTHROPIC_API_KEY" ]; then echo "S1 interpreter: Claude ($COLLECTION_AGENT_MODEL)";
+          else echo "S1 interpreter: rule-based (no model calls)"; fi
+      - name: Scenarios S0-S12 against Stripe test mode
         working-directory: stripe-collection-agent
         run: |
           OUT="evidence/live-$(date -u +%Y%m%dT%H%M%SZ)"
@@ -83,10 +93,17 @@ jobs:
           set +e
           python -m collection_agent.scenarios --output "$OUT"
           echo "SCEN_EXIT=$?" >> "$GITHUB_ENV"
-          cat "$OUT/RESULTS.md" >> "$GITHUB_STEP_SUMMARY"
-          cat "$OUT/RESULTS.md"
+          cat "$OUT/RESULTS.md" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Independent re-read of Stripe (verify_live)
+        if: always() && env.OUT != ''
+        working-directory: stripe-collection-agent
+        run: |
+          set +e
+          python -m collection_agent.verify_live "$OUT"
+          echo "VERIFY_EXIT=$?" >> "$GITHUB_ENV"
+          cat "$OUT/LIVE_VERIFICATION.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Export evidence into the log (checksummed base64 tarball)
-        if: steps.pre.outputs.ready == 'true'
+        if: always() && env.OUT != ''
         working-directory: stripe-collection-agent
         run: |
           rm -rf "$OUT/_stack/logs" "$OUT/_stack/governance" "$OUT/_stack/executor"
@@ -94,10 +111,11 @@ jobs:
           echo "EVIDENCE_SHA256 $(sha256sum /tmp/evidence.tgz | cut -d' ' -f1)"
           echo "-----BEGIN EVIDENCE-----"; base64 -w 0 /tmp/evidence.tgz; echo; echo "-----END EVIDENCE-----"
       - uses: actions/upload-artifact@v4
-        if: steps.pre.outputs.ready == 'true'
+        if: always() && env.OUT != ''
         with:
-          name: stripe-collection-evidence
+          name: stripe-collection-evidence-live
           path: stripe-collection-agent/evidence/
-      - name: Fail on FAILED / INCONCLUSIVE scenarios
-        if: steps.pre.outputs.ready == 'true'
-        run: exit "${SCEN_EXIT:-1}"
+      - name: Fail unless every scenario passed and Stripe re-verification passed
+        run: |
+          echo "scenarios exit=${SCEN_EXIT:-unset} verify exit=${VERIFY_EXIT:-unset}"
+          [ "${SCEN_EXIT:-1}" = "0" ] && [ "${VERIFY_EXIT:-1}" = "0" ]
