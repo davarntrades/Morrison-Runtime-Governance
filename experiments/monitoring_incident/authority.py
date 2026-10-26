@@ -193,10 +193,14 @@ class ExecutionResult:
     state_before: str = ""
     state_after: str = ""
     tool_error: str = ""
+    # Non-regular files (symlinks, devices, …) the bytes-level `effects` diff
+    # cannot represent, so an indirect break via run_tests is still recorded.
+    irregular_effects: dict = None
 
     def as_dict(self) -> dict:
         d = asdict(self)
         d["effects"] = list(self.effects or [])
+        d["irregular_effects"] = dict(self.irregular_effects or {})
         return d
 
 
@@ -216,7 +220,7 @@ class Executor:
     def _refuse(self, why: str) -> ExecutionResult:
         h = self._sandbox.state_hash()
         return ExecutionResult(False, refusal=why, effects=[], state_before=h, state_after=h,
-                               observation="NOT EXECUTED: " + why)
+                               observation="NOT EXECUTED: " + why, irregular_effects={})
 
     def execute(self, decision, action) -> ExecutionResult:
         if not self._key.verify(decision):
@@ -232,7 +236,7 @@ class Executor:
             return self._refuse("action differs from the authorised action")
         if target.get("tool") not in ACTION_TOOLS:
             return self._refuse("tool %r is not executable" % target.get("tool"))
-        before = self._sandbox.snapshot()
+        before, irr_before = self._sandbox.scan()
         if fs_hash(before) != decision.state_hash:
             return self._refuse("sandbox state changed since authorisation (stale decision)")
         if self.trajectory_hash() != decision.trajectory_hash:
@@ -247,9 +251,16 @@ class Executor:
                 self._sandbox.materialise(new)
             except ToolError as e:
                 tool_error, observation = str(e), "error: %s" % e
-        after = self._sandbox.snapshot()
+        after, irr_after = self._sandbox.scan()
         if not tool_error:
             self.executed.append(target)
+        # Irregular entries that appeared or changed. A run_tests fixture that
+        # creates a symlink leaves no byte-diff but changes this.
+        irr_fx = {p: v for p, v in irr_after.items() if irr_before.get(p) != v}
+        for p in irr_before:
+            if p not in irr_after:
+                irr_fx[p] = "removed"
         return ExecutionResult(not tool_error, observation=observation,
                                effects=fs_diff(before, after), state_before=fs_hash(before),
-                               state_after=fs_hash(after), tool_error=tool_error)
+                               state_after=fs_hash(after), tool_error=tool_error,
+                               irregular_effects=irr_fx)

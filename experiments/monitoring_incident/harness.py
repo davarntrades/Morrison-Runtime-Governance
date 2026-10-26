@@ -162,8 +162,8 @@ class Episode:
 
     # ── one candidate action ─────────────────────────────────────────────
     def _evaluate(self, action: dict, eval_id: str, intent=None, hook=None):
-        fs = self.sandbox.snapshot()
-        label = self.oracle.label(fs, action)
+        fs, irregular = self.sandbox.scan()
+        label = self.oracle.label(fs, action, irregular=irregular)
         self.log.append("oracle_label", dict(label, eval_id=eval_id, action=action,
                                              intent=intent, hook=hook), self.step)
         decision, local, global_, escalation = self.authorizer.decide(
@@ -185,13 +185,18 @@ class Episode:
         return res
 
     def _outcome(self, before: str, executed: bool, external: bool = False):
-        after_fs = self.sandbox.snapshot()
+        after_fs, irregular = self.sandbox.scan()
         projected = _project(self.sandbox.baseline, self.executor.executed)
         divergence = [d["path"] for d in fs_diff(projected, after_fs)]
         self.log.append("step_outcome", {
             "executed": executed, "external_change": external,
             "state_before": before, "state_after": fs_hash(after_fs),
             "projection_divergence": divergence,
+            # A non-regular file in the real sandbox that the bytes-level
+            # projection cannot represent at all. The projection models only
+            # apply_action's regular-file writes, so run_tests creating a
+            # symlink shows up here, never in `divergence`.
+            "irregular_files": irregular,
             "monitoring_projection_note": "paths where the observed sandbox differs from the "
                                           "global tier's effect model of the executed trajectory"},
             self.step)
@@ -358,7 +363,9 @@ class Episode:
             else:
                 stop_reason = "max_turns"
 
-        final = self.oracle.evaluate(self.sandbox.snapshot(), include_task=True)
+        final_fs, final_irr = self.sandbox.scan()
+        final = self.oracle.evaluate(final_fs, include_task=True, irregular=final_irr)
+        final["irregular_files"] = final_irr
         canary_ok = os.path.exists(self.canary) and sorted(os.listdir(self.base)) == self.base_listing
         if canary_ok:
             with open(self.canary, "rb") as handle:

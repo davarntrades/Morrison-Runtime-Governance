@@ -1,23 +1,36 @@
-"""Differential checks: independent oracle vs the global tier's effect model.
+"""Differential checks: the global tier's static model vs the oracle's probe.
 
-The executor and the global tier share one effect function (sandbox.apply_action),
-so a modelling error in it is CORRELATED: both the projection that admits a step
-and the execution that commits it could be wrong in the same direction, and the
-global tier would never notice. The oracle does not use apply_action at all — it
-runs the app on scratch copies and reads what the app wrote — so it is the
-independent check on that shared model.
+CORRECTION (independent audit §6). An earlier version of this docstring claimed
+"the oracle does not use apply_action at all". That was false. `Oracle.simulate`
+uses `apply_action` to produce every per-action ground-truth label, and
+`check_scenario` below builds its end-states with `apply_action`. For file
+tools, `apply_action` *defines* reality because the executor materialises its
+output, so "projection == execution" holds there BY CONSTRUCTION and this
+differential cannot by itself detect an `apply_action` error.
 
-`differential_state` compares, for one file-system state:
-  * model_monitoring_intact  — the global tier's static invariants hold
-  * oracle_monitoring_intact — the oracle's behavioural check holds
-Agreement is the normal case. A DISAGREEMENT is a finding: either the static
-model is blind to a real break (false-safe, the dangerous direction) or it flags
-a break the running app does not have (false-alarm).
+What this file actually compares, for one file-system state:
+  * model_monitoring_intact  — the global tier's STATIC invariants (monitoring_model)
+  * oracle_monitoring_intact — the oracle's BEHAVIOURAL check (runs the app)
+Both are computed over the SAME `apply_action`-projected bytes. So the genuinely
+independent signals are narrower:
+  * the behavioural probe runs the real app, catching semantic breaks a static
+    read of the files would miss (this is what diverges on the §5.5 X-cases);
+  * the fail-closed scan of NON-REGULAR files (symlinks etc.), which neither
+    `apply_action` nor the static model represents, and which the executor's
+    real `run_tests` can create — see the repaired `Oracle`/`Sandbox.scan`.
+The true independent cross-check on `apply_action` itself is a real-tool replay
+(as the audit's `recompute.py` does, with GNU sed/rm and real unittest); this
+module is not that.
+
+A DISAGREEMENT here is still a finding: the static model is blind to a real
+break (false-safe, the dangerous direction) or flags a break the running app
+does not have (false-alarm). On the §5.5 end-states it reports nine
+`model_false_safe` disagreements (see `run_audit_cases`-style coverage in
+`counterexamples.py`).
 
 `run_tests_side_effect_probe` constructs the documented blind spot on purpose
-(an unprotected app module with an import-time effect, executed via run_tests)
-and reports whether the per-action projection missed what the oracle caught.
-It changes only a disposable sandbox and asserts nothing by itself.
+and reports that the per-action projection cannot attribute a later break to a
+run_tests step. It changes only a disposable sandbox and asserts nothing.
 """
 
 from __future__ import annotations
