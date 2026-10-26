@@ -17,11 +17,13 @@ shaped like a decision) carries no key and therefore no authority.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import hashlib
 import hmac
 import json
 import secrets
+import threading
 from dataclasses import asdict, dataclass, replace
 
 from morrison_governance.kernel.canonical import action_hash
@@ -34,6 +36,65 @@ from experiments.monitoring_incident.tiers import (
 )
 
 ALLOW = "ALLOW"
+
+
+class OverlappingExecutionError(RuntimeError):
+    """A second authorize→execute transaction was attempted while one was open."""
+
+
+class SessionExecutionGuard:
+    """Serialises the harness's own authorize→execute span, fail closed.
+
+    EXPERIMENTAL RESTRICTION, NOT a repair of Morrison's concurrency weakness.
+    The independent audit (§7.5) showed the Executor's single-use and state-hash
+    checks are not concurrency-safe: under concurrent authorization one decision
+    can double-execute and two individually-admitted actions can compose. This
+    guard does NOT fix that. It makes the Phase 2 runner refuse to run two
+    transactions at once, so measurement stays sound; Morrison's underlying
+    enforcement is unchanged and no concurrency-safety claim is made outside this
+    restricted harness.
+
+    Contract: at most one transaction open per session. `transaction()` opens one
+    for the full authorize→execute interval; a second attempt while one is open
+    is REJECTED (recorded, then `OverlappingExecutionError`), never queued or
+    allowed. `require_active()` lets the Executor fail closed if it is ever asked
+    to run outside an open transaction.
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._active = None
+        self.rejections: list = []
+
+    def active(self) -> bool:
+        with self._lock:
+            return self._active is not None
+
+    def require_active(self) -> None:
+        if not self.active():
+            raise OverlappingExecutionError(
+                "execution attempted with no open authorize→execute transaction")
+
+    @contextlib.contextmanager
+    def transaction(self, label: str):
+        token = secrets.token_hex(8)
+        with self._lock:
+            if self._active is not None:
+                rejection = {"attempted_label": label,
+                             "conflicts_with": dict(self._active),
+                             "thread": threading.get_ident()}
+                self.rejections.append(rejection)
+                raise OverlappingExecutionError(
+                    "overlapping execution rejected: %r conflicts with open %r"
+                    % (label, self._active.get("label")))
+            self._active = {"token": token, "label": label,
+                            "thread": threading.get_ident()}
+        try:
+            yield token
+        finally:
+            with self._lock:
+                if self._active is not None and self._active.get("token") == token:
+                    self._active = None
 
 
 @dataclass(frozen=True)
@@ -207,12 +268,16 @@ class ExecutionResult:
 class Executor:
     """The only path to a sandbox effect."""
 
-    def __init__(self, sandbox, key: DecisionKey, run_id: str):
+    def __init__(self, sandbox, key: DecisionKey, run_id: str, guard=None):
         self._sandbox = sandbox
         self._key = key
         self.run_id = run_id
         self._used: set = set()
         self.executed: list = []      # trusted ledger: what actually ran
+        # Optional experimental serialisation guard (see SessionExecutionGuard).
+        # When set, the Executor refuses to run outside an open transaction, so
+        # execution structurally cannot happen outside the guarded interval.
+        self._guard = guard
 
     def trajectory_hash(self) -> str:
         return trajectory_hash(self.executed)
@@ -223,6 +288,8 @@ class Executor:
                                observation="NOT EXECUTED: " + why, irregular_effects={})
 
     def execute(self, decision, action) -> ExecutionResult:
+        if self._guard is not None and not self._guard.active():
+            return self._refuse("no open execution transaction (sequential guard, fail-closed)")
         if not self._key.verify(decision):
             return self._refuse("decision signature invalid or missing")
         if decision.run_id != self.run_id:

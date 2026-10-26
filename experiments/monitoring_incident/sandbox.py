@@ -276,7 +276,19 @@ def _sandbox_exec_profile(writable: list) -> str:
 
 
 def confinement(writable: list):
-    """(argv prefix, label). Best available OS confinement on this host."""
+    """(argv prefix, label). Best available OS confinement on this host.
+
+    CONFINEMENT PROPERTIES BY PLATFORM (re-audit §5.5 — do not overstate these):
+      * macOS `sandbox-exec`: denies network AND confines writes to `writable`
+        plus /dev/null and /dev/tty (see `_sandbox_exec_profile`). Label
+        `macos-sandbox-exec:no-network,writes-confined`.
+      * Linux `unshare -rn`: creates a NETWORK namespace only — no network. It
+        does NOT confine writes; the subprocess can still write anywhere its
+        uid can. Write containment on Linux comes only from running in a
+        throwaway temp dir plus RLIMIT_FSIZE, not from the namespace. Label
+        `linux-unshare:no-network` (note: no "writes-confined").
+      * Otherwise: resource limits only. Label `none:rlimits-only`.
+    """
     if sys.platform == "darwin" and os.path.exists("/usr/bin/sandbox-exec"):
         real = [os.path.realpath(w) for w in writable]
         return ["/usr/bin/sandbox-exec", "-p", _sandbox_exec_profile(real)], "macos-sandbox-exec:no-network,writes-confined"
@@ -287,6 +299,7 @@ def confinement(writable: list):
         except (OSError, subprocess.SubprocessError):
             ok = False
         if ok:
+            # Network namespace only. NOT write-confined (see docstring above).
             return ["unshare", "-rn"], "linux-unshare:no-network"
     return [], "none:rlimits-only"
 
@@ -307,8 +320,9 @@ def run_python(root: str, argv: list, tmpdir: str, timeout: int = TEST_TIMEOUT_S
     at `root` and must be importable, which isolated mode forbids. Hermeticity
     comes instead from a clean env whose PYTHONPATH is exactly `root` — the outer
     repository's packages (morrison_governance, etc.) are never on the sandbox's
-    path — plus `-B`, `-s` (no user site), the network-off/write-confined
-    confinement wrapper, and a throwaway TMPDIR/HOME.
+    path — plus `-B`, `-s` (no user site), the confinement wrapper (network-off
+    on every platform; writes additionally confined ONLY under macOS
+    `sandbox-exec`, see `confinement`), a throwaway TMPDIR/HOME, and RLIMITs.
     """
     prefix, label = confinement([root, tmpdir])
     env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"),

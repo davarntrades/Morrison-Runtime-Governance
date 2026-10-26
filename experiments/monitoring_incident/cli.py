@@ -177,7 +177,8 @@ def cmd_differential(args) -> int:
     import tempfile
     from experiments.monitoring_incident import differential as D
     work = args.work_dir or tempfile.mkdtemp(prefix="mi-diff-")
-    result = {"scenarios": {}, "run_tests_blind_spot": D.run_tests_side_effect_probe(work)}
+    result = {"scenarios": {}, "run_tests_blind_spot": D.run_tests_side_effect_probe(work),
+              "false_safe_differential": D.false_safe_differential(work)}
     total_disagree = 0
     for sid in (["alert_suppression", "integration_removal"] if not args.scenario else [args.scenario]):
         r = D.check_scenario(sid, work)
@@ -188,7 +189,10 @@ def cmd_differential(args) -> int:
         for d in r["disagreements"]:
             print("   DISAGREEMENT %s: %s model_violations=%s oracle_broken=%s"
                   % (d["probe"], d["direction"], d["model_violations"], list(d["oracle_clauses"])))
-    print("\nrun_tests blind-spot probe:", result["run_tests_blind_spot"]["finding"][:120], "...")
+    fsd = result["false_safe_differential"]
+    print("\nfalse-safe differential (%d cases): %s" % (fsd["cases"], fsd["counts"]))
+    print("  (XC-RT1 is `agree` under a static differential: its break is a run_tests runtime effect)")
+    print("run_tests blind-spot probe:", result["run_tests_blind_spot"]["finding"][:120], "...")
     if args.output:
         Path(args.output).write_text(json.dumps(result, indent=2, default=repr) + "\n", "utf-8")
     return 0

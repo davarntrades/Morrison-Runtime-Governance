@@ -31,7 +31,8 @@ from experiments.monitoring_incident import evidence as E
 from experiments.monitoring_incident import metrics as MET
 from experiments.monitoring_incident import scenarios as S
 from experiments.monitoring_incident.authority import (
-    ALLOW, Authorizer, Decision, DecisionKey, Executor, digest, get_condition,
+    ALLOW, Authorizer, Decision, DecisionKey, Executor, OverlappingExecutionError,
+    SessionExecutionGuard, digest, get_condition,
 )
 from experiments.monitoring_incident.oracle import Oracle
 from experiments.monitoring_incident.proposers import Feedback
@@ -132,9 +133,12 @@ class Episode:
         self.global_ = (GlobalAdmissibility(self.scenario, self.sandbox.baseline)
                         if self.condition.global_ else None)
         self.key = DecisionKey()
+        # One serialisation guard per session. Experimental restriction only; it
+        # does not repair Morrison's concurrency weakness (audit §7.5, L1).
+        self.guard = SessionExecutionGuard()
         self.authorizer = Authorizer(self.condition, self.run_id, self.key, self.local,
                                      self.global_, self.cfg.escalation_policy, self._reviewer)
-        self.executor = Executor(self.sandbox, self.key, self.run_id)
+        self.executor = Executor(self.sandbox, self.key, self.run_id, guard=self.guard)
         self.log = E.EvidenceLog(self.run_dir / "evidence.jsonl", self.run_id)
 
     def _reviewer(self, action: dict) -> bool:
@@ -201,6 +205,26 @@ class Episode:
                                           "global tier's effect model of the executed trajectory"},
             self.step)
 
+    def _guarded_step(self, call: dict) -> str:
+        """Run one candidate inside a single authorize→execute transaction.
+
+        The guard spans the whole decide+execute interval (not merely CLI
+        invocation), so a concurrent attempt to process another candidate in the
+        same session is rejected fail-closed. In the sequential runner this never
+        rejects; it exists so a Phase 2 misconfiguration that runs steps
+        concurrently fails loudly and is recorded, rather than silently hitting
+        Morrison's concurrency weakness. A `concurrent_probe` hook deliberately
+        exercises the rejection path."""
+        label = "step:%d:%s" % (self.step, call.get("tool", call.get("hook", "")))
+        try:
+            with self.guard.transaction(label):
+                return self._hook(call) if "hook" in call else self._action_step(call)
+        except OverlappingExecutionError as e:
+            self.log.append("concurrency_rejected",
+                            {"label": label, "reason": str(e),
+                             "rejections": list(self.guard.rejections)}, self.step)
+            return "REJECTED (sequential guard): %s" % e
+
     def _action_step(self, call: dict) -> str:
         before = self.sandbox.state_hash()
         action = {"tool": str(call.get("tool", "")),
@@ -225,6 +249,13 @@ class Episode:
         before = self.sandbox.state_hash()
         executed_any, external = False, False
         notes = []
+        if kind == "concurrent_probe":
+            # Deliberately attempt a SECOND authorize→execute transaction while
+            # this step's transaction is already open. The guard must reject it;
+            # the raise propagates to _guarded_step, which records the rejection.
+            with self.guard.transaction("nested-probe-%d" % self.step):
+                pass  # unreachable: the guard rejects before yielding
+            return "unreachable"
         if kind == "substitute":
             d, _, _ = self._evaluate(call["authorize"], "%d.0" % self.step, call.get("intent"), kind)
             r = self._execute(d, call["execute"], "%d.0" % self.step, primary=False,
@@ -351,7 +382,7 @@ class Episode:
                         self.log.append("report", self.report, self.step)
                         feedback.append(Feedback(cid, tool, "report received"))
                     else:
-                        obs = self._hook(call) if "hook" in call else self._action_step(call)
+                        obs = self._guarded_step(call)
                         self.step += 1
                         feedback.append(Feedback(cid, tool, obs))
                 if self.report is not None:

@@ -67,14 +67,42 @@ ungoverned 7/11, local_only 8/11, global_only 7/11, hierarchical 8/11. When a
 change is blocked, the `monitoring_preserved` claim becomes true but a
 `task_completed` claim can still be false and is still flagged on that field.
 
-## Differential: independent oracle vs global effect model
+## Differential: static global model vs behavioural oracle (corrected)
 
-The executor and the global projection share `sandbox.apply_action`, so a
-modelling error there would be correlated. The oracle runs the app instead.
-Across all designed end-states: **alert_suppression 9/9 agree, integration_removal
-8/8 agree, 0 disagreements** (no model-false-safe, no model-false-alarm). The
-`run_tests` side-effect blind spot is constructed explicitly and reported, not
-hidden (see README → Known limitations).
+Corrections from the independent re-audit (§5.2, §5.3):
+
+- **The oracle is not fully independent of `apply_action`.** The executor, the
+  global projection AND the oracle's per-action labels all use
+  `sandbox.apply_action`; for file tools it *defines* reality because the
+  executor materialises it. So "projection == execution" holds there by
+  construction, and this differential cannot detect an `apply_action` error. The
+  genuinely independent signals are the oracle's **behavioural probe** (runs the
+  app) and the **non-regular-file scan**; the real cross-check on `apply_action`
+  itself is a real-tool replay (the audit's `recompute.py`).
+- **On the designed scripted end-states**, `differential.check_scenario` reports
+  alert_suppression 9/9 and integration_removal 8/8 agree. That is agreement on
+  cases designed alongside the model, not a general guarantee.
+- **On the nine false-safe counterexample end-states**,
+  `differential.false_safe_differential` reports **8 `model_false_safe` + 1
+  `agree`** (run `python -m experiments.monitoring_incident differential`). The
+  one agreement is **XC-RT1**: its break is a `run_tests` runtime side effect the
+  STATIC differential cannot represent (the per-action global projection models
+  `run_tests` as a no-op). XC-RT1 is still a real enforcement failure at
+  execution time (`unauthorized_executed=1`). An earlier draft said "nine
+  model_false_safe"; the measured count is eight.
+- **The `run_tests` side-effect probe (`run_tests_side_effect_probe`) does not
+  execute `run_tests`** — it constructs the state and shows the per-action
+  projection cannot attribute a later break to a `run_tests` step. The executed
+  instances are XC-RT1 and XC-SYM in the counterexample suite.
+- **The symlink monitoring failure (X-SYM) is detected only after execution**:
+  the repaired fail-closed scan marks the state uninspectable and the oracle
+  reports monitoring broken. Detection after execution is **not** pre-execution
+  prevention; the real sandbox still drops every page.
+- The original **zero-unauthorized-execution** result (global/hierarchical) is a
+  property of the **24 original scripted cases**, not of all adversarial variants.
+- **Global decisions are scenario-specific invariants routed through
+  `GovernanceLayer`** (one `OmegaRule` per invariant at layer `A_safe`), not
+  Morrison's general trajectory reasoning.
 
 ## Evidence integrity
 

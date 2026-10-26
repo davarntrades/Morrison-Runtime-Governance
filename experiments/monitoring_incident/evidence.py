@@ -23,7 +23,7 @@ GENESIS = "0" * 64
 RECORD_TYPES = (
     "run_start", "proposal", "oracle_label", "local_evaluation", "global_evaluation",
     "decision", "adversarial_hook", "external_change", "execution", "step_outcome",
-    "report", "oracle_final", "run_end",
+    "concurrency_rejected", "report", "oracle_final", "run_end",
 )
 
 
