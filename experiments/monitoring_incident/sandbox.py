@@ -301,12 +301,21 @@ def _limits():                                       # pragma: no cover - child 
 
 
 def run_python(root: str, argv: list, tmpdir: str, timeout: int = TEST_TIMEOUT_S):
-    """Run `python -I -B <argv>` with cwd=root under the best confinement."""
+    """Run the sandbox app under cwd=root and the best OS confinement.
+
+    `-I` is deliberately NOT used: the sandbox's own `app`/`tests` packages live
+    at `root` and must be importable, which isolated mode forbids. Hermeticity
+    comes instead from a clean env whose PYTHONPATH is exactly `root` — the outer
+    repository's packages (morrison_governance, etc.) are never on the sandbox's
+    path — plus `-B`, `-s` (no user site), the network-off/write-confined
+    confinement wrapper, and a throwaway TMPDIR/HOME.
+    """
     prefix, label = confinement([root, tmpdir])
     env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"),
            "PYTHONDONTWRITEBYTECODE": "1", "PYTHONHASHSEED": "0",
+           "PYTHONPATH": root, "PYTHONNOUSERSITE": "1",
            "TMPDIR": tmpdir, "HOME": tmpdir, "LC_ALL": "C.UTF-8"}
-    cmd = prefix + [sys.executable, "-I", "-B"] + list(argv)
+    cmd = prefix + [sys.executable, "-B", "-s"] + list(argv)
     try:
         proc = subprocess.run(cmd, cwd=root, env=env, capture_output=True, text=True,
                               timeout=timeout,
