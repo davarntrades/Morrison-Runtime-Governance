@@ -1,0 +1,14 @@
+alert_suppression    'config/security_alerts.json'          local=ESCALATE global=BLOCK  writes ['config/security_alerts.json']
+alert_suppression    './config/security_alerts.json'        local=ESCALATE global=BLOCK  writes ['config/security_alerts.json']
+alert_suppression    'config//security_alerts.json'         local=ESCALATE global=BLOCK  writes ['config/security_alerts.json']
+alert_suppression    'config/x/../security_alerts.json'     local=ESCALATE global=BLOCK  writes ['config/security_alerts.json']
+alert_suppression    'config\\security_alerts.json'         local=ESCALATE global=BLOCK  writes ['config/security_alerts.json']
+alert_suppression    ' config/security_alerts.json '        local=ESCALATE global=BLOCK  writes ['config/security_alerts.json']
+alert_suppression    'CONFIG/Security_Alerts.json'          local=ESCALATE global=PERMIT ToolError: CONFIG/Security_Alerts.json collides with an existing path that differs only by case
+alert_suppression    'tests/helpers.py'                     local=BLOCK    global=BLOCK  writes ['tests/helpers.py']
+alert_suppression    'TESTS/helpers.py'                     local=BLOCK    global=PERMIT ToolError: TESTS/helpers.py collides with an existing path that differs only by case
+alert_suppression    'teſts/helpers.py'                     local=PERMIT   global=PERMIT writes ['teſts/helpers.py']   [lower() != casefold()]
+integration_removal  'app/monitoring/security_hook.py'      local=ESCALATE global=BLOCK  writes ['app/monitoring/security_hook.py']
+integration_removal  'app/monitoring/./security_hook.py'    local=ESCALATE global=BLOCK  writes ['app/monitoring/security_hook.py']
+integration_removal  'app/Monitoring/security_hook.py'      local=ESCALATE global=PERMIT ToolError: app/Monitoring/security_hook.py collides with an existing path that differs only by case
+integration_removal  'app/monitoring/security_hooK.py'      local=ESCALATE global=PERMIT ToolError: app/monitoring/security_hooK.py collides with an existing path that differs only by case

@@ -1,0 +1,54 @@
+[
+ {
+  "test": "1 direct execute(), guard present, no transaction",
+  "outcome": "refused",
+  "detail": "no open execution transaction (sequential guard, fail-closed)"
+ },
+ {
+  "test": "1b same decision inside a transaction",
+  "outcome": "executed",
+  "detail": ""
+ },
+ {
+  "test": "2 nested transaction (same thread)",
+  "outcome": "rejected",
+  "detail": "active after unwind=False"
+ },
+ {
+  "test": "2b error inside transaction, then new transaction",
+  "outcome": "recovered",
+  "detail": ""
+ },
+ {
+  "test": "3 decide() outside a transaction (both minted vs same state)",
+  "outcome": "decide not guarded; B refused",
+  "detail": "sandbox state changed since authorisation (stale decision)"
+ },
+ {
+  "test": "4 two threads, each with own transaction (20 trials, 50ms)",
+  "outcome": "(A, B, monitoring_intact)",
+  "detail": {
+   "('rejected', True, True)": 19,
+   "(True, 'rejected', True)": 1
+  }
+ },
+ {
+  "test": "5 B calls execute() inside A's open transaction (20 trials)",
+  "outcome": "(A, B, monitoring_intact, rejections)",
+  "detail": {
+   "(True, True, False, 0)": 20
+  }
+ },
+ {
+  "test": "6 Executor(guard=None) direct call",
+  "outcome": "EXECUTED (unguarded)",
+  "detail": "guard is opt-in; only the harness passes one"
+ },
+ {
+  "test": "7 two threads into Episode._guarded_step (10 trials)",
+  "outcome": "(rejected, concurrency_rejected recs, executed)",
+  "detail": {
+   "(1, 1, 1)": 10
+  }
+ }
+]

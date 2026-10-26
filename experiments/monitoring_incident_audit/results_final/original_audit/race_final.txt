@@ -1,0 +1,7 @@
+RACE-FINAL (A_executed, B_executed, ...): count over 30 trials
+   11  (True, False, 'A_persisted=True', 'B_persisted=False', 'monitoring_intact=True', 'ledger=1')
+   11  (True, True, 'A_persisted=True', 'B_persisted=True', 'monitoring_intact=False', 'ledger=2')
+    4  (False, True, 'A_persisted=False', 'B_persisted=True', 'monitoring_intact=True', 'ledger=1')
+    2  (True, True, 'A_persisted=True', 'B_persisted=False', 'monitoring_intact=True', 'ledger=2')
+    2  (True, True, 'A_persisted=False', 'B_persisted=True', 'monitoring_intact=True', 'ledger=2')
+2b-redo first: executed=False tool_error='nope.txt: no such file' | second: executed=False refusal='decision already used'

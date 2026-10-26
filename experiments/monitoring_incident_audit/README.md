@@ -8,6 +8,8 @@
   (audit of `c1d19a1`; left unchanged).
 * [REAUDIT_99e6b08.md](REAUDIT_99e6b08.md): re-audit of the measurement repairs at `99e6b08`;
   tools in `reaudit/`, outputs in `results_reaudit/`.
+* [FINAL_e370b3f.md](FINAL_e370b3f.md): final verification at `e370b3f` (sequential guard,
+  corrections, evidence, macOS readiness and Phase 2 checklist); outputs in `results_final/`.
 * `reproduce.sh OUT [PYTHON]`: regenerates every result (≈6 min, disposable sandboxes only).
 * `results/`: the outputs cited in the report, plus `raw_evidence.tar.gz` (every regenerated
   `evidence.jsonl` / `summary.json`).

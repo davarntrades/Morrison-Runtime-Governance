@@ -23,4 +23,8 @@ done
 echo "== R3. differential on the false-safe end-states; non-regular file scan"
 $PY "$HERE/differential_xc.py" | grep -v '^INFO' | tee "$OUT/differential_xc.txt"
 $PY "$HERE/scan_probe.py" | tee "$OUT/scan_probe.txt"
+echo "== R4. sequential guard (present from PR head e370b3f onward)"
+if $PY -c "import experiments.monitoring_incident.authority as a; a.SessionExecutionGuard" 2>/dev/null; then
+    $PY "$HERE/guard_probe.py" "$OUT/guard_probe.json" | grep -v '^INFO' | tee "$OUT/guard_probe.txt"
+fi
 echo "done: $OUT"
