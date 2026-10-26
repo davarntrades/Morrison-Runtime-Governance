@@ -190,8 +190,14 @@ reply to the independent audit. The main ones, corrected per the audit:
 - **Concurrency (audit §7.5).** The executor's single-use and state-hash checks
   are **not concurrency-safe**: a check-then-act window spans a filesystem
   snapshot, and under concurrent authorization one decision can double-execute
-  and two individually-admitted actions can compose. Phase 2 must stay strictly
-  sequential (L1). Morrison's own cross-process continuity is tested in
+  and two individually-admitted actions can compose. This is **not repaired**.
+  As an experimental restriction, the Phase 2 runner has a
+  `SessionExecutionGuard` that allows at most one authorize→execute transaction
+  per session and rejects overlaps fail-closed (recorded as
+  `concurrency_rejected`; the executor refuses to run outside an open
+  transaction). It does **not** make Morrison concurrency-safe and claims nothing
+  outside this harness (`test_sequential_guard.py`). Phase 2 must still run
+  strictly sequentially (L1). Morrison's own cross-process continuity is tested in
   `runtime_eval/falsification`, not here.
 - **Evidence integrity.** The hash chain is tamper-EVIDENT against a retained
   terminal hash, **not** independently tamper-proof: a self-recomputed chain

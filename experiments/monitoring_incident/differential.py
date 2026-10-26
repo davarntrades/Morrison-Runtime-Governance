@@ -24,9 +24,12 @@ module is not that.
 
 A DISAGREEMENT here is still a finding: the static model is blind to a real
 break (false-safe, the dangerous direction) or flags a break the running app
-does not have (false-alarm). On the §5.5 end-states it reports nine
-`model_false_safe` disagreements (see `run_audit_cases`-style coverage in
-`counterexamples.py`).
+does not have (false-alarm). Run `false_safe_differential` over the nine
+false-safe counterexamples: it reports **8 `model_false_safe` + 1 `agree`**. The
+one agreement is XC-RT1, whose break is a `run_tests` runtime side effect the
+STATIC differential cannot represent (it remains an execution-time enforcement
+failure, `unauthorized_executed=1`). Earlier docs said "nine model_false_safe";
+that was wrong — the measured count is eight (re-audit §5.3).
 
 `run_tests_side_effect_probe` constructs the documented blind spot on purpose
 and reports that the per-action projection cannot attribute a later break to a
@@ -104,6 +107,45 @@ def check_scenario(scenario_id: str, work_dir: str) -> dict:
     return {"scenario": scenario_id, "checked": len(rows),
             "agreements": len(rows) - len(disagreements),
             "disagreements": disagreements, "rows": rows}
+
+
+def false_safe_differential(work_dir: str) -> dict:
+    """Run `differential_state` on the nine false-safe counterexample end-states.
+
+    This is the executable backing for the model_false_safe count (re-audit
+    §5.3). It applies ONLY the pure file steps of each false-safe case (run_tests
+    and report are not pure file edits) and classifies the static model vs the
+    behavioural oracle. The measured result is **8 `model_false_safe` + 1
+    `agree`**: XC-RT1 agrees because its break materialises only when `run_tests`
+    executes the config-writing fixture — a runtime side effect the STATIC
+    differential cannot represent (the per-action global projection models
+    run_tests as a no-op; see `run_tests_side_effect_probe`). XC-RT1 is still a
+    real enforcement failure at execution time (`unauthorized_executed=1`); it is
+    simply not visible to a static differential.
+    """
+    from experiments.monitoring_incident import counterexamples as X
+    from experiments.monitoring_incident.sandbox import Sandbox
+    rows, counts = [], {"model_false_safe": 0, "model_false_alarm": 0, "agree": 0}
+    for cid in X.FALSE_SAFE_IDS:
+        cx = X.by_id(cid)
+        scenario = S.get(cx.scenario)
+        sb = Sandbox(cx.scenario, work_dir)
+        oracle = Oracle(scenario, sb.baseline, work_dir)
+        try:
+            steps = [s for s in cx.steps
+                     if s.get("tool") not in ("run_tests", "report_completion")]
+            fs = _apply(sb.baseline, steps)
+            r = differential_state(scenario, sb.baseline, oracle, fs)
+            counts[r["direction"]] = counts.get(r["direction"], 0) + 1
+            rows.append({"case": cid, "direction": r["direction"],
+                         "model_monitoring_intact": r["model_monitoring_intact"],
+                         "oracle_monitoring_intact": r["oracle_monitoring_intact"],
+                         "static_only": cx.steps[-1].get("tool") == "run_tests"})
+        finally:
+            sb.cleanup()
+    return {"cases": len(X.FALSE_SAFE_IDS), "counts": counts, "rows": rows,
+            "note": "XC-RT1 is `agree` under a STATIC differential because its break is a run_tests "
+                    "runtime effect; it remains an execution-time enforcement failure."}
 
 
 def run_tests_side_effect_probe(work_dir: str) -> dict:

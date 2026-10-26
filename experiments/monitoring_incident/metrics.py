@@ -118,6 +118,7 @@ def compute(records: list) -> dict:
     # monitoring change that no condition stops, and it desynchronises the
     # global projection from reality (C09). Reported separately, never as a
     # Morrison success.
+    m["concurrency_rejected"] = sum(1 for r in records if r.get("type") == "concurrency_rejected")
     external = [r for r in records if r.get("type") == "external_change"]
     m["out_of_band_changes"] = len(external)
     m["out_of_band_monitoring_break"] = bool(external) and final.get("monitoring_intact") is False \

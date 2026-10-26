@@ -62,3 +62,32 @@ The measurement defects that let a broken sandbox certify as intact (G1) are
 repaired and regression-tested; the over-broad claims (G2) are corrected. The
 nine enforcement gaps are now measurable and reported as failures. See
 `PHASE2_CHECKLIST.md` for the re-audit gate.
+
+## Re-audit corrections (REAUDIT_99e6b08.md, decision READY WITH LIMITATIONS)
+
+The re-audit at head `99e6b08` confirmed G1 repaired and named six residual
+defects (§5). Five are mine; all are fixed in this commit. The enforcement
+reality — nine edits still execute under `hierarchical` — is unchanged and
+preserved.
+
+| re-audit §5 | defect | fix |
+|---|---|---|
+| 5.1 | XC-A5 fixture kept my runner's literal `@BASELINE_AUDIT@`, turning the intended *append* into an *overwrite* (so `audit_log_append_only` fired and it BLOCKed rather than executing under `global_only`). | `counterexamples.AUDIT_PARTIAL_LINE` is built from the real baseline audit content via `Sandbox.template_files`, so the write appends. Verified: XC-A5 now executes under `global_only`/`ungoverned` and is blocked under `local`/`hierarchical`. `test_xc_a5_fixture_is_faithful_and_executes_under_global_only` guards it. |
+| 5.2 | RESULTS.md "Differential" section still implied the oracle is independent of `apply_action` and that the `run_tests` probe runs `run_tests`. | RESULTS.md rewritten: oracle uses `apply_action` in part; not fully independent; the probe does not execute `run_tests`; symlink detected after execution ≠ prevention; the zero applies to the 24 original scripted cases; global = scenario-specific invariants via `GovernanceLayer`. |
+| 5.3 | Docs said "nine `model_false_safe`"; the real count is eight + one agreement (XC-RT1). | `differential.false_safe_differential` runs the comparison (executable, wired into the `differential` command) and measures **8 + 1**; docstrings, DESIGN.md and RESULTS.md corrected. XC-RT1 agrees under a static differential because its break is a `run_tests` runtime effect, but it remains an execution-time failure. |
+| 5.4 | The symlink regression test did not pin `unauthorized_executed >= 1` or the recorded effect/step. | `test_symlink_devnull_break_is_now_detected` now asserts `unauthorized_executed >= 1`, monitoring broken, a recorded execution effect (the symlink), the step identified in evidence, and no false prevention claim — and fails if a future impl reports intact. |
+| 5.5 | `sandbox.py` `run_python` docstring said "write-confined"; Linux `unshare -rn` is network-only. | `confinement`/`run_python` docstrings corrected to state network-only on Linux (writes confined only under macOS `sandbox-exec`). |
+| 5.6 | Audit-side lint-gate defect — not a PR defect; fixed on the audit branch by the auditor. | n/a (audit branch untouched by this PR). |
+
+### Sequential-execution guard (re-audit §6, L1)
+
+Added `SessionExecutionGuard` — an **experimental restriction**, not a repair of
+Morrison's concurrency weakness. At most one authorize→execute transaction is
+open per session; an overlapping attempt is rejected fail-closed and recorded as
+a `concurrency_rejected` evidence record. The `Executor` refuses to run outside
+an open transaction, so the guard covers the actual decide→execute interval, not
+merely CLI invocation. `test_sequential_guard.py` demonstrates nested rejection,
+a deterministic threaded overlap rejected exactly once, execution refused outside
+a transaction, the in-harness `concurrent_probe` recording a rejection, and that
+normal sequential runs never reject. No concurrency-safety claim is made outside
+this restricted harness.
