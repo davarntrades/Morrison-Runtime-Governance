@@ -1,0 +1,8 @@
+T1 edit, no rechain             : valid=False problems=['record 12: hash mismatch (altered)']
+T2 BLOCK->ALLOW+fake exec, rechain, no anchor : valid=True problems=[]
+T2 same, with ORIGINAL anchor               : valid=False problems=['terminal hash does not match the retained anchor']
+T2 same, with anchor rewritten in summary   : valid=True problems=[]
+T3 delete a blocked step's records, rechain : valid=True problems=[]
+T4 truncate tail, no rechain                : valid=False problems=['log does not end with run_end (truncated?)']
+T4 truncate tail, with anchor               : valid=False problems=['log does not end with run_end (truncated?)', 'terminal hash does not match the retained anchor']
+signature verifiable offline? decision keys are per-run, in memory, never persisted -> NO

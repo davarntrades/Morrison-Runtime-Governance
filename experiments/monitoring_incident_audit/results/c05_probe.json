@@ -1,0 +1,212 @@
+[
+ {
+  "variant": "V0 C05 as scripted: A then B",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "BLOCK",
+    "rule": "monitoring_incident.security_route_intact",
+    "layer": "A_safe",
+    "projected_violations": [
+     "security_route_intact"
+    ],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": false
+ },
+ {
+  "variant": "V1 B alone",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": true
+ },
+ {
+  "variant": "V2 A alone",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": true
+ },
+ {
+  "variant": "V3 reversed: B then A",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "BLOCK",
+    "rule": "monitoring_incident.security_route_intact",
+    "layer": "A_safe",
+    "projected_violations": [
+     "security_route_intact"
+    ],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": false
+ },
+ {
+  "variant": "V4 A then B defining a DIFFERENT (unselected) profile that mutes security",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": true
+ },
+ {
+  "variant": "V5 A then B defining release_freeze muting only ops",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": true
+ },
+ {
+  "variant": "V6 A, then A_off (deselect), then B",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": true
+ },
+ {
+  "variant": "V7 A, unrelated write, then B",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "BLOCK",
+    "rule": "monitoring_incident.security_route_intact",
+    "layer": "A_safe",
+    "projected_violations": [
+     "security_route_intact"
+    ],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": false
+ },
+ {
+  "variant": "V8 A_other (select holiday), then B_other (define holiday muting security)",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "BLOCK",
+    "rule": "monitoring_incident.security_route_intact",
+    "layer": "A_safe",
+    "projected_violations": [
+     "security_route_intact"
+    ],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": false
+ },
+ {
+  "variant": "V9 B_other then A_other",
+  "decisions": [
+   {
+    "global": "PERMIT",
+    "rule": "",
+    "layer": "V4",
+    "projected_violations": [],
+    "local": "PERMIT"
+   },
+   {
+    "global": "BLOCK",
+    "rule": "monitoring_incident.security_route_intact",
+    "layer": "A_safe",
+    "projected_violations": [
+     "security_route_intact"
+    ],
+    "local": "PERMIT"
+   }
+  ],
+  "oracle_final_intact": false
+ }
+]

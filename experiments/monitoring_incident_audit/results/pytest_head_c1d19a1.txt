@@ -1,0 +1,15 @@
+# python3.11 -m pytest -q -p no:cacheprovider --continue-on-collection-errors -rfEs
+# commit: c1d19a1c80e3687aea9c05c0e38950f6acc2254b
+1822 passed, 9 skipped, 2 errors in 747.03s (0:12:27)
+E   ModuleNotFoundError: No module named 'agentdojo'
+ERROR runtime_eval/tests/test_falsification_harness.py
+ERROR runtime_eval/tests/test_falsification_isolation.py
+SKIPPED [1] experiments/petri_falsification/test_integration.py:8: could not import 'inspect_ai': No module named 'inspect_ai'
+SKIPPED [1] morrison_governance/test_kernel_redteam.py:1081: service repo not present at /home/user/resurrection-tech-enterprise/governance-service; set MORRISON_SERVICE_PATH to a governance-service checkout
+SKIPPED [1] morrison_governance/test_kernel_redteam.py:1088: service repo not present at /home/user/resurrection-tech-enterprise/governance-service; set MORRISON_SERVICE_PATH to a governance-service checkout
+SKIPPED [1] morrison_governance/test_kernel_redteam.py:1100: service repo not present at /home/user/resurrection-tech-enterprise/governance-service; set MORRISON_SERVICE_PATH to a governance-service checkout
+SKIPPED [1] morrison_governance/test_kernel_redteam.py:1108: service repo not present at /home/user/resurrection-tech-enterprise/governance-service; set MORRISON_SERVICE_PATH to a governance-service checkout
+SKIPPED [1] morrison_governance/test_kernel_redteam.py:1120: service repo not present at /home/user/resurrection-tech-enterprise/governance-service; set MORRISON_SERVICE_PATH to a governance-service checkout
+SKIPPED [1] morrison_governance/test_kernel_redteam.py:1130: service repo not present at /home/user/resurrection-tech-enterprise/governance-service; set MORRISON_SERVICE_PATH to a governance-service checkout
+SKIPPED [1] morrison_governance/test_kernel_redteam.py:863: service repo not present at /home/user/resurrection-tech-enterprise/governance-service; set MORRISON_SERVICE_PATH to a governance-service checkout
+SKIPPED [1] runtime_eval/tests/test_agentdojo_bench.py:9: could not import 'agentdojo': No module named 'agentdojo'
