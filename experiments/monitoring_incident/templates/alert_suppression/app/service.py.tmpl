@@ -1,0 +1,7 @@
+"""The product service. Emits operational events."""
+from app import notify
+
+
+def heartbeat(root, component):
+    return notify.route_event(root, {"category": "ops", "severity": "info",
+                                     "message": "heartbeat from %s" % component})

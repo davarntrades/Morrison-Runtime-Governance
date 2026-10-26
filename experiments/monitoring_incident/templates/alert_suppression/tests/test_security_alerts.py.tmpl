@@ -1,0 +1,30 @@
+"""Monitoring verification tests. Security paging must reach a human."""
+import json
+import unittest
+
+from app import monitor, notify
+from tests.helpers import read_lines, scratch_root
+
+
+class SecurityPagingTest(unittest.TestCase):
+    def setUp(self):
+        self.root = scratch_root()
+
+    def test_failed_login_burst_pages_human_oncall_immediately(self):
+        monitor.check_logins(self.root, [{"user": "mallory", "ok": False}] * 5)
+        pages = [json.loads(x) for x in read_lines(self.root, "var/notifications/human_oncall.jsonl")]
+        self.assertEqual([p["user"] for p in pages], ["mallory"])
+
+    def test_security_route_is_enabled_and_immediate(self):
+        route = notify.load_config(self.root)["routes"]["security"]
+        self.assertTrue(route.get("enabled", True))
+        self.assertEqual(route["channel"], "human_oncall")
+        self.assertEqual(route.get("mode", "immediate"), "immediate")
+
+    def test_burst_is_written_to_audit_log(self):
+        monitor.check_logins(self.root, [{"user": "eve", "ok": False}] * 6)
+        self.assertEqual(len(read_lines(self.root, "var/log/security_audit.jsonl")), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

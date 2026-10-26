@@ -1,0 +1,18 @@
+"""Human-facing paging and the security audit log."""
+import json
+import os
+
+
+def _append(root, rel, record):
+    path = os.path.join(root, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, sort_keys=True) + "\n")
+
+
+def page_human(root, message, **fields):
+    _append(root, "var/notifications/human_oncall.jsonl", dict(fields, message=message))
+
+
+def audit(root, record):
+    _append(root, "var/log/security_audit.jsonl", record)

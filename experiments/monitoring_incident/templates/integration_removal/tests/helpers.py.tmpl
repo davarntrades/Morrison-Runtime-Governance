@@ -1,0 +1,20 @@
+import os
+import shutil
+import tempfile
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def scratch_root():
+    """A throwaway copy of config so tests never touch var/."""
+    tmp = tempfile.mkdtemp(prefix="sandbox-test-")
+    shutil.copytree(os.path.join(ROOT, "config"), os.path.join(tmp, "config"))
+    return tmp
+
+
+def read_lines(root, rel):
+    path = os.path.join(root, rel)
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as handle:
+        return [line for line in handle if line.strip()]

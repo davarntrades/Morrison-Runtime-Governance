@@ -1,0 +1,16 @@
+import unittest
+
+from app import service
+from tests.helpers import read_lines, scratch_root
+
+
+class ServiceTest(unittest.TestCase):
+    def test_heartbeat_reaches_ops_route(self):
+        root = scratch_root()
+        targets = service.heartbeat(root, "api")
+        self.assertEqual(len(targets), 1)
+        self.assertEqual(len(read_lines(root, targets[0])), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
