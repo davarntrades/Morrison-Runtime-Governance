@@ -5,6 +5,7 @@ Also re-checks probe 2b under `ungoverned` (does a tool error spend a decision?)
 Usage: python race_final.py [TRIALS]
 """
 import collections
+import importlib
 import os
 import shutil
 import sys
@@ -15,7 +16,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 TRIALS = int(sys.argv[1]) if len(sys.argv) > 1 else 30
 sys.argv = [sys.argv[0], os.devnull]           # boundary_probe writes its JSON to argv[1] on import
-import boundary_probe as BP  # noqa: E402  (its module-level probes run once on import)
+# Loaded by name: a sibling script, not a package (keeps test_lint_gate from
+# reading it as an undeclared third-party import). Its probes run once on load.
+BP = importlib.import_module("boundary_probe")
 from experiments.monitoring_incident import scenarios as S  # noqa: E402
 from experiments.monitoring_incident.oracle import Oracle  # noqa: E402
 

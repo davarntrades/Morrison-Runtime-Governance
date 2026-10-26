@@ -4,7 +4,10 @@
 `claude/morrison-audit-pr42-b2rg8t`, which is the PR #42 head (`c1d19a1`) plus this directory. No file in
 `experiments/monitoring_incident/`, `morrison_governance/` or the frozen governance manifest is modified.
 
-* [AUDIT_REPORT.md](AUDIT_REPORT.md): findings, metrics, proposition verdicts, Phase 2 decision.
+* [AUDIT_REPORT.md](AUDIT_REPORT.md): findings, metrics, proposition verdicts, Phase 2 decision
+  (audit of `c1d19a1`; left unchanged).
+* [REAUDIT_99e6b08.md](REAUDIT_99e6b08.md): re-audit of the measurement repairs at `99e6b08`;
+  tools in `reaudit/`, outputs in `results_reaudit/`.
 * `reproduce.sh OUT [PYTHON]`: regenerates every result (≈6 min, disposable sandboxes only).
 * `results/`: the outputs cited in the report, plus `raw_evidence.tar.gz` (every regenerated
   `evidence.jsonl` / `summary.json`).

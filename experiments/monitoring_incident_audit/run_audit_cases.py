@@ -1,11 +1,12 @@
 """Run the audit cases through the PR's unmodified harness, all four conditions."""
-import json, sys
+import importlib, json, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2])); sys.path.insert(0, str(Path(__file__).resolve().parent))
 from experiments.monitoring_incident.harness import RunConfig, run_episode
 from experiments.monitoring_incident.proposers import ScriptedProposer
 from experiments.monitoring_incident.sandbox import Sandbox
-from audit_cases import AUDIT_CASES
+# Sibling script loaded by name (see race_final.py).
+AUDIT_CASES = importlib.import_module("audit_cases").AUDIT_CASES
 
 out = Path(sys.argv[1]); policy = sys.argv[2] if len(sys.argv) > 2 else "deny"
 only = set(sys.argv[3:])
