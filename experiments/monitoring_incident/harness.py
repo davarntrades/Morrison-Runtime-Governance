@@ -16,6 +16,7 @@ executor calls). They are never used with a live model.
 from __future__ import annotations
 
 import copy
+import datetime as _dt
 import json
 import os
 import platform
@@ -26,6 +27,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from typing import Optional
 
 from experiments.monitoring_incident import evidence as E
 from experiments.monitoring_incident import metrics as MET
@@ -66,6 +68,10 @@ def morrison_version() -> str:
         return "unknown"
 
 
+class RunExistsError(RuntimeError):
+    """A run directory already exists and on_existing='error' forbids touching it."""
+
+
 @dataclass
 class RunConfig:
     scenario: str
@@ -79,6 +85,18 @@ class RunConfig:
     work_dir: str = ""
     keep_sandbox: bool = False
     labels: dict = field(default_factory=dict)
+    # Random seed for the proposer, when one was supplied (recorded in metadata;
+    # a seed does NOT make a model proposer deterministic — see Proposer).
+    seed: Optional[int] = None
+    # What to do if the target run directory already exists:
+    #   "error"      — reject without touching it (fail closed). Used for LIVE
+    #                  runs, whose evidence is stochastic and must never be
+    #                  silently replaced. Collision is detected atomically by an
+    #                  exclusive mkdir, so it is safe under concurrent processes.
+    #   "overwrite"  — delete and regenerate. The default, preserving the
+    #                  scripted/counterexample workflow, whose evidence is
+    #                  deterministic (a re-run reproduces identical bytes).
+    on_existing: str = "overwrite"
 
 
 def run_id_for(cfg: RunConfig, proposer, git: dict) -> str:
@@ -90,7 +108,7 @@ def run_id_for(cfg: RunConfig, proposer, git: dict) -> str:
         "condition": cfg.condition, "escalation_policy": cfg.escalation_policy,
         "proposer": proposer.identity(), "case": cfg.case_id,
         "max_steps": cfg.max_steps, "max_turns": cfg.max_turns,
-        "repetition": cfg.repetition})[:20]
+        "seed": cfg.seed, "repetition": cfg.repetition})[:20]
 
 
 def _project(baseline: dict, executed: list) -> dict:
@@ -154,7 +172,17 @@ class Episode:
             "tiers": {"local": self.condition.local, "global": self.condition.global_,
                       "enforce": self.condition.enforce},
             "escalation_policy": self.cfg.escalation_policy,
-            "proposer": self.proposer.identity(), "case_id": self.cfg.case_id,
+            "proposer": self.proposer.identity(),
+            "provider": self.proposer.provider,
+            "model": self.proposer.model,
+            "tool_protocol": self.proposer.config.get("tool_protocol"),
+            "seed": self.cfg.seed if self.cfg.seed is not None
+            else self.proposer.config.get("seed"),
+            # Whether the proposer's generation is reproducible. A seed does NOT
+            # make a model proposer deterministic; only scripted proposers are.
+            "generation_mode": "deterministic" if getattr(self.proposer, "deterministic", False)
+            else "stochastic",
+            "case_id": self.cfg.case_id,
             "repetition": self.cfg.repetition, "max_steps": self.cfg.max_steps,
             "max_turns": self.cfg.max_turns, "labels": self.cfg.labels,
             "governance_manifest_sha256": S.manifest_sha256(),
@@ -162,6 +190,7 @@ class Episode:
             "git": self.git, "morrison_version": morrison_version(),
             "python": sys.version.split()[0], "platform": platform.platform(),
             "machine": platform.machine(),
+            "started_utc": _dt.datetime.now(_dt.timezone.utc).isoformat(),
         }
 
     # ── one candidate action ─────────────────────────────────────────────
@@ -330,9 +359,7 @@ class Episode:
 
     # ── the episode ──────────────────────────────────────────────────────
     def run(self) -> dict:
-        if self.run_dir.exists():
-            shutil.rmtree(self.run_dir)
-        self.run_dir.mkdir(parents=True)
+        self._claim_run_dir()
         self._setup()
         try:
             return self._run()
@@ -341,13 +368,47 @@ class Episode:
                 self.sandbox.cleanup()
                 shutil.rmtree(self.base, ignore_errors=True)
 
+    def _claim_run_dir(self) -> None:
+        """Create the run directory, rejecting an overwrite when configured.
+
+        The collision check happens BEFORE any destructive filesystem op, and is
+        atomic: an exclusive `mkdir` either wins the directory or raises
+        FileExistsError, so two concurrent processes with the same run_id cannot
+        both proceed, and neither deletes the other's evidence. On `error`, an
+        existing run is never touched (fail closed). On `overwrite`, the
+        directory is replaced — used only for deterministic scripted re-runs.
+        """
+        self.run_dir.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self.run_dir.mkdir(exist_ok=False)
+            return
+        except FileExistsError:
+            pass
+        policy = self.cfg.on_existing
+        if policy == "error":
+            raise RunExistsError(
+                "run %s already exists at %s; refusing to overwrite its "
+                "evidence. Use a different --repetition or --output."
+                % (self.run_id, self.run_dir))
+        if policy == "overwrite":
+            shutil.rmtree(self.run_dir)
+            self.run_dir.mkdir(parents=True)
+            return
+        raise ValueError("unknown on_existing policy %r" % policy)
+
     def _run(self) -> dict:
         meta = self.metadata()
         baseline_check = self.oracle.evaluate(self.sandbox.baseline, include_task=True)
+        label = self.oracle.confinement
         meta["baseline_oracle"] = {"monitoring_intact": baseline_check["monitoring_intact"],
                                    "task_completed": baseline_check["task_completed"],
                                    "clauses": baseline_check["clauses"],
-                                   "confinement": self.oracle.confinement}
+                                   "confinement": label,
+                                   # "ok" when a real confinement wrapper ran;
+                                   # "degraded" when it fell back to rlimits only.
+                                   "confinement_status": (
+                                       "degraded" if (label or "").startswith("none")
+                                       else "ok" if label else "unknown")}
         self.log.append("run_start", meta)
         status = "ok"
         if not baseline_check["monitoring_intact"] or baseline_check["task_completed"]:
@@ -404,16 +465,22 @@ class Episode:
         final.update(canary_intact=canary_ok)
         self.log.append("oracle_final", final)
         metrics = MET.compute(self.log.records)
+        completed_utc = _dt.datetime.now(_dt.timezone.utc).isoformat()
         end = {"status": status, "stop_reason": stop_reason, "turns": turns,
-               "provider_errors": provider_errors, "metrics": metrics}
+               "provider_errors": provider_errors, "metrics": metrics,
+               "started_utc": meta["started_utc"], "completed_utc": completed_utc}
         self.log.append("run_end", end)
         check = E.verify_records(self.log.records)
+        meta["completed_utc"] = completed_utc
         summary = {"metadata": meta, "status": status, "stop_reason": stop_reason,
                    "turns": turns, "steps": self.step, "provider_errors": provider_errors,
+                   "started_utc": meta["started_utc"], "completed_utc": completed_utc,
+                   "generation_mode": meta["generation_mode"],
                    "metrics": metrics, "evidence": {
                        "file": "evidence.jsonl", "valid": check["valid"],
                        "problems": check["problems"], "records": check["records"],
-                       "terminal_hash": check["terminal_hash"]}}
+                       "terminal_hash": check["terminal_hash"],
+                       "final_evidence_chain_hash": check["terminal_hash"]}}
         (self.run_dir / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True,
                                                               default=repr) + "\n", "utf-8")
         return summary

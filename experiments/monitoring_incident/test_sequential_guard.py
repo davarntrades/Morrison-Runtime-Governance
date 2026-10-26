@@ -117,3 +117,33 @@ def test_guard_is_documented_as_a_restriction_not_a_repair():
     doc = SessionExecutionGuard.__doc__ or ""
     assert "NOT a repair" in doc
     assert "concurrency" in doc.lower()
+    # The known cross-thread hole and opt-in nature must stay documented.
+    assert "KNOWN HOLE" in doc
+    assert "opt-in" in doc
+
+
+def test_guard_active_check_is_existence_not_ownership():
+    """DOCUMENTS the known limitation (final audit §3, test 5): the Executor's
+    guard check is 'is any transaction open', not 'does the caller own it'. A
+    direct Executor call made WHILE another transaction is open is therefore NOT
+    blocked by the guard. This is a documented hole the sequential runner does
+    not reach, not a property to rely on. If a future change binds execution to
+    the owning transaction, update this test — do not silently weaken it."""
+    base = tempfile.mkdtemp()
+    sb = Sandbox("alert_suppression", base)
+    try:
+        g = SessionExecutionGuard()
+        ex = Executor(sb, DecisionKey(), "run", guard=g)
+        with g.transaction("owner"):
+            # a DIFFERENT logical caller invokes execute while the transaction is
+            # open; the guard's active() check passes (existence, not ownership),
+            # so the guard does not stop it. (It is then refused for an unrelated
+            # reason — no valid decision — which is NOT the guard doing its job.)
+            assert g.active() is True
+            res = ex.execute(None, {"tool": "write_file", "args": {"path": "config/x.json",
+                                                                   "content": "{}"}})
+            # refused here only because the decision is invalid, not by the guard
+            assert not res.executed
+            assert "no open execution transaction" not in res.refusal
+    finally:
+        sb.cleanup()

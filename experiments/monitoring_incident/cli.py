@@ -139,16 +139,31 @@ def _print_scripted(report: dict) -> None:
 
 
 def cmd_live(args) -> int:
+    from experiments.monitoring_incident.harness import RunExistsError
     out = Path(args.output)
     out.mkdir(parents=True, exist_ok=True)
     proposer = _make_proposer(args)
+    # Live evidence is stochastic and must never be silently replaced: each
+    # replicate is a distinct --repetition and overwriting an existing run is
+    # rejected fail-closed (on_existing="error").
     cfg = RunConfig(scenario=args.scenario, condition=args.condition, output_dir=out,
                     escalation_policy=args.escalation, max_steps=args.max_steps,
-                    max_turns=args.max_turns, labels={"intent": "live", "category": "live_model"})
-    summary = run_episode(cfg, proposer)
+                    max_turns=args.max_turns, repetition=args.repetition, seed=args.seed,
+                    on_existing="error",
+                    labels={"intent": "live", "category": "live_model"})
+    try:
+        summary = run_episode(cfg, proposer)
+    except RunExistsError as e:
+        print(json.dumps({"status": "rejected:run_exists", "error": str(e),
+                          "hint": "choose a different --repetition or --output; the existing "
+                                  "run's evidence was NOT modified"}, indent=2))
+        return 2
     print(json.dumps({"run_id": summary["metadata"]["run_id"], "status": summary["status"],
-                      "stop_reason": summary["stop_reason"], "metrics": summary["metrics"],
-                      "evidence": summary["evidence"]}, indent=2, default=repr))
+                      "stop_reason": summary["stop_reason"],
+                      "generation_mode": summary["generation_mode"],
+                      "started_utc": summary["started_utc"], "completed_utc": summary["completed_utc"],
+                      "metrics": summary["metrics"], "evidence": summary["evidence"]},
+                     indent=2, default=repr))
     return 0 if summary["status"] == "ok" else 1
 
 
@@ -244,6 +259,37 @@ def cmd_counterexamples(args) -> int:
     return 0
 
 
+def cmd_anchor(args) -> int:
+    from experiments.monitoring_incident import anchoring as A
+    campaign = Path(args.output_dir)
+    anchor_path = Path(args.anchor_file) if args.anchor_file else campaign / A.DEFAULT_ANCHOR_NAME
+    if args.verify:
+        if not anchor_path.exists():
+            print(json.dumps({"ok": False, "error": "no anchor at %s" % anchor_path}, indent=2))
+            return 2
+        result = A.verify_against_anchor(campaign, A.load_anchor(anchor_path))
+        print(json.dumps({"mode": "verify", "anchor": str(anchor_path), "checked": result["checked"],
+                          "ok": result["ok"], "problems": result["problems"]}, indent=2))
+        return 0 if result["ok"] else 1
+    built = A.build_anchor(campaign)
+    if not built["ok"]:
+        print(json.dumps({"mode": "generate", "ok": False, "runs": built["anchor"]["runs"],
+                          "problems": built["problems"],
+                          "note": "anchor NOT written: validate/clean the campaign first"}, indent=2))
+        return 1
+    try:
+        A.write_anchor(built["anchor"], anchor_path, force=args.force)
+    except FileExistsError as e:
+        print(json.dumps({"mode": "generate", "ok": False, "error": str(e)}, indent=2))
+        return 2
+    print(json.dumps({"mode": "generate", "ok": True, "anchor": str(anchor_path),
+                      "runs": built["anchor"]["runs"],
+                      "anchor_sha256": built["anchor"]["anchor_sha256"],
+                      "hint": "record anchor_sha256 off-machine (or commit the anchor) for an "
+                              "external anchor; see the anchor's tamper note"}, indent=2))
+    return 0
+
+
 def cmd_coverage(args) -> int:
     print("Adversarial category coverage (12 planned categories):\n")
     for cat, cases in C.CATEGORY_COVERAGE.items():
@@ -284,6 +330,10 @@ def build_parser() -> argparse.ArgumentParser:
     lv.add_argument("--max-tokens", type=int, default=2048)
     lv.add_argument("--max-steps", type=int, default=25)
     lv.add_argument("--max-turns", type=int, default=30)
+    lv.add_argument("--repetition", type=int, default=0,
+                    help="replicate index; part of the run id. Re-using an existing "
+                         "(config, repetition) into the same --output is rejected, never "
+                         "overwritten. Increment it for each stochastic replicate.")
     lv.add_argument("--effort", default="medium", help="anthropic only: output_config.effort")
     lv.add_argument("--api-key-env", default="", help="openai-compatible: env var holding the key")
     lv.add_argument("--allow-paid-api", action="store_true",
@@ -308,6 +358,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     cov = sub.add_parser("coverage", help="print category coverage and NOT TESTED list")
     cov.set_defaults(func=cmd_coverage)
+
+    an = sub.add_parser("anchor", help="generate or verify an evidence anchor for a campaign dir")
+    an.add_argument("--output-dir", required=True, help="campaign directory holding run subdirs")
+    an.add_argument("--anchor-file", default="", help="anchor path (default <dir>/EVIDENCE_ANCHOR.json)")
+    an.add_argument("--force", action="store_true", help="overwrite an existing anchor")
+    an.add_argument("--verify", action="store_true", help="verify runs against an existing anchor")
+    an.set_defaults(func=cmd_anchor)
 
     cx = sub.add_parser("counterexamples", help="run the audit counterexamples and publish records")
     cx.add_argument("--output", required=True)
