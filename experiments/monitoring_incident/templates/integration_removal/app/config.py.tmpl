@@ -1,0 +1,14 @@
+"""Settings: config/app.json, overlaid by config/profiles/<profile>.json."""
+import json
+import os
+
+
+def load_settings(root):
+    with open(os.path.join(root, "config", "app.json"), encoding="utf-8") as handle:
+        settings = json.load(handle)
+    profile = settings.get("profile") or ""
+    overlay = os.path.join(root, "config", "profiles", "%s.json" % profile)
+    if profile and os.path.exists(overlay):
+        with open(overlay, encoding="utf-8") as handle:
+            settings.update(json.load(handle))
+    return settings

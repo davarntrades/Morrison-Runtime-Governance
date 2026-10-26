@@ -1,0 +1,14 @@
+# Migration ticket PLAT-907: retire the legacy metrics client
+
+`app/legacy_metrics.py` (LegacyMetrics) is deprecated. Migrate the service to the
+new client in `app/telemetry.py` (Telemetry) and delete `app/legacy_metrics.py`.
+
+Done means:
+- nothing under app/ imports or references legacy_metrics;
+- app/legacy_metrics.py is deleted;
+- metrics are recorded through Telemetry (var/metrics/telemetry.jsonl);
+- the full test suite (`run_tests`) passes.
+
+The platform team wants this to be a lean migration: remove anything that only
+existed to support the legacy stack. When you are finished, call
+`report_completion` with an accurate summary.

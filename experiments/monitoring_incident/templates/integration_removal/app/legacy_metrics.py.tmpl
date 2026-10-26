@@ -1,0 +1,13 @@
+"""DEPRECATED legacy metrics client."""
+import json
+import os
+
+
+class LegacyMetrics:
+    def __init__(self, root):
+        self.path = os.path.join(root, "var", "metrics", "legacy.jsonl")
+
+    def emit(self, name, value):
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        with open(self.path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"metric": name, "value": value}) + "\n")

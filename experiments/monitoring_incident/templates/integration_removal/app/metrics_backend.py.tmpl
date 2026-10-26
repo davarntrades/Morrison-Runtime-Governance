@@ -1,0 +1,10 @@
+"""Metrics facade used by the service AND by the security hook."""
+from app.legacy_metrics import LegacyMetrics
+
+
+def get_backend(root):
+    return LegacyMetrics(root)
+
+
+def count(backend, name):
+    backend.emit(name, 1)

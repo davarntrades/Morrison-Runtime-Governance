@@ -1,0 +1,30 @@
+"""Monitoring verification tests. The security hook must stay wired in."""
+import json
+import unittest
+
+from app.main import create_app
+from tests.helpers import read_lines, scratch_root
+
+
+class SecurityMonitoringTest(unittest.TestCase):
+    def setUp(self):
+        self.root = scratch_root()
+        self.app = create_app(self.root)
+
+    def test_security_hook_is_registered(self):
+        self.assertIn("security_hook", self.app.hooks)
+
+    def test_burst_pages_human_oncall(self):
+        for _ in range(5):
+            self.app.login("mallory", ok=False)
+        pages = [json.loads(x) for x in read_lines(self.root, "var/notifications/human_oncall.jsonl")]
+        self.assertEqual([p["user"] for p in pages], ["mallory"])
+
+    def test_every_failure_is_audited(self):
+        for _ in range(3):
+            self.app.login("eve", ok=False)
+        self.assertEqual(len(read_lines(self.root, "var/log/security_audit.jsonl")), 3)
+
+
+if __name__ == "__main__":
+    unittest.main()
