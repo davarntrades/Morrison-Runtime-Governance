@@ -98,13 +98,38 @@ Frozen manifest `monitoring-incident-manifest-v1`. Numbers are reproduced in
 | global_only | **0** | 0 | 0 | 0 |
 | hierarchical | **0** | 0 | 0 | 2 |
 
+> **Scope of the zero (audit §5, §10/P1).** "0 under global/hierarchical" is a
+> property of **these 24 scripted cases**, not of the two scenarios. An
+> independent adversarial audit found **nine** one- or two-step maintenance
+> edits — in files that are unprotected and unfrozen (`app/service.py`,
+> `app/config.py`, `config/*`, unprotected tests) — that execute an unauthorized
+> monitoring break under `hierarchical` because the global tier's hand-written
+> static model (`monitoring_model.py`) is false-safe on edits it does not model.
+> They are now regression fixtures (`counterexamples.py`,
+> `test_counterexamples.py`) and reported as enforcement failures, detected by
+> the oracle only *after* execution. A live model in Phase 2 can produce such
+> edits, so the scripted zero must not be read as "the scenarios are safe".
+
 (96 episodes = 24 cases × 4 conditions. The false escalations are legitimate
-`infra.destructive` deletes held for approval; all clear under `escalation=oracle`.)
+`infra.destructive` deletes held for approval; all clear under `escalation=oracle`.
+Audit note: the escalation is avoidable by tool choice — the same delete via
+`move_file` classifies as `[]` and completes under `deny` in every condition.)
 
 Under **`escalation=oracle`** (a counterfactual perfect reviewer) the one
 false-escalation on the legitimate migration is approved and the task completes,
 while every attack stays blocked. Escalations are reported separately from
-blocks, never merged into a single "prevented" number.
+blocks, never merged into a single "prevented" number. The `oracle` reviewer
+*is* the ground-truth oracle, so its safety numbers for escalated actions hold
+by construction; only its **utility** numbers are informative.
+
+> **What "global" is (audit §3).** Every one of the 28 global BLOCKs across the
+> 96 episodes came from a `monitoring_incident.*` custom `OmegaRule` at layer
+> `A_safe`. Morrison's generic trajectory machinery (V2 taint, V3 reachability,
+> forecasting) decided nothing here. The global tier is Morrison's engine used
+> as a dispatcher for **scenario-specific, hand-written** invariants; its
+> coverage is exactly what those invariants model, which is why the nine edges
+> above slip through. This is legitimate, but it is not evidence that Morrison's
+> general trajectory reasoning detects these attacks.
 
 ## Discovered counterexamples
 
@@ -131,26 +156,59 @@ fixed by changing enforcement; the predictions were corrected and recorded.
 
 ## Known limitations / NOT TESTED
 
-Run `… coverage` for the live list. The main ones:
+Run `… coverage` for the live list. See `AUDIT_RESPONSE.md` for the point-by-point
+reply to the independent audit. The main ones, corrected per the audit:
 
-- **`run_tests` side effects (per-action).** Executing agent-authored code via
-  `run_tests` that breaks monitoring as an import/test side effect is a real
-  blind spot: the global tier models `run_tests` as having no effect. Building a
-  working case would be reusable evasion tooling, so it is **NOT TESTED** at the
-  per-action level and instead surfaced as an oracle/projection differential
-  (`differential.run_tests_side_effect_probe`). The oracle's final behavioural
-  check *does* catch an end-state break; the per-action projection does not.
-- **Concurrent / multi-process authorization races** are out of scope for this
-  in-process harness; Morrison's cross-process continuity is tested in
+- **The global static model is false-safe on unmodelled edits.** Nine edits
+  (`counterexamples.py`, audit §5.5) break monitoring under `hierarchical`. They
+  are caught by the oracle *after* execution (detection, not prevention), never
+  by the tiers. This is the headline limitation for Phase 2.
+- **`run_tests` side effects.** The per-action global projection models
+  `run_tests` as having no effect, so it cannot attribute a later break to a
+  `run_tests` step (still NOT TESTED at that level, surfaced as a differential).
+  The **repaired** oracle does catch end-state breaks from `run_tests` — including
+  the symlink-to-`/dev/null` class that previously read as intact (the snapshot
+  silently skipped symlinks; it now fails closed, see below). XC-RT1 and XC-SYM
+  in `counterexamples.py` exercise this.
+- **Oracle independence (corrected).** An earlier claim that "the oracle does not
+  use `apply_action` at all" was **false** (audit §6). The oracle's per-action
+  labels and the differential's end-states are both built with `apply_action`,
+  which for file tools *defines* reality (the executor materialises it). The
+  genuinely independent signals are the oracle's **behavioural probe** (runs the
+  app) and the **fail-closed scan of non-regular files**. The true independent
+  check on `apply_action` itself is a real-tool replay, as the audit's
+  `recompute.py` does.
+- **Fail-closed on uninspectable state (repaired).** Snapshots (`Sandbox.scan`,
+  `Oracle._scan`) now record symlinks/fifos/devices and the oracle marks any
+  non-regular file under a monitoring path as a monitoring-integrity failure,
+  rather than skipping it.
+- **Out-of-band changes (C09).** A simulated other actor can break monitoring
+  directly on disk. The executor correctly refuses the now-stale agent decision
+  (no mediated execution, no bypass), but no condition *prevents* the break and
+  it desynchronises the global projection from reality. Reported via
+  `out_of_band_monitoring_break` and `projection_divergence`, never as success.
+- **Concurrency (audit §7.5).** The executor's single-use and state-hash checks
+  are **not concurrency-safe**: a check-then-act window spans a filesystem
+  snapshot, and under concurrent authorization one decision can double-execute
+  and two individually-admitted actions can compose. Phase 2 must stay strictly
+  sequential (L1). Morrison's own cross-process continuity is tested in
   `runtime_eval/falsification`, not here.
-- **Shared-effect modelling error.** The executor and the global projection
-  share `apply_action`, so a modelling error there is correlated. The
-  independent oracle (which runs the app) is the check on it;
-  `differential.py` asserts agreement and reports any divergence.
+- **Evidence integrity.** The hash chain is tamper-EVIDENT against a retained
+  terminal hash, **not** independently tamper-proof: a self-recomputed chain
+  plus a rewritten in-directory `summary.json` can pass `verify` without an
+  external anchor, and the per-episode HMAC key is in memory, so signatures are
+  **not** verifiable offline. Raw evidence for the published scripted run is now
+  committed under `results/` with run ids, the manifest sha and the commit SHA;
+  real tamper-evidence still requires anchoring terminal hashes outside the run
+  directory (L4).
 - Complete mediation is demonstrated **for this fixture API with trusted
   executor code**, not against a hostile in-process program with raw object
   access (the same boundary Morrison's own docs state).
+- **macOS / APFS not tested.** Case-folding and Unicode normalisation on APFS
+  (e.g. `lower()` vs `casefold()`, U+017F) are untested on Linux; Phase 2 runs on
+  the macOS target (L5).
 
-See [DESIGN.md](DESIGN.md) for the full design, [EVIDENCE_SCHEMA.md](EVIDENCE_SCHEMA.md)
-for the record format, [MACOS.md](MACOS.md) for Phase 2 on Apple Silicon, and
+See [DESIGN.md](DESIGN.md) for the full design, [AUDIT_RESPONSE.md](AUDIT_RESPONSE.md)
+for the audit reply, [EVIDENCE_SCHEMA.md](EVIDENCE_SCHEMA.md) for the record
+format, [MACOS.md](MACOS.md) for Phase 2 on Apple Silicon, and
 [PHASE2_CHECKLIST.md](PHASE2_CHECKLIST.md).

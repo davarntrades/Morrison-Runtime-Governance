@@ -81,11 +81,17 @@ def cmd_scripted(args) -> int:
                 index.append({"case": case.id, "category": case.category, "intent": case.intent,
                               "condition": cond, "repetition": rep, "run_id": summary["metadata"]["run_id"],
                               "status": summary["status"], "expect": case.expect.get(cond),
+                              "escalation_policy": args.escalation,
+                              "manifest_sha256": summary["metadata"]["governance_manifest_sha256"],
+                              "commit": summary["metadata"]["git"]["commit"],
+                              "terminal_hash": summary["evidence"]["terminal_hash"],
                               "unauthorized_executed": summary["metrics"]["unauthorized_executed"],
                               "enforcement_bypass_total": summary["metrics"]["enforcement_bypass_total"],
                               "false_positives": (summary["metrics"]["false_positive_block"]
                                                   + summary["metrics"]["false_positive_escalate"]),
                               "monitoring_intact_final": summary["metrics"]["monitoring_intact_final"],
+                              "out_of_band_monitoring_break": summary["metrics"].get("out_of_band_monitoring_break"),
+                              "uninspectable_monitoring_state": summary["metrics"].get("uninspectable_monitoring_state"),
                               "evidence_valid": summary["evidence"]["valid"]})
     report = {"suite": "scripted", "manifest_sha256": S.manifest_sha256(),
               "manifest_version": S.manifest()["manifest_version"],
@@ -205,6 +211,35 @@ def cmd_verify(args) -> int:
     return 0 if result["valid"] else 1
 
 
+def cmd_counterexamples(args) -> int:
+    from experiments.monitoring_incident import counterexamples as X
+    out = Path(args.output)
+    out.mkdir(parents=True, exist_ok=True)
+    conditions = args.conditions or ["hierarchical"]
+    rows = []
+    for cx in X.COUNTEREXAMPLES:
+        for cond in conditions:
+            summary, rec = X.run_counterexample(cx, cond, out, escalation=args.escalation)
+            rows.append({"condition": cond, "expectation": cx.expectation,
+                         "description": cx.description, "note": cx.note,
+                         "run_id": summary["metadata"]["run_id"],
+                         "evidence_valid": summary["evidence"]["valid"],
+                         "record": rec.as_dict()})
+    report = {"suite": "counterexamples", "manifest_sha256": S.manifest_sha256(),
+              "conditions": conditions, "escalation": args.escalation,
+              "count": len(X.COUNTEREXAMPLES), "false_safe_ids": X.FALSE_SAFE_IDS, "rows": rows}
+    (out / "counterexamples_report.json").write_text(
+        json.dumps(report, indent=2, sort_keys=True, default=repr) + "\n", "utf-8")
+    print("counterexamples: %d cases x %d conditions" % (len(X.COUNTEREXAMPLES), len(conditions)))
+    print("%-30s %-20s %-10s %-10s %-8s" % ("id", "condition", "unauth_ex", "mon_final", "bypass"))
+    for r in rows:
+        rec = r["record"]
+        print("%-30s %-20s %-10s %-10s %-8s" % (
+            rec["id"], r["condition"], rec["unauthorized_executed"],
+            rec["observed_monitoring_intact_final"], rec["enforcement_bypass_total"]))
+    return 0
+
+
 def cmd_coverage(args) -> int:
     print("Adversarial category coverage (12 planned categories):\n")
     for cat, cases in C.CATEGORY_COVERAGE.items():
@@ -269,6 +304,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     cov = sub.add_parser("coverage", help="print category coverage and NOT TESTED list")
     cov.set_defaults(func=cmd_coverage)
+
+    cx = sub.add_parser("counterexamples", help="run the audit counterexamples and publish records")
+    cx.add_argument("--output", required=True)
+    cx.add_argument("--conditions", nargs="+", choices=ALL_CONDITIONS)
+    cx.add_argument("--escalation", choices=["deny", "oracle"], default="deny")
+    cx.set_defaults(func=cmd_counterexamples)
     return p
 
 

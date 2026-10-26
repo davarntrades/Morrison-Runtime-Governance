@@ -349,20 +349,19 @@ class Sandbox:
         return {p.relative_to(src).as_posix()[:-len(TEMPLATE_SUFFIX)]: p.read_bytes()
                 for p in sorted(src.rglob("*" + TEMPLATE_SUFFIX))}
 
+    def scan(self) -> tuple:
+        """(regular files as bytes, irregular entries as descriptors)."""
+        return scan_tree(self.root)
+
     def snapshot(self) -> dict:
-        out = {}
-        for dirpath, dirnames, filenames in os.walk(self.root):
-            dirnames[:] = sorted(d for d in dirnames if d not in _SKIP_PARTS)
-            for name in filenames:
-                if name.endswith(".pyc"):
-                    continue
-                full = os.path.join(dirpath, name)
-                if os.path.islink(full):
-                    continue
-                rel = os.path.relpath(full, self.root).replace(os.sep, "/")
-                with open(full, "rb") as handle:
-                    out[rel] = handle.read()
-        return out
+        """Regular-file content only, for effect hashing and projection. Use
+        `irregular()` (or `scan()`) to detect what this view cannot represent;
+        callers that certify monitoring state must consult it and fail closed."""
+        return self.scan()[0]
+
+    def irregular(self) -> dict:
+        """{relpath: descriptor} for every non-regular entry in the sandbox."""
+        return self.scan()[1]
 
     def state_hash(self) -> str:
         return fs_hash(self.snapshot())
@@ -402,3 +401,72 @@ def copy_fs_to_dir(fs: dict, root: str) -> None:
         os.makedirs(os.path.dirname(full), exist_ok=True)
         with open(full, "wb") as handle:
             handle.write(data)
+
+
+def _describe_irregular(full: str) -> str:
+    """A one-line description of why a directory entry is not a plain file we
+    can faithfully capture as bytes. Used to fail closed rather than skip."""
+    try:
+        if os.path.islink(full):
+            try:
+                target = os.readlink(full)
+            except OSError as e:
+                target = "<unreadable: %s>" % e
+            return "symlink -> %s" % target
+        mode = os.lstat(full).st_mode
+    except OSError as e:
+        return "unstatable: %s" % e
+    import stat as _stat
+    if _stat.S_ISFIFO(mode):
+        return "fifo"
+    if _stat.S_ISSOCK(mode):
+        return "socket"
+    if _stat.S_ISBLK(mode):
+        return "block_device"
+    if _stat.S_ISCHR(mode):
+        return "char_device"
+    return "non_regular"
+
+
+def scan_tree(root: str, skip_dirs=_SKIP_PARTS) -> tuple:
+    """Walk `root` once. Returns (files, irregular).
+
+    files      {relpath: bytes} for plain, readable regular files.
+    irregular  {relpath: descriptor} for every other directory entry — symlink,
+               fifo, socket, device, or a file that cannot be read as bytes.
+
+    The old snapshot SILENTLY SKIPPED symlinks, so a monitoring sink replaced
+    by a symlink to /dev/null vanished from the captured state and the run
+    reported monitoring intact while the real sandbox discarded every page
+    (audit §7.8, X-SYM). Nothing is skipped now: a non-regular file is
+    surfaced so the caller can fail closed. `os.walk` does not follow symlinks,
+    so a symlinked directory is reported here and not descended into.
+    """
+    files, irregular = {}, {}
+    for dirpath, dirnames, filenames in os.walk(root):
+        # A symlinked directory appears in dirnames; record it and do not follow.
+        kept = []
+        for d in sorted(dirnames):
+            if d in skip_dirs:
+                continue
+            full = os.path.join(dirpath, d)
+            if os.path.islink(full):
+                rel = os.path.relpath(full, root).replace(os.sep, "/")
+                irregular[rel] = _describe_irregular(full)
+            else:
+                kept.append(d)
+        dirnames[:] = kept
+        for name in sorted(filenames):
+            if name.endswith(".pyc"):
+                continue
+            full = os.path.join(dirpath, name)
+            rel = os.path.relpath(full, root).replace(os.sep, "/")
+            if os.path.islink(full) or not os.path.isfile(full):
+                irregular[rel] = _describe_irregular(full)
+                continue
+            try:
+                with open(full, "rb") as handle:
+                    files[rel] = handle.read()
+            except OSError as e:
+                irregular[rel] = "unreadable: %s" % e
+    return files, irregular
