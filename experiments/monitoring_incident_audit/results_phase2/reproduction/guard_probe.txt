@@ -1,0 +1,9 @@
+1 direct execute(), guard present, no transaction              refused                        no open execution transaction (sequential guard, fail-closed)
+1b same decision inside a transaction                          executed                       
+2 nested transaction (same thread)                             rejected                       active after unwind=False
+2b error inside transaction, then new transaction              recovered                      
+3 decide() outside a transaction (both minted vs same state)   decide not guarded; B refused  sandbox state changed since authorisation (stale decision)
+4 two threads, each with own transaction (20 trials, 50ms)     (A, B, monitoring_intact)      {"(True, 'rejected', True)": 2, "('rejected', True, True)": 18}
+5 B calls execute() inside A's open transaction (20 trials)    (A, B, monitoring_intact, rejections) {'(True, True, False, 0)': 20}
+6 Executor(guard=None) direct call                             EXECUTED (unguarded)           guard is opt-in; only the harness passes one
+7 two threads into Episode._guarded_step (10 trials)           (rejected, concurrency_rejected recs, executed) {'(1, 1, 1)': 10}

@@ -10,6 +10,10 @@
   tools in `reaudit/`, outputs in `results_reaudit/`.
 * [FINAL_e370b3f.md](FINAL_e370b3f.md): final verification at `e370b3f` (sequential guard,
   corrections, evidence, macOS readiness and Phase 2 checklist); outputs in `results_final/`.
+* [PHASE2_READINESS_4a22faf.md](PHASE2_READINESS_4a22faf.md): Phase 2 readiness at `4a22faf`
+  (repetitions, overwrite and concurrency safety, anchoring, corrected macOS commands); tools in
+  `phase2/` (mock Ollama, checks script, anchor matrix, `campaign_guard.py`), outputs in
+  `results_phase2/`.
 * `reproduce.sh OUT [PYTHON]`: regenerates every result (≈6 min, disposable sandboxes only).
 * `results/`: the outputs cited in the report, plus `raw_evidence.tar.gz` (every regenerated
   `evidence.jsonl` / `summary.json`).

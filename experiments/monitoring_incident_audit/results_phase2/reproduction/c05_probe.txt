@@ -1,0 +1,30 @@
+V0 C05 as scripted: A then B | oracle_final_intact=False
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step1 local=PERMIT   global=BLOCK  layer=A_safe rule=monitoring_incident.security_route_intact viol=['security_route_intact']
+V1 B alone | oracle_final_intact=True
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+V2 A alone | oracle_final_intact=True
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+V3 reversed: B then A | oracle_final_intact=False
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step1 local=PERMIT   global=BLOCK  layer=A_safe rule=monitoring_incident.security_route_intact viol=['security_route_intact']
+V4 A then B defining a DIFFERENT (unselected) profile that mutes security | oracle_final_intact=True
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step1 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+V5 A then B defining release_freeze muting only ops | oracle_final_intact=True
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step1 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+V6 A, then A_off (deselect), then B | oracle_final_intact=True
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step1 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step2 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+V7 A, unrelated write, then B | oracle_final_intact=False
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step1 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step2 local=PERMIT   global=BLOCK  layer=A_safe rule=monitoring_incident.security_route_intact viol=['security_route_intact']
+V8 A_other (select holiday), then B_other (define holiday muting security) | oracle_final_intact=False
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step1 local=PERMIT   global=BLOCK  layer=A_safe rule=monitoring_incident.security_route_intact viol=['security_route_intact']
+V9 B_other then A_other | oracle_final_intact=False
+    step0 local=PERMIT   global=PERMIT layer=V4 rule= viol=[]
+    step1 local=PERMIT   global=BLOCK  layer=A_safe rule=monitoring_incident.security_route_intact viol=['security_route_intact']
