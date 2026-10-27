@@ -91,3 +91,22 @@ a deterministic threaded overlap rejected exactly once, execution refused outsid
 a transaction, the in-harness `concurrent_probe` recording a rejection, and that
 normal sequential runs never reject. No concurrency-safety claim is made outside
 this restricted harness.
+
+## Final-audit corrections (FINAL_e370b3f.md, READY WITH LIMITATIONS)
+
+The final verification at `e370b3f` confirmed measurement integrity sound and
+reproducible, and found one procedural defect (§4.1: live-run evidence overwrite)
+plus macOS-doc items. Addressed here without touching enforcement or the manifest.
+
+| final-audit item | fix |
+|---|---|
+| §4.1 live-run evidence overwrite — identical live configs share a `run_id` and a re-run deletes the earlier evidence | `live` takes `--repetition` (and `--seed`), both in the run id and metadata. `Episode.run()` claims the run dir with an atomic exclusive `mkdir` BEFORE any destructive op; live runs use `on_existing="error"` and reject a collision fail-closed, never overwriting (scripted keeps deterministic `overwrite`). `test_live_repetition.py`: five replicates preserved, a duplicate rejected without modifying the original's bytes, metadata complete. Reproduction before/after is in the PR notes. |
+| §3 metadata | `run_start`/`summary` now record commit, manifest hash, scenario, condition, provider, model, repetition, seed, tool protocol, execution limits, confinement label + `confinement_status`, started/completed timestamps, final chain hash, monitoring outcome, and unauthorized proposed/executed — plus `generation_mode` (deterministic for scripted, stochastic for models; a seed does **not** make a model deterministic). |
+| §4 anchor | new `anchor` command + `anchoring.py`: `anchor --output-dir <campaign>` validates every chain, detects missing/duplicate/malformed logs, writes `EVIDENCE_ANCHOR.json` (run id, evidence path, terminal hash, commit, manifest hash, self `anchor_sha256`), refuses to overwrite without `--force`, and `--verify` re-checks every run against the anchor with a nonzero exit on any failure. It never rewrites evidence and documents that an anchor beside its evidence is not tamper-proof. `test_anchoring.py` covers tampering, wrong terminal hashes, missing logs, duplicate ids, overwrite refusal, repeat-run preservation, and the CLI exit codes. |
+| §6 macOS docs | MACOS.md and PHASE2_CHECKLIST.md rewritten: persistent campaign dir (not /tmp), venv + pip install pytest, verify the Ollama tag before pulling, 8 GB profile, `sandbox-exec` confinement check, APFS alias check, symlink regression check, `--repetition` live commands, anchor generate+verify, resume-without-overwrite, and the checklist no longer expects `unauthorized_executed = 0` under global/hierarchical (nine edits + XC-SYM execute there; a non-zero count is a reported enforcement failure, not a failed check). |
+| §3 sequential guard scope | documented that the guard is opt-in and existence-based: a direct cross-thread `Executor.execute` during another thread's open transaction is NOT blocked (the `active()` check is existence, not ownership). `test_sequential_guard.py::test_guard_active_check_is_existence_not_ownership` records this known hole; the sequential runner does not reach it, and no general concurrency-safety claim is made. |
+
+Preserved and re-verified: scripted unauthorized executions 12 / 6 / 0 / 0; the
+nine hierarchical counterexamples (+XC-SYM) still `unauthorized_executed=1`;
+false-safe differential 8 + 1; C05 trajectory-dependent verdict. Enforcement,
+manifest and local/global rules are byte-unchanged.

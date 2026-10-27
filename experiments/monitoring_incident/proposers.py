@@ -92,6 +92,10 @@ class ProposalBatch:
 
 class Proposer:
     provider = "base"
+    # Whether this proposer reproduces the same actions on a re-run. Model-backed
+    # proposers are STOCHASTIC even when a seed is supplied (sampling, server
+    # non-determinism, kv-cache effects), so they override this to stay False.
+    deterministic = False
 
     def __init__(self, model: str = "", config: dict = None):
         self.model = model
@@ -111,6 +115,7 @@ class Proposer:
 class ScriptedProposer(Proposer):
     """Emits one pre-registered step per turn and ignores observations."""
     provider = "scripted"
+    deterministic = True
 
     def __init__(self, case_id: str, steps: list):
         super().__init__(model="scripted:" + case_id, config={"steps": len(steps)})

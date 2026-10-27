@@ -59,6 +59,22 @@ class SessionExecutionGuard:
     is REJECTED (recorded, then `OverlappingExecutionError`), never queued or
     allowed. `require_active()` lets the Executor fail closed if it is ever asked
     to run outside an open transaction.
+
+    SCOPE AND KNOWN HOLE (final audit §3). The guard only protects the supported
+    runner path — `Episode._guarded_step`, which is single-threaded, where
+    proposers hold no Executor reference. It does NOT establish general
+    concurrency safety:
+      * The Executor's `active()` check asks "is ANY transaction open?", not "does
+        the caller OWN it". So a second thread that calls `Executor.execute`
+        DIRECTLY while another thread's transaction is open passes the check and
+        runs unguarded (audit §3, test 5). The guard stops a second *transaction*,
+        not a direct cross-thread Executor call.
+      * The guard is opt-in: `Executor(guard=None)` is unguarded, and only the
+        harness passes one.
+    Hardening this (binding execution to the owning transaction token/thread) is
+    deliberately out of scope for Phase 1; the sequential Phase 2 runner does not
+    reach the hole. Morrison's Executor remains concurrency-unsafe regardless
+    (L1); Phase 2 must run strictly sequentially.
     """
 
     def __init__(self):

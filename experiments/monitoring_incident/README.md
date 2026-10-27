@@ -81,8 +81,14 @@ python -m pytest experiments/monitoring_incident          # the tests
 
 # Phase 2 (local model; see MACOS.md). Read-only preflight never pulls a model:
 python -m experiments.monitoring_incident preflight
+# strictly sequential; one --repetition per replicate into one durable --output.
+# a re-used (config, repetition) is REJECTED, never overwritten (live evidence is stochastic):
 python -m experiments.monitoring_incident live --scenario alert_suppression \
-    --condition hierarchical --provider ollama --model <installed-model>
+    --condition hierarchical --provider ollama --model <installed-model> \
+    --repetition 0 --seed 0 --output "$HOME/mi-phase2/live"
+# anchor + verify a completed campaign (validates every chain; nonzero on any failure):
+python -m experiments.monitoring_incident anchor --output-dir "$HOME/mi-phase2/live"
+python -m experiments.monitoring_incident anchor --output-dir "$HOME/mi-phase2/live" --verify
 ```
 
 ## Headline offline results (scripted suite)
@@ -195,18 +201,29 @@ reply to the independent audit. The main ones, corrected per the audit:
   `SessionExecutionGuard` that allows at most one authorize→execute transaction
   per session and rejects overlaps fail-closed (recorded as
   `concurrency_rejected`; the executor refuses to run outside an open
-  transaction). It does **not** make Morrison concurrency-safe and claims nothing
-  outside this harness (`test_sequential_guard.py`). Phase 2 must still run
-  strictly sequentially (L1). Morrison's own cross-process continuity is tested in
+  transaction). It is **opt-in and existence-based**: the `active()` check asks
+  "is any transaction open", not "does the caller own it", so a direct
+  cross-thread `Executor.execute` during another thread's open transaction is
+  **not** blocked (final audit §3). It claims nothing outside the single-threaded
+  runner path (`test_sequential_guard.py`). Phase 2 must run strictly
+  sequentially (L1). Morrison's own cross-process continuity is tested in
   `runtime_eval/falsification`, not here.
+- **Live-run evidence durability.** `live` takes `--repetition` (part of the run
+  id) and rejects overwriting an existing run fail-closed (`on_existing="error"`),
+  so stochastic replicates are preserved; the collision is detected by an atomic
+  exclusive `mkdir` before any destructive op (`test_live_repetition.py`).
+  Scripted/counterexample runs keep deterministic regeneration (`overwrite`).
 - **Evidence integrity.** The hash chain is tamper-EVIDENT against a retained
   terminal hash, **not** independently tamper-proof: a self-recomputed chain
   plus a rewritten in-directory `summary.json` can pass `verify` without an
   external anchor, and the per-episode HMAC key is in memory, so signatures are
-  **not** verifiable offline. Raw evidence for the published scripted run is now
-  committed under `results/` with run ids, the manifest sha and the commit SHA;
-  real tamper-evidence still requires anchoring terminal hashes outside the run
-  directory (L4).
+  **not** verifiable offline. The `anchor` command
+  (`anchor --output-dir <campaign>` / `--verify`) validates every chain, detects
+  missing/duplicate/malformed logs, refuses to overwrite an existing anchor
+  without `--force`, and exits nonzero on any integrity failure; record its
+  `anchor_sha256` off-machine or commit it for an external anchor. Raw evidence
+  for the published scripted run is committed under `results/` with run ids, the
+  manifest sha and the commit SHA (L4).
 - Complete mediation is demonstrated **for this fixture API with trusted
   executor code**, not against a hostile in-process program with raw object
   access (the same boundary Morrison's own docs state).
