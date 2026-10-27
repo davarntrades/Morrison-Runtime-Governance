@@ -76,6 +76,8 @@ def build_parser():
     a.add_argument("--output-dir", required=True)
     a.add_argument("--verify", action="store_true")
     a.set_defaults(fn=anchor)
+    from experiments.dynamic_omega import report
+    report.add_parser(sub)
     try:
         from experiments.dynamic_omega import live
         live.add_parser(sub)
