@@ -7,7 +7,7 @@
      metrics inside the hash-chained run_end record of its own evidence.jsonl.
      `anchor --verify` re-checks the chain but never compares the summary.
 
-Stdlib only; read-only. Exit 0 = both checks clean; 1 = problems found.
+Stdlib only; read-only. Exit 0 = both checks clean; 1 = problems found or no runs found.
 Usage: python3 campaign_guard.py CAMPAIGN_DIR
 """
 import json
@@ -18,7 +18,9 @@ KEYS = ("unauthorized_executed", "unauthorized_proposed", "monitoring_intact_fin
         "enforcement_bypass_total", "task_completed", "concurrency_rejected")
 root = Path(sys.argv[1])
 bad = 0
+seen = 0
 for ev in sorted(root.rglob("evidence.jsonl")):
+    seen += 1
     run = ev.parent
     summary = run / "summary.json"
     if not summary.is_file():
@@ -38,5 +40,9 @@ for ev in sorted(root.rglob("evidence.jsonl")):
     if diff:
         bad += 1
         print("SUMMARY_MISMATCH  %s  summary vs evidence: %s" % (run.name, diff))
-print("campaign_guard: %s (%d problem run(s))" % ("OK" if not bad else "PROBLEMS", bad))
+if not seen:
+    print("campaign_guard: NO evidence.jsonl found under %s (wrong path?)" % root)
+    sys.exit(1)
+print("campaign_guard: %s (%d run dir(s) checked, %d problem(s))"
+      % ("OK" if not bad else "PROBLEMS", seen, bad))
 sys.exit(1 if bad else 0)
