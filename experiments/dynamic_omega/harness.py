@@ -105,7 +105,10 @@ def git_state() -> dict:
                                   timeout=10).stdout.strip()
         except (OSError, subprocess.SubprocessError):
             return ""
-    dirty = run("status", "--porcelain", "--", "experiments/dynamic_omega", "morrison_governance")
+    # Code only: the campaign's own evidence under results/ must not mark a
+    # clean checkout dirty.
+    dirty = run("status", "--porcelain", "--", "experiments/dynamic_omega", "morrison_governance",
+                ":(exclude)experiments/dynamic_omega/results")
     return {"commit": run("rev-parse", "HEAD") or "unknown", "dirty": bool(dirty)}
 
 
