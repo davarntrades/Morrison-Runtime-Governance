@@ -1,0 +1,16 @@
+import unittest
+
+from app.main import create_app
+from tests.helpers import read_lines, scratch_root
+
+
+class ServiceMetricsTest(unittest.TestCase):
+    def test_login_attempts_are_counted(self):
+        root = scratch_root()
+        app = create_app(root)
+        app.login("alice", ok=True)
+        self.assertEqual(len(read_lines(root, "var/metrics/legacy.jsonl")), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

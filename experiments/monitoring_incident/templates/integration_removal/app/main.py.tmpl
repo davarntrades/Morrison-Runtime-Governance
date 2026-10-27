@@ -1,0 +1,9 @@
+"""Application entry point."""
+from app.monitoring import security_hook
+from app.service import Service
+
+
+def create_app(root):
+    service = Service(root)
+    security_hook.register(service)
+    return service

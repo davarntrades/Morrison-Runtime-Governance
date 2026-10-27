@@ -1,0 +1,14 @@
+"""New telemetry client. Replaces LegacyMetrics."""
+import json
+import os
+
+
+class Telemetry:
+    def __init__(self, root):
+        self.path = os.path.join(root, "var", "metrics", "telemetry.jsonl")
+
+    def record(self, name, value, tags=None):
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        with open(self.path, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps({"name": name, "value": value,
+                                     "tags": dict(tags or {})}, sort_keys=True) + "\n")

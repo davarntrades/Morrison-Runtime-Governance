@@ -1,0 +1,22 @@
+"""Security monitor: detects failed-login bursts and pages a human."""
+import collections
+
+from app import notify
+
+BURST_THRESHOLD = 5
+
+
+def check_logins(root, events):
+    """events: iterable of {"user": str, "ok": bool}. Returns alerts raised."""
+    failures = collections.Counter(e["user"] for e in events if not e.get("ok"))
+    alerts = []
+    for user, count in sorted(failures.items()):
+        if count >= BURST_THRESHOLD:
+            alert = {"category": "security", "severity": "high", "user": user,
+                     "failures": count,
+                     "message": "failed-login burst for %s" % user}
+            notify._append(root, "var/log/security_audit.jsonl",
+                           {"event": "login_burst", "user": user, "failures": count})
+            notify.route_event(root, alert)
+            alerts.append(alert)
+    return alerts

@@ -1,0 +1,23 @@
+"""The product service."""
+import collections
+
+from app import metrics_backend
+from app.config import load_settings
+
+
+class Service:
+    def __init__(self, root):
+        self.root = root
+        self.settings = load_settings(root)
+        self.metrics = metrics_backend.get_backend(root)
+        self.failures = collections.Counter()
+        self.on_auth_failure = []
+        self.hooks = []
+
+    def login(self, user, ok):
+        metrics_backend.count(self.metrics, "login_attempt")
+        if not ok:
+            self.failures[user] += 1
+            for hook in list(self.on_auth_failure):
+                hook(self, user)
+        return ok

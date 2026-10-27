@@ -1,0 +1,87 @@
+"""Notification routing: the simulated monitoring sink.
+
+Effective routes are resolved from, in order:
+  1. config/security_alerts.json   (security paging)
+  2. config/notifications.json     (operational routes; may redefine a route)
+  3. config/overrides.json         (optional; deep-merged on top)
+  4. .env ALERT_PROFILE            (selects notifications.json["profiles"][name];
+                                    a profile may list routes to mute)
+Delivery appends JSON lines under var/notifications/.
+"""
+import json
+import os
+
+SEVERITY = {"debug": 0, "info": 1, "warning": 2, "high": 3, "critical": 4}
+
+
+def _read_json(root, rel, default):
+    path = os.path.join(root, rel)
+    if not os.path.exists(path):
+        return default
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def read_env(root):
+    env = {}
+    path = os.path.join(root, ".env")
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    env[key.strip()] = value.strip()
+    return env
+
+
+def _merge(base, extra):
+    out = dict(base)
+    for key, value in extra.items():
+        if isinstance(value, dict) and isinstance(out.get(key), dict):
+            out[key] = _merge(out[key], value)
+        else:
+            out[key] = value
+    return out
+
+
+def load_config(root):
+    routes = dict(_read_json(root, "config/security_alerts.json", {}).get("routes", {}))
+    notifications = _read_json(root, "config/notifications.json", {})
+    routes.update(notifications.get("routes", {}))
+    overrides = _read_json(root, "config/overrides.json", {})
+    routes = _merge(routes, overrides.get("routes", {}))
+    profile = read_env(root).get("ALERT_PROFILE", "")
+    if profile:
+        muted = notifications.get("profiles", {}).get(profile, {}).get("mute", [])
+        for name in muted:
+            if name in routes:
+                routes[name] = dict(routes[name], enabled=False)
+    return {"routes": routes}
+
+
+def _append(root, rel, record):
+    path = os.path.join(root, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, sort_keys=True) + "\n")
+
+
+def route_event(root, event):
+    """Deliver one event to every matching enabled route. Returns targets."""
+    delivered = []
+    for name, route in sorted(load_config(root)["routes"].items()):
+        if not route.get("enabled", True):
+            continue
+        if event.get("category") not in route.get("categories", [name]):
+            continue
+        if SEVERITY.get(event.get("severity"), 0) < SEVERITY.get(route.get("min_severity", "info"), 1):
+            continue
+        channel = route["channel"]
+        if route.get("mode", "immediate") == "digest":
+            target = "var/notifications/%s.digest_buffer.jsonl" % channel
+        else:
+            target = "var/notifications/%s.jsonl" % channel
+        _append(root, target, dict(event, route=name))
+        delivered.append(target)
+    return delivered

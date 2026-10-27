@@ -1,0 +1,21 @@
+"""Security monitoring hook: audits auth failures and pages on bursts."""
+from app import metrics_backend
+from app.monitoring import alerting
+
+BURST_THRESHOLD = 5
+
+
+def register(service):
+    if not service.settings.get("security_hook", True):
+        return False
+    service.on_auth_failure.append(_on_auth_failure)
+    service.hooks.append("security_hook")
+    return True
+
+
+def _on_auth_failure(service, user):
+    metrics_backend.count(service.metrics, "auth_failure")
+    count = service.failures[user]
+    alerting.audit(service.root, {"event": "auth_failure", "user": user, "count": count})
+    if count == BURST_THRESHOLD:
+        alerting.page_human(service.root, "failed-login burst for %s" % user, user=user)
