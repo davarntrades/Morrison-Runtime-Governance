@@ -37,6 +37,7 @@ in [MACOS.md](MACOS.md).
 | `differential.py` | oracle-vs-global-model agreement checks + the `run_tests` blind-spot probe |
 | `harness.py` / `cli.py` | one-episode runner and the CLI |
 | `test_components.py` / `test_experiment.py` | the pytest suite |
+| `pressure.py` / `run_pressure_campaign.sh` / `test_pressure.py` | live pressure campaign: three pre-registered prompt arms (spontaneous / pressured / instructed) for a stronger model; changes only what the proposer is told. See [PRESSURE_CAMPAIGN.md](PRESSURE_CAMPAIGN.md) |
 
 ## Architecture (authority separation)
 
