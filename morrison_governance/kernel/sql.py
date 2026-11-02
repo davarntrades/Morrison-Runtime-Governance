@@ -58,6 +58,7 @@ here would be a second attack surface and a lint-gate entry.
 from __future__ import annotations
 
 import json
+import re
 import unicodedata
 from dataclasses import dataclass, field
 from typing import Any, Iterable
@@ -74,6 +75,7 @@ CAP_PERSISTENCE = "persistence.establish"
 CAP_CODE_EXEC = "code.execute"
 CAP_INFRA_DESTRUCTIVE = "infra.destructive"
 CAP_UNCLASSIFIED = "statement.unclassified"
+CAP_LOG_TAMPER = "log.tamper"
 
 # Longest text read in strict mode. Longer SQL is not classified, it is
 # escalated: a bounded lexer that silently stopped would be a partial reading.
@@ -455,6 +457,31 @@ def _object_after(stmt: list[Token], i: int) -> str:
     return ""
 
 
+# Identifier word-parts that name audit evidence. A destructive statement whose
+# TARGET carries one of these destroys or rewrites audit evidence, which the
+# shipped policy denies outright (log.tamper). Matched on whole word-parts of
+# the target identifiers, not substrings, so `catalog`, `login` and
+# `order_history` stay ordinary data (independent review remediation: before
+# this, `DROP TABLE audit_log` through a SQL tool classified only as
+# data.destructive, which is APPROVAL, so a valid approval executed it).
+_EVIDENCE_PARTS = frozenset({"AUDIT", "AUDITS", "AUDITLOG", "AUDITLOGS", "LOG", "LOGS",
+                             "EVENTLOG", "EVENTLOGS", "TRAIL", "TRAILS", "FORENSIC",
+                             "FORENSICS", "EVIDENCE"})
+_IDENT_SPLIT = re.compile(r"[^A-Za-z0-9]+")
+
+
+def _targets_evidence(stmt: list[Token], i: int) -> bool:
+    """Whether the statement at i names an audit-evidence relation before its
+    first WHERE / SET clause."""
+    for t in stmt[i + 1:]:
+        if t.kind == WORD and t.upper in ("WHERE", "SET", "USING", "RETURNING"):
+            return False
+        if t.kind in (WORD, IDENT):
+            if _EVIDENCE_PARTS & {p.upper() for p in _IDENT_SPLIT.split(t.value) if p}:
+                return True
+    return False
+
+
 def _keyword_caps(stmt: list[Token], i: int, kw: str) -> tuple[str, frozenset]:
     """Class and capabilities of the statement opened by keyword `kw` at i."""
     words = _words(stmt[i:])
@@ -465,11 +492,21 @@ def _keyword_caps(stmt: list[Token], i: int, kw: str) -> tuple[str, frozenset]:
             caps.add(CAP_IAM_PRIVILEGED)
         if obj in _PERSIST_OBJECTS:
             caps.add(CAP_SECURITY_CONTROL)
+        if _targets_evidence(stmt, i):
+            caps.add(CAP_LOG_TAMPER)
         return DESTRUCTIVE, frozenset(caps)
     if kw == "UPDATE":
         # An UPDATE with no WHERE clause rewrites every row: destructive.
-        return (WRITE, frozenset({CAP_DATA_WRITE})) if "WHERE" in words else (
-            DESTRUCTIVE, frozenset({CAP_DATA_DESTRUCTIVE, CAP_DATA_WRITE}))
+        if "WHERE" in words:
+            caps = {CAP_DATA_WRITE}
+            klass = WRITE
+        else:
+            caps = {CAP_DATA_DESTRUCTIVE, CAP_DATA_WRITE}
+            klass = DESTRUCTIVE
+        if _targets_evidence(stmt, i):
+            # Rewriting audit evidence, scoped or not, is tampering with it.
+            caps.add(CAP_LOG_TAMPER)
+        return klass, frozenset(caps)
     if kw in _PRIV_KW:
         return PRIVILEGE, frozenset({CAP_IAM_PRIVILEGED})
     if kw in _DYNAMIC_KW:

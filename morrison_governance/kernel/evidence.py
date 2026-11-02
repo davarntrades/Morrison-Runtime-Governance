@@ -199,6 +199,29 @@ class EvidenceRecord:
     executed: bool = False
     execution_result: Optional[str] = None
     trajectory_hash: str = ""
+    # ── decision-to-execution binding (independent review, finding B) ──
+    # A decision record used to carry no decision id and no session id, and an
+    # execution outcome named its decision only by a 12-character hash prefix
+    # inside free-text `reason`. Resource effects are keyed by decision id, so
+    # no persisted effect could be joined to the record that authorised it.
+    decision_id: str = ""            # the Decision this record is about
+    session_id: str = ""
+    # record_hash of the DECISION record a follow-up record (intent, outcome,
+    # refusal, lease export) refers to; "" on the decision record itself.
+    refers_to: str = ""
+    # What a follow-up record asserts, as data rather than prose:
+    #   ""             the decision record itself
+    #   "dispatched"   execution intent sealed BEFORE the effect
+    #   "succeeded"    the executor returned
+    #   "unknown"      the executor raised after dispatch; may have landed
+    #   "refused"      execution was refused at the boundary
+    #   "exported"     authority exported as a resource-verified lease
+    #   "cancelled"    an exported lease was cancelled unredeemed
+    #   "remote"       a remote runtime reported executing it
+    #   "reconciled_executed" / "reconciled_not_executed"
+    # `executed=True` with outcome "unknown" means "treated as having landed",
+    # NOT "observed to have landed".
+    outcome: str = ""
     prev_hash: str = GENESIS
     record_hash: str = ""
     signature: str = ""
@@ -234,6 +257,52 @@ class EvidenceRecord:
 _APPEND_LOCK = threading.RLock()
 
 
+class JsonlEvidenceSink:
+    """Durable, write-ahead persistence for ONE evidence chain.
+
+    Each sealed record is written as one JSON line and fsynced before
+    `EvidenceChain.append` returns, so a record the kernel acted on (a decision
+    it returned, an intent it dispatched behind) is on disk first. A failed
+    write is rolled back to the previous length and raised; the chain does not
+    advance, and the kernel's existing fail-closed paths take over (a decision
+    is not returned, an intent failure refuses execution, an outcome failure is
+    queued and sealed late).
+
+    One file holds one chain. Appending a second chain to a file that already
+    holds one is exactly how the benchmark's persisted evidence came to fail
+    recomputation, so a non-empty file is refused.
+    """
+
+    def __init__(self, path) -> None:
+        import os
+        self.path = str(path)
+        self._fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        if os.fstat(self._fd).st_size:
+            os.close(self._fd)
+            raise ValueError(f"{self.path} already holds evidence; one file per chain")
+
+    def __call__(self, rec: "EvidenceRecord") -> None:
+        import os
+        line = (rec.to_json() + "\n").encode("utf-8")
+        start = os.fstat(self._fd).st_size
+        try:
+            written = os.write(self._fd, line)
+            if written != len(line):
+                raise OSError(f"short write ({written} of {len(line)} bytes)")
+            os.fsync(self._fd)
+        except BaseException:
+            try:
+                os.ftruncate(self._fd, start)
+            finally:
+                raise
+
+    def close(self) -> None:
+        import os
+        if self._fd >= 0:
+            os.close(self._fd)
+            self._fd = -1
+
+
 @dataclass
 class EvidenceChain:
     """Append-only, hash-chained decision log.
@@ -241,10 +310,14 @@ class EvidenceChain:
     Any silent edit — including flipping a BLOCK into an executed PERMIT —
     breaks either the record hash or the chain link, and `verify()` reports
     exactly which record failed.
+
+    `sink`, when set, receives every sealed record BEFORE it joins the chain
+    (see `JsonlEvidenceSink`); if it raises, the record is not appended.
     """
 
     key: bytes = b""
     records: list = field(default_factory=list)
+    sink: Optional[Any] = None
 
     @property
     def head(self) -> str:
@@ -260,13 +333,17 @@ class EvidenceChain:
             rec.seq = len(self.records)
             rec.prev_hash = self.head
             rec.seal(self.key)
+            if self.sink is not None:
+                self.sink(rec)
             self.records.append(rec)
             return rec
 
     def record_execution(self, rec: EvidenceRecord, executed: bool,
-                         result: Optional[str] = None) -> EvidenceRecord:
+                         result: Optional[str] = None,
+                         outcome: str = "") -> EvidenceRecord:
         """Execution outcome is a NEW sealed record, never a mutation of the
-        authorising one — so the decision and its outcome are both immutable."""
+        authorising one — so the decision and its outcome are both immutable.
+        It names its decision by id and by the decision record's full hash."""
         follow = EvidenceRecord(
             seq=0, timestamp=time.time(), actor=rec.actor, tenant=rec.tenant,
             action_hash=rec.action_hash, proposed=rec.proposed,
@@ -275,6 +352,9 @@ class EvidenceChain:
             ruleset_hash=rec.ruleset_hash, executed=executed,
             execution_result=result, capabilities=list(rec.capabilities),
             authorization=dict(rec.authorization),
+            decision_id=rec.decision_id, session_id=rec.session_id,
+            refers_to=rec.record_hash,
+            outcome=outcome or ("succeeded" if executed else "refused"),
         )
         return self.append(follow)
 

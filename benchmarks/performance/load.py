@@ -37,9 +37,15 @@ from collections import Counter
 from pathlib import Path
 
 from benchmarks.performance.common import (
-    LEGITIMATE, LIMIT_BOUND, PROHIBITED, SHARED, SHARED_AMOUNT, SHARED_LIMIT,
-    Deployment, Resource, cases_for, environment, percentiles, present, write_json,
+    LEGITIMATE, LIMIT_BOUND, POLICIES, PROHIBITED, PROHIBITION_CLASS, SHARED,
+    SHARED_AMOUNT, SHARED_LIMIT, Deployment, Resource, cases_for, environment,
+    percentiles, present, set_results_dir, valid_approval_for, write_json,
 )
+
+# Prohibition classes the approval-stress arm presents a GENUINE approval for.
+# `authority` cases are excluded by construction: a genuine approval on them is
+# exactly what makes the same action legitimate (approved_large_transfer).
+STRESS_CLASSES = ("hard", "trajectory")
 
 
 def _rss_mb() -> float:
@@ -51,8 +57,14 @@ def _rss_mb() -> float:
 
 
 def run_worker(dep: Deployment, res: Resource, index: int, mode: str,
-               barrier=None, session: str = "isolated") -> list[dict]:
-    """Run one worker's script; return one record per case."""
+               barrier=None, session: str = "isolated",
+               approve_prohibited: bool = False,
+               chains_out: list | None = None) -> list[dict]:
+    """Run one worker's script; return one record per case.
+
+    `approve_prohibited` presents a genuine, correctly bound approval with
+    every `hard` and `trajectory` prohibited case. `chains_out`, when given,
+    receives each kernel's exported evidence chain for reconciliation."""
     kernels: dict = {}
     out = []
     held_approval = None
@@ -63,8 +75,13 @@ def run_worker(dep: Deployment, res: Resource, index: int, mode: str,
         kernel = kernels[principal]
         rec = {"kind": case.kind, "expected": case.expected, "family": case.family,
                "special": case.special, "principal": principal, "verdict": None,
-               "executed": False, "error": None, "refused_at": None}
+               "executed": False, "error": None, "refused_at": None,
+               "prohibition_class": PROHIBITION_CLASS.get(case.kind, ""),
+               "valid_approval_presented": False}
         approvals = case.approvals
+        if approve_prohibited and rec["prohibition_class"] in STRESS_CLASSES:
+            approvals = (valid_approval_for(dep, case),)
+            rec["valid_approval_presented"] = True
         if case.special == "replay":
             approvals = (held_approval,) if held_approval is not None else ()
         if case.kind == "shared_limit_transfer" and barrier is not None:
@@ -162,7 +179,10 @@ def run_worker(dep: Deployment, res: Resource, index: int, mode: str,
     chains = {}
     for name, k in kernels.items():
         try:
-            chains[name] = recompute_chain(k.chain.to_jsonl()).ok
+            exported = k.chain.to_jsonl()
+            chains[name] = recompute_chain(exported).ok
+            if chains_out is not None:
+                chains_out.append(exported)
         except Exception as exc:  # noqa: BLE001
             chains[name] = f"error: {exc}"
         # Evidence must name the decision: every executed decision has an
@@ -173,47 +193,112 @@ def run_worker(dep: Deployment, res: Resource, index: int, mode: str,
 
 
 def _thread_level(n: int, mode: str, dep: Deployment, res: Resource,
-                  session: str) -> list[dict]:
+                  session: str, approve: bool = False,
+                  chains: list | None = None) -> list[dict]:
     barrier = threading.Barrier(n)
     results: list[list[dict]] = [[] for _ in range(n)]
+    per_worker: list[list] = [[] for _ in range(n)]
 
     def target(i):
-        results[i] = run_worker(dep, res, i, mode, barrier, session)
+        results[i] = run_worker(dep, res, i, mode, barrier, session, approve,
+                                per_worker[i])
     ths = [threading.Thread(target=target, args=(i,)) for i in range(n)]
     for th in ths:
         th.start()
     for th in ths:
         th.join()
+    if chains is not None:
+        chains.extend(c for cs in per_worker for c in cs)
     return [r for rs in results for r in rs]
 
 
 def _proc_target(args):
-    dep, res_path, index, mode, session, barrier, q = args
+    dep, res_path, index, mode, session, barrier, q, approve = args
     res = Resource(res_path, dep.principals, governed=(mode == "mediated"),
                    verifier=dep.verifier)
-    q.put(run_worker(dep, res, index, mode, barrier, session))
+    exported: list = []
+    q.put((run_worker(dep, res, index, mode, barrier, session, approve, exported),
+           exported))
 
 
 def _process_level(n: int, mode: str, dep: Deployment, res_path: Path,
-                   session: str) -> list[dict]:
+                   session: str, approve: bool = False,
+                   chains: list | None = None) -> list[dict]:
     ctx = mp.get_context("fork")
     q = ctx.Queue()
     barrier = ctx.Barrier(n)
     procs = [ctx.Process(target=_proc_target,
-                         args=((dep, res_path, i, mode, session, barrier, q),))
+                         args=((dep, res_path, i, mode, session, barrier, q, approve),))
              for i in range(n)]
     for p in procs:
         p.start()
     out = []
     for _ in procs:
-        out.extend(q.get(timeout=3600))
+        recs, exported = q.get(timeout=3600)
+        out.extend(recs)
+        if chains is not None:
+            chains.extend(exported)
     for p in procs:
         p.join()
     return out
 
 
+def corrected_accounting(records: list[dict]) -> dict:
+    """Independent review, finding C: four separate questions, every
+    legitimate case in every denominator.
+
+    The published `legitimate` block filtered out cases with a `special`
+    marker, which removed the legitimate `double_execute` case from the
+    denominator; in the session workload that case is BLOCKed (V2), so the
+    published "100%" was 6/6 of a 7-case set. Nothing here filters by
+    `special`.
+
+      1 safety       prohibited cases executed, by prohibition class
+      2 authorized   legitimate cases that received PERMIT
+      3 executed     legitimate cases with at least one resource effect
+      4 goal         legitimate cases whose goal was met exactly: executed,
+                     and committed once (double_execute's goal is ONE commit)
+    """
+    legit = [r for r in records if r["expected"] == LEGITIMATE]
+    proh = [r for r in records if r["expected"] == PROHIBITED]
+
+    def pct(a, b):
+        return round(100.0 * a / b, 3) if b else None
+    by_class: dict = {}
+    for r in proh:
+        c = by_class.setdefault(r.get("prohibition_class") or "unclassified", {
+            "total": 0, "block": 0, "escalate": 0, "permit": 0, "executed": 0,
+            "valid_approval_presented": 0, "executed_kinds": set()})
+        c["total"] += 1
+        if r["verdict"] in ("BLOCK", "ESCALATE", "PERMIT"):
+            c[r["verdict"].lower()] += 1
+        c["executed"] += bool(r["executed"])
+        c["valid_approval_presented"] += bool(r.get("valid_approval_presented"))
+        if r["executed"]:
+            c["executed_kinds"].add(r["kind"])
+    for c in by_class.values():
+        c["executed_kinds"] = sorted(c["executed_kinds"])
+    goal = [r for r in legit if r["executed"] and r.get("commit_successes", 0) == 1]
+    met = {id(r) for r in goal}
+    misses = Counter((r["kind"], r["verdict"], r.get("layer"), r.get("rule"),
+                      r.get("refused_at")) for r in legit if id(r) not in met)
+    return {
+        "legitimate_total": len(legit),
+        "safety": {"prohibited_total": len(proh),
+                   "prohibited_executed": sum(bool(r["executed"]) for r in proh),
+                   "by_class": by_class},
+        "authorized": {"n": sum(r["verdict"] == "PERMIT" for r in legit),
+                       "pct": pct(sum(r["verdict"] == "PERMIT" for r in legit), len(legit))},
+        "executed": {"n": sum(bool(r["executed"]) for r in legit),
+                     "pct": pct(sum(bool(r["executed"]) for r in legit), len(legit))},
+        "goal_completed": {"n": len(goal), "pct": pct(len(goal), len(legit))},
+        "not_completed": [list(k) + [v] for k, v in misses.most_common()],
+    }
+
+
 def summarise(records: list[dict], res: Resource, n: int, wall_s: float,
-              cpu_s: float, rss_mb: float, model: str, mode: str) -> dict:
+              cpu_s: float, rss_mb: float, model: str, mode: str,
+              chains: list | None = None) -> dict:
     by_exp = Counter(r["expected"] for r in records)
     plain = [r for r in records if not r["special"]]
     proh = [r for r in records if r["expected"] == PROHIBITED]
@@ -234,7 +319,20 @@ def summarise(records: list[dict], res: Resource, n: int, wall_s: float,
             outside.append(max(0, r["verdict_ns"] - int(sum(r["stages_ms"].values()) * 1e6)))
     v = Counter(r["verdict"] for r in proh_plain)
     expected_shared_commits = min(SHARED_LIMIT // SHARED_AMOUNT, len(shared))
+    evidence = None
+    if chains is not None:
+        from morrison_governance.kernel.attestation import reconcile_execution_evidence
+        rec = reconcile_execution_evidence(chains, effects, mediated=(mode == "mediated"))
+        evidence = {"ok": rec["ok"], "counts": rec["counts"],
+                    "problems": rec["problems"][:20],
+                    "problem_count": len(rec["problems"])}
     return {
+        "corrected_accounting": corrected_accounting(records),
+        "evidence_reconciliation": evidence,
+        "published_definition_note": (
+            "`legitimate` and `prohibited.block/escalate/permit` below keep the "
+            "frozen definitions (special cases excluded) for comparability; "
+            "use `corrected_accounting`."),
         "model": model, "mode": mode, "workers": n, "proposals": len(records),
         "wall_s": wall_s, "throughput_per_s": len(records) / wall_s if wall_s else None,
         "cpu_utilisation_pct": 100.0 * cpu_s / wall_s if wall_s else None,
@@ -298,10 +396,11 @@ def summarise(records: list[dict], res: Resource, n: int, wall_s: float,
 
 
 def run_level(n: int, model: str, mode: str, store: str = "memory",
-              session: str = "isolated") -> tuple[dict, list]:
+              session: str = "isolated", policy: str = "default",
+              approve: bool = False) -> tuple[dict, list]:
     from benchmarks.performance.common import all_principals
     from morrison_governance.kernel.continuity import FileContinuityStore
-    dep = Deployment()
+    dep = Deployment(policy=policy)
     dep.principals = all_principals(n, session)
     if model == "processes" or store == "file":
         dep.store = FileContinuityStore(str(dep.workdir / "continuity.jsonl"))
@@ -311,10 +410,11 @@ def run_level(n: int, model: str, mode: str, store: str = "memory",
     r0 = rlimit.getrusage(rlimit.RUSAGE_SELF)
     c0 = rlimit.getrusage(rlimit.RUSAGE_CHILDREN)
     t0 = time.perf_counter()
+    chains: list = []
     if model == "threads":
-        recs = _thread_level(n, mode, dep, res, session)
+        recs = _thread_level(n, mode, dep, res, session, approve, chains)
     else:
-        recs = _process_level(n, mode, dep, res_path, session)
+        recs = _process_level(n, mode, dep, res_path, session, approve, chains)
     wall = time.perf_counter() - t0
     r1 = rlimit.getrusage(rlimit.RUSAGE_SELF)
     c1 = rlimit.getrusage(rlimit.RUSAGE_CHILDREN)
@@ -322,7 +422,9 @@ def run_level(n: int, model: str, mode: str, store: str = "memory",
            + c1.ru_utime - c0.ru_utime + c1.ru_stime - c0.ru_stime)
     peak_self = rlimit.getrusage(rlimit.RUSAGE_SELF).ru_maxrss / 1024
     peak_child = rlimit.getrusage(rlimit.RUSAGE_CHILDREN).ru_maxrss / 1024
-    summary = summarise(recs, res, n, wall, cpu, _rss_mb(), model, mode)
+    summary = summarise(recs, res, n, wall, cpu, _rss_mb(), model, mode, chains)
+    summary["policy"] = policy
+    summary["valid_approval_on_prohibited"] = approve
     summary["peak_rss_mb_self"] = peak_self
     summary["peak_rss_mb_largest_child"] = peak_child
     summary["session"] = session
@@ -338,12 +440,20 @@ def main(argv=None) -> int:
     ap.add_argument("--store", choices=("memory", "file"), default="memory")
     ap.add_argument("--session", choices=("isolated", "session"), default="isolated")
     ap.add_argument("--tag", default="")
+    ap.add_argument("--policy", choices=POLICIES, default="default")
+    ap.add_argument("--approve-prohibited", action="store_true",
+                    help="present a genuine approval with every hard/trajectory prohibited case")
+    ap.add_argument("--out", help="results directory (the frozen results/ is refused)")
     a = ap.parse_args(argv)
+    if a.out:
+        set_results_dir(a.out)
     levels = [int(x) for x in a.levels.split(",")]
-    tag = a.tag or f"{a.model}-{a.mode}-{a.session}"
+    tag = a.tag or (f"{a.model}-{a.mode}-{a.session}-{a.policy}"
+                    + ("-approved" if a.approve_prohibited else ""))
     summaries, raw = [], {}
     for n in levels:
-        s, recs = run_level(n, a.model, a.mode, a.store, a.session)
+        s, recs = run_level(n, a.model, a.mode, a.store, a.session, a.policy,
+                            a.approve_prohibited)
         summaries.append(s)
         raw[str(n)] = recs
         # Written after EVERY level: a later level that is killed (OOM at
@@ -353,6 +463,8 @@ def main(argv=None) -> int:
         print(json.dumps({k: s[k] for k in ("workers", "wall_s", "throughput_per_s")}
                          | {"verdict_p99_us": s["verdict_latency"].get("p99_us"),
                             "prohibited_executed": s["prohibited"]["executed"],
+                            "legit_goal_pct": s["corrected_accounting"]["goal_completed"]["pct"],
+                            "evidence_ok": (s["evidence_reconciliation"] or {}).get("ok"),
                             "incorrectly_permitted": s["prohibited"]["incorrectly_permitted_kinds"],
                             "shared_outflow": s["shared_limit"]["outflow"],
                             "errors": s["errors"]}), flush=True)

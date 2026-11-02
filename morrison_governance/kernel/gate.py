@@ -360,7 +360,8 @@ class GovernanceKernel:
     def __init__(self, layer: GovernanceLayer, context: SecurityContext,
                  evidence_key: bytes = b"", engine_version: str = "",
                  session_id: str = "", decision_ttl_s: float = DECISION_TTL_S,
-                 escalation_router: Optional[Any] = None):
+                 escalation_router: Optional[Any] = None,
+                 evidence_sink: Optional[Callable[[EvidenceRecord], None]] = None):
         self.layer = layer
         self.ctx = context
         # Where an ESCALATE goes. Without one the verdict is still correct and
@@ -368,7 +369,10 @@ class GovernanceKernel:
         # nobody is notified, and it never times out. See
         # morrison_governance.escalation.
         self.escalation_router = escalation_router
-        self.chain = EvidenceChain(key=evidence_key)
+        # `evidence_sink` makes evidence durable as it is sealed (write-ahead,
+        # see evidence.JsonlEvidenceSink). Without one the chain lives in
+        # memory and is only as durable as whoever exports it.
+        self.chain = EvidenceChain(key=evidence_key, sink=evidence_sink)
         # Executions whose outcome record could not be sealed (see
         # `_record_execution_outcome`): committed effects missing evidence.
         self.evidence_failures: list[dict] = []
@@ -682,7 +686,8 @@ class GovernanceKernel:
                         tenant=self.ctx.principal.tenant, action_hash=decision.action_hash,
                         proposed=decision.action, decision=BLOCK, layer="lease_lifecycle",
                         rule="exported_lease_cancelled", reason="resource registry cancelled unredeemed lease",
-                        ruleset_hash=self._live_ruleset_hash(), engine_version=self.engine_version))
+                        ruleset_hash=self._live_ruleset_hash(), engine_version=self.engine_version,
+                        **self._binding_fields(decision, "cancelled")))
                 return dropped
             self.store.consume(self.continuity_key,
                                f"decision:{decision.decision_id}")
@@ -760,7 +765,9 @@ class GovernanceKernel:
                         f"{'EXECUTED' if executed else 'NOT EXECUTED'} on "
                         f"external attestation: {attestation}"),
                 ruleset_hash=self._live_ruleset_hash(),
-                engine_version=self.engine_version, executed=executed))
+                engine_version=self.engine_version, executed=executed,
+                **self._binding_fields(decision, "reconciled_executed" if executed
+                                       else "reconciled_not_executed")))
             return True
 
     def mint_lease(self, decision: "Decision", ttl_s: float = 60.0,
@@ -809,7 +816,8 @@ class GovernanceKernel:
                 tenant=self.ctx.principal.tenant, action_hash=snapshot.action_hash,
                 proposed=snapshot.action, decision=PERMIT, layer="lease_lifecycle",
                 rule="execution_authority_exported", reason=f"Ed25519 lease {lease.lease_id} registered; local decision spent",
-                ruleset_hash=self._live_ruleset_hash(), engine_version=self.engine_version))
+                ruleset_hash=self._live_ruleset_hash(), engine_version=self.engine_version,
+                **self._binding_fields(snapshot, "exported")))
             return lease
 
     def unconfirmed(self) -> list["Attempt"]:
@@ -1523,7 +1531,8 @@ class GovernanceKernel:
                 omega_domain=domain, reason=reason, capabilities=sorted(caps),
                 requirement=requirement, authorization=authorization,
                 forged_authority_claims=forged, ruleset_hash=self._live_ruleset_hash(),
-                engine_version=self.engine_version, trajectory_hash=traj_hash))
+                engine_version=self.engine_version, trajectory_hash=traj_hash,
+                decision_id=decision.decision_id, session_id=self.session_id))
 
         # Recomputed AFTER sealing so `decision_time_ms` covers the whole
         # pipeline including evidence, matching its documented meaning.
@@ -1722,11 +1731,11 @@ class GovernanceKernel:
                 decision,
                 f"committed; outcome UNKNOWN — executor raised "
                 f"{type(e).__name__}: {e}. The effect may or may not have "
-                f"landed and is treated as having landed.")
+                f"landed and is treated as having landed.", outcome="unknown")
             return False, f"runtime error: {type(e).__name__}: {e}"
 
         if decision.evidence is not None:
-            self._record_execution_outcome(decision, "ok")
+            self._record_execution_outcome(decision, "ok", outcome="succeeded")
         return True, result
 
     def _record_intent(self, decision: "Decision", target: dict) -> EvidenceRecord:
@@ -1740,9 +1749,20 @@ class GovernanceKernel:
             authorization={**(decision.authorization or {}),
                            "decision_id": decision.decision_id},
             ruleset_hash=decision.ruleset_hash or self._live_ruleset_hash(),
-            engine_version=self.engine_version))
+            engine_version=self.engine_version,
+            **self._binding_fields(decision, "dispatched")))
 
-    def _record_execution_outcome(self, decision: "Decision", note: str) -> None:
+    def _binding_fields(self, decision: "Decision", outcome: str) -> dict:
+        """Identity a follow-up record needs to be joined to its decision:
+        the decision id, the session, and the decision record's full hash."""
+        evidence = getattr(decision, "evidence", None)
+        return {"decision_id": getattr(decision, "decision_id", "") or "",
+                "session_id": self.session_id,
+                "refers_to": evidence.record_hash if evidence is not None else "",
+                "outcome": outcome}
+
+    def _record_execution_outcome(self, decision: "Decision", note: str,
+                                  outcome: str = "succeeded") -> None:
         """Seal the execution outcome. The effect has ALREADY been committed
         when this runs, so a failure here must not be reported as a refusal:
         that told the caller nothing ran while the resource had changed. The
@@ -1751,7 +1771,8 @@ class GovernanceKernel:
         `flush_evidence`). The intent record written before dispatch already
         links the effect to its decision in the meantime."""
         try:
-            self.chain.record_execution(decision.evidence, True, note)
+            self.chain.record_execution(decision.evidence, True, note,
+                                        outcome=outcome)
         except Exception as e:                       # noqa: BLE001
             self.evidence_failures.append({
                 "decision_id": decision.decision_id,
@@ -1759,17 +1780,17 @@ class GovernanceKernel:
                 "error": f"{type(e).__name__}: {e}",
                 "at": time.time()})
             if decision.evidence is not None:
-                self._pending_outcomes.append((decision, note))
+                self._pending_outcomes.append((decision, note, outcome))
 
     def _flush_pending_outcomes(self) -> int:
         """Seal outcomes that could not be recorded when they happened."""
         sealed = 0
         while self._pending_outcomes:
-            decision, note = self._pending_outcomes[0]
+            decision, note, outcome = self._pending_outcomes[0]
             try:
                 self.chain.record_execution(
                     decision.evidence, True, f"{note} (sealed late after an "
-                    f"evidence failure)")
+                    f"evidence failure)", outcome=outcome)
             except Exception:                        # noqa: BLE001
                 break
             self._pending_outcomes.pop(0)
@@ -1789,7 +1810,8 @@ class GovernanceKernel:
             tenant=self.ctx.principal.tenant, action_hash=action_hash(target),
             proposed=target, decision=BLOCK, layer=layer, rule=rule,
             reason=reason, ruleset_hash=self._live_ruleset_hash(),
-            engine_version=self.engine_version))
+            engine_version=self.engine_version,
+            **self._binding_fields(decision, "refused")))
         self._file(target, BLOCK, DENIED, reason, time.time(),
                    capabilities=C.classify(target, self.ctx.tool_manifest),
                    semantic_hash=decision.semantic_hash)
@@ -1836,7 +1858,8 @@ class GovernanceKernel:
                     for key in keys:
                         self.store.append(key, entry)
         if decision.evidence is not None:
-            self.chain.record_execution(decision.evidence, True, "remote-runtime")
+            self.chain.record_execution(decision.evidence, True, "remote-runtime",
+                                        outcome="remote")
 
     def submit(self, call: dict, executor: Callable[[dict], Any]
                ) -> tuple[Decision, bool, Any]:

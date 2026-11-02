@@ -41,7 +41,7 @@ import re
 import subprocess
 from collections import deque
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from .comparison import compare_control_and_governed
 from .governance import MorrisonKernelAdapter
@@ -330,12 +330,113 @@ def crosscheck_explicit(model: dict[str, Any], governed: bool) -> dict[str, Any]
 
 # ── TLC ──────────────────────────────────────────────────────────────────
 
-_DISTINCT = re.compile(r"(\d+) distinct states found")
+# TLC's documented process exit statuses (tlc2.output.EC.ExitStatus). Only two
+# are outcomes of a COMPLETED check: 0 (every reachable state explored, no
+# violation) and 12 (a safety invariant was violated). Everything else —
+# deadlock, liveness, assumption and assertion failures, parse and config
+# errors, out-of-memory, a JVM crash, a kill signal — is not a verification
+# result and must never be read as one.
+TLC_EXIT_SUCCESS = 0
+TLC_EXIT_VIOLATION_SAFETY = 12
+
+_COMPLETED = "Model checking completed. No error has been found."
+# The final summary line of a run. "0 states left on queue" is what proves the
+# search was exhaustive; TLC's periodic progress lines have the same shape with
+# a non-zero queue, so a run killed mid-search cannot be mistaken for a full one.
+_SUMMARY = re.compile(
+    r"^(\d+) states generated, (\d+) distinct states found, (\d+) states left on queue\.$",
+    re.M)
+_VIOLATED = re.compile(r"^Error: Invariant (\S+) is violated\.$", re.M)
+_INVARIANT_LINE = re.compile(r"^INVARIANT\s+(\S+)\s*$", re.M)
+
+TLC_TIMEOUT_S = 1800
 
 
-def run_tlc(bundle: Path, jar: Path, java: str = "java") -> dict[str, Any]:
-    """Run TLC on every config in the bundle and compare with expected.json."""
+def _expected_runs(expected: dict[str, Any]) -> dict[str, tuple[str, str]]:
+    """Every TLC run the comparison needs: cfg stem -> (check name, kind).
+
+    Built from `expected.json`, then required to cover exactly the fixed set of
+    properties this cross-check claims. A bundle whose expectations omit a
+    property (e.g. an empty goal map) is an UNVERIFIED property, not a
+    vacuously agreeing one.
+    """
+    required = {"control_states", "governed_states", "control_unsafe_reachable",
+                "governed_unsafe_reachable", "control_goals", "governed_goals"}
+    missing = required - set(expected)
+    if missing:
+        raise ValueError(f"expected.json lacks {sorted(missing)}")
+    for side in ("control_goals", "governed_goals"):
+        if set(expected[side]) != set(_GOALS_TLA):
+            raise ValueError(f"expected.json {side} covers {sorted(expected[side])}, "
+                             f"not every exported goal {sorted(_GOALS_TLA)}")
+    runs = {"control_count": ("control_state_count", "count"),
+            "governed_count": ("governed_state_count", "count"),
+            "control_safety": ("control_unsafe_reachable", "invariant"),
+            "governed_safety": ("governed_unsafe_reachable", "invariant")}
+    for gid in _GOALS_TLA:
+        runs[f"governed_goal_{gid}"] = (f"governed_goal_{gid}", "invariant")
+        runs[f"control_goal_{gid}"] = (f"control_goal_{gid}", "invariant")
+    return runs
+
+
+def classify_tlc_run(exit_code: Optional[int], text: str,
+                     invariant: Optional[str]) -> dict[str, Any]:
+    """Turn one TLC process into a verification outcome, failing closed.
+
+    Returns {"status": "complete" | "violated" | "error", "violated": bool|None,
+    "distinct_states": int|None, "error": str|None}. `violated` and
+    `distinct_states` are only populated for a status that supports them;
+    an errored run carries None, which can never equal an expected boolean
+    or count.
+    """
+    def error(why: str) -> dict[str, Any]:
+        return {"status": "error", "violated": None, "distinct_states": None,
+                "error": why}
+
+    if exit_code is None:
+        return error("TLC did not exit (timeout or not started)")
+    if not isinstance(text, str) or not text.strip():
+        return error(f"TLC produced no output (exit {exit_code})")
+    summaries = _SUMMARY.findall(text)
+    violations = _VIOLATED.findall(text)
+    if exit_code == TLC_EXIT_SUCCESS:
+        if violations:
+            return error("exit 0 but the output reports a violation")
+        if _COMPLETED not in text:
+            return error("exit 0 without TLC's completion line; exploration "
+                         "cannot be shown to have finished")
+        if not summaries:
+            return error("exit 0 without a final state-count summary")
+        _, distinct, left = summaries[-1]
+        if int(left) != 0:
+            return error(f"exploration incomplete: {left} states left on queue")
+        return {"status": "complete", "violated": False,
+                "distinct_states": int(distinct), "error": None}
+    if exit_code == TLC_EXIT_VIOLATION_SAFETY:
+        if invariant is None:
+            return error("safety violation reported by a run that checks no invariant")
+        if violations != [invariant]:
+            return error(f"exit 12 but the violated invariant(s) {violations} "
+                         f"are not exactly the configured {invariant!r}")
+        # A violating run stops at its first counterexample: its state count
+        # is partial by construction and is deliberately not reported.
+        return {"status": "violated", "violated": True, "distinct_states": None,
+                "error": None}
+    return error(f"TLC exited {exit_code}, which is not a completed check")
+
+
+def run_tlc(bundle: Path, jar: Path, java: str = "java",
+            timeout_s: float = TLC_TIMEOUT_S) -> dict[str, Any]:
+    """Run TLC on every required config and compare with expected.json.
+
+    Fails closed: `agree` is True only when every required run COMPLETED (exit
+    0 with an exhausted queue, or exit 12 naming exactly the configured
+    invariant) and every completed result equals the Python expectation. An
+    errored, missing, timed-out or malformed run makes its check False and is
+    listed under `errors`; it is never read as "no violation found".
+    """
     expected = json.loads((bundle / "expected.json").read_text(encoding="utf-8"))
+    runs = _expected_runs(expected)
     # TLC runs with the bundle as its working directory, so a relative jar path
     # would not be on the classpath (the first CI run failed exactly this way:
     # "Could not find or load main class tlc2.TLC").
@@ -343,35 +444,63 @@ def run_tlc(bundle: Path, jar: Path, java: str = "java") -> dict[str, Any]:
     if not jar.is_file():
         raise FileNotFoundError(f"tla2tools.jar not found at {jar}")
     results: dict[str, Any] = {}
-    for cfg in sorted(bundle.glob("*.cfg")):
-        proc = subprocess.run(
-            [java, "-XX:+UseParallelGC", "-cp", str(jar), "tlc2.TLC", "-workers", "1",
-             "-config", cfg.name, f"{MODULE}.tla"],
-            cwd=bundle, capture_output=True, text=True, timeout=1800, check=False)
-        text = proc.stdout + proc.stderr
-        counts = _DISTINCT.findall(text)
-        results[cfg.stem] = {
-            "violated": "is violated" in text,
-            "distinct_states": int(counts[-1]) if counts else None,
-            "exit_code": proc.returncode,
-            # Kept so a disagreement can be diagnosed from the CI log alone.
-            "output_tail": text[-3000:],
-        }
+    errors: list[str] = []
+    for stem, (_, kind) in sorted(runs.items()):
+        cfg = bundle / f"{stem}.cfg"
+        if not cfg.is_file():
+            results[stem] = {"status": "error", "violated": None,
+                             "distinct_states": None, "exit_code": None,
+                             "error": "config file missing", "output_tail": ""}
+            errors.append(f"{stem}: config file missing")
+            continue
+        found = _INVARIANT_LINE.findall(cfg.read_text(encoding="utf-8"))
+        invariant = found[0] if len(found) == 1 else None
+        if (kind == "invariant") != (invariant is not None) or len(found) > 1:
+            results[stem] = {"status": "error", "violated": None,
+                             "distinct_states": None, "exit_code": None,
+                             "error": f"config declares invariants {found} for a {kind} run",
+                             "output_tail": ""}
+            errors.append(f"{stem}: config declares invariants {found} for a {kind} run")
+            continue
+        try:
+            proc = subprocess.run(
+                [java, "-XX:+UseParallelGC", "-cp", str(jar), "tlc2.TLC", "-workers", "1",
+                 "-config", cfg.name, f"{MODULE}.tla"],
+                cwd=bundle, capture_output=True, text=True, timeout=timeout_s, check=False)
+            code, text = proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+        except subprocess.TimeoutExpired as exc:
+            out = exc.stdout or b""
+            text = out.decode(errors="replace") if isinstance(out, bytes) else out
+            code = None
+        except OSError as exc:
+            code, text = None, f"could not start TLC: {exc}"
+        outcome = classify_tlc_run(code, text, invariant)
+        if kind == "count" and outcome["status"] != "complete":
+            outcome = {**outcome, "status": "error",
+                       "error": outcome["error"] or "a count run must complete without violation"}
+        if outcome["status"] == "error":
+            errors.append(f"{stem}: {outcome['error']}")
+        results[stem] = {**outcome, "exit_code": code,
+                         # Kept so a disagreement can be diagnosed from the CI log alone.
+                         "output_tail": text[-3000:]}
+    def ok(stem: str, field: str, want: Any) -> bool:
+        res = results[stem]
+        return res["status"] != "error" and res[field] is not None and res[field] == want
     checks = {
-        "control_state_count":
-            results["control_count"]["distinct_states"] == expected["control_states"],
-        "governed_state_count":
-            results["governed_count"]["distinct_states"] == expected["governed_states"],
-        "control_unsafe_reachable":
-            results["control_safety"]["violated"] == expected["control_unsafe_reachable"],
-        "governed_unsafe_reachable":
-            results["governed_safety"]["violated"] == expected["governed_unsafe_reachable"],
+        "control_state_count": ok("control_count", "distinct_states", expected["control_states"]),
+        "governed_state_count": ok("governed_count", "distinct_states", expected["governed_states"]),
+        "control_unsafe_reachable": ok("control_safety", "violated", expected["control_unsafe_reachable"]),
+        "governed_unsafe_reachable": ok("governed_safety", "violated", expected["governed_unsafe_reachable"]),
     }
-    for gid, reachable in expected["governed_goals"].items():
-        checks[f"governed_goal_{gid}"] = results[f"governed_goal_{gid}"]["violated"] == reachable
-    for gid, reachable in expected["control_goals"].items():
-        checks[f"control_goal_{gid}"] = results[f"control_goal_{gid}"]["violated"] == reachable
-    return {"tlc": results, "checks": checks, "agree": all(checks.values())}
+    for gid in _GOALS_TLA:
+        checks[f"governed_goal_{gid}"] = ok(f"governed_goal_{gid}", "violated",
+                                            expected["governed_goals"][gid])
+        checks[f"control_goal_{gid}"] = ok(f"control_goal_{gid}", "violated",
+                                           expected["control_goals"][gid])
+    if set(checks) != {name for name, _ in runs.values()}:
+        errors.append("internal: checks do not cover every required run")
+    agree = bool(checks) and not errors and all(checks.values())
+    return {"tlc": results, "checks": checks, "errors": errors, "agree": agree}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -403,10 +532,11 @@ def main(argv: list[str] | None = None) -> int:
         if not tlc["agree"]:
             # Artifact downloads are not always available; put the evidence in
             # the log: which checks disagreed, and what TLC actually said.
-            print(json.dumps(tlc["checks"], indent=1))
+            print(json.dumps({"checks": tlc["checks"], "errors": tlc["errors"]}, indent=1))
             for name, res in tlc["tlc"].items():
-                print(f"--- TLC {name}: exit={res['exit_code']} "
-                      f"distinct={res['distinct_states']} violated={res['violated']}")
+                print(f"--- TLC {name}: status={res['status']} exit={res['exit_code']} "
+                      f"distinct={res['distinct_states']} violated={res['violated']} "
+                      f"error={res['error']}")
                 print(res["output_tail"])
     (args.out / "crosscheck.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

@@ -128,6 +128,11 @@ jobs:
               --out "tla-${esc}" --escalations "${esc}" --tlc tla2tools.jar
             cat "tla-${esc}/crosscheck.json"
           done
+      - name: Wrapper fails closed (negative controls against real TLC)
+        run: |
+          pip install pytest
+          MORRISON_TLC_JAR="$PWD/tla2tools.jar" python -m pytest -q -p no:cacheprovider \
+            morrison_governance/global_verification/test_tlc_wrapper_fail_closed.py
       - name: Archive TLA+ bundles
         if: always()
         uses: actions/upload-artifact@v4
