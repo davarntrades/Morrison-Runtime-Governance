@@ -94,3 +94,44 @@ jobs:
           path: verification-artifacts/
           retention-days: 90
           if-no-files-found: error
+
+  # Independent model checker. The enterprise_pipeline model is exported to
+  # TLA+ from its declarative stage table (tla_export.py), with Morrison's
+  # decisions from the Python run as an oracle, and TLC re-derives the
+  # reachable state counts, unsafe reachability and goal reachability. A
+  # disagreement with the Python verifier fails the job. TLC checks the
+  # verifier's state-space construction GIVEN Morrison's decisions; it does not
+  # re-derive the decisions.
+  tla-crosscheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TLA_TOOLS_VERSION: "1.8.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Fetch TLC
+        run: |
+          curl -fsSL -o tla2tools.jar \
+            "https://github.com/tlaplus/tlaplus/releases/download/v${TLA_TOOLS_VERSION}/tla2tools.jar"
+          sha256sum tla2tools.jar   # recorded in the log; compare across runs
+      - name: Export and cross-check (escalations denied, then approved)
+        run: |
+          for esc in deny deny-and-approve; do
+            python -m morrison_governance.global_verification.tla_export \
+              --out "tla-${esc}" --escalations "${esc}" --tlc tla2tools.jar
+            cat "tla-${esc}/crosscheck.json"
+          done
+      - name: Archive TLA+ bundles
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tla-crosscheck-${{ github.sha }}
+          path: tla-*/
+          retention-days: 90

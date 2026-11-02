@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, Iterable
 from .counterexample import Counterexample, CounterexampleStep
 from .environment import FiniteEnvironment
 from .evidence import GraphEdge, GraphEvidence, GraphNode
+from .liveness import NOT_LIVE, assess as assess_liveness
 from .governance import (
     ESCALATION_APPROVED_AUTHORIZATION,
     PERMIT_AUTHORIZATION,
@@ -21,6 +22,10 @@ from .state import VerificationState, stable_hash
 
 
 SAFE_WITHIN_MODEL = "SAFE_WITHIN_MODEL"
+# No unsafe state is reachable, but a declared legitimate goal is not reachable
+# either: safe, possibly only because nothing useful can happen. See liveness.py.
+SAFE_BUT_NOT_LIVE = "SAFE_BUT_NOT_LIVE"
+SAFE_VERDICTS = frozenset({SAFE_WITHIN_MODEL, SAFE_BUT_NOT_LIVE})
 UNSAFE_COUNTEREXAMPLE_FOUND = "UNSAFE_COUNTEREXAMPLE_FOUND"
 INCONCLUSIVE = "INCONCLUSIVE"
 
@@ -100,6 +105,8 @@ class TraversalResult:
     # between runs. That is production behaviour, not drift, and it is why this
     # binding is kept out of the deterministic graph export.
     evidence_bindings: dict[str, str] = field(default_factory=dict)
+    # Whether the declared legitimate goals stay reachable (liveness.py).
+    liveness: dict[str, Any] = field(default_factory=dict)
 
     @property
     def reachable_state_count(self) -> int:
@@ -138,6 +145,7 @@ class TraversalResult:
             "unexplored_frontier_size": self.unexplored_frontier_size,
             "counterexample": self.counterexample.to_dict() if self.counterexample else None,
             "per_initial_state": self.per_initial_state,
+            "liveness": self.liveness,
         }
         if include_graph:
             result["graph"] = self.graph.to_dict()
@@ -202,6 +210,20 @@ class ExhaustiveVerifier:
         complete = True
         stop_reason: str | None = None
         frontier_size = 0
+        # Liveness bookkeeping: which configurations complete which goal, how
+        # far each goal is from each initial state, and the executed edges.
+        initial_roots: dict[str, str] = {}
+        goal_nodes: dict[str, set[str]] = {}
+        goal_distance: dict[tuple[str, str], int] = {}
+        executed_pairs: list[tuple[str, str]] = []
+
+        def note_goals(met: tuple, node_id: str, depth: int,
+                       initial_id: str) -> None:
+            for goal in met:
+                goal_nodes.setdefault(goal.identifier, set()).add(node_id)
+                key = (goal.identifier, initial_id)
+                if key not in goal_distance or depth < goal_distance[key]:
+                    goal_distance[key] = depth
 
         try:
             # Fail before traversal if the declared model is not serializable.
@@ -243,6 +265,14 @@ class ExhaustiveVerifier:
             )
             graph.add_node(root)
             visited.add(root_id)
+            initial_roots[initial.state_id] = root_id
+            try:
+                note_goals(self.environment.goals_met(initial), root_id, 0,
+                           initial.state_id)
+            except Exception as exc:  # noqa: BLE001
+                complete = False
+                stop_reason = f"liveness goal evaluation failed: {type(exc).__name__}: {exc}"
+                break
             reachable_states.add(initial.state_id)
             queue.append((initial, (), root_id, 0, ()))
             if initial_violations:
@@ -289,6 +319,7 @@ class ExhaustiveVerifier:
                         # never added to the reachable queue or executable graph.
                         successor = self.environment.transition(state, action)
                         violations = self.environment.unsafe(successor)
+                        met = self.environment.goals_met(successor)
                         decision = self._decision(history, proposal)
                         branches = self._branches(history, proposal, decision)
                     except Exception as exc:  # noqa: BLE001
@@ -387,6 +418,7 @@ class ExhaustiveVerifier:
                             # in blocked_edges, flagged in the graph.
                             approved_escalations += 1
                         reachable_states.add(successor.state_id)
+                        executed_pairs.append((source_id, destination_id))
                         if violations:
                             unsafe_states.add(successor.state_id)
                             unsafe_edges += 1
@@ -419,6 +451,8 @@ class ExhaustiveVerifier:
                             counterexample = self._prefer(counterexample, candidate)
 
                         if destination_id not in visited:
+                            note_goals(met, destination_id, depth + 1,
+                                       initial.state_id)
                             graph.add_node(
                                 GraphNode(
                                     node_id=destination_id,
@@ -460,10 +494,22 @@ class ExhaustiveVerifier:
             if not complete:
                 break
 
+        liveness = assess_liveness(
+            self.environment.goals,
+            complete=complete,
+            initial_roots=initial_roots,
+            goal_nodes=goal_nodes,
+            shortest=goal_distance,
+            executed_edges=executed_pairs,
+            all_nodes=set(graph.nodes),
+            adversarial_only=self.environment.adversarial_only,
+        )
         if not complete:
             verdict = INCONCLUSIVE
         elif unsafe_states:
             verdict = UNSAFE_COUNTEREXAMPLE_FOUND
+        elif liveness["status"] == NOT_LIVE:
+            verdict = SAFE_BUT_NOT_LIVE
         else:
             verdict = SAFE_WITHIN_MODEL
 
@@ -492,6 +538,7 @@ class ExhaustiveVerifier:
             graph=graph,
             counterexample=counterexample,
             per_initial_state=per_initial,
+            liveness=liveness,
         )
 
     def _escalation_outcomes(

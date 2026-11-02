@@ -26,12 +26,20 @@ TOOLS = ("access_external_network", "read_secret", "send_external_message")
 PERMISSIONS = ("vault:read", "network:egress")
 
 
-def _artifact(environment=None, limits=None):
+# The happy path needs a model that is safe AND live. Under deny-only
+# escalations secret_exfiltration is SAFE_BUT_NOT_LIVE (the job can never read
+# its own deployment token), which is not a verified configuration; with
+# approval enumerated it is SAFE_WITHIN_MODEL.
+_APPROVE_AND_DENY = (lambda proposal, decision: ("deny", "approve"))
+
+
+def _artifact(environment=None, limits=None, escalation_policy=_APPROVE_AND_DENY):
     environment = environment or secret_exfiltration()
     limits = limits or VerificationLimits()
     ledger = VerificationEvidenceLedger()
     governance = MorrisonKernelAdapter(ledger=ledger)
-    comparison = compare_control_and_governed(environment, governance, limits=limits)
+    comparison = compare_control_and_governed(
+        environment, governance, limits=limits, escalation_policy=escalation_policy)
     return build_verification_artifact(
         environment, governance, comparison,
         algorithm="bfs", limits=limits, ledger=ledger,
@@ -84,6 +92,15 @@ def test_verified_configuration_permits_the_pilot_to_start():
     assert readiness.status == VERIFIED_CONFIGURATION_CURRENT, readiness.drifted()
     assert readiness.may_start is True
     assert not readiness.drifted()
+
+
+def test_a_safe_but_not_live_model_does_not_permit_the_pilot():
+    """Safe only because the legitimate goal is unreachable is not verified."""
+    artifact = _artifact(escalation_policy=None)
+    assert artifact["finite_verification"]["verdict"] == "SAFE_BUT_NOT_LIVE"
+    contract = _contract(artifact)
+    readiness = assess_pilot_readiness(artifact, contract, _live(contract))
+    assert readiness.may_start is False
 
 
 def test_the_permitted_message_does_not_overclaim():

@@ -7,8 +7,11 @@ from typing import Any
 
 from .environment import FiniteEnvironment
 from .governance import GovernanceAdapter
+from .liveness import NOT_LIVE
 from .verifier import (
     INCONCLUSIVE,
+    SAFE_BUT_NOT_LIVE,
+    SAFE_VERDICTS,
     SAFE_WITHIN_MODEL,
     UNSAFE_COUNTEREXAMPLE_FOUND,
     ExhaustiveVerifier,
@@ -122,13 +125,40 @@ def compare_control_and_governed(
         "unsafe_shortest_path_governed": governed.shortest_unsafe_path,
     }
 
+    metrics["liveness"] = _liveness_comparison(control, governed)
+
     if not control.complete or not governed.complete:
         verdict = INCONCLUSIVE
     elif governed.unsafe_reachable_state_count:
         verdict = UNSAFE_COUNTEREXAMPLE_FOUND
+    elif governed.liveness.get("status") == NOT_LIVE:
+        verdict = SAFE_BUT_NOT_LIVE
     else:
         verdict = SAFE_WITHIN_MODEL
     return ComparisonResult(verdict, control, governed, metrics, removed)
+
+
+def _liveness_comparison(control: TraversalResult, governed: TraversalResult) -> dict[str, Any]:
+    """Attribute each unreachable goal: did governance remove it, or could the
+    model never reach it at all? Only the first is a cost of governance."""
+    control_goals = {g["identifier"]: g for g in control.liveness.get("goals", [])}
+    out = []
+    for goal in governed.liveness.get("goals", []):
+        in_control = control_goals.get(goal["identifier"], {}).get(
+            "reachable_from_every_initial_state")
+        live = goal["reachable_from_every_initial_state"]
+        out.append({
+            "identifier": goal["identifier"],
+            "reachable_control": in_control,
+            "reachable_governed": live,
+            "attribution": (
+                "live" if live else
+                "removed_by_governance" if in_control else
+                "unreachable_in_model"),
+        })
+    return {"status_control": control.liveness.get("status"),
+            "status_governed": governed.liveness.get("status"),
+            "goals": out}
 
 
 def run_composition_experiment(
@@ -145,7 +175,7 @@ def run_composition_experiment(
     composition = compare_control_and_governed(
         composed_subsystems(), governance, **shared
     )
-    locals_safe = a.verdict == SAFE_WITHIN_MODEL and b.verdict == SAFE_WITHIN_MODEL
+    locals_safe = a.verdict in SAFE_VERDICTS and b.verdict in SAFE_VERDICTS
     new_path = locals_safe and composition.verdict == UNSAFE_COUNTEREXAMPLE_FOUND
     return CompositionExperiment(a, b, composition, locals_safe, new_path)
 
@@ -156,6 +186,13 @@ def _claim(verdict: str) -> str:
             "Globally safe within the exhaustively enumerated modeled environment "
             "and stated assumptions. Result does not establish global safety "
             "outside the modeled environment."
+        )
+    if verdict == SAFE_BUT_NOT_LIVE:
+        return (
+            "No unsafe modeled state is reachable, but at least one declared "
+            "legitimate goal is not reachable under governance either: the model "
+            "is safe in part because legitimate work cannot complete. See "
+            "causal_metrics.liveness for which goals and why."
         )
     if verdict == UNSAFE_COUNTEREXAMPLE_FOUND:
         return "An unsafe modeled state is reachable; see the counterexample trajectory."

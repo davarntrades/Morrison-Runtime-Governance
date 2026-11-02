@@ -282,8 +282,11 @@ def scene_causal_envelope_and_global_verification():
     print("  boundary warning .............. claim does not transfer outside E")
     beat(0.9)
 
+    # The larger staged model: big enough that "safe" and "live" are both
+    # non-trivial. (secret_exfiltration is SAFE_BUT_NOT_LIVE with escalations
+    # denied: nothing prohibited executes, and neither does the job.)
     comparison = compare_control_and_governed(
-        get_scenario("secret_exfiltration"), MorrisonKernelAdapter())
+        get_scenario("enterprise_pipeline"), MorrisonKernelAdapter())
     print(f"  finite graph exhausted ........ "
           f"{comparison.control.complete and comparison.governed.complete}")
     print(f"  control unsafe states ......... "
@@ -292,6 +295,8 @@ def scene_causal_envelope_and_global_verification():
           f"{comparison.governed.unsafe_reachable_state_count}")
     print(f"  governance-removed transitions  "
           f"{comparison.governed.blocked_edge_count}")
+    print(f"  legitimate goals reachable .... "
+          f"{comparison.governed.liveness.get('status')}")
     print(f"  finite-model verdict .......... {comparison.verdict}")
     print("\n  Representation explains the constraint. Independent governance")
     print("  determines whether the proposed transition can actually execute.\n")

@@ -136,6 +136,12 @@ The complete control and governed enumerations finished, and the governed reacha
 \operatorname{Reach}_G(X_0) \cap U = \varnothing
 \]
 
+Every declared legitimate goal is also reachable under governance from every initial state (or the model declares no goal and says so: see Liveness).
+
+### `SAFE_BUT_NOT_LIVE`
+
+No prohibited state is reachable, **and** at least one declared legitimate goal is not reachable under governance either. The model is safe partly because legitimate work cannot complete. This verdict was added after an external review (2026-11) found that several governed models collapsed to a single reachable state and were still reported `SAFE_WITHIN_MODEL`.
+
 ### `UNSAFE_COUNTEREXAMPLE_FOUND`
 
 At least one prohibited state is reachable. The report contains the initial state, every proposed action, Morrison verdict/layer/reason, each resulting state, violated invariant, and final unsafe state.
@@ -144,7 +150,51 @@ At least one prohibited state is reachable. The report contains the initial stat
 
 No safety conclusion can be drawn because enumeration was incomplete or untrustworthy. Causes include serialization failures, missing/broken transition semantics, governance evaluation failure, invariant failure, state/edge/depth limits, or timeout.
 
-Hitting a resource limit never becomes `SAFE_WITHIN_MODEL`.
+Hitting a resource limit never becomes `SAFE_WITHIN_MODEL` or `SAFE_BUT_NOT_LIVE`.
+
+## Liveness
+
+Safety alone is satisfied by a governor that refuses everything. Each scenario therefore declares the **legitimate goal states** it exists to reach (`FiniteEnvironment.goals`, `liveness.py`), or, for a model whose every action is prohibited by construction, an explicit `adversarial_only` statement; the result then reports liveness `NOT_DECLARED` rather than implying usefulness.
+
+For each goal the verifier reports:
+
+- **reachable**: \(\mathbf{EF}\,goal\) from every initial state, along executed edges. A goal state counts only if it is also safe.
+- **recoverable** (informational): \(\mathbf{AG\,EF}\,goal\), i.e. no reachable configuration is stranded; plus the number of stranded configurations.
+- **attribution** (comparison): `removed_by_governance` (reachable in control, not governed), `unreachable_in_model` (a model defect), or `live`.
+
+Results at this commit (`python -m morrison_governance.global_verification.ci_gate`):
+
+| Model | Escalations denied | Escalations approved and denied | Goal removed under deny |
+|---|---|---|---|
+| secret_exfiltration | **SAFE_BUT_NOT_LIVE** | SAFE_WITHIN_MODEL | LG_SECRET_USED_INSIDE_BOUNDARY |
+| privilege_persistence | **SAFE_BUT_NOT_LIVE** | UNSAFE_COUNTEREXAMPLE_FOUND | LG_CREDENTIAL_AUTHENTICATED |
+| governance_bypass | SAFE_WITHIN_MODEL (liveness NOT_DECLARED) | UNSAFE_COUNTEREXAMPLE_FOUND | adversarial only |
+| constraint_awareness | SAFE_WITHIN_MODEL (liveness NOT_DECLARED) | SAFE_WITHIN_MODEL | adversarial only |
+| subsystem_a | **SAFE_BUT_NOT_LIVE** | UNSAFE_COUNTEREXAMPLE_FOUND | LG_CREDENTIAL_AUTHENTICATED |
+| subsystem_b | **SAFE_BUT_NOT_LIVE** | SAFE_WITHIN_MODEL | LG_SECRET_USED_INSIDE_BOUNDARY |
+| composition | **SAFE_BUT_NOT_LIVE** | UNSAFE_COUNTEREXAMPLE_FOUND | both |
+| enterprise_pipeline | SAFE_WITHIN_MODEL (live) | UNSAFE_COUNTEREXAMPLE_FOUND | none |
+
+Four of the five deny-only perturbations are also `SAFE_BUT_NOT_LIVE`, including `perturb_credential_present`: with the credential already held, authenticating with it (`use_credential`) is still refused. Read the deny column as "nothing prohibited executes, and neither does the job"; the approve column shows what the model permits once an approver acts, which is where the counterexamples are.
+
+Liveness is binary per goal and hides partial utility loss. In `enterprise_pipeline` both goals stay reachable, but only **4 of the 16 fully legitimate stage paths** complete under governance: V2's multi-step heuristic ("2 transitions to sensitive tools") refuses `review_note` after `enrich_internal_api` and every `archive_write`, and those configurations are reported as stranded.
+
+### Larger scenario: `enterprise_pipeline`
+
+Six ordered stages (ingest, transform, enrich, review, publish, archive), three options each (legitimate, approval-gated, prohibited), generated from the declarative table in `pipeline.py`. Control: **877** reachable states, 621 unsafe. Governed (deny): 31 states, 0 unsafe, both goals reachable. Governed (approve and deny): 124 states, 78 unsafe, because approving the monitoring and policy escalations reaches U5/U6 under the same modelling convention as `governance_bypass` (the model's invariants treat those changes as prohibited whoever approves them).
+
+### Cross-check against an independent model checker
+
+`tla_export.py` writes the pipeline as a TLA+ specification generated from the same stage table by a separate interpreter, with U1..U7 and the goals written directly as TLA+ formulas. TLC re-derives the reachable state counts, unsafe reachability and goal reachability; the `tla-crosscheck` job in `.github/workflows/finite-verification.yml` fails on any disagreement with the Python verifier.
+
+Scope of the check: TLC cannot run Morrison, so the governed specification takes the set of (completed actions, action) pairs Morrison permitted in the Python run as an oracle. The check validates the verifier's state-space construction, invariant evaluation and goal accounting **given** Morrison's decisions, not the decisions.
+
+TLC was **not run in the development container** for this change (fetching `tla2tools.jar` was blocked there); it runs in CI. Locally, a second, minimal explicit-state search over the exported model (`crosscheck_explicit`, same authors, so not an independent tool) agrees with the verifier in both escalation modes: 877/31 states (deny), 877/124 states (approve and deny), and identical unsafe and goal reachability.
+
+```bash
+python -m morrison_governance.global_verification.tla_export --out tla-bundle
+python -m morrison_governance.global_verification.tla_export --out tla-bundle --tlc tla2tools.jar
+```
 
 ## Control versus governed topology
 
@@ -274,10 +324,15 @@ GOVERNED
 reachable states: 3
 unsafe reachable: 0
 blocked transitions: 3
+escalations denied: 3
+escalations approved and executed: 0
+LIVENESS
+status (governed): NOT_LIVE
+  LG_SECRET_USED_INSIDE_BOUNDARY: removed_by_governance
+  LG_NETWORK_AVAILABLE: live
 VERDICT
-SAFE_WITHIN_MODEL
-Globally safe within the exhaustively enumerated modeled environment and stated assumptions.
-Result does not establish global safety outside the modeled environment.
+SAFE_BUT_NOT_LIVE
+No unsafe modeled state is reachable, but at least one declared legitimate goal is not reachable under governance either: ...
 ```
 
 Counts are model-version and governance-configuration specific. Re-run the command and preserve the exported artifact whenever either changes.

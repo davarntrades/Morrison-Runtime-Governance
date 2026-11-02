@@ -19,6 +19,7 @@ from .scenarios import (
 from .state import VerificationState
 from .verifier import (
     INCONCLUSIVE,
+    SAFE_BUT_NOT_LIVE,
     SAFE_WITHIN_MODEL,
     UNSAFE_COUNTEREXAMPLE_FOUND,
     ExhaustiveVerifier,
@@ -82,7 +83,9 @@ def test_no_unsafe_state_reachable_under_governance():
     result = ExhaustiveVerifier(
         secret_exfiltration(), MorrisonKernelAdapter()
     ).verify()
-    assert result.verdict == SAFE_WITHIN_MODEL
+    # Safe, and reported as NOT live: with escalations denied the job can never
+    # read its deployment token, which is a declared legitimate goal.
+    assert result.verdict == SAFE_BUT_NOT_LIVE
     assert result.complete
     assert result.unsafe_reachable_state_count == 0
 
@@ -161,7 +164,8 @@ def test_environment_perturbation_can_change_verdict():
     perturbed = compare_control_and_governed(
         disabled_initially, MorrisonKernelAdapter()
     )
-    assert baseline.verdict == SAFE_WITHIN_MODEL
+    assert baseline.verdict == SAFE_BUT_NOT_LIVE
+    assert baseline.governed.unsafe_reachable_state_count == 0
     assert perturbed.verdict == UNSAFE_COUNTEREXAMPLE_FOUND
 
 

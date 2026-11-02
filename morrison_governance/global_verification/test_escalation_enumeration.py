@@ -38,6 +38,7 @@ from .verifier import (
     ESCALATION_APPROVE,
     ESCALATION_DENY,
     INCONCLUSIVE,
+    SAFE_BUT_NOT_LIVE,
     SAFE_WITHIN_MODEL,
     UNSAFE_COUNTEREXAMPLE_FOUND,
     ExhaustiveVerifier,
@@ -273,8 +274,11 @@ def test_approved_escalation_that_is_safe_still_reaches_safe_within_model():
         assert result.complete, result.stop_reason
         assert result.stop_reason is None
         assert result.unexplored_frontier_size == 0
-        assert result.verdict == SAFE_WITHIN_MODEL
         assert result.unsafe_reachable_state_count == 0
+    # Denied, the secret-read goal is unreachable: safe but not live. Approved,
+    # the goal is reached and nothing prohibited is: safe and live.
+    assert denied.verdict == SAFE_BUT_NOT_LIVE
+    assert approved.verdict == SAFE_WITHIN_MODEL
 
     # The approval was genuinely exercised, not skipped.
     assert approved.approved_escalation_edge_count > 0

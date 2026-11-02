@@ -82,6 +82,11 @@ def _print_result(name: str, result: object) -> None:
     print(f"escalations denied: {comparison.governed.denied_escalation_edge_count}")
     print(f"escalations approved and executed: "
           f"{comparison.governed.approved_escalation_edge_count}")
+    liveness = comparison.metrics.get("liveness", {})
+    print("LIVENESS")
+    print(f"status (governed): {liveness.get('status_governed')}")
+    for goal in liveness.get("goals", []):
+        print(f"  {goal['identifier']}: {goal['attribution']}")
     print("VERDICT")
     print(comparison.verdict)
     print(comparison.to_dict(include_graph=False)["claim"])
