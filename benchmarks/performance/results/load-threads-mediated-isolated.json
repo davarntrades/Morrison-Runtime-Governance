@@ -1,0 +1,727 @@
+{
+ "environment": {
+  "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+  "gil_disabled": false,
+  "git_branch": "claude/performance-benchmark",
+  "git_commit": "a2d37cd46cbfd999c11f2478e137772728e3568f",
+  "git_dirty": false,
+  "hypervisor": "KVM",
+  "implementation": "CPython",
+  "logical_cpus": 4,
+  "memory_total_mb": 16091,
+  "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39",
+  "python": "3.13.18",
+  "sqlite": "3.53.1",
+  "timer": "time.perf_counter_ns (monotonic)",
+  "timer_resolution_ns": 1
+ },
+ "summaries": [
+  {
+   "by_expected": {
+    "legitimate": 7,
+    "limit_bound": 1,
+    "prohibited": 15
+   },
+   "consistency": {
+    "effects": 8,
+    "effects_without_executed_record": 0,
+    "evidence_chain_failures": 0,
+    "evidence_missing": 0,
+    "executed_without_effect": 0
+   },
+   "cpu_utilisation_pct": 85.17130424421052,
+   "duplicates": {
+    "double_execute_cases": 1,
+    "double_execute_commit_successes_gt1": 0,
+    "duplicate_decision_ids_in_resource": 0
+   },
+   "error_rate_pct": 0.0,
+   "errors": {},
+   "legitimate": {
+    "blocked": 0,
+    "blocked_or_escalated_kinds": {},
+    "escalated": 0,
+    "executed": 6,
+    "permitted": 6,
+    "total": 6
+   },
+   "mode": "mediated",
+   "model": "threads",
+   "outside_kernel_stages_latency": {
+    "max_us": 2654.116,
+    "mean_us": 1559.4612173913044,
+    "min_us": 188.315,
+    "n": 23,
+    "p50_us": 1518.49,
+    "p95_us": 2649.778,
+    "p99_us": 2654.116
+   },
+   "prohibited": {
+    "block": 4,
+    "blocking_rate_pct": 30.76923076923077,
+    "escalate": 9,
+    "executed": 0,
+    "executed_kinds": [],
+    "incorrectly_permitted_kinds": [],
+    "not_permitted_rate_pct": 100.0,
+    "permit": 0,
+    "proposal_level_total": 13,
+    "total": 15
+   },
+   "proposal_to_commit_latency": {
+    "max_us": 25013.64,
+    "mean_us": 17346.1815,
+    "min_us": 13018.828,
+    "n": 8,
+    "p50_us": 16086.01,
+    "p95_us": 25013.64,
+    "p99_us": 25013.64
+   },
+   "proposal_to_refusal_latency": {
+    "max_us": 6161.591,
+    "mean_us": 2640.0423571428573,
+    "min_us": 2030.298,
+    "n": 14,
+    "p50_us": 2254.452,
+    "p95_us": 3323.729,
+    "p99_us": 6161.591
+   },
+   "proposals": 23,
+   "rss_mb": 27.859375,
+   "session": "isolated",
+   "shared_limit": {
+    "committed": 1,
+    "expected_commits_if_live": 1,
+    "invariant_holds": true,
+    "limit": 25000,
+    "outflow": 1000,
+    "permitted": 1,
+    "proposals": 1
+   },
+   "special": {
+    "policy_change_executed": 0,
+    "policy_change_permitted_at_eval": 1,
+    "replay_executed": 0
+   },
+   "store": "memory",
+   "throughput_per_s": 101.72295600785361,
+   "verdict_latency": {
+    "max_us": 12906.505,
+    "mean_us": 3129.101913043478,
+    "min_us": 2030.298,
+    "n": 23,
+    "p50_us": 2428.339,
+    "p95_us": 6161.591,
+    "p99_us": 12906.505
+   },
+   "wall_s": 0.2261043220000829,
+   "workers": 1
+  },
+  {
+   "by_expected": {
+    "legitimate": 14,
+    "limit_bound": 2,
+    "prohibited": 30
+   },
+   "consistency": {
+    "effects": 16,
+    "effects_without_executed_record": 0,
+    "evidence_chain_failures": 0,
+    "evidence_missing": 0,
+    "executed_without_effect": 0
+   },
+   "cpu_utilisation_pct": 90.98762670184739,
+   "duplicates": {
+    "double_execute_cases": 2,
+    "double_execute_commit_successes_gt1": 0,
+    "duplicate_decision_ids_in_resource": 0
+   },
+   "error_rate_pct": 0.0,
+   "errors": {},
+   "legitimate": {
+    "blocked": 0,
+    "blocked_or_escalated_kinds": {},
+    "escalated": 0,
+    "executed": 12,
+    "permitted": 12,
+    "total": 12
+   },
+   "mode": "mediated",
+   "model": "threads",
+   "outside_kernel_stages_latency": {
+    "max_us": 9288.682,
+    "mean_us": 2409.4471086956523,
+    "min_us": 183.393,
+    "n": 46,
+    "p50_us": 1850.26,
+    "p95_us": 7399.594,
+    "p99_us": 9288.682
+   },
+   "prohibited": {
+    "block": 8,
+    "blocking_rate_pct": 30.76923076923077,
+    "escalate": 18,
+    "executed": 0,
+    "executed_kinds": [],
+    "incorrectly_permitted_kinds": [],
+    "not_permitted_rate_pct": 100.0,
+    "permit": 0,
+    "proposal_level_total": 26,
+    "total": 30
+   },
+   "proposal_to_commit_latency": {
+    "max_us": 94858.881,
+    "mean_us": 43281.715875,
+    "min_us": 26174.356,
+    "n": 16,
+    "p50_us": 35734.444,
+    "p95_us": 90664.752,
+    "p99_us": 94858.881
+   },
+   "proposal_to_refusal_latency": {
+    "max_us": 6091.354,
+    "mean_us": 2755.405392857143,
+    "min_us": 2022.332,
+    "n": 28,
+    "p50_us": 2447.551,
+    "p95_us": 4044.061,
+    "p99_us": 6091.354
+   },
+   "proposals": 46,
+   "rss_mb": 31.26953125,
+   "session": "isolated",
+   "shared_limit": {
+    "committed": 2,
+    "expected_commits_if_live": 2,
+    "invariant_holds": true,
+    "limit": 25000,
+    "outflow": 2000,
+    "permitted": 2,
+    "proposals": 2
+   },
+   "special": {
+    "policy_change_executed": 0,
+    "policy_change_permitted_at_eval": 2,
+    "replay_executed": 0
+   },
+   "store": "memory",
+   "throughput_per_s": 96.57111674753762,
+   "verdict_latency": {
+    "max_us": 11807.945,
+    "mean_us": 3581.9465652173913,
+    "min_us": 2022.332,
+    "n": 46,
+    "p50_us": 2718.87,
+    "p95_us": 8423.485,
+    "p99_us": 11807.945
+   },
+   "wall_s": 0.4763328989997717,
+   "workers": 2
+  },
+  {
+   "by_expected": {
+    "legitimate": 28,
+    "limit_bound": 4,
+    "prohibited": 60
+   },
+   "consistency": {
+    "effects": 32,
+    "effects_without_executed_record": 0,
+    "evidence_chain_failures": 0,
+    "evidence_missing": 0,
+    "executed_without_effect": 0
+   },
+   "cpu_utilisation_pct": 69.62620453242884,
+   "duplicates": {
+    "double_execute_cases": 4,
+    "double_execute_commit_successes_gt1": 0,
+    "duplicate_decision_ids_in_resource": 0
+   },
+   "error_rate_pct": 0.0,
+   "errors": {},
+   "legitimate": {
+    "blocked": 0,
+    "blocked_or_escalated_kinds": {},
+    "escalated": 0,
+    "executed": 24,
+    "permitted": 24,
+    "total": 24
+   },
+   "mode": "mediated",
+   "model": "threads",
+   "outside_kernel_stages_latency": {
+    "max_us": 191321.022,
+    "mean_us": 21573.99388043478,
+    "min_us": 132.833,
+    "n": 92,
+    "p50_us": 13001.796,
+    "p95_us": 56745.949,
+    "p99_us": 180125.611
+   },
+   "prohibited": {
+    "block": 16,
+    "blocking_rate_pct": 30.76923076923077,
+    "escalate": 36,
+    "executed": 0,
+    "executed_kinds": [],
+    "incorrectly_permitted_kinds": [],
+    "not_permitted_rate_pct": 100.0,
+    "permit": 0,
+    "proposal_level_total": 52,
+    "total": 60
+   },
+   "proposal_to_commit_latency": {
+    "max_us": 488949.696,
+    "mean_us": 101219.41321875,
+    "min_us": 26462.497,
+    "n": 32,
+    "p50_us": 76884.451,
+    "p95_us": 289950.448,
+    "p99_us": 488949.696
+   },
+   "proposal_to_refusal_latency": {
+    "max_us": 192600.376,
+    "mean_us": 25139.70608928571,
+    "min_us": 1358.249,
+    "n": 56,
+    "p50_us": 11960.655,
+    "p95_us": 179721.518,
+    "p99_us": 181734.836
+   },
+   "proposals": 92,
+   "rss_mb": 36.41796875,
+   "session": "isolated",
+   "shared_limit": {
+    "committed": 4,
+    "expected_commits_if_live": 4,
+    "invariant_holds": true,
+    "limit": 25000,
+    "outflow": 4000,
+    "permitted": 4,
+    "proposals": 4
+   },
+   "special": {
+    "policy_change_executed": 0,
+    "policy_change_permitted_at_eval": 4,
+    "replay_executed": 0
+   },
+   "store": "memory",
+   "throughput_per_s": 68.07686390584135,
+   "verdict_latency": {
+    "max_us": 192600.376,
+    "mean_us": 22945.683239130434,
+    "min_us": 1358.249,
+    "n": 92,
+    "p50_us": 14072.311,
+    "p95_us": 59150.383,
+    "p99_us": 181734.836
+   },
+   "wall_s": 1.3514136039998448,
+   "workers": 4
+  },
+  {
+   "by_expected": {
+    "legitimate": 56,
+    "limit_bound": 8,
+    "prohibited": 120
+   },
+   "consistency": {
+    "effects": 64,
+    "effects_without_executed_record": 0,
+    "evidence_chain_failures": 0,
+    "evidence_missing": 0,
+    "executed_without_effect": 0
+   },
+   "cpu_utilisation_pct": 72.28800967629752,
+   "duplicates": {
+    "double_execute_cases": 8,
+    "double_execute_commit_successes_gt1": 0,
+    "duplicate_decision_ids_in_resource": 0
+   },
+   "error_rate_pct": 0.0,
+   "errors": {},
+   "legitimate": {
+    "blocked": 0,
+    "blocked_or_escalated_kinds": {},
+    "escalated": 0,
+    "executed": 48,
+    "permitted": 48,
+    "total": 48
+   },
+   "mode": "mediated",
+   "model": "threads",
+   "outside_kernel_stages_latency": {
+    "max_us": 580189.542,
+    "mean_us": 63826.77779347826,
+    "min_us": 148.845,
+    "n": 184,
+    "p50_us": 48735.111,
+    "p95_us": 139949.479,
+    "p99_us": 528832.019
+   },
+   "prohibited": {
+    "block": 32,
+    "blocking_rate_pct": 30.76923076923077,
+    "escalate": 72,
+    "executed": 0,
+    "executed_kinds": [],
+    "incorrectly_permitted_kinds": [],
+    "not_permitted_rate_pct": 100.0,
+    "permit": 0,
+    "proposal_level_total": 104,
+    "total": 120
+   },
+   "proposal_to_commit_latency": {
+    "max_us": 669145.618,
+    "mean_us": 177353.07378125,
+    "min_us": 35370.595,
+    "n": 64,
+    "p50_us": 144307.349,
+    "p95_us": 575875.827,
+    "p99_us": 636474.736
+   },
+   "proposal_to_refusal_latency": {
+    "max_us": 575857.994,
+    "mean_us": 58750.998660714286,
+    "min_us": 1502.906,
+    "n": 112,
+    "p50_us": 46962.153,
+    "p95_us": 94150.444,
+    "p99_us": 530330.137
+   },
+   "proposals": 184,
+   "rss_mb": 48.12109375,
+   "session": "isolated",
+   "shared_limit": {
+    "committed": 8,
+    "expected_commits_if_live": 8,
+    "invariant_holds": true,
+    "limit": 25000,
+    "outflow": 8000,
+    "permitted": 8,
+    "proposals": 8
+   },
+   "special": {
+    "policy_change_executed": 0,
+    "policy_change_permitted_at_eval": 8,
+    "replay_executed": 0
+   },
+   "store": "memory",
+   "throughput_per_s": 69.84697188968543,
+   "verdict_latency": {
+    "max_us": 581248.428,
+    "mean_us": 65192.840788043475,
+    "min_us": 1502.906,
+    "n": 184,
+    "p50_us": 49932.207,
+    "p95_us": 141170.247,
+    "p99_us": 530330.137
+   },
+   "wall_s": 2.6343303799999376,
+   "workers": 8
+  },
+  {
+   "by_expected": {
+    "legitimate": 112,
+    "limit_bound": 16,
+    "prohibited": 240
+   },
+   "consistency": {
+    "effects": 128,
+    "effects_without_executed_record": 0,
+    "evidence_chain_failures": 0,
+    "evidence_missing": 0,
+    "executed_without_effect": 0
+   },
+   "cpu_utilisation_pct": 82.96689346803545,
+   "duplicates": {
+    "double_execute_cases": 16,
+    "double_execute_commit_successes_gt1": 0,
+    "duplicate_decision_ids_in_resource": 0
+   },
+   "error_rate_pct": 0.0,
+   "errors": {},
+   "legitimate": {
+    "blocked": 0,
+    "blocked_or_escalated_kinds": {},
+    "escalated": 0,
+    "executed": 96,
+    "permitted": 96,
+    "total": 96
+   },
+   "mode": "mediated",
+   "model": "threads",
+   "outside_kernel_stages_latency": {
+    "max_us": 557818.327,
+    "mean_us": 96611.70488858696,
+    "min_us": 166.595,
+    "n": 368,
+    "p50_us": 78765.144,
+    "p95_us": 212969.553,
+    "p99_us": 483192.121
+   },
+   "prohibited": {
+    "block": 64,
+    "blocking_rate_pct": 30.76923076923077,
+    "escalate": 144,
+    "executed": 0,
+    "executed_kinds": [],
+    "incorrectly_permitted_kinds": [],
+    "not_permitted_rate_pct": 100.0,
+    "permit": 0,
+    "proposal_level_total": 208,
+    "total": 240
+   },
+   "proposal_to_commit_latency": {
+    "max_us": 731555.393,
+    "mean_us": 254023.00734375,
+    "min_us": 46936.269,
+    "n": 128,
+    "p50_us": 241201.062,
+    "p95_us": 522299.935,
+    "p99_us": 688716.765
+   },
+   "proposal_to_refusal_latency": {
+    "max_us": 554163.314,
+    "mean_us": 85835.76783482144,
+    "min_us": 1376.594,
+    "n": 224,
+    "p50_us": 75976.539,
+    "p95_us": 137438.563,
+    "p99_us": 359771.872
+   },
+   "proposals": 368,
+   "rss_mb": 65.43359375,
+   "session": "isolated",
+   "shared_limit": {
+    "committed": 16,
+    "expected_commits_if_live": 16,
+    "invariant_holds": true,
+    "limit": 25000,
+    "outflow": 16000,
+    "permitted": 16,
+    "proposals": 16
+   },
+   "special": {
+    "policy_change_executed": 0,
+    "policy_change_permitted_at_eval": 16,
+    "replay_executed": 0
+   },
+   "store": "memory",
+   "throughput_per_s": 98.74062835222612,
+   "verdict_latency": {
+    "max_us": 563857.556,
+    "mean_us": 97698.98559510871,
+    "min_us": 1376.594,
+    "n": 368,
+    "p50_us": 80033.019,
+    "p95_us": 213832.885,
+    "p99_us": 487801.691
+   },
+   "wall_s": 3.726935974999833,
+   "workers": 16
+  },
+  {
+   "by_expected": {
+    "legitimate": 224,
+    "limit_bound": 32,
+    "prohibited": 480
+   },
+   "consistency": {
+    "effects": 249,
+    "effects_without_executed_record": 0,
+    "evidence_chain_failures": 0,
+    "evidence_missing": 0,
+    "executed_without_effect": 0
+   },
+   "cpu_utilisation_pct": 81.54813852684975,
+   "duplicates": {
+    "double_execute_cases": 32,
+    "double_execute_commit_successes_gt1": 0,
+    "duplicate_decision_ids_in_resource": 0
+   },
+   "error_rate_pct": 0.0,
+   "errors": {},
+   "legitimate": {
+    "blocked": 0,
+    "blocked_or_escalated_kinds": {},
+    "escalated": 0,
+    "executed": 192,
+    "permitted": 192,
+    "total": 192
+   },
+   "mode": "mediated",
+   "model": "threads",
+   "outside_kernel_stages_latency": {
+    "max_us": 888487.416,
+    "mean_us": 224239.9669972826,
+    "min_us": 170.234,
+    "n": 736,
+    "p50_us": 185412.293,
+    "p95_us": 512189.749,
+    "p99_us": 731070.388
+   },
+   "prohibited": {
+    "block": 128,
+    "blocking_rate_pct": 30.76923076923077,
+    "escalate": 288,
+    "executed": 0,
+    "executed_kinds": [],
+    "incorrectly_permitted_kinds": [],
+    "not_permitted_rate_pct": 100.0,
+    "permit": 0,
+    "proposal_level_total": 416,
+    "total": 480
+   },
+   "proposal_to_commit_latency": {
+    "max_us": 1427428.846,
+    "mean_us": 490600.24621285143,
+    "min_us": 23301.106,
+    "n": 249,
+    "p50_us": 465029.723,
+    "p95_us": 911322.67,
+    "p99_us": 1383849.365
+   },
+   "proposal_to_refusal_latency": {
+    "max_us": 771422.781,
+    "mean_us": 200290.01814505493,
+    "min_us": 2119.963,
+    "n": 455,
+    "p50_us": 175122.883,
+    "p95_us": 325017.207,
+    "p99_us": 542975.725
+   },
+   "proposals": 736,
+   "rss_mb": 112.09375,
+   "session": "isolated",
+   "shared_limit": {
+    "committed": 25,
+    "expected_commits_if_live": 25,
+    "invariant_holds": true,
+    "limit": 25000,
+    "outflow": 25000,
+    "permitted": 25,
+    "proposals": 32
+   },
+   "special": {
+    "policy_change_executed": 0,
+    "policy_change_permitted_at_eval": 32,
+    "replay_executed": 0
+   },
+   "store": "memory",
+   "throughput_per_s": 94.0025578519999,
+   "verdict_latency": {
+    "max_us": 889569.047,
+    "mean_us": 225523.4212540761,
+    "min_us": 2119.963,
+    "n": 736,
+    "p50_us": 186571.051,
+    "p95_us": 514418.147,
+    "p99_us": 731918.167
+   },
+   "wall_s": 7.829574182000215,
+   "workers": 32
+  },
+  {
+   "by_expected": {
+    "legitimate": 448,
+    "limit_bound": 64,
+    "prohibited": 960
+   },
+   "consistency": {
+    "effects": 473,
+    "effects_without_executed_record": 0,
+    "evidence_chain_failures": 0,
+    "evidence_missing": 0,
+    "executed_without_effect": 0
+   },
+   "cpu_utilisation_pct": 84.66725544094402,
+   "duplicates": {
+    "double_execute_cases": 64,
+    "double_execute_commit_successes_gt1": 0,
+    "duplicate_decision_ids_in_resource": 0
+   },
+   "error_rate_pct": 0.0,
+   "errors": {},
+   "legitimate": {
+    "blocked": 0,
+    "blocked_or_escalated_kinds": {},
+    "escalated": 0,
+    "executed": 384,
+    "permitted": 384,
+    "total": 384
+   },
+   "mode": "mediated",
+   "model": "threads",
+   "outside_kernel_stages_latency": {
+    "max_us": 2289140.602,
+    "mean_us": 407684.98585869564,
+    "min_us": 137.994,
+    "n": 1472,
+    "p50_us": 317361.543,
+    "p95_us": 798338.726,
+    "p99_us": 1235903.71
+   },
+   "prohibited": {
+    "block": 256,
+    "blocking_rate_pct": 30.76923076923077,
+    "escalate": 576,
+    "executed": 0,
+    "executed_kinds": [],
+    "incorrectly_permitted_kinds": [],
+    "not_permitted_rate_pct": 100.0,
+    "permit": 0,
+    "proposal_level_total": 832,
+    "total": 960
+   },
+   "proposal_to_commit_latency": {
+    "max_us": 2421979.306,
+    "mean_us": 915987.6516765327,
+    "min_us": 28114.811,
+    "n": 473,
+    "p50_us": 935868.356,
+    "p95_us": 1791893.111,
+    "p99_us": 2214411.171
+   },
+   "proposal_to_refusal_latency": {
+    "max_us": 1186032.506,
+    "mean_us": 350428.45992941177,
+    "min_us": 1360.884,
+    "n": 935,
+    "p50_us": 302312.688,
+    "p95_us": 560992.408,
+    "p99_us": 737705.05
+   },
+   "proposals": 1472,
+   "rss_mb": 262.58203125,
+   "session": "isolated",
+   "shared_limit": {
+    "committed": 25,
+    "expected_commits_if_live": 25,
+    "invariant_holds": true,
+    "limit": 25000,
+    "outflow": 25000,
+    "permitted": 25,
+    "proposals": 64
+   },
+   "special": {
+    "policy_change_executed": 0,
+    "policy_change_permitted_at_eval": 64,
+    "replay_executed": 0
+   },
+   "store": "memory",
+   "throughput_per_s": 103.84913627710367,
+   "verdict_latency": {
+    "max_us": 2290039.871,
+    "mean_us": 409008.1936467391,
+    "min_us": 1360.884,
+    "n": 1472,
+    "p50_us": 318369.231,
+    "p95_us": 799191.642,
+    "p99_us": 1238944.435
+   },
+   "wall_s": 14.174407729999984,
+   "workers": 64
+  }
+ ]
+}
