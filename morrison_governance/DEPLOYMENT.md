@@ -297,6 +297,100 @@ holds. The kernel's job is to refuse early, explain why, record evidence, and
 govern trajectories the resource cannot see; it is not a substitute for least
 privilege.
 
+## Complete mediation checklist
+
+Every Morrison guarantee assumes **every consequential effect passes through
+`GovernanceKernel`**. The kernel cannot make that true; the deployment must.
+The full analysis (conditions M1–M7, what the library can and cannot enforce)
+is in [`COMPLETE_MEDIATION_ANALYSIS.md`](../COMPLETE_MEDIATION_ANALYSIS.md).
+This is the short form. An unchecked box is an ungoverned path.
+
+**Credentials (M1)**
+- [ ] The agent process holds **no** credential for a consequential resource:
+      no API keys, database URLs or cloud tokens in its environment, files,
+      prompt, tool configuration or memory. Credentials live only in the
+      executor (tool server, gateway, sidecar) the agent must ask.
+- [ ] The agent's identity cannot read credential stores (`~/.aws`, `~/.ssh`,
+      `~/.kube`, `~/.docker`, `~/.netrc`, `~/.pgpass`, `/proc/*/environ`,
+      mounted secrets) and cannot reach the cloud metadata service
+      (`169.254.169.254`, `metadata.google.internal`), which issues role
+      credentials to anything that asks. Block it at the network layer, or
+      require IMDSv2 with hop limit 1.
+- [ ] Credentials the executor holds are least-privilege for what the tool
+      manifest declares (a `data.read` tool gets a read-only database role; see
+      "Resource-side enforcement").
+
+**Resource-side checks (M2, M3)**
+- [ ] Each consequential resource refuses requests that do not carry a valid
+      Morrison execution lease (`kernel.mint_lease` +
+      `mediation.LeaseVerifier` at the gateway), verified by the resource, not
+      by the caller.
+- [ ] Lease registry is shared and atomic across verifiers, so a lease is
+      single-use deployment-wide.
+
+**Network egress (M4)**
+- [ ] Egress from the agent's network position is default-deny. The only
+      allowed destinations are the governed executors and a forward proxy
+      that enforces the same host allowlist as `internal_url_hosts` and
+      resolves URLs itself (closing parser differentials).
+- [ ] DNS is restricted to the proxy's resolver (no DNS exfiltration channel).
+
+**Shell and code execution (M4)**
+- [ ] No general shell tool, where possible. Where one is needed, every spawn
+      goes through `governed_run` (or a governed wrapper), and the process runs
+      in a sandbox (container/VM, read-only root, no network, seccomp, no
+      credentials, non-root) where its privileges, not its arguments, bound
+      the damage.
+- [ ] The agent cannot install packages, write to its own code, or load
+      plugins at run time.
+
+**MCP and tool frameworks (M2, M5)**
+- [ ] Every MCP server the agent can reach is behind `wrap_mcp_call_tool` or a
+      Morrison gateway; no MCP server is configured directly in the agent's
+      client.
+- [ ] Every tool in the framework's registry is a Morrison-governed wrapper
+      (`mediation_selftest.audit_tools(registry)` checks this), including
+      `run`/`invoke`/`_run` aliases.
+- [ ] The inventory of consequential resources and tools is maintained;
+      a new tool is ungoverned until it is added to the manifest.
+
+**Configuration integrity (M6) and reconciliation (M7)**
+- [ ] The agent cannot write the policy, tool manifest, allowlists, approval
+      keys or continuity store.
+- [ ] The deployment reconciles effects observed at each resource against
+      Morrison's evidence chain (execution-intent and outcome records); an
+      effect with no decision is an incident. The library's
+      `kernel.reconcile` settles only Morrison's own unconfirmed dispatches,
+      not effects it never saw.
+
+### Self-test
+
+Run from **where the agent runs** (same container, OS identity, environment
+and network position):
+
+```bash
+python -m morrison_governance.mediation_selftest --network \
+    --egress-probe example.com:443 \
+    --governance-path /etc/morrison \
+    --mcp-gateway morrison-gateway.internal \
+    --resource-probe https://db-gateway.internal/mutate-dry-run
+```
+
+It reports FAIL for secret-shaped environment variables (names only; values are
+never read), readable credential files, a reachable metadata service, direct
+egress that bypasses the proxy, writable governance files, and a resource that
+accepts a request without a lease; WARN for an available shell and for MCP
+servers not routed through the gateway. In Python, `audit_tools(registry)`
+flags tools that are not governed wrappers. Exit status 0 / 1 (FAIL) / 2 (WARN
+only).
+
+A pass means no **obvious** bypass is visible from that process. It does not
+establish complete mediation: it cannot see credentials baked into a tool's
+own configuration, sockets inherited from a parent process, other processes in
+the same network namespace, or what an executor does after a valid lease.
+Point `--resource-probe` only at an endpoint where accepting the request is
+harmless.
+
 ## Reproduction
 
 ```
