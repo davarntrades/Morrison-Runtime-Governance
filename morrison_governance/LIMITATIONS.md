@@ -262,7 +262,7 @@ the normalisation, alias table, or admissibility rule is caught.
 The 648/648 figure is an **internal regression / classification metric
 on the tested suite**, not third-party security coverage. Independent
 red-teaming against this domain is the appropriate next step and is the
-posture the framework is built for; see `CRITICAL_EVALUATION.md`. The
+posture the framework is built for; see `docs/research/CRITICAL_EVALUATION.md`. The
 alias table is bounded and finite — new synonyms surface over time and
 should be added via documented diffs with regression pins (the
 adversarial harness is the natural place to extend the corpus).
@@ -292,7 +292,7 @@ python3 artifacts/visualizations/benchmark.py           # latency suite
 ## Authority continuity and the governed boundary (pre-pilot evaluation)
 
 Three rounds of adversarial falsification are recorded in
-`PRE_PILOT_ADVERSARIAL_EVALUATION.md`, with every counterexample retained as a
+`docs/research/PRE_PILOT_ADVERSARIAL_EVALUATION.md`, with every counterexample retained as a
 permanent test. The limitations that survived remediation, in the order a pilot
 should care about them:
 

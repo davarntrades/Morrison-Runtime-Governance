@@ -6,7 +6,7 @@
 
 ---
 
-**Scope correction (6 October 2026):** The Consumable Credentials “complete technical match” conclusion is **withdrawn for the autonomous-agent target**. The earlier review substituted generic clients, resource bounds and credential history for elements that required an actual architectural disclosure. See the [element-by-element correction](docs/prior-art/2026-10-06-consumable-credentials-correction.md). The [preceding main document](docs/prior-art/history/2026-10-06-before-agent-scope-correction.md), [second-pass review](docs/prior-art/2026-10-05-adversarial-review.md), [first supplement](docs/prior-art/2026-10-05-search-supplement.md) and earlier snapshots preserve the search history. The independent [Morrison reproduction](docs/prior-art/reproduce_adversarial_2026_10_05.py) and [results](docs/prior-art/2026-10-05-adversarial-results.json) are unaffected.
+**Scope correction (6 October 2026):** The Consumable Credentials “complete technical match” conclusion is **withdrawn for the autonomous-agent target**. The earlier review substituted generic clients, resource bounds and credential history for elements that required an actual architectural disclosure. See the [element-by-element correction](../prior-art/2026-10-06-consumable-credentials-correction.md). The [preceding main document](../prior-art/history/2026-10-06-before-agent-scope-correction.md), [second-pass review](../prior-art/2026-10-05-adversarial-review.md), [first supplement](../prior-art/2026-10-05-search-supplement.md) and earlier snapshots preserve the search history. The independent [Morrison reproduction](../prior-art/reproduce_adversarial_2026_10_05.py) and [results](../prior-art/2026-10-05-adversarial-results.json) are unaffected.
 
 ## Executive position
 
@@ -99,7 +99,7 @@ Therefore, broad claims such as “invented runtime safety,” “invented pre-e
 
 ## 4. Combination pressure: candidate synthesis, not an established inventive-step case
 
-**Correction dated 6 October 2026:** the earlier “particularly strong combination” and subsequent assertion that autonomous-agent shields plus proof-gated authorization leave a short, motivated consistency bridge overstated the inspected evidence. The [combination evidence audit](docs/prior-art/2026-10-06-combination-evidence-audit.md) is controlling. The [preceding position](docs/prior-art/history/2026-10-06-before-combination-audit.md) and earlier review remain preserved.
+**Correction dated 6 October 2026:** the earlier “particularly strong combination” and subsequent assertion that autonomous-agent shields plus proof-gated authorization leave a short, motivated consistency bridge overstated the inspected evidence. The [combination evidence audit](../prior-art/2026-10-06-combination-evidence-audit.md) is controlling. The [preceding position](../prior-art/history/2026-10-06-before-combination-audit.md) and earlier review remain preserved.
 
 The smallest concrete candidate examined here is **Safe Multi-Agent Reinforcement Learning via Shielding (2021) + Consumable Credentials in Logic-Based Access Control (2006)**. The 2017 single-agent shield is its documented antecedent, not an additional necessary ingredient. This is a proposed synthesis, not an architecture disclosed in combination by those references.
 
@@ -142,7 +142,7 @@ Several demonstrate trajectory-level decision logic for bounded property classes
 
 Authority placement and policy expressiveness must therefore be evaluated independently. Neither trajectory awareness nor framework/proxy packaging determines whether a protected deployment path is unavoidable.
 
-The expanded comparison includes **PACE, Provenact/MasuGate, L-DREA, Controlled Agentic AI Systems, ActPlane, CamQuery and KedgeFlow**, plus **US20260127298A1 and US20260142827A1**. The [second-pass charts](docs/prior-art/2026-10-05-adversarial-review.md) retain useful mechanism comparisons, but their complete-target ratings are qualified by the [scope correction](docs/prior-art/2026-10-06-consumable-credentials-correction.md). Older references were traced backwards rather than excluded for lacking AI branding.
+The expanded comparison includes **PACE, Provenact/MasuGate, L-DREA, Controlled Agentic AI Systems, ActPlane, CamQuery and KedgeFlow**, plus **US20260127298A1 and US20260142827A1**. The [second-pass charts](../prior-art/2026-10-05-adversarial-review.md) retain useful mechanism comparisons, but their complete-target ratings are qualified by the [scope correction](../prior-art/2026-10-06-consumable-credentials-correction.md). Older references were traced backwards rather than excluded for lacking AI branding.
 
 ---
 
@@ -170,7 +170,7 @@ Morrison must not overstate this.
 
 The library's PDP + execution path is **hybrid unless the deployment satisfies complete mediation**. Resource-side lease verification is the route toward kernel-class authority, but Morrison's own analysis treats complete mediation as an open deployment assumption until it is independently tested.
 
-**New implementation qualification:** authorization → lease minting → successful reservation release → resource-side redemption leaves the read absent from kernel history. The [recorded offline trace](docs/prior-art/2026-10-05-adversarial-results.json) then permits and mock-executes the external send that the control blocks. This is an execution-boundary/reservation-lifecycle gap, not just an omitted harm specification. Deployments must establish whether this public-API sequence is reachable. No runtime fix is included in this documentation commit.
+**New implementation qualification:** authorization → lease minting → successful reservation release → resource-side redemption leaves the read absent from kernel history. The [recorded offline trace](../prior-art/2026-10-05-adversarial-results.json) then permits and mock-executes the external send that the control blocks. This is an execution-boundary/reservation-lifecycle gap, not just an omitted harm specification. Deployments must establish whether this public-API sequence is reachable. No runtime fix is included in this documentation commit.
 
 A credible containment claim requires all three of the following to survive falsification:
 
@@ -272,7 +272,7 @@ A failed claim is useful evidence. The purpose of the programme is falsification
 | External demonstration | Complete property **not verified** here. Formal specification, prototype, simulation, production and independent reproduction remain separate. |
 | Morrison demonstration | 134 selected tests passed; seven all-PERMIT unsafe finite-model counterexamples and a new lease-release composition failure reproduced. Complete deployed property not established. |
 
-Primary citations, all element ratings, version/date qualifications, assumptions and reproduction commands are in the [adversarial review](docs/prior-art/2026-10-05-adversarial-review.md). Earlier evidence and conclusions remain in the historical snapshots, unchanged first supplement, original PDF and git history. The 6 October correction governs current interpretation.
+Primary citations, all element ratings, version/date qualifications, assumptions and reproduction commands are in the [adversarial review](../prior-art/2026-10-05-adversarial-review.md). Earlier evidence and conclusions remain in the historical snapshots, unchanged first supplement, original PDF and git history. The 6 October correction governs current interpretation.
 
 
 ---

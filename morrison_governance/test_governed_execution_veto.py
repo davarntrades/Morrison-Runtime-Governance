@@ -11,7 +11,7 @@ it could not be lost. All thirteen are now closed, and every test below has been
 inverted to assert CONTAINMENT of the same attack. Nothing was deleted and no
 assertion was weakened — the attacks are identical, the expected outcomes are
 not. Findings and their remediation are recorded in
-`GOVERNED_EXECUTION_VETO_EVALUATION.md`.
+`docs/research/GOVERNED_EXECUTION_VETO_EVALUATION.md`.
 
 They stay here permanently as the adversarial acceptance suite. The next
 external evaluator should be attacking a system that already survives every

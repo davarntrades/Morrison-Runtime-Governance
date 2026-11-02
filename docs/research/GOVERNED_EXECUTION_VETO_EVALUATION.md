@@ -599,5 +599,5 @@ GB2600765.8
 
 **Related work:** [AOE Falsification Report](AOE_FALSIFICATION_REPORT.md) ·
 [Global Safety Verification](GLOBAL_SAFETY_VERIFICATION.md) ·
-[Limitations](morrison_governance/LIMITATIONS.md) ·
+[Limitations](../../morrison_governance/LIMITATIONS.md) ·
 [Critical Evaluation](CRITICAL_EVALUATION.md)

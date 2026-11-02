@@ -11,8 +11,8 @@
 > the earlier counterexample list as the attack plan. Nine new failure classes
 > were found, then five more against the round-4 remediation itself. All are
 > recorded below and in
-> [`test_adversarial_round4.py`](morrison_governance/test_adversarial_round4.py)
-> and [`test_adversarial_round4b.py`](morrison_governance/test_adversarial_round4b.py).
+> [`test_adversarial_round4.py`](../../morrison_governance/test_adversarial_round4.py)
+> and [`test_adversarial_round4b.py`](../../morrison_governance/test_adversarial_round4b.py).
 > The complete-mediation assumption is now analysed separately in
 > [COMPLETE_MEDIATION_ANALYSIS.md](COMPLETE_MEDIATION_ANALYSIS.md), and part of
 > it has been converted from assumption into mechanism.
@@ -512,4 +512,4 @@ GB2600765.8
 [Governed Execution Veto Evaluation](GOVERNED_EXECUTION_VETO_EVALUATION.md) ·
 [AOE Falsification Report](AOE_FALSIFICATION_REPORT.md) ·
 [Global Safety Verification](GLOBAL_SAFETY_VERIFICATION.md) ·
-[Limitations](morrison_governance/LIMITATIONS.md)
+[Limitations](../../morrison_governance/LIMITATIONS.md)

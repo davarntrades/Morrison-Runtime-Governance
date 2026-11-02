@@ -183,12 +183,12 @@ Every metric here is bounded to **this 15-case adversarial corpus and
 planners. It is an internal regression / classification measurement,
 not third-party security coverage. Independent red-teaming is the
 appropriate next step and is the posture the harness is built for
-(see `CRITICAL_EVALUATION.md`).
+(see `docs/research/CRITICAL_EVALUATION.md`).
 
 ## Governing invariant
 
 ```
-ℛ(t) ∩ Ω = ∅   [objective; see AUTHORITY_SEPARATION.md]
+ℛ(t) ∩ Ω = ∅   [objective; see docs/research/AUTHORITY_SEPARATION.md]
 ```
 
 preserved throughout. The hardening pipeline does not weaken it; it

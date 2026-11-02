@@ -31,7 +31,7 @@ from morrison_governance.kernel import GovernanceKernel, issue_approval
 from morrison_governance.kernel.continuity import InMemoryContinuityStore
 from morrison_governance.kernel.canonical import authorization_action_hash
 from morrison_governance.kernel.trust import ApprovalArtifact, Principal, SecurityContext
-from runtime_eval.agentdojo_bench.gate import GOVERNED_DOMAINS
+from runtime_eval.agentdojo_bench.domains import GOVERNED_DOMAINS
 from runtime_eval.falsification.resource import Ledger, ResourceRefused
 
 MANIFEST = {"transfer": ["payment.move_funds"], "grant_role": ["iam.privileged"]}

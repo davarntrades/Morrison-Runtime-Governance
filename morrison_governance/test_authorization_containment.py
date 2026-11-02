@@ -2,7 +2,7 @@
 
 What this suite is for
 ----------------------
-[AUTHORIZATION_REACHABILITY_ANALYSIS.md] proposed that authority leakage can be
+[docs/research/AUTHORIZATION_REACHABILITY_ANALYSIS.md] proposed that authority leakage can be
 modelled as unintended expansion of the reachable set:
 
     R_alpha^actual(x0)  subseteq  R_alpha^authorized(x0)
@@ -554,4 +554,4 @@ def test_d6_enriching_omega_relocates_the_boundary_it_does_not_remove_it():
     assert press["verdict"] == records["verdict"] == "SAFE_WITHIN_MODEL"
     assert press["unsafe"] == records["unsafe"] == 0, (
         "the enriched Ω caught the new pair — if so, re-run the generalisation "
-        "argument in AUTHORIZATION_REACHABILITY_ANALYSIS.md §6")
+        "argument in docs/research/AUTHORIZATION_REACHABILITY_ANALYSIS.md §6")

@@ -66,7 +66,7 @@ class GovernanceLayer:
     action but cannot mint the authority to execute one. Ω-exclusion is
     derived inside an established governed boundary and is conditional on
     complete mediation, specification correctness and key custody.
-    See AUTHORITY_SEPARATION.md.
+    See docs/research/AUTHORITY_SEPARATION.md.
     """
 
     def __init__(

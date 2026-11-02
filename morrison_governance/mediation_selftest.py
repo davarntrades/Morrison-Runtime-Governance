@@ -2,7 +2,7 @@
 
 Morrison governs what calls it. Every claim it makes is conditional on T1:
 every consequential executor is reachable only through the kernel
-(COMPLETE_MEDIATION_ANALYSIS.md). That is a property of the DEPLOYMENT, and
+(docs/research/COMPLETE_MEDIATION_ANALYSIS.md). That is a property of the DEPLOYMENT, and
 no library can prove it. This self-test can only find OBVIOUS violations, and
 it must be run from where the agent runs: the same container, OS identity,
 environment and network position. Run anywhere else, it tests the wrong thing.
@@ -13,7 +13,7 @@ environment and network position. Run anywhere else, it tests the wrong thing.
         --governance-path /etc/morrison --egress-probe example.com:443 \\
         --resource-probe https://db-gateway.internal/healthz-mutation-dry-run
 
-Checks (M-numbers refer to COMPLETE_MEDIATION_ANALYSIS.md):
+Checks (M-numbers refer to docs/research/COMPLETE_MEDIATION_ANALYSIS.md):
 
   M1  credentials   secret-shaped environment variables and readable
                     credential files. Names and paths are reported, VALUES
@@ -346,7 +346,7 @@ def run(argv: Optional[list] = None) -> tuple[list[Finding], int]:
             for d in f.details[:20]:
                 print(f"        - {d}")
         print("\nA pass means no OBVIOUS bypass was visible from this process. It does "
-              "not establish complete mediation (see COMPLETE_MEDIATION_ANALYSIS.md).")
+              "not establish complete mediation (see docs/research/COMPLETE_MEDIATION_ANALYSIS.md).")
     return findings, code
 
 

@@ -1,5 +1,5 @@
 """Regression tests for every bypass found by the adversarial cybersecurity
-evaluation (RED_TEAM_CYBER_ASSESSMENT.md).
+evaluation (docs/research/RED_TEAM_CYBER_ASSESSMENT.md).
 
 Each test names the finding it locks down. These must never go green by
 weakening an assertion — they assert that a previously-executable harmful

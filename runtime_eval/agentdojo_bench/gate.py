@@ -26,19 +26,14 @@ from agentdojo.functions_runtime import EmptyEnv, Env, FunctionsRuntime
 from agentdojo.logging import Logger
 from agentdojo.types import ChatMessage, ChatToolResultMessage, text_content_block_from_string
 
-from morrison_governance import GovernanceLayer, OmegaDomain
+from morrison_governance import GovernanceLayer
 from morrison_governance.kernel import GovernanceKernel
 from morrison_governance.kernel.continuity import InMemoryContinuityStore
 from morrison_governance.kernel.trust import Principal, SecurityContext
 from runtime_eval.agentdojo_bench.manifest import SuiteProfile
 
-GOVERNED_DOMAINS = (
-    OmegaDomain.FINANCE,
-    OmegaDomain.CYBERSECURITY,
-    OmegaDomain.DATA_PRIVACY,
-    OmegaDomain.ENTERPRISE,
-    OmegaDomain.COMPLIANCE,
-)
+# Re-exported; defined where importing it does not require agentdojo.
+from runtime_eval.agentdojo_bench.domains import GOVERNED_DOMAINS  # noqa: E402,F401
 
 
 APPROVAL_ISSUER = "agentdojo-approval-service"

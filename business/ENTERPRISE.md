@@ -533,7 +533,7 @@ Bounded honestly: results are validated across the tested scenarios and are
 reproducible by cloning and running the repository; they are evidence within
 the evaluated suites, not a universal guarantee. Independent red-teaming is a
 welcomed next step and is the posture the framework is built for (see
-[`CRITICAL_EVALUATION.md`](CRITICAL_EVALUATION.md)).
+[`CRITICAL_EVALUATION.md`](../docs/research/CRITICAL_EVALUATION.md)).
 
 -----
 
@@ -546,7 +546,7 @@ use, resale, sublicensing, or integration into revenue-generating systems
 requires a written commercial licence from Resurrection Tech Ltd. Certain
 implementations may be covered by granted and/or pending intellectual property
 owned by Resurrection Tech Ltd, including **UK Patent GB2600765.8**. Full
-terms: [`License.md`](License.md).
+terms: [`License.md`](../License.md).
 
 -----
 

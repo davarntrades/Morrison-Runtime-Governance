@@ -302,7 +302,7 @@ privilege.
 Every Morrison guarantee assumes **every consequential effect passes through
 `GovernanceKernel`**. The kernel cannot make that true; the deployment must.
 The full analysis (conditions M1–M7, what the library can and cannot enforce)
-is in [`COMPLETE_MEDIATION_ANALYSIS.md`](../COMPLETE_MEDIATION_ANALYSIS.md).
+is in [`docs/research/COMPLETE_MEDIATION_ANALYSIS.md`](../docs/research/COMPLETE_MEDIATION_ANALYSIS.md).
 This is the short form. An unchecked box is an ungoverned path.
 
 **Credentials (M1)**

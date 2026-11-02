@@ -273,7 +273,7 @@ governance core (`morrison_governance/LIMITATIONS.md`) and adds:
    (`runtime_eval/perturbations/families.py` is the corpus source of
    truth).
 6. **Independent third-party adversarial red-team** on this domain;
-   the harness is built for it (see `CRITICAL_EVALUATION.md`).
+   the harness is built for it (see `docs/research/CRITICAL_EVALUATION.md`).
 
 ## Hardening
 
