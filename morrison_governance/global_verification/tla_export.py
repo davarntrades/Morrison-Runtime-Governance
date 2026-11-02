@@ -333,6 +333,12 @@ _DISTINCT = re.compile(r"(\d+) distinct states found")
 def run_tlc(bundle: Path, jar: Path, java: str = "java") -> dict[str, Any]:
     """Run TLC on every config in the bundle and compare with expected.json."""
     expected = json.loads((bundle / "expected.json").read_text(encoding="utf-8"))
+    # TLC runs with the bundle as its working directory, so a relative jar path
+    # would not be on the classpath (the first CI run failed exactly this way:
+    # "Could not find or load main class tlc2.TLC").
+    jar = Path(jar).resolve()
+    if not jar.is_file():
+        raise FileNotFoundError(f"tla2tools.jar not found at {jar}")
     results: dict[str, Any] = {}
     for cfg in sorted(bundle.glob("*.cfg")):
         proc = subprocess.run(
