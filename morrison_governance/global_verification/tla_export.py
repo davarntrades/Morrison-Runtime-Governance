@@ -345,6 +345,8 @@ def run_tlc(bundle: Path, jar: Path, java: str = "java") -> dict[str, Any]:
             "violated": "is violated" in text,
             "distinct_states": int(counts[-1]) if counts else None,
             "exit_code": proc.returncode,
+            # Kept so a disagreement can be diagnosed from the CI log alone.
+            "output_tail": text[-3000:],
         }
     checks = {
         "control_state_count":
@@ -389,6 +391,14 @@ def main(argv: list[str] | None = None) -> int:
         tlc = run_tlc(args.out, args.tlc)
         report["tlc"] = tlc
         status = status or (0 if tlc["agree"] else 1)
+        if not tlc["agree"]:
+            # Artifact downloads are not always available; put the evidence in
+            # the log: which checks disagreed, and what TLC actually said.
+            print(json.dumps(tlc["checks"], indent=1))
+            for name, res in tlc["tlc"].items():
+                print(f"--- TLC {name}: exit={res['exit_code']} "
+                      f"distinct={res['distinct_states']} violated={res['violated']}")
+                print(res["output_tail"])
     (args.out / "crosscheck.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({"verdict": expected["verdict"],
