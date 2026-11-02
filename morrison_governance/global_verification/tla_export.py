@@ -237,8 +237,11 @@ def write_bundle(out: Path, escalations: str = "deny") -> dict[str, Any]:
     out.mkdir(parents=True, exist_ok=True)
     data = harvest(escalations)
     (out / f"{MODULE}.tla").write_text(render_tla(data["permitted"]), encoding="utf-8")
+    # Counts come from runs with NO invariant: a run that finds a violation
+    # stops at the first counterexample, so its state count is partial.
     runs = {
         "control_count": (False, None),
+        "governed_count": (True, None),
         "control_safety": (False, "Safe"),
         "governed_safety": (True, "Safe"),
     }
@@ -358,7 +361,7 @@ def run_tlc(bundle: Path, jar: Path, java: str = "java") -> dict[str, Any]:
         "control_state_count":
             results["control_count"]["distinct_states"] == expected["control_states"],
         "governed_state_count":
-            results["governed_safety"]["distinct_states"] == expected["governed_states"],
+            results["governed_count"]["distinct_states"] == expected["governed_states"],
         "control_unsafe_reachable":
             results["control_safety"]["violated"] == expected["control_unsafe_reachable"],
         "governed_unsafe_reachable":

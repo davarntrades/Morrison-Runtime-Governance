@@ -177,7 +177,7 @@ def test_tla_bundle_is_complete(tmp_path):
     for option in ALL_OPTIONS:
         assert f"A_{option.name} ==" in spec
     cfgs = {p.stem for p in tmp_path.glob("*.cfg")}
-    assert {"control_count", "control_safety", "governed_safety"} <= cfgs
+    assert {"control_count", "governed_count", "control_safety", "governed_safety"} <= cfgs
     assert all("CHECK_DEADLOCK FALSE" in p.read_text() for p in tmp_path.glob("*.cfg"))
 
 
