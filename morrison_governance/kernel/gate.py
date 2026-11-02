@@ -38,6 +38,7 @@ from typing import Any, Callable, Optional
 
 from morrison_governance.core import GovernanceLayer
 from morrison_governance.result import GovernanceVerdict
+from morrison_governance.kernel import argflow
 from morrison_governance.kernel import capabilities as C
 from morrison_governance.kernel import policy as P
 from morrison_governance.kernel import sensitivity as S
@@ -308,6 +309,7 @@ class Attempt:
     state: str = DENIED
     decision_id: str = ""
     expires_at: float = 0.0
+    authority: bool = False            # admitted under established authority
 
     @property
     def executed(self) -> bool:
@@ -343,6 +345,13 @@ def approval_replay_token(approval) -> str:
     otherwise its signature, so an artifact issued without a nonce is still
     spent once rather than replayable until it expires."""
     return f"approval:{approval.nonce or 'sig:' + str(approval.signature)}"
+
+
+# Trusted context the kernel injects for a step admitted under established
+# authority. Applied per step, never to the whole trajectory.
+AUTHORITY_CONTEXT = {"authorized": True, "approved": True, "verified": True,
+                     "admin_approved": True, "change_approved": True,
+                     "sanctioned": True}
 
 
 class GovernanceKernel:
@@ -433,7 +442,7 @@ class GovernanceKernel:
                         actor=e.actor, timestamp=e.timestamp,
                         capabilities=frozenset(e.capabilities),
                         state=self._effective_state(e), decision_id=e.decision_id,
-                        expires_at=e.expires_at)
+                        expires_at=e.expires_at, authority=bool(e.authority))
                 for e in self.store.entries(self.continuity_key)
                 if e.state == EXPORTED or horizon is None or (e.wall_timestamp or e.timestamp) >= horizon]
 
@@ -457,7 +466,8 @@ class GovernanceKernel:
     def _file(self, action: dict, verdict: str, state: str, reason: str,
               timestamp: float, capabilities: frozenset = frozenset(),
               decision_id: str = "", semantic_hash: str = "",
-              expires_at: float = 0.0, binding_hash: str = "") -> None:
+              expires_at: float = 0.0, binding_hash: str = "",
+              authority: bool = False) -> None:
         """Record one governed attempt against the continuity key."""
         if not self.continuity_key:
             return
@@ -469,7 +479,8 @@ class GovernanceKernel:
             semantic_hash=semantic_hash, binding_hash=binding_hash,
             capabilities=tuple(sorted(capabilities)),
             timestamp=timestamp, expires_at=expires_at,
-            wall_timestamp=wall, wall_expires_at=wall + self.decision_ttl_s))
+            wall_timestamp=wall, wall_expires_at=wall + self.decision_ttl_s,
+            authority=authority))
 
     @property
     def executed_history(self) -> list[dict]:
@@ -484,6 +495,11 @@ class GovernanceKernel:
         # against the clock this session is actually driven on rather than
         # wall time — otherwise a model-clock session prunes everything.
         return [a.action for a in self.ledger if a.live(self._clock_basis())]
+
+    @property
+    def _history_authority(self) -> list[bool]:
+        """Per-step authority for `executed_history`, in the same order."""
+        return [a.authority for a in self.ledger if a.live(self._clock_basis())]
 
     # ── shared resources (G1) ────────────────────────────────
     def _scope_keys(self, action: dict) -> list[str]:
@@ -502,7 +518,7 @@ class GovernanceKernel:
             keys.add(f"{RESOURCE_NAMESPACE}/{s}")
         return sorted(keys)
 
-    def _shared_history(self, keys: list[str]) -> list[dict]:
+    def _shared_history(self, keys: list[str], with_authority: bool = False) -> list:
         """Live actions OTHER decisions hold on these shared resources, from
         any principal, in the order they were taken. This principal's own
         entries are already in its history and are not repeated."""
@@ -529,14 +545,23 @@ class GovernanceKernel:
                 # a lapsed reservation stays live as UNCONFIRMED either way.
                 if att.live(time.time()):
                     seen.add(e.decision_id)
-                    rows.append((e.wall_timestamp or e.timestamp, e.seq, e.action))
-        return [a for _, _, a in sorted(rows, key=lambda r: (r[0], r[1]))]
+                    rows.append((e.wall_timestamp or e.timestamp, e.seq, e.action,
+                                 bool(e.authority)))
+        ordered = sorted(rows, key=lambda r: (r[0], r[1]))
+        if with_authority:
+            return [(a, auth) for _, _, a, auth in ordered]
+        return [a for _, _, a, _ in ordered]
 
     def _governed_prefix(self, clean: dict, scope_keys: list[str]) -> list[dict]:
         """The trajectory a decision is evaluated against: every live step on
         the shared resources it touches, then this principal's own history,
         then the candidate."""
         return self._shared_history(scope_keys) + self.executed_history + [clean]
+
+    def _prefix_authority(self, scope_keys: list[str]) -> list[bool]:
+        """Per-step authority for `_governed_prefix` minus the candidate."""
+        return ([auth for _, auth in self._shared_history(scope_keys, with_authority=True)]
+                + self._history_authority)
 
     def _scope_mirror(self, action: Optional[dict], op: Callable[[str], Any]) -> None:
         """Apply one state change to the shared-resource copies of an entry.
@@ -603,7 +628,8 @@ class GovernanceKernel:
                    decision_id=decision.decision_id,
                    semantic_hash=decision.semantic_hash,
                    expires_at=decision.expires_at,
-                   binding_hash=decision.security_binding_hash())
+                   binding_hash=decision.security_binding_hash(),
+                   authority=bool(decision.authorization.get("authority_established")))
         if scope_keys and self.continuity_key:
             entry = next(e for e in self.store.entries(self.continuity_key)
                          if e.decision_id == decision.decision_id)
@@ -864,19 +890,47 @@ class GovernanceKernel:
                     f"session ({revoked}); the earlier PERMIT is void")
         return None
 
-    def _evaluate_with_context(self, prefix: list, trusted: dict):
+    def _evaluate_with_context(self, prefix: list, trusted: dict,
+                               current_authority: bool = False,
+                               history_authority: Optional[list] = None,
+                               current_extra: Optional[dict] = None):
         """Run the unchanged engine over `prefix` with `trusted` supplied as
-        trajectory context rather than arguments."""
+        trajectory context rather than arguments.
+
+        Authority is PER STEP (ARSB-UTL-01). It used to be injected into the
+        context of every state in the trajectory, so it was the CURRENT call's
+        authority that the engine applied to the whole history: after an
+        approved transfer, every later unapproved call re-judged that transfer
+        without its approval, and `unauthorized_transfer` refused every
+        subsequent action in the session. Each historical step now carries the
+        authority it was admitted under (recorded in the ledger), and the
+        candidate carries its own. Neither can lend authority to the other.
+        """
         from morrison_governance.trajectory import TrajectoryExtractor
         extractor = TrajectoryExtractor(context=trusted)
         traj = (extractor.from_plan(prefix) if len(prefix) > 1
                 else extractor.from_dict(prefix[0]))
+        history_authority = list(history_authority or [])
+        last = len(traj.states) - 1
+        for index, state in enumerate(traj.states):
+            held = (current_authority if index == last else
+                    index < len(history_authority) and history_authority[index])
+            if held:
+                state.context.update(AUTHORITY_CONTEXT)
+            if index == last and current_extra:
+                state.context.update(current_extra)
         return self.layer.evaluate_trajectory(traj)
 
     # ── the gate ─────────────────────────────────────────────
     def authorize(self, call: dict, now: Optional[float] = None,
-                  reserve: bool = True) -> Decision:
+                  reserve: bool = True, *,
+                  argument_provenance: Optional[dict] = None) -> Decision:
         """Decide one proposed transition, and reserve its place in the session.
+
+        `argument_provenance` is RUNTIME-supplied: {top-level arg: source}, as
+        established by an interpreter that tracks data flow (see
+        `kernel.argflow`). It is not part of the call and a call cannot supply
+        it. Omitted, behaviour is exactly as before.
 
         `reserve=False` evaluates without taking a trajectory slot. It exists
         for speculative analysis — exhaustive verification, counterfactual
@@ -900,7 +954,8 @@ class GovernanceKernel:
                     for key in scope_keys:
                         held.enter_context(transaction(key))
                 return self._authorize_locked(call, now, reserve,
-                                              scope_keys, scope_error)
+                                              scope_keys, scope_error,
+                                              argument_provenance)
 
     def preview(self, call: dict, now: Optional[float] = None) -> Decision:
         """Non-reserving, non-executable evaluation. See `authorize`."""
@@ -926,7 +981,8 @@ class GovernanceKernel:
 
     def _authorize_locked(self, call: dict, now: Optional[float],
                           reserve: bool, scope_keys: tuple = (),
-                          scope_error: Optional[str] = None) -> Decision:
+                          scope_error: Optional[str] = None,
+                          argument_provenance: Optional[dict] = None) -> Decision:
         _t0 = time.perf_counter()
         _sw = _Stopwatch()
         now = time.time() if now is None else now
@@ -965,6 +1021,7 @@ class GovernanceKernel:
             # destination), and feeding them in produces false positives on
             # ordinary traffic. Their content is still classified below.
             caps = C.classify(clean, self.ctx.tool_manifest)
+            argprov = argflow.assess(clean.get("args") or {}, argument_provenance)
         with _sw("destination_resolution"):
             dest = classify_destination(
                 clean, self.ctx.internal_url_hosts,
@@ -1126,10 +1183,11 @@ class GovernanceKernel:
         # knows more about those than its configuration does.
         if getattr(self.ctx, "trusted_facts", None):
             trusted.update(self.ctx.trusted_facts)
-        if authority_established:
-            trusted.update(authorized=True, approved=True, verified=True,
-                           admin_approved=True, change_approved=True,
-                           sanctioned=True)
+        # Authority is applied to THIS step only (see _evaluate_with_context);
+        # it is recorded on the decision so the ledger can carry it forward.
+        authorization["authority_established"] = bool(authority_established)
+        if argprov.supplied:
+            authorization["argument_provenance"] = argprov.as_dict()
         trusted["destination_external"] = dest.external
         trusted["destination_internal"] = not dest.external
         if "amount_threshold" in pol_values:
@@ -1142,9 +1200,18 @@ class GovernanceKernel:
                                f"resource is never taken without its history",
                                "resource_scope_unresolved", None))
         prefix = self._governed_prefix(clean, list(scope_keys))
+        prefix_authority = self._prefix_authority(list(scope_keys))
+        # Runtime provenance shows every argument is clean: the candidate
+        # carries nothing it read, so the read->egress taint does not apply to
+        # it. Trusted context, candidate step only.
+        current_extra = ({"content_provenance_clean": True}
+                         if argprov.all_clean else {})
         try:
             with _sw("trajectory_analysis"):
-                res = self._evaluate_with_context(prefix, trusted)
+                res = self._evaluate_with_context(
+                    prefix, trusted, current_authority=authority_established,
+                    history_authority=prefix_authority,
+                    current_extra=current_extra)
         except Exception as e:                       # noqa: BLE001 — fail closed
             res = None
             candidates.append((BLOCK, "fail_closed",
@@ -1233,11 +1300,23 @@ class GovernanceKernel:
         # ── external egress after any data acquisition ──────
         if dest.external and C.CAP_EXTERNAL_DATA_MOVE in caps and not approval:
             if pol_values.get("egress_requires_approval_after_read", True) and \
-                    self._any_read_occurred():
+                    self._any_read_occurred() and not argprov.all_clean:
                 candidates.append((
                     BLOCK, "egress_policy",
                     f"external egress after data acquisition in this session "
                     f"({dest.reason})", "external_egress_after_read", None))
+
+        # ── argument provenance: values from untrusted content ──
+        # An effectful call whose arguments derive from content an adversary
+        # may control (a payee lifted from a fetched document) is not the
+        # user's decision, however admissible the call is in itself.
+        if argprov.untrusted_args and (caps - {C.CAP_DATA_READ}) and not approval:
+            candidates.append((
+                ESCALATE, "argument_provenance",
+                f"argument(s) {', '.join(argprov.untrusted_args)} derive from "
+                f"untrusted content; the runtime reports "
+                f"{', '.join(f'{a}={argprov.labels[a]}' for a in argprov.untrusted_args)}",
+                "untrusted_argument_provenance", None))
 
         # ── denial-scrubbing: a blocked read still taints ───
         denied = self._denied_read_occurred()
@@ -1394,13 +1473,15 @@ class GovernanceKernel:
                                       "unknown_tool", "binding", "continuity",
                                       "normalization", "destination_policy",
                                       "lease")):
-                hyp_ctx = {**trusted, "authorized": True, "approved": True,
-                           "verified": True, "admin_approved": True,
-                           "change_approved": True, "sanctioned": True}
                 try:
                     with _sw("trajectory_analysis"):
+                        # Would an approval of THIS call clear it? Hypothetical
+                        # authority for the candidate only, history unchanged.
                         hyp = self._evaluate_with_context(
-                            self._governed_prefix(clean, list(scope_keys)), hyp_ctx)
+                            self._governed_prefix(clean, list(scope_keys)), trusted,
+                            current_authority=True,
+                            history_authority=self._prefix_authority(list(scope_keys)),
+                            current_extra=current_extra)
                     if hyp.permitted:
                         verdict = ESCALATE
                         layer = "capability_policy"
@@ -1741,7 +1822,9 @@ class GovernanceKernel:
                 self._file(decision.action, PERMIT, EXECUTED, decision.reason,
                            stamp, capabilities=decision.capabilities,
                            decision_id=decision.decision_id,
-                           semantic_hash=decision.semantic_hash)
+                           semantic_hash=decision.semantic_hash,
+                           authority=bool(decision.authorization.get(
+                               "authority_established")))
                 # An effect that happened remotely counts against every shared
                 # resource it touched, reserved beforehand or not (V-G1b: a
                 # preview decision recorded here was filed under the

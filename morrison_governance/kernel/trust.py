@@ -55,6 +55,8 @@ AUTHORITY_FIELDS = frozenset({
     "external", "trusted", "is_trusted", "privileged", "is_privileged",
     "safe", "is_safe", "sanitized", "sanitised", "anonymized", "anonymised",
     "deidentified", "de_identified", "encrypted",
+    # provenance assertions: runtime-supplied, never call-supplied
+    "content_provenance_clean", "argument_provenance",
     # policy-bound comparison values the caller must not choose
     "threshold", "limit", "max_amount", "risk_score", "identity_score",
     "confidence", "severity_override", "policy", "policy_override",

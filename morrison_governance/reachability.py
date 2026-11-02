@@ -63,6 +63,14 @@ _KNOWN_V2_VOCAB = frozenset(
 )
 
 
+
+def _content_provenance_clean(eval_dict) -> bool:
+    """The kernel established, from RUNTIME provenance, that every argument of
+    this step is clean (kernel.argflow). TRUSTED provenance only: a caller
+    argument of the same name is untrusted and reads as False."""
+    from morrison_governance import provenance as _prov
+    return _prov.coerce(eval_dict).attested_truthy("content_provenance_clean")
+
 class ReachabilityEvaluator:
     """
     Evaluates whether a trajectory's reachable set intersects Ω.
@@ -235,7 +243,8 @@ class ReachabilityEvaluator:
                 tainted_by = (state.step, tool)
                 continue
 
-            if tainted_by is not None and tool in EGRESS_SINKS:
+            if tainted_by is not None and tool in EGRESS_SINKS \
+                    and not _content_provenance_clean(ed):
                 if tool in CODE_EXEC_SINKS or self._is_external_sink(
                         tool, ed, argstr):
                     src_step, src_tool = tainted_by
@@ -377,7 +386,7 @@ class ReachabilityEvaluator:
                     open_world = open_world or is_ow
                 continue
 
-            if egresses_data(call):
+            if egresses_data(call) and not _content_provenance_clean(ed):
                 is_exec = bool(infer_capabilities(call) & {CAP_EXEC})
                 external = is_exec or self._is_external_sink(
                     tl, ed, argstr)
