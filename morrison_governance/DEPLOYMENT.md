@@ -253,6 +253,50 @@ outcomes = wg.run(workflow_steps, executor=run)
 - **Audit hook.** Pass `GovernanceGuard(gov, security_context=ctx, audit=fn)`
   to receive every `Decision` for logging/SIEM regardless of verdict.
 
+## Resource-side enforcement
+
+**Argument classification is defence in depth. The guarantee is what the
+executor's credentials can do.** The kernel decides from the *text* of a
+proposed call; the resource decides what that text *does*. Those can differ,
+and when they do the resource wins.
+
+The external review that found `SQL-LEX-01` (see
+[`VIOLATION_LEDGER.md`](../runtime_eval/results/VIOLATION_LEDGER.md)) showed
+this directly: a tool declared `data.read` was PERMITTED to run
+`DROP/**/TABLE customers`, `TRUNCATE customers` and
+`UPDATE accounts SET balance=0`, because SQL was matched by a regular
+expression. SQL, shell commands, file paths and URLs are now read structurally
+(`kernel/sql.py`, `kernel/shell.py`, `kernel/paths.py`,
+`kernel/destinations.py`): SQL is tokenised under five dialects with comments
+removed and every statement classified, the strictest deciding; anything
+dynamic or unparseable escalates. That closes the reported cases. It does not
+make text classification a guarantee, and it cannot:
+
+- a `SELECT` can call a user-defined function that writes, deletes or calls
+  out; no text classifier can know what `SELECT archive_old_rows()` does;
+- a view, trigger or rule on the server can turn a read into a write;
+- a dialect, driver or client that reads the same bytes differently from the
+  five modelled dialects (or from the two URL parsers modelled) is a new
+  parser differential;
+- a program not in the shell allowlist is escalated as `code.execute`, but a
+  program *in* it can still be pointed at something it should not touch;
+- the credential-path table is a list, and lists are incomplete.
+
+So a deployment must make the resource enforce the same intent:
+
+| Tool declared as | Resource-side control that makes the declaration true |
+|---|---|
+| `data.read` over SQL | A database role with `SELECT` only (PostgreSQL: `default_transaction_read_only = on` for the role, no `CREATE`/`TEMP`, `REVOKE EXECUTE ON ALL FUNCTIONS` except an allowlist; MySQL: `GRANT SELECT` only, no `FILE`/`SUPER`/`PROCESS`); or a read replica the executor cannot write to |
+| Any SQL tool | Disable multi-statement execution in the driver; never let the agent hold DDL, `GRANT`, `COPY ... PROGRAM`, `xp_cmdshell`, `LOAD_FILE` or `INTO OUTFILE` rights |
+| File reads | The executor's OS identity cannot read credential stores (`~/.ssh`, `~/.aws`, `/etc/shadow`, `/proc/*/environ`, mounted secrets); a read-only bind mount of the working tree |
+| Shell | No shell tool where possible; otherwise a sandbox (container/VM, read-only root, no network, seccomp) where the executor has no destructive privileges to misuse |
+| Egress | A forward proxy that enforces the same host allowlist as `internal_url_hosts`, resolving the URL itself, so a parser differential cannot reach a host the kernel judged internal |
+
+When the two layers disagree, the resource-side control is the one that
+holds. The kernel's job is to refuse early, explain why, record evidence, and
+govern trajectories the resource cannot see; it is not a substitute for least
+privilege.
+
 ## Reproduction
 
 ```

@@ -23,6 +23,40 @@ from typing import Any, Optional
 from urllib.parse import urlparse
 
 _URL_RE = re.compile(r"https?://[^\s\"'<>)]+", re.I)
+# Every spelling a URL parser will accept for a special scheme. WHATWG parsers
+# (browsers, Node `fetch`/undici, Deno) accept `https:host`, `https:/host`,
+# `https:\\host` and treat `\` as `/`; RFC 3986 parsers (Python `urlparse`)
+# do not. `https://attacker.example\@acme.internal/` is attacker.example to
+# the first and acme.internal to the second, and was classified internal.
+_URL_ANY_RE = re.compile(
+    r"(?<![A-Za-z0-9+.\-])(?:https?|wss?|ftps?|sftp|gopher)\s*:[^\s\"'<>)]*", re.I)
+
+
+def _whatwg_host(rest: str) -> str:
+    """The host a WHATWG URL parser extracts from the text after `scheme:`."""
+    r = rest.replace("\\", "/").lstrip("/")
+    authority = re.split(r"[/?#]", r, maxsplit=1)[0]
+    host = authority.rsplit("@", 1)[-1]
+    if host.startswith("["):
+        return host[1:].split("]", 1)[0]
+    return host.split(":", 1)[0]
+
+
+def _url_readings(text: str) -> list[tuple[str, list[str]]]:
+    """(url, [host under each parser]) for every URL in `text`."""
+    out = []
+    for m in _URL_ANY_RE.finditer(text):
+        url = m.group(0)
+        scheme, _, rest = url.partition(":")
+        hosts = []
+        try:
+            rfc = urlparse(f"{scheme.strip()}:{rest}").hostname or ""
+        except ValueError:
+            rfc = ""
+        hosts.append(rfc)
+        hosts.append(_whatwg_host(rest))
+        out.append((url, [h for h in dict.fromkeys(hosts) if h]))
+    return out
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 # Public-share ACL values that egress data regardless of hostname.
 _PUBLIC_ACL = re.compile(
@@ -180,16 +214,31 @@ def classify_destination(call: dict, internal_url_hosts: tuple = (),
             externals.append(f"public share ({key}={sval})")
             continue
 
-        for url in _URL_RE.findall(sval):
+        for url, hosts in _url_readings(sval):
             observed.append(url)
-            host = normalize_host(urlparse(url).hostname or "")
-            if _forbidden(host):
-                externals.append(f"{host} (metadata/link-local endpoint)")
-            elif _host_is_internal(host, internal_url_hosts, internal_cidrs,
-                                   trust_private_networks):
+            # A URL is internal only if EVERY parser's reading of it is.
+            for host in hosts or [""]:
+                host = normalize_host(host)
+                if _forbidden(host):
+                    externals.append(f"{host} (metadata/link-local endpoint)")
+                elif _host_is_internal(host, internal_url_hosts, internal_cidrs,
+                                       trust_private_networks):
+                    internals.append(host)
+                else:
+                    externals.append(host or url)
+
+        # Scheme-relative destinations (`//host/x`) resolve against whatever
+        # base the client has; the host is the one named.
+        stripped = sval.strip()
+        if kl in _DEST_KEYS and re.match(r"^[/\\]{2}", stripped):
+            host = normalize_host(_whatwg_host(stripped))
+            observed.append(stripped)
+            if host and _host_is_internal(host, internal_url_hosts, internal_cidrs,
+                                          trust_private_networks) and not _forbidden(host):
                 internals.append(host)
             else:
-                externals.append(host or url)
+                externals.append(host or stripped)
+            continue
 
         for addr in _EMAIL_RE.findall(sval):
             observed.append(addr)
@@ -199,7 +248,7 @@ def classify_destination(call: dict, internal_url_hosts: tuple = (),
                 externals.append(addr)
 
         # Bare host/endpoint values without a scheme.
-        if kl in _DEST_KEYS and not _URL_RE.search(sval) and sval.strip():
+        if kl in _DEST_KEYS and not _URL_ANY_RE.search(sval) and sval.strip():
             cand = sval.strip().split("/")[0].split(":")[0]
             if cand and ("." in cand or cand in ("localhost",)):
                 cand = normalize_host(cand)
