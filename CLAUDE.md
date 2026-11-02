@@ -40,6 +40,12 @@ proposed tool call goes through `GovernanceKernel.authorize` → `execute`. Read
   deny-all, allowlist, a reference provenance baseline, Morrison (in-process, lease-mediated), and the original
   Progent and CaMeL implementations (installed in a separate venv). CaMeL leads trajectory and provenance; Morrison
   leads cross-agent and resource-side; Progent matches Morrison on authorisation with better clean-workload utility.
+- **Independent-review remediation (branch `claude/independent-review-remediation`, 2026-11-02).** Report:
+  `INDEPENDENT_REVIEW_REMEDIATION.md`; corrected claims `benchmarks/performance/CORRECTED_RESULTS.md`; handoff
+  `benchmarks/performance/REMEDIATION_HANDOFF.md`; evidence `benchmarks/performance/results-remediation/`. The review
+  documents themselves were not available. Benchmark `results/` is frozen: drivers need `--out`, and `write_json`
+  refuses frozen paths. Evidence records now carry `decision_id`/`session_id`/`refers_to`/`outcome`;
+  `reconcile_execution_evidence` joins chains to effects. `run_tlc` fails closed.
 - Artifact and log downloads are blocked from the cloud container (blob storage hosts). The workflow prints the redacted
   evidence as a checksummed base64 tarball in the job log (`export-log`); rebuild it from `get_job_logs` output.
 - **Live run is wired as a manual GitHub Actions workflow**, `.github/workflows/agentdojo-live.yml` ("AgentDojo Live"), using

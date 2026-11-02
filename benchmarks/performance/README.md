@@ -2,7 +2,8 @@
 
 Source, configuration, raw data and results for the performance and
 enforcement benchmark. Current status, results and open work:
-[BENCHMARK_HANDOFF.md](BENCHMARK_HANDOFF.md). The final technical report
+[BENCHMARK_HANDOFF.md](BENCHMARK_HANDOFF.md); corrections to it are in
+[CORRECTED_RESULTS.md](CORRECTED_RESULTS.md). The final technical report
 (`REPORT.md`) has not been written yet. Everything drives the real `GovernanceKernel` and a real
 SQLite resource behind `LeaseVerifier`; nothing in the decision path is mocked.
 
@@ -17,6 +18,9 @@ SQLite resource behind `LeaseVerifier`; nothing in the decision path is mocked.
 | `results/` | 8 | Machine-readable results (`*.json`), raw timings (`*-raw.json.gz`), `summary.csv`, `charts/`, `SHA256SUMS` |
 
 ## Reproduce
+
+The frozen `results/` cannot be overwritten: pass `--out DIR` (or set
+`BENCH_RESULTS_DIR`) on every command below.
 
 ```bash
 export BENCH_WORKDIR=/tmp/mrg-bench          # scratch space for SQLite files

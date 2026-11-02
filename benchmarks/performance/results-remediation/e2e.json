@@ -1,0 +1,1051 @@
+{
+ "environment": {
+  "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+  "gil_disabled": false,
+  "git_branch": "claude/independent-review-remediation",
+  "git_commit": "fe8331365bbafe8454409d43b1e565fe4783e3a8",
+  "git_dirty": false,
+  "hypervisor": "KVM",
+  "implementation": "CPython",
+  "logical_cpus": 4,
+  "memory_total_mb": 16091,
+  "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39",
+  "python": "3.13.18",
+  "sqlite": "3.53.1",
+  "timer": "time.perf_counter_ns (monotonic)",
+  "timer_resolution_ns": 1
+ },
+ "label": "PRE-PRODUCTION local boundary (SQLite, in-process keys)",
+ "policy": "default",
+ "results": [
+  {
+   "accounting": {
+    "legitimate_authorized": 1800,
+    "legitimate_executed": 1800,
+    "legitimate_executed_pct": 100.0,
+    "legitimate_not_executed": [],
+    "legitimate_total": 1800,
+    "prohibited_executed": 200,
+    "prohibited_total": 200
+   },
+   "arm": "ungoverned",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": null,
+   "latency": {
+    "commit": {
+     "max_us": 7023.63,
+     "mean_us": 425.334403,
+     "min_us": 257.516,
+     "n": 2000,
+     "p50_us": 344.18,
+     "p95_us": 701.167,
+     "p99_us": 1637.985
+    },
+    "total_commit": {
+     "max_us": 7023.63,
+     "mean_us": 425.334403,
+     "min_us": 257.516,
+     "n": 2000,
+     "p50_us": 344.18,
+     "p95_us": 701.167,
+     "p99_us": 1637.985
+    }
+   },
+   "ops": 2000,
+   "resource_effects": 2000,
+   "throughput_per_s": 2329.1435956889973,
+   "wall_s": 0.8586847130000024,
+   "workers": 1
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1350,
+    "legitimate_executed": 1350,
+    "legitimate_executed_pct": 75.0,
+    "legitimate_not_executed": [
+     [
+      "send_email",
+      6,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      250
+     ],
+     [
+      "transfer",
+      7,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      200
+     ]
+    ],
+    "legitimate_total": 1800,
+    "prohibited_executed": 0,
+    "prohibited_total": 200
+   },
+   "arm": "inprocess",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": {
+    "chain_files": 250,
+    "counts": {
+     "authorized": 1350,
+     "decision_records": 2000,
+     "dispatched": 1350,
+     "dispatched_without_outcome": 0,
+     "effects": 1350,
+     "effects_bound": 1350,
+     "exported": 0,
+     "refused": 0,
+     "succeeded": 1350,
+     "unbound_records": 0,
+     "unknown": 0
+    },
+    "ok": true,
+    "problem_count": 0,
+    "problems": []
+   },
+   "latency": {
+    "commit": {
+     "max_us": 10015.024,
+     "mean_us": 1679.3523799999998,
+     "min_us": 1123.591,
+     "n": 1350,
+     "p50_us": 1587.785,
+     "p95_us": 2264.481,
+     "p99_us": 3960.742
+    },
+    "evidence_record_fsync": {
+     "max_us": 25834.306,
+     "mean_us": 400.6309125531915,
+     "min_us": 147.994,
+     "n": 4700,
+     "p50_us": 351.245,
+     "p95_us": 708.847,
+     "p99_us": 1022.743
+    },
+    "total_commit": {
+     "max_us": 30943.571,
+     "mean_us": 4126.6557392592595,
+     "min_us": 2658.917,
+     "n": 1350,
+     "p50_us": 3959.68,
+     "p95_us": 5549.124,
+     "p99_us": 8018.56
+    },
+    "total_refusal": {
+     "max_us": 11631.681,
+     "mean_us": 2988.625313846154,
+     "min_us": 1328.642,
+     "n": 650,
+     "p50_us": 2700.17,
+     "p95_us": 4778.769,
+     "p99_us": 7045.893
+    },
+    "verdict": {
+     "max_us": 27947.367,
+     "mean_us": 2623.2329945,
+     "min_us": 1328.642,
+     "n": 2000,
+     "p50_us": 2474.101,
+     "p95_us": 4343.339,
+     "p99_us": 5915.572
+    }
+   },
+   "ops": 2000,
+   "resource_effects": 1350,
+   "throughput_per_s": 243.72827326732576,
+   "wall_s": 8.205859636999776,
+   "workers": 1
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1350,
+    "legitimate_executed": 1350,
+    "legitimate_executed_pct": 75.0,
+    "legitimate_not_executed": [
+     [
+      "send_email",
+      6,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      250
+     ],
+     [
+      "transfer",
+      7,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      200
+     ]
+    ],
+    "legitimate_total": 1800,
+    "prohibited_executed": 0,
+    "prohibited_total": 200
+   },
+   "arm": "mediated",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": {
+    "chain_files": 250,
+    "counts": {
+     "authorized": 1350,
+     "decision_records": 2000,
+     "dispatched": 0,
+     "dispatched_without_outcome": 0,
+     "effects": 1350,
+     "effects_bound": 1350,
+     "exported": 1350,
+     "refused": 0,
+     "succeeded": 0,
+     "unbound_records": 0,
+     "unknown": 0
+    },
+    "ok": true,
+    "problem_count": 0,
+    "problems": []
+   },
+   "latency": {
+    "evidence_record_fsync": {
+     "max_us": 11334.078,
+     "mean_us": 399.5726594029851,
+     "min_us": 140.604,
+     "n": 3350,
+     "p50_us": 360.404,
+     "p95_us": 671.976,
+     "p99_us": 1103.52
+    },
+    "mint": {
+     "max_us": 31541.388,
+     "mean_us": 6254.611034074073,
+     "min_us": 4751.676,
+     "n": 1350,
+     "p50_us": 5995.525,
+     "p95_us": 7905.677,
+     "p99_us": 11137.772
+    },
+    "total_commit": {
+     "max_us": 44871.659,
+     "mean_us": 15404.364907407407,
+     "min_us": 11689.901,
+     "n": 1350,
+     "p50_us": 14791.114,
+     "p95_us": 19851.371,
+     "p99_us": 26626.95
+    },
+    "total_refusal": {
+     "max_us": 20991.01,
+     "mean_us": 2776.1848630769227,
+     "min_us": 1261.128,
+     "n": 650,
+     "p50_us": 2417.189,
+     "p95_us": 4570.15,
+     "p99_us": 8101.788
+    },
+    "verdict": {
+     "max_us": 20991.01,
+     "mean_us": 2643.2832535000002,
+     "min_us": 1261.128,
+     "n": 2000,
+     "p50_us": 2358.335,
+     "p95_us": 4497.164,
+     "p99_us": 7821.136
+    },
+    "verify_commit": {
+     "max_us": 30452.212,
+     "mean_us": 6570.460283703704,
+     "min_us": 5169.251,
+     "n": 1350,
+     "p50_us": 6330.036,
+     "p95_us": 8113.295,
+     "p99_us": 11543.545
+    }
+   },
+   "ops": 2000,
+   "resource_effects": 1350,
+   "throughput_per_s": 86.4436405100955,
+   "wall_s": 23.136461956000403,
+   "workers": 1
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1800,
+    "legitimate_executed": 1800,
+    "legitimate_executed_pct": 100.0,
+    "legitimate_not_executed": [],
+    "legitimate_total": 1800,
+    "prohibited_executed": 200,
+    "prohibited_total": 200
+   },
+   "arm": "ungoverned",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": null,
+   "latency": {
+    "commit": {
+     "max_us": 338104.109,
+     "mean_us": 1918.9743535,
+     "min_us": 241.838,
+     "n": 2000,
+     "p50_us": 442.521,
+     "p95_us": 1009.162,
+     "p99_us": 34281.388
+    },
+    "total_commit": {
+     "max_us": 338104.109,
+     "mean_us": 1918.9743535,
+     "min_us": 241.838,
+     "n": 2000,
+     "p50_us": 442.521,
+     "p95_us": 1009.162,
+     "p99_us": 34281.388
+    }
+   },
+   "ops": 2000,
+   "resource_effects": 2000,
+   "throughput_per_s": 1720.6421380020586,
+   "wall_s": 1.162356748000093,
+   "workers": 4
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1352,
+    "legitimate_executed": 1352,
+    "legitimate_executed_pct": 75.111,
+    "legitimate_not_executed": [
+     [
+      "send_email",
+      6,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      248
+     ],
+     [
+      "transfer",
+      7,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      200
+     ]
+    ],
+    "legitimate_total": 1800,
+    "prohibited_executed": 0,
+    "prohibited_total": 200
+   },
+   "arm": "inprocess",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": {
+    "chain_files": 252,
+    "counts": {
+     "authorized": 1352,
+     "decision_records": 2000,
+     "dispatched": 1352,
+     "dispatched_without_outcome": 0,
+     "effects": 1352,
+     "effects_bound": 1352,
+     "exported": 0,
+     "refused": 0,
+     "succeeded": 1352,
+     "unbound_records": 0,
+     "unknown": 0
+    },
+    "ok": true,
+    "problem_count": 0,
+    "problems": []
+   },
+   "latency": {
+    "commit": {
+     "max_us": 63116.61,
+     "mean_us": 8505.914673076924,
+     "min_us": 1052.386,
+     "n": 1352,
+     "p50_us": 6809.309,
+     "p95_us": 18499.901,
+     "p99_us": 34063.421
+    },
+    "evidence_record_fsync": {
+     "max_us": 18732.107,
+     "mean_us": 837.6916551870748,
+     "min_us": 155.292,
+     "n": 4704,
+     "p50_us": 464.447,
+     "p95_us": 2742.887,
+     "p99_us": 4662.86
+    },
+    "total_commit": {
+     "max_us": 144214.172,
+     "mean_us": 18659.875423816567,
+     "min_us": 2702.906,
+     "n": 1352,
+     "p50_us": 15245.551,
+     "p95_us": 39690.849,
+     "p99_us": 63160.567
+    },
+    "total_refusal": {
+     "max_us": 57781.094,
+     "mean_us": 7893.336274691358,
+     "min_us": 1442.685,
+     "n": 648,
+     "p50_us": 6021.93,
+     "p95_us": 21329.719,
+     "p99_us": 38463.428
+    },
+    "verdict": {
+     "max_us": 135661.749,
+     "mean_us": 9421.518420499999,
+     "min_us": 1432.596,
+     "n": 2000,
+     "p50_us": 6699.185,
+     "p95_us": 25757.615,
+     "p99_us": 45316.135
+    }
+   },
+   "ops": 2000,
+   "resource_effects": 1352,
+   "throughput_per_s": 250.80323777967223,
+   "wall_s": 7.974378710999645,
+   "workers": 4
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1352,
+    "legitimate_executed": 1352,
+    "legitimate_executed_pct": 75.111,
+    "legitimate_not_executed": [
+     [
+      "send_email",
+      6,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      248
+     ],
+     [
+      "transfer",
+      7,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      200
+     ]
+    ],
+    "legitimate_total": 1800,
+    "prohibited_executed": 0,
+    "prohibited_total": 200
+   },
+   "arm": "mediated",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": {
+    "chain_files": 252,
+    "counts": {
+     "authorized": 1352,
+     "decision_records": 2000,
+     "dispatched": 0,
+     "dispatched_without_outcome": 0,
+     "effects": 1352,
+     "effects_bound": 1352,
+     "exported": 1352,
+     "refused": 0,
+     "succeeded": 0,
+     "unbound_records": 0,
+     "unknown": 0
+    },
+    "ok": true,
+    "problem_count": 0,
+    "problems": []
+   },
+   "latency": {
+    "evidence_record_fsync": {
+     "max_us": 8202.729,
+     "mean_us": 606.652736575179,
+     "min_us": 145.68,
+     "n": 3352,
+     "p50_us": 473.742,
+     "p95_us": 2143.854,
+     "p99_us": 2917.427
+    },
+    "mint": {
+     "max_us": 222741.605,
+     "mean_us": 13551.734081360948,
+     "min_us": 4985.762,
+     "n": 1352,
+     "p50_us": 6651.92,
+     "p95_us": 44099.829,
+     "p99_us": 88959.855
+    },
+    "total_commit": {
+     "max_us": 264378.992,
+     "mean_us": 53450.40874482249,
+     "min_us": 14266.077,
+     "n": 1352,
+     "p50_us": 45006.583,
+     "p95_us": 106938.333,
+     "p99_us": 160645.121
+    },
+    "total_refusal": {
+     "max_us": 155829.468,
+     "mean_us": 18659.014816358027,
+     "min_us": 1524.617,
+     "n": 648,
+     "p50_us": 17432.019,
+     "p95_us": 47447.74,
+     "p99_us": 86855.935
+    },
+    "verdict": {
+     "max_us": 159509.857,
+     "mean_us": 23757.6052565,
+     "min_us": 1524.617,
+     "n": 2000,
+     "p50_us": 21102.631,
+     "p95_us": 57027.176,
+     "p99_us": 97953.838
+    },
+    "verify_commit": {
+     "max_us": 40010.362,
+     "mean_us": 13697.366296597633,
+     "min_us": 5972.727,
+     "n": 1352,
+     "p50_us": 12743.794,
+     "p95_us": 22597.096,
+     "p99_us": 28239.505
+    }
+   },
+   "ops": 2000,
+   "resource_effects": 1352,
+   "throughput_per_s": 91.77861809882702,
+   "wall_s": 21.791568030000235,
+   "workers": 4
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1808,
+    "legitimate_executed": 1808,
+    "legitimate_executed_pct": 100.0,
+    "legitimate_not_executed": [],
+    "legitimate_total": 1808,
+    "prohibited_executed": 192,
+    "prohibited_total": 192
+   },
+   "arm": "ungoverned",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": null,
+   "latency": {
+    "commit": {
+     "max_us": 1030795.774,
+     "mean_us": 6186.925021999999,
+     "min_us": 248.31,
+     "n": 2000,
+     "p50_us": 469.017,
+     "p95_us": 9171.539,
+     "p99_us": 130212.311
+    },
+    "total_commit": {
+     "max_us": 1030795.774,
+     "mean_us": 6186.925021999999,
+     "min_us": 248.31,
+     "n": 2000,
+     "p50_us": 469.017,
+     "p95_us": 9171.539,
+     "p99_us": 130212.311
+    }
+   },
+   "ops": 2000,
+   "resource_effects": 2000,
+   "throughput_per_s": 1745.6412820982182,
+   "wall_s": 1.145710759999929,
+   "workers": 16
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1376,
+    "legitimate_executed": 1376,
+    "legitimate_executed_pct": 76.106,
+    "legitimate_not_executed": [
+     [
+      "send_email",
+      6,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      240
+     ],
+     [
+      "transfer",
+      7,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      192
+     ]
+    ],
+    "legitimate_total": 1808,
+    "prohibited_executed": 0,
+    "prohibited_total": 192
+   },
+   "arm": "inprocess",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": {
+    "chain_files": 256,
+    "counts": {
+     "authorized": 1376,
+     "decision_records": 2000,
+     "dispatched": 1376,
+     "dispatched_without_outcome": 0,
+     "effects": 1376,
+     "effects_bound": 1376,
+     "exported": 0,
+     "refused": 0,
+     "succeeded": 1376,
+     "unbound_records": 0,
+     "unknown": 0
+    },
+    "ok": true,
+    "problem_count": 0,
+    "problems": []
+   },
+   "latency": {
+    "commit": {
+     "max_us": 383931.081,
+     "mean_us": 21450.944984738373,
+     "min_us": 1181.015,
+     "n": 1376,
+     "p50_us": 6677.564,
+     "p95_us": 85507.44,
+     "p99_us": 154723.735
+    },
+    "evidence_record_fsync": {
+     "max_us": 18806.313,
+     "mean_us": 796.7740185185186,
+     "min_us": 151.142,
+     "n": 4752,
+     "p50_us": 465.136,
+     "p95_us": 2597.876,
+     "p99_us": 4468.048
+    },
+    "total_commit": {
+     "max_us": 422029.042,
+     "mean_us": 67771.63049055231,
+     "min_us": 3080.676,
+     "n": 1376,
+     "p50_us": 48396.268,
+     "p95_us": 167167.976,
+     "p99_us": 245335.029
+    },
+    "total_refusal": {
+     "max_us": 221130.663,
+     "mean_us": 38276.13218589743,
+     "min_us": 2198.18,
+     "n": 624,
+     "p50_us": 33578.61,
+     "p95_us": 109239.622,
+     "p99_us": 153025.288
+    },
+    "verdict": {
+     "max_us": 276920.549,
+     "mean_us": 43810.784869999996,
+     "min_us": 1477.306,
+     "n": 2000,
+     "p50_us": 34626.409,
+     "p95_us": 115393.68,
+     "p99_us": 177109.142
+    }
+   },
+   "ops": 2000,
+   "resource_effects": 1376,
+   "throughput_per_s": 257.51361807656394,
+   "wall_s": 7.766579550000188,
+   "workers": 16
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1376,
+    "legitimate_executed": 1376,
+    "legitimate_executed_pct": 76.106,
+    "legitimate_not_executed": [
+     [
+      "send_email",
+      6,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      240
+     ],
+     [
+      "transfer",
+      7,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      192
+     ]
+    ],
+    "legitimate_total": 1808,
+    "prohibited_executed": 0,
+    "prohibited_total": 192
+   },
+   "arm": "mediated",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": {
+    "chain_files": 256,
+    "counts": {
+     "authorized": 1376,
+     "decision_records": 2000,
+     "dispatched": 0,
+     "dispatched_without_outcome": 0,
+     "effects": 1376,
+     "effects_bound": 1376,
+     "exported": 1376,
+     "refused": 0,
+     "succeeded": 0,
+     "unbound_records": 0,
+     "unknown": 0
+    },
+    "ok": true,
+    "problem_count": 0,
+    "problems": []
+   },
+   "latency": {
+    "evidence_record_fsync": {
+     "max_us": 22743.165,
+     "mean_us": 607.8294363151658,
+     "min_us": 139.253,
+     "n": 3376,
+     "p50_us": 447.995,
+     "p95_us": 2129.298,
+     "p99_us": 2980.573
+    },
+    "mint": {
+     "max_us": 538931.684,
+     "mean_us": 54555.489401889536,
+     "min_us": 5065.191,
+     "n": 1376,
+     "p50_us": 6891.461,
+     "p95_us": 222406.937,
+     "p99_us": 387172.142
+    },
+    "total_commit": {
+     "max_us": 870531.358,
+     "mean_us": 201375.19032267443,
+     "min_us": 14764.717,
+     "n": 1376,
+     "p50_us": 151806.154,
+     "p95_us": 457717.152,
+     "p99_us": 586763.228
+    },
+    "total_refusal": {
+     "max_us": 751233.427,
+     "mean_us": 101089.4409951923,
+     "min_us": 1959.892,
+     "n": 624,
+     "p50_us": 92893.737,
+     "p95_us": 296385.08,
+     "p99_us": 450352.437
+    },
+    "verdict": {
+     "max_us": 828663.332,
+     "mean_us": 122880.1256965,
+     "min_us": 1714.117,
+     "n": 2000,
+     "p50_us": 100055.442,
+     "p95_us": 302623.464,
+     "p99_us": 461656.518
+    },
+    "verify_commit": {
+     "max_us": 48930.421,
+     "mean_us": 14057.75309229651,
+     "min_us": 5740.108,
+     "n": 1376,
+     "p50_us": 12801.717,
+     "p95_us": 23228.91,
+     "p99_us": 29627.597
+    }
+   },
+   "ops": 2000,
+   "resource_effects": 1376,
+   "throughput_per_s": 90.24497446248628,
+   "wall_s": 22.161898897000356,
+   "workers": 16
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1792,
+    "legitimate_executed": 1792,
+    "legitimate_executed_pct": 100.0,
+    "legitimate_not_executed": [],
+    "legitimate_total": 1792,
+    "prohibited_executed": 192,
+    "prohibited_total": 192
+   },
+   "arm": "ungoverned",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": null,
+   "latency": {
+    "commit": {
+     "max_us": 1443506.771,
+     "mean_us": 27647.078199596774,
+     "min_us": 263.704,
+     "n": 1984,
+     "p50_us": 568.679,
+     "p95_us": 129372.95,
+     "p99_us": 743731.663
+    },
+    "total_commit": {
+     "max_us": 1443506.771,
+     "mean_us": 27647.078199596774,
+     "min_us": 263.704,
+     "n": 1984,
+     "p50_us": 568.679,
+     "p95_us": 129372.95,
+     "p99_us": 743731.663
+    }
+   },
+   "ops": 1984,
+   "resource_effects": 1984,
+   "throughput_per_s": 1237.0078573592202,
+   "wall_s": 1.6038701679999576,
+   "workers": 64
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1344,
+    "legitimate_executed": 1344,
+    "legitimate_executed_pct": 75.0,
+    "legitimate_not_executed": [
+     [
+      "send_email",
+      6,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      256
+     ],
+     [
+      "transfer",
+      7,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      192
+     ]
+    ],
+    "legitimate_total": 1792,
+    "prohibited_executed": 0,
+    "prohibited_total": 192
+   },
+   "arm": "inprocess",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": {
+    "chain_files": 256,
+    "counts": {
+     "authorized": 1344,
+     "decision_records": 1984,
+     "dispatched": 1344,
+     "dispatched_without_outcome": 0,
+     "effects": 1344,
+     "effects_bound": 1344,
+     "exported": 0,
+     "refused": 0,
+     "succeeded": 1344,
+     "unbound_records": 0,
+     "unknown": 0
+    },
+    "ok": true,
+    "problem_count": 0,
+    "problems": []
+   },
+   "latency": {
+    "commit": {
+     "max_us": 1125196.658,
+     "mean_us": 72353.66388541667,
+     "min_us": 1823.933,
+     "n": 1344,
+     "p50_us": 7037.143,
+     "p95_us": 374094.753,
+     "p99_us": 678607.738
+    },
+    "evidence_record_fsync": {
+     "max_us": 13472.941,
+     "mean_us": 807.9482793236301,
+     "min_us": 155.985,
+     "n": 4672,
+     "p50_us": 475.332,
+     "p95_us": 2638.143,
+     "p99_us": 4518.573
+    },
+    "total_commit": {
+     "max_us": 1648500.899,
+     "mean_us": 262915.3312269345,
+     "min_us": 4836.645,
+     "n": 1344,
+     "p50_us": 188243.693,
+     "p95_us": 660455.352,
+     "p99_us": 1036628.707
+    },
+    "total_refusal": {
+     "max_us": 2434312.945,
+     "mean_us": 156939.147196875,
+     "min_us": 2204.068,
+     "n": 640,
+     "p50_us": 140145.0,
+     "p95_us": 451491.616,
+     "p99_us": 693041.85
+    },
+    "verdict": {
+     "max_us": 2434312.945,
+     "mean_us": 179715.6931013105,
+     "min_us": 1454.514,
+     "n": 1984,
+     "p50_us": 144256.567,
+     "p95_us": 455462.134,
+     "p99_us": 708466.165
+    }
+   },
+   "ops": 1984,
+   "resource_effects": 1344,
+   "throughput_per_s": 253.17364405055005,
+   "wall_s": 7.836518715999773,
+   "workers": 64
+  },
+  {
+   "accounting": {
+    "legitimate_authorized": 1344,
+    "legitimate_executed": 1344,
+    "legitimate_executed_pct": 75.0,
+    "legitimate_not_executed": [
+     [
+      "send_email",
+      6,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      256
+     ],
+     [
+      "transfer",
+      7,
+      "BLOCK",
+      "V2",
+      null,
+      "Multi-step escalation detected (2 transitions to sensitive tools)",
+      192
+     ]
+    ],
+    "legitimate_total": 1792,
+    "prohibited_executed": 0,
+    "prohibited_total": 192
+   },
+   "arm": "mediated",
+   "error_examples": [],
+   "errors": 0,
+   "evidence": {
+    "chain_files": 256,
+    "counts": {
+     "authorized": 1344,
+     "decision_records": 1984,
+     "dispatched": 0,
+     "dispatched_without_outcome": 0,
+     "effects": 1344,
+     "effects_bound": 1344,
+     "exported": 1344,
+     "refused": 0,
+     "succeeded": 0,
+     "unbound_records": 0,
+     "unknown": 0
+    },
+    "ok": true,
+    "problem_count": 0,
+    "problems": []
+   },
+   "latency": {
+    "evidence_record_fsync": {
+     "max_us": 19571.412,
+     "mean_us": 639.8569789663461,
+     "min_us": 139.869,
+     "n": 3328,
+     "p50_us": 482.543,
+     "p95_us": 2223.471,
+     "p99_us": 3270.701
+    },
+    "mint": {
+     "max_us": 2574389.199,
+     "mean_us": 202207.8322909226,
+     "min_us": 5262.432,
+     "n": 1344,
+     "p50_us": 7125.371,
+     "p95_us": 887446.657,
+     "p99_us": 1466841.608
+    },
+    "total_commit": {
+     "max_us": 4546963.753,
+     "mean_us": 798923.0843950893,
+     "min_us": 15548.045,
+     "n": 1344,
+     "p50_us": 676492.158,
+     "p95_us": 1908055.711,
+     "p99_us": 2899809.189
+    },
+    "total_refusal": {
+     "max_us": 2128820.57,
+     "mean_us": 423598.557715625,
+     "min_us": 2155.556,
+     "n": 640,
+     "p50_us": 404613.464,
+     "p95_us": 1250827.552,
+     "p99_us": 1741200.511
+    },
+    "verdict": {
+     "max_us": 3792990.719,
+     "mean_us": 530983.2393109879,
+     "min_us": 1777.873,
+     "n": 1984,
+     "p50_us": 428849.91,
+     "p95_us": 1306667.494,
+     "p99_us": 2041996.245
+    },
+    "verify_commit": {
+     "max_us": 61404.562,
+     "mean_us": 14596.450128720238,
+     "min_us": 6058.216,
+     "n": 1344,
+     "p50_us": 13235.849,
+     "p95_us": 23533.413,
+     "p99_us": 33252.553
+    }
+   },
+   "ops": 1984,
+   "resource_effects": 1344,
+   "throughput_per_s": 86.67509508659549,
+   "wall_s": 22.890081608999935,
+   "workers": 64
+  }
+ ],
+ "session_length": 8
+}

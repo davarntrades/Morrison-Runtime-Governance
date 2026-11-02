@@ -1,5 +1,16 @@
 # Benchmark handoff: performance, concurrency and end-to-end enforcement
 
+> **Corrections (2026-11-02, independent-review remediation).** This handoff is
+> preserved as written. Several of its claims are corrected, with evidence and
+> traceability, in [CORRECTED_RESULTS.md](CORRECTED_RESULTS.md) and
+> [INDEPENDENT_REVIEW_REMEDIATION.md](../../INDEPENDENT_REVIEW_REMEDIATION.md):
+> legitimate completion is 85.714% (session) and 75.0–76.1% (e2e), not 100%;
+> "prohibited = must not execute under any interleaving" does not hold under the
+> measured default policy, because a genuine approval executes destructive
+> SQL/shell; the persisted e2e evidence did not recompute and held no execution
+> outcomes. Re-run with `--out`: the commands below would otherwise overwrite
+> `results/`, which is now refused.
+
 Status as of 2026-11-02. This is a **handoff of measured results and open work**,
 not the final technical report. `REPORT.md` (Phase 9 assessment with
 SUPPORTED/UNSUPPORTED/UNCERTAIN classifications) has **not been written**; the
