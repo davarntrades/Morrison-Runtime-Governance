@@ -44,14 +44,19 @@ CAP_PERSISTENCE = "persistence.establish"          # cron/webhook/key/service
 CAP_CODE_EXEC = "code.execute"
 CAP_DELEGATION = "agent.delegate"
 CAP_DATA_READ = "data.read"
+CAP_DATA_WRITE = "data.write"                      # insert/update/merge/DDL (kernel.sql)
 CAP_WILDCARD_SCOPE = "scope.wildcard"              # '*'/all/organization scope
+# A statement whose effect could not be established from its text: an unknown
+# statement type, dynamic SQL, or SQL no dialect could lex. Fails closed.
+CAP_UNCLASSIFIED_STATEMENT = "statement.unclassified"
 
 ALL_CAPABILITIES = frozenset({
     CAP_DATA_DESTRUCTIVE, CAP_INFRA_DESTRUCTIVE, CAP_BACKUP_DESTRUCTIVE,
     CAP_SECURITY_CONTROL, CAP_LOG_TAMPER, CAP_CREDENTIAL_READ,
     CAP_CREDENTIAL_CHANGE, CAP_IAM_PRIVILEGED, CAP_EXTERNAL_DATA_MOVE,
     CAP_PAYMENT, CAP_PERSISTENCE, CAP_CODE_EXEC, CAP_DELEGATION,
-    CAP_DATA_READ, CAP_WILDCARD_SCOPE,
+    CAP_DATA_READ, CAP_DATA_WRITE, CAP_WILDCARD_SCOPE,
+    CAP_UNCLASSIFIED_STATEMENT,
 })
 
 # ── Morphology: verbs and objects, not whole tool names ─────────────────
@@ -109,11 +114,21 @@ _DELEGATE_OBJECT = re.compile(
     r"invoke_?agent|route_?to|forward_?to)", re.I)
 
 # ── Embedded payload analysis ───────────────────────────────────────────
+# `_SQL_DESTRUCTIVE` is the original LEXICAL floor. It is kept, unioned with the
+# structural reading in `kernel.sql`, because a classifier can add governance
+# but must never remove it: anything the regex caught before is still caught.
+# On its own it was bypassed by `DROP/**/TABLE`, `TRUNCATE customers`,
+# `UPDATE ... SET` and dynamic SQL (VIOLATION_LEDGER SQL-LEX-01).
 _SQL_DESTRUCTIVE = re.compile(
     r"\b(drop\s+(database|table|schema|index|view)|truncate\s+table|"
     r"delete\s+from|alter\s+table\s+\w+\s+drop|drop\s+column)\b", re.I)
 _SHELL_DESTRUCTIVE = re.compile(
-    r"(rm\s+-[rf]{1,2}|mkfs|shred\s|dd\s+if=|>\s*/dev/sd|format\s+[a-z]:)", re.I)
+    r"(rm\s+-[rf]{1,2}|mkfs|shred\s|dd\s+if=|>\s*/dev/sd|format\s+[a-z]:|"
+    r"\bfind\s[^|;&\n]*\s-delete\b|\s-exec(dir)?\s+(\S*/)?rm\b)", re.I)
+# Text piped into an interpreter is code whatever produced it (`base64 -d | sh`).
+_SHELL_PIPE_TO_INTERPRETER = re.compile(
+    r"\|\s*(sudo\s+)?(\S*/)?(ba|z|da|k|c|tc|fi)?sh\b|\|\s*(sudo\s+)?(\S*/)?"
+    r"(python[0-9.]*|perl|ruby|node|php)\b", re.I)
 _WILDCARD_VALUE = re.compile(r"^\s*(\*|all|any|everyone|public|anonymous|\*/\*|organization|org|global|\*\.\*)\s*$", re.I)
 
 # Argument keys whose FALSE/disabled value means a control is being weakened.
@@ -199,6 +214,25 @@ def classify(call: dict, manifest: dict | None = None) -> frozenset:
     scan = blob + " " + nested
     if _SQL_DESTRUCTIVE.search(scan):
         caps.add(CAP_DATA_DESTRUCTIVE)
+    # Structural SQL: tokenised, comment-free, per statement, every dialect.
+    from morrison_governance.kernel.sql import is_db_tool, sql_capabilities
+    sql_caps, _ = sql_capabilities(tool, args)
+    caps |= sql_caps
+    # Structural shell: a value in a command argument IS a command; anything
+    # not known to be read-only is code execution. A database tool's `command`
+    # argument is SQL, read above.
+    from morrison_governance.kernel.normalize import canonical_tool
+    from morrison_governance.kernel.shell import COMMAND_KEYS, shell_capabilities
+    shell_tool = canonical_tool(tool) == "shell"
+    if not is_db_tool(tool):
+        for k, v in _walk(args):
+            if isinstance(v, str) and (shell_tool or str(k).strip().lower() in COMMAND_KEYS):
+                caps |= shell_capabilities(v)
+    if _SHELL_PIPE_TO_INTERPRETER.search(scan):
+        caps.add(CAP_CODE_EXEC)
+    # Structural paths: canonicalised, glob-aware credential locations.
+    from morrison_governance.kernel.paths import path_capabilities
+    caps |= path_capabilities(tool, args)
     if _SHELL_DESTRUCTIVE.search(scan):
         caps.add(CAP_INFRA_DESTRUCTIVE)
         caps.add(CAP_DATA_DESTRUCTIVE)

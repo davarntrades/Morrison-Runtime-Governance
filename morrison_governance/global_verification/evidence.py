@@ -208,9 +208,9 @@ def build_verification_artifact(
 
     # Requirement, enforced at the point of writing rather than only on read:
     # an incomplete enumeration may not leave here carrying a SAFE verdict.
-    if comparison.verdict == "SAFE_WITHIN_MODEL" and not complete:
+    if comparison.verdict in ("SAFE_WITHIN_MODEL", "SAFE_BUT_NOT_LIVE") and not complete:
         raise ValueError(
-            "refusing to build a SAFE_WITHIN_MODEL artifact from an incomplete "
+            f"refusing to build a {comparison.verdict} artifact from an incomplete "
             "enumeration; this is INCONCLUSIVE"
         )
 
@@ -262,6 +262,7 @@ def build_verification_artifact(
             "verdict": comparison.verdict,
             "complete_enumeration": complete,
             "claim": comparison.to_dict(include_graph=False)["claim"],
+            "liveness": comparison.metrics.get("liveness", {}),
             "scope": (
                 "Established within the declared finite model and its stated "
                 "assumptions only. Not a claim about the production "

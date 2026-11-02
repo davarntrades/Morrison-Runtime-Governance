@@ -107,7 +107,7 @@ purely additive).
   trade false-positive (over-block, human review) against long-horizon
   sensitivity. The default is conservative and the direction is
   fail-closed.
-- See `CRITICAL_EVALUATION.md` (repo root) for the project-wide
+- See `docs/research/CRITICAL_EVALUATION.md` (repo root) for the project-wide
   skeptical self-assessment.
 
 ## Governing objective
@@ -123,7 +123,7 @@ The primary demonstrated property is authority separation — the agent holds
 proposal capability and cannot mint execution authority. Ω-exclusion is derived
 inside an established governed boundary and is conditional on complete
 mediation, specification correctness and key custody. See
-[AUTHORITY_SEPARATION.md](../AUTHORITY_SEPARATION.md).
+[docs/research/AUTHORITY_SEPARATION.md](../docs/research/AUTHORITY_SEPARATION.md).
 
 -----
 

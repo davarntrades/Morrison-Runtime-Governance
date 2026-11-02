@@ -112,4 +112,4 @@ proof of safety and does not enumerate the client's whole trajectory
 space — it evaluates the geometry of what is submitted. Coverage is only
 as complete as the submitted trajectories. The severity score is a
 deterministic prioritisation aid, not a probability or an actuarial
-figure. See the repo-root `CRITICAL_EVALUATION.md`.
+figure. See the repo-root `docs/research/CRITICAL_EVALUATION.md`.

@@ -565,11 +565,13 @@ def _govern_bound(guard: GovernanceGuard, name: str, original: Callable):
         @functools.wraps(original)
         async def _agated(*args, **kwargs):
             return await _govern_coroutine(guard, name, original, args, kwargs)
+        _agated.__morrison_governed__ = True
         return _agated
 
     @functools.wraps(original)
     def _gated(*args, **kwargs):
         return _govern_callable(guard, name, original, args, kwargs)
+    _gated.__morrison_governed__ = True
     return _gated
 
 
@@ -678,6 +680,9 @@ class _CallableToolProxy:
     Non-callable attributes pass through: they are data, and reading a
     tool's data is not executing it.
     """
+
+    # Marks a governed wrapper for `mediation_selftest.audit_tools`.
+    __morrison_governed__ = True
 
     __slots__ = ("_tool", "_name", "_guard", "__weakref__")
 
@@ -896,6 +901,7 @@ def wrap_mcp_call_tool(guard: GovernanceGuard, call_tool: Callable) -> Callable:
                 raise
             kernel.record_remote_execution(decision)
             return result
+        _aw.__morrison_governed__ = True
         return _aw
 
     @functools.wraps(call_tool)
@@ -906,6 +912,7 @@ def wrap_mcp_call_tool(guard: GovernanceGuard, call_tool: Callable) -> Callable:
         if not executed:
             raise GovernanceError(decision)
         return out
+    _sw.__morrison_governed__ = True
     return _sw
 
 

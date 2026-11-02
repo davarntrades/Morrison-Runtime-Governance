@@ -12,7 +12,7 @@ path for reasoning-style models (specifically
 `deepseek-ai/DeepSeek-R1-Distill-Qwen-7B`). It is implementation-grounded
 and deliberately bounded: every claim is scoped to the tested battery and
 mechanism, not to global safety. See the repo-root
-[`CRITICAL_EVALUATION.md`](../../CRITICAL_EVALUATION.md) and
+[`docs/research/CRITICAL_EVALUATION.md`](../../docs/research/CRITICAL_EVALUATION.md) and
 [`LIVE_MODEL_VALIDATION.md`](LIVE_MODEL_VALIDATION.md).
 
 ---
@@ -25,7 +25,7 @@ set does not intersect the forbidden region. That result is computed
 over the trajectory the governance layer is *handed*, and holds only inside an
 established governed boundary; it is not an unconditional guarantee. The
 primary demonstrated property is authority separation
-([AUTHORITY_SEPARATION.md](../../AUTHORITY_SEPARATION.md)). Reasoning models
+([docs/research/AUTHORITY_SEPARATION.md](../../docs/research/AUTHORITY_SEPARATION.md)). Reasoning models
 (R1 distills, o-style planners) interleave long natural-language
 reasoning with their final action and emit multi-call plans wrapped in
 markdown/JSON. The previous planner layer could not faithfully recover

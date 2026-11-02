@@ -135,7 +135,7 @@ deny-by-default quorum diversity matters.
 ## Governing invariant
 
 ```
-ℛ(t) ∩ Ω = ∅        [objective; see ../AUTHORITY_SEPARATION.md]
+ℛ(t) ∩ Ω = ∅        [objective; see ../docs/research/AUTHORITY_SEPARATION.md]
 ```
 
 preserved throughout — composed over the joint trajectory, never

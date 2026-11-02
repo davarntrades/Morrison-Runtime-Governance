@@ -260,8 +260,8 @@ byte-identical on replay; the original 120 cases unchanged. A deliberately
 skeptical, carefully-bounded self-assessment (generalization, hidden
 assumptions, failure boundaries, test selection bias, methodology,
 comparison to adjacent literature) is in
-[`CRITICAL_EVALUATION.md`](CRITICAL_EVALUATION.md); quantified failure
-surfaces in [`morrison_governance/LIMITATIONS.md`](morrison_governance/LIMITATIONS.md).
+[`CRITICAL_EVALUATION.md`](../docs/research/CRITICAL_EVALUATION.md); quantified failure
+surfaces in [`morrison_governance/LIMITATIONS.md`](../morrison_governance/LIMITATIONS.md).
 
 -----
 
@@ -308,8 +308,8 @@ curl -X POST http://localhost:8000/evaluate \
 
 For production adapters (OpenAI / Claude / LangChain / AutoGen / MCP /
 browser / workflow) and the fail-closed interceptor, use
-[`morrison_governance/integrations.py`](morrison_governance/integrations.py)
-and [`morrison_governance/interception.py`](morrison_governance/interception.py).
+[`morrison_governance/integrations.py`](../morrison_governance/integrations.py)
+and [`morrison_governance/interception.py`](../morrison_governance/interception.py).
 
 ```mermaid
 graph TD
@@ -344,8 +344,8 @@ graph TD
 |**FastAPI / HTTP**|Deploy as microservice              |`POST /evaluate`                             |
 |**Custom agents** |Callable interface                  |`result = governance(call)`                  |
 
-See [`morrison_governance/integrations.py`](morrison_governance/integrations.py)
-and [`morrison_governance/demo_integrations.py`](morrison_governance/demo_integrations.py)
+See [`morrison_governance/integrations.py`](../morrison_governance/integrations.py)
+and [`morrison_governance/demo_integrations.py`](../morrison_governance/demo_integrations.py)
 for full integration patterns.
 
 -----
@@ -520,7 +520,7 @@ use, resale, sublicensing, or integration into revenue-generating systems
 requires a written commercial licence from Resurrection Tech Ltd. Certain
 implementations may be covered by granted and/or pending intellectual property
 owned by Resurrection Tech Ltd, including **UK Patent GB2600765.8**. Full
-terms: [`License.md`](License.md).
+terms: [`License.md`](../License.md).
 
 -----
 

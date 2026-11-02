@@ -13,7 +13,7 @@ domains, decoding settings, and Colab runtime below. They are an
 internal, reproducible demonstration — **not** a universal-safety claim,
 not a proof, and not an actuarial figure. Independent runs, adversarial
 findings, and bypass reports are welcome (see
-[`../../CRITICAL_EVALUATION.md`](../../CRITICAL_EVALUATION.md)).
+[`docs/research/CRITICAL_EVALUATION.md`](../../docs/research/CRITICAL_EVALUATION.md)).
 
 ## Validation context
 

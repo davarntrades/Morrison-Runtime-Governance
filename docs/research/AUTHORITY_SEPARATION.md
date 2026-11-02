@@ -75,7 +75,7 @@ now enforces and what the evidence actually supports.
 
 The original mrl1 implementation used HMAC, optional binding and a local
 redemption default. Those failures remain historical findings. This section
-describes mrl2; see [migration and scope](docs/security/lease-v2-migration.md).
+describes mrl2; see [migration and scope](../security/lease-v2-migration.md).
 
 ### 2.2 The artifact
 
@@ -274,4 +274,4 @@ GB2600765.8
 [Pre-Pilot Adversarial Evaluation](PRE_PILOT_ADVERSARIAL_EVALUATION.md) ·
 [Complete Mediation Analysis](COMPLETE_MEDIATION_ANALYSIS.md) ·
 [Governed Execution Veto Evaluation](GOVERNED_EXECUTION_VETO_EVALUATION.md) ·
-[Limitations](morrison_governance/LIMITATIONS.md)
+[Limitations](../../morrison_governance/LIMITATIONS.md)

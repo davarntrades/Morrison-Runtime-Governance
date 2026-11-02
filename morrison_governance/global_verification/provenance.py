@@ -40,6 +40,10 @@ ARTIFACT_SCHEMA = "mrg.global-verification.v2"
 _DIGEST_EXCLUDED = ("timestamp", "artifact_integrity")
 
 
+# Both safe verdicts make a safety claim; neither may come from an incomplete
+# enumeration or sit beside reachable prohibited states.
+_SAFE = ("SAFE_WITHIN_MODEL", "SAFE_BUT_NOT_LIVE")
+
 def _git(repo_root: Path, *args: str) -> str | None:
     try:
         out = subprocess.run(
@@ -276,7 +280,7 @@ def validate_verification_artifact(artifact: dict[str, Any]) -> ValidationResult
     fv = artifact.get("finite_verification") or {}
     verdict, complete = fv.get("verdict"), fv.get("complete_enumeration")
     ok &= _check(checks, "no_safe_from_incomplete",
-                 not (verdict == "SAFE_WITHIN_MODEL" and complete is not True),
+                 not (verdict in _SAFE and complete is not True),
                  f"verdict={verdict} complete_enumeration={complete}")
     traversal = artifact.get("traversal") or {}
     ok &= _check(checks, "completeness_agrees",
@@ -286,7 +290,7 @@ def validate_verification_artifact(artifact: dict[str, Any]) -> ValidationResult
     comparison = artifact.get("control_comparison") or {}
     governed = comparison.get("governed") or {}
     ok &= _check(checks, "verdict_agrees_with_traversal",
-                 not (verdict == "SAFE_WITHIN_MODEL"
+                 not (verdict in _SAFE
                       and governed.get("unsafe_reachable_state_count", 0) > 0),
                  "a SAFE verdict may not accompany reachable prohibited states")
 

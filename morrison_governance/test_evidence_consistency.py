@@ -216,6 +216,11 @@ def test_readme_suite_count_matches_a_real_collection():
     tail = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else ""
     got = re.search(r"(\d+) tests? collected", tail)
     assert got, f"could not read a collected count from pytest: {tail!r}"
+    # Optional dependencies (agentdojo, petri, live-model SDKs) must make their
+    # modules SKIP, never error at collection: an erroring module silently drops
+    # its tests from the count and from CI.
+    assert "error" not in tail.lower(), (
+        f"collection reported errors without optional dependencies: {tail!r}")
     collected = int(got.group(1))
 
     # The skipped recursion guard is not collected in the child, so allow it.
@@ -241,6 +246,45 @@ def test_every_relative_link_in_a_published_document_resolves():
                 continue
             assert (base / target).exists(), (
                 f"{rel} links to {target!r}, which does not exist")
+
+
+# Snapshots of earlier document versions, kept verbatim as history. Their links
+# were written relative to the repository root and were already broken when
+# they were filed (24 links); rewriting history to make a check pass is not
+# what the check is for.
+_LINK_HISTORY = ("docs/prior-art/history/",)
+_ANY_LINK = re.compile(r"\]\(\s*<?([^)\s>]+)>?(?:\s+\"[^\"]*\")?\s*\)|(?:href|src)=\"([^\"]+)\"")
+
+
+def test_no_relative_link_in_any_tracked_document_is_broken():
+    """Every relative link in every tracked Markdown file resolves.
+
+    Wider than `PUBLISHED`: documents were moved into docs/research/ and
+    business/, and a move is exactly when a link breaks without anyone
+    noticing."""
+    import urllib.parse
+    proc = subprocess.run(["git", "ls-files", "-z", "*.md"], cwd=ROOT,
+                          capture_output=True, text=True, check=False)
+    if proc.returncode != 0:
+        pytest.skip("not a git checkout")
+    broken = []
+    for rel in filter(None, proc.stdout.split("\0")):
+        if rel.startswith(_LINK_HISTORY):
+            continue
+        path = ROOT / rel
+        text = re.sub(r"```.*?```", "", path.read_text(encoding="utf-8", errors="replace"),
+                      flags=re.S)
+        for m in _ANY_LINK.finditer(text):
+            target = m.group(1) or m.group(2)
+            if re.match(r"^[a-z][a-z0-9+.-]*:", target, re.I) or target.startswith(("#", "//")):
+                continue
+            target = urllib.parse.unquote(target.split("#", 1)[0].split("?", 1)[0])
+            if not target:
+                continue
+            resolved = (ROOT / target.lstrip("/")) if target.startswith("/") else (path.parent / target)
+            if not resolved.exists():
+                broken.append(f"{rel} -> {target}")
+    assert not broken, "broken relative links:\n" + "\n".join(broken)
 
 
 # ── the gate's own failure mode ────────────────────────────────────

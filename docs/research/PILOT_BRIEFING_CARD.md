@@ -321,4 +321,4 @@ GB2600765.8
 [Complete Mediation Analysis](COMPLETE_MEDIATION_ANALYSIS.md) ·
 [Governed Execution Veto Evaluation](GOVERNED_EXECUTION_VETO_EVALUATION.md) ·
 [AOE Falsification Report](AOE_FALSIFICATION_REPORT.md) ·
-[Limitations](morrison_governance/LIMITATIONS.md)
+[Limitations](../../morrison_governance/LIMITATIONS.md)

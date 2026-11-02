@@ -39,7 +39,7 @@ used by the experiment itself.
 Inspected `multi_agent_eval/governance_modes.py`, `joint_trajectory.py`,
 `replay.py`, existing multi-agent tests, `morrison_governance/core.py`,
 `reachability.py`, `trajectory.py`, `domains.py`, and
-`COMPLETE_MEDIATION_ANALYSIS.md` before implementation.
+`docs/research/COMPLETE_MEDIATION_ANALYSIS.md` before implementation.
 
 Both arms use the same fixed proposal list, empty initial state, session,
 request identities and effect adapter. Only governance mode differs.

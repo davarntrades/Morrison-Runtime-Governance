@@ -1,7 +1,7 @@
 # Local/global AOE prior-art search supplement — 5 October 2026
 
 **Status:** Technical comparison and search record; no novelty, anticipation or patentability conclusion.  
-**Parent document:** [Prior Art & Novelty Position](../../PRIOR_ART_AND_NOVELTY_POSITION.md).  
+**Parent document:** [Prior Art & Novelty Position](../research/PRIOR_ART_AND_NOVELTY_POSITION.md).  
 **Baseline:** repository commit [0f84a413080f7084cb1974fe8cdf4352548b8f5e](https://github.com/davarntrades/Morrison-Runtime-Governance/commit/0f84a413080f7084cb1974fe8cdf4352548b8f5e), prior-art blob `cb680e579720d0100f6d1034180b3c6ef3b6a55e`.  
 **Preserved text:** [verbatim pre-update snapshot](history/2026-10-05-before-web-search.md). The snapshot is historical evidence, not the current conclusion.
 

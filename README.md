@@ -8,7 +8,6 @@
 ![Primary Property](https://img.shields.io/badge/Demonstrated-Authority_Separation-0f766e?style=flat-square)
 ![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
 ![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
-![Tests](https://img.shields.io/badge/Tests-1%2C092_Passing-2ea44f?style=flat-square)
 ![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
 
 **Admissible Operating Envelopes for autonomous systems — defined, tested, and enforced before execution.**
@@ -64,18 +63,43 @@ Sayan Chowdhury of Kalaris Labs independently reran selected Morrison Runtime Go
 
 ---
 
-## Try Morrison now
+## What broke, and what is still open
 
-Choose the path that matches how deeply you want to inspect the system.
+Negative results are recorded, not hidden:
+[`runtime_eval/results/VIOLATION_LEDGER.md`](runtime_eval/results/VIOLATION_LEDGER.md) lists every
+observed violation with its conditions, repair, re-falsification and status. Recent entries
+(external review, November 2026):
 
-### 1. Browser — no install, account, agent, or API key
+- **SQL-LEX-01 / ARG-LEX-02..04** — a tool declared `data.read` was PERMITTED to run
+  `DROP/**/TABLE`, `TRUNCATE`, `UPDATE … SET` and dynamic SQL; the same lexical weakness existed for
+  shell commands, credential paths and URL parser differentials. Repaired with structural
+  classification; resource-side least privilege remains the guarantee
+  ([DEPLOYMENT.md](morrison_governance/DEPLOYMENT.md#resource-side-enforcement)).
+- **LIV-01..03** — several governed finite models were reported safe only because legitimate work
+  could not happen. The verifier now reports `SAFE_BUT_NOT_LIVE`; five of seven original scenarios
+  carry it under deny-only escalations
+  ([liveness](docs/research/GLOBAL_SAFETY_VERIFICATION.md#liveness)).
+- **ARSB-UTL-01 / TRJ-05 / LOC-02** — utility lost to an authority-scoping defect (repaired) and to
+  missing argument provenance (recovered only when a runtime supplies provenance)
+  ([investigation](experiments/utility_gap/README.md)).
 
-- **[Live trajectory console](https://www.resurrection-tech.com/live-demo)** — paste your own tool-call sequence and receive the real pre-execution verdict, layer, reason, and downloadable audit trail.
-- **[Test without your own agent](https://www.resurrection-tech.com/test-without-agent)** — run prepared agent scenarios or type a task and inspect the proposed trajectory before Morrison evaluates it.
+## Repository layout
 
-The public console inspects proposed actions only. It does not execute the submitted workflow or expose a production credential in the browser.
+| Path | Contents |
+|---|---|
+| `morrison_governance/` | The kernel, Ω engine, integrations, finite-model verifier, and their tests |
+| `runtime_eval/`, `arsb/`, `multi_agent_eval/`, `limits_audit/`, `experiments/` | Evaluation harnesses with their checked-in results |
+| [`docs/research/`](docs/research/) | Research and evaluation reports (red-team assessments, mediation analysis, verification, prior art) |
+| [`docs/prior-art/`](docs/prior-art/), [`docs/security/`](docs/security/) | Prior-art review and security migration notes |
+| [`business/`](business/) | Commercial material (pricing, pilots, partnerships, positioning), kept separate from the evidence |
 
-### 2. Two-minute local Quick Start — no model key required
+---
+
+## Reproduce it
+
+Everything below runs from a clone, with no account and no model key.
+
+### 1. Two-minute local Quick Start — no model key required
 
 ```bash
 git clone https://github.com/davarntrades/Morrison-Runtime-Governance.git
@@ -98,7 +122,7 @@ For a paced screen-recording version:
 python3 quickstart.py --cinematic
 ```
 
-### 3. Test the evidence surfaces directly
+### 2. Test the evidence surfaces directly
 
 Run a deterministic Frontier Containment experiment. The planner may propose prohibited actions, but only Morrison-permitted calls can reach the inert simulator:
 
@@ -125,6 +149,23 @@ python -m morrison_governance.global_verification --perturbations
 python -m morrison_governance.global_verification --composition-experiment
 ```
 
+Check that the governed models are live as well as safe (`SAFE_BUT_NOT_LIVE` marks models that are safe only because legitimate work cannot complete), and cross-check the larger pipeline model:
+
+```bash
+python -m morrison_governance.global_verification.ci_gate --out verification-artifacts --allow-dirty
+python -m morrison_governance.global_verification.tla_export --out tla-bundle   # add --tlc tla2tools.jar to run TLC
+```
+
+Reproduce the November 2026 review findings and repairs, and run the deployment self-test from where an agent would run:
+
+```bash
+python -m pytest morrison_governance/test_argument_classification.py \
+  morrison_governance/test_utility_recovery.py \
+  morrison_governance/global_verification/test_liveness.py -q
+python -m experiments.utility_gap.run --output arsb-utility --sut morrison --sut morrison-provenance
+python -m morrison_governance.mediation_selftest
+```
+
 Verify the Admissible Operating Envelope and causal-overlay regression suites directly (legacy module paths remain stable):
 
 ```bash
@@ -137,12 +178,12 @@ python -m pytest \
 
 Technical guides:
 
-- [Global Safety Verification Harness](GLOBAL_SAFETY_VERIFICATION.md)
+- [Global Safety Verification Harness](docs/research/GLOBAL_SAFETY_VERIFICATION.md)
 - [Runtime evaluation, causal overlay, and Admissible Operating Envelope](runtime_eval/README.md)
 - [Hosted Frontier Containment Harness](runtime_eval/frontier/README.md)
 - [Deployment integrations](morrison_governance/DEPLOYMENT.md)
 
-These paths test different claims. The browser and Frontier harness provide empirical trajectory evidence. The Admissible Operating Envelope produces a deployment-bounded assurance artifact. Global verification exhaustively enumerates only the declared finite model; it does not establish universal real-world AI safety.
+These paths test different claims. The Frontier harness provides empirical trajectory evidence. The Admissible Operating Envelope produces a deployment-bounded assurance artifact. Global verification exhaustively enumerates only the declared finite model; it does not establish universal real-world AI safety.
 
 ---
 
@@ -381,7 +422,7 @@ Effect(a)  ⟹  ∃ Λ(a) issued by the kernel and valid at redemption
 `Λ(a)` is an authorization artifact bound to the exact action, single-use,
 expiring, and — where a `LeaseVerifier` is deployed — verified by the resource
 rather than by the caller. Full notation and the tests pinning each property:
-[AUTHORITY_SEPARATION.md](AUTHORITY_SEPARATION.md).
+[AUTHORITY_SEPARATION.md](docs/research/AUTHORITY_SEPARATION.md).
 
 **Reachability exclusion is the safety *objective*, and a derived property**
 inside an established governed boundary:
@@ -402,26 +443,7 @@ Exclusion of Ω holds only inside a boundary the deployment establishes, and is
 conditional on complete mediation, specification correctness, key custody, and
 the documented open limitations (MED-11, R4B-05). Morrison does not claim
 complete mediation; see
-[COMPLETE_MEDIATION_ANALYSIS.md](COMPLETE_MEDIATION_ANALYSIS.md).
-
----
-
-## What makes the approach different
-
-### Environment-specific
-The claim is tied to the actual deployment: its tools, permissions, policies, workflows, state, and reachable consequences.
-
-### Trajectory-level
-Morrison evaluates the path through the system, not only the latest prompt, output, or individual tool call.
-
-### Pre-execution
-The governance decision occurs before the proposed action reaches the real execution surface.
-
-### Bounded evidence
-Morrison records what was evaluated, which envelope and constraints applied, what was allowed, escalated, or blocked, and the limits of the local safety claim.
-
-### Model-agnostic
-The governance layer sits outside the model and does not require model retraining or access to model weights.
+[COMPLETE_MEDIATION_ANALYSIS.md](docs/research/COMPLETE_MEDIATION_ANALYSIS.md).
 
 ---
 
@@ -430,7 +452,7 @@ The governance layer sits outside the model and does not require model retrainin
 | Metric | Current state |
 |---|---:|
 | Governance evaluations | **129,857** |
-| Repository test suite | **1,760 collected** (core suite; optional Petri tests excluded) |
+| Repository test suite | **1,966 collected** (core suite; optional Petri tests excluded) |
 | Runtime posture | **Fail-closed** |
 | Governance level | **Pre-execution** |
 | Model dependence | **Model-agnostic middleware** |
@@ -458,52 +480,9 @@ A_safe ⊂ V₂ ⊂ V₃ ⊂ V₄ ⊂ V₄⁺ ⊂ V₅ ⊂ V₅⁺
 
 ---
 
-## What a deployment should be able to show
-
-A useful enterprise result should not end with a generic “safe / unsafe” label.
-
-It should expose the scope of the claim:
-
-- **Autonomous workflow** evaluated
-- **Model / agent configuration**
-- **Connected tools and APIs**
-- **Permissions and trust boundaries**
-- **Policies and constraints**
-- **Reachability horizon / state model**
-- **Ω definition**
-- **Inside-envelope trajectories**
-- **Boundary violations**
-- **ALLOW / ESCALATE / BLOCK evidence**
-- **Known limitations and untested conditions**
-
-A deployment-level conclusion can then be stated clearly:
-
-> **Morrison has defined and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, authority boundaries, policies, and reachable states.**
-
-That is the assurance artifact Morrison is designed to produce and enforce.
-
----
-
 ## Integration surface
 
-Morrison is designed to sit at the action boundary across agent frameworks and enterprise workflows, including:
-
-- OpenAI tool/function calling
-- Anthropic / Claude tool use
-- LangChain / LangGraph-style orchestration
-- AutoGen
-- MCP
-- browser agents
-- shell / subprocess execution
-- custom enterprise workflows
-
-```mermaid
-flowchart LR
-    P[Planner / Agent] --> G[Morrison Runtime Governance]
-    G -->|Inside envelope| T[Tools / APIs / Infrastructure]
-    G -->|Boundary uncertain| H[Escalation]
-    G -->|Outside envelope| B[Block + Evidence]
-```
+Adapters for OpenAI and Claude tool use, LangChain, AutoGen, MCP, browser agents, shell and multi-step workflows, with what a deployment must enforce outside the code (credentials, egress, shell, MCP) and a runnable mediation self-test: [morrison_governance/DEPLOYMENT.md](morrison_governance/DEPLOYMENT.md).
 
 ---
 
@@ -529,30 +508,6 @@ The overlay is non-authoritative with respect to Morrison's canonical **ALLOW / 
 
 ---
 
-## Enterprise evaluation path
-
-The commercial entry point is no longer only “find catastrophic actions.”
-
-It is to establish the deployment's local operating boundary and prove where autonomous operation remains admissible.
-
-### Operating Envelope Assessment
-A bounded assessment of the deployment's environment, architecture, tools, permissions, authority boundaries, policies, reachable states, prohibited region Ω, and constraints.
-
-### Shadow Mode / Limited Pilot
-Observe live or sandboxed trajectories without enforcing, and show which remain inside the envelope, approach the boundary, or would leave it.
-
-### Guarded / Enforced Pilot
-Apply **ALLOW / ESCALATE / BLOCK** before execution and preserve evidence of every governed decision.
-
-### Enterprise Integration
-Continuously revalidate the Admissible Operating Envelope as models, tools, permissions, workflows, and policies change.
-
-The target proof is explicit:
-
-> **Morrison has defined and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, authority boundaries, policies, and reachable states.**
-
----
-
 ## Bounded claim discipline
 
 Morrison does **not** claim:
@@ -565,46 +520,3 @@ Morrison does **not** claim:
 Instead, Morrison makes a narrower claim that can be tested, enforced, and audited:
 
 > **For this evaluated deployment, under this specified environment and constraint set, these trajectories were established as locally admissible, these boundary violations were identified, and Morrison independently enforced the resulting Admissible Operating Envelope before execution.**
-
----
-
-## Enterprise risk coverage
-
-The current evaluation surface includes classes such as:
-
-- unauthorised financial execution
-- credential / secret exfiltration
-- shell injection / RCE
-- privilege escalation
-- path traversal / sandbox escape
-- PII / PHI leakage
-- chained and delayed multi-step attacks
-- multi-agent collusion and cross-agent delayed intent
-- malformed or semantically disguised tool calls
-- encoded payloads and nested delegation
-- long-horizon agent drift
-- environment-sensitive safety under perturbation
-- replay and evidence ambiguity
-- schema-malformation bypass
-- cross-domain Ω reachability
-- stochastic planner divergence
-
-Detailed implementation and evaluation artefacts live throughout this repository.
-
----
-
-## The positioning in one sentence
-
-> **Define the Admissible Operating Envelope. Evaluate proposed transitions. Authorize independently. Enforce before execution. Verify what became unreachable.**
-
----
-
-<div align="center">
-
-### Resurrection Tech Ltd
-
-**Admissible Operating Envelopes for autonomous systems · Runtime governance before execution · Evidence after every decision**
-
-[Website](https://resurrection-tech.com) · [GitHub](https://github.com/davarntrades) · [LinkedIn](https://www.linkedin.com/in/davarn-morrison-14b93b263) · [Email](mailto:davarn@resurrection-tech.com)
-
-</div>

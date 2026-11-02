@@ -45,6 +45,9 @@ CAPABILITY_POLICY: dict[str, str] = {
     C.CAP_CODE_EXEC: APPROVAL,
     C.CAP_DELEGATION: APPROVAL,
     C.CAP_WILDCARD_SCOPE: APPROVAL,
+    # SQL that writes, and SQL whose effect cannot be read from its text.
+    C.CAP_DATA_WRITE: APPROVAL,
+    C.CAP_UNCLASSIFIED_STATEMENT: APPROVAL,
 
     # Egress is conditional: governed only when the destination resolves
     # external (see kernel.gate). Reads are ordinary work.

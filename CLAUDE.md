@@ -72,6 +72,13 @@ python -m runtime_eval.agentdojo_bench live --provider anthropic --model claude-
 Report live results the same way as the oracle results: paired with the baseline, every rate with its denominator,
 escalations separate from blocks, and no tuning of `manifest.py` after seeing results.
 
+- **External review fixes (branch `claude/external-review-fixes`, 2026-11).** Structural SQL/shell/path/URL
+  argument classification (`kernel/sql.py`, `shell.py`, `paths.py`; VIOLATION_LEDGER SQL-LEX-01, ARG-LEX-02..04);
+  liveness in finite verification (`SAFE_BUT_NOT_LIVE`, `global_verification/liveness.py`, `pipeline.py`,
+  `tla_export.py`); per-step authority and runtime argument provenance (`kernel/argflow.py`,
+  `experiments/utility_gap/`); deployer self-test `python -m morrison_governance.mediation_selftest`.
+  Research reports now live in `docs/research/`, commercial material in `business/`.
+
 ### Open follow-ups
 
 - Workspace utility is now limited mostly by the intended "external egress after a read" rule blocking calendar invites
@@ -87,4 +94,7 @@ escalations separate from blocks, and no tuning of `manifest.py` after seeing re
 - **Lint gate.** `morrison_governance/test_lint_gate.py` requires every third-party import to be installed by the lint
   workflow or listed in `.pylintrc` `ignored-modules`.
 - **Test side effects.** Running the full suite rewrites files under `living-boundary/artifacts/`. Don't commit those.
+- **Links.** `test_evidence_consistency.py` checks every relative link in every tracked Markdown file (except the
+  verbatim snapshots in `docs/prior-art/history/`). Moving a document means updating links to and from it.
+- **Optional dependencies** must skip, never error, at collection; the collection gate fails on any error.
 - CI uses Python 3.11 and doesn't install `agentdojo`.

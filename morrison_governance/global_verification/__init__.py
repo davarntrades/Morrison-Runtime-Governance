@@ -35,6 +35,7 @@ from .pilot import (
     contract_from_artifact,
 )
 from .scenarios import SCENARIOS, get_scenario, perturbation_matrix
+from .liveness import LivenessGoal
 from .state import VerificationState
 from .unsafe import DEFAULT_UNSAFE_INVARIANTS, UnsafeInvariant
 from .verifier import (
@@ -42,6 +43,7 @@ from .verifier import (
     ESCALATION_DENY,
     ESCALATION_OUTCOMES,
     INCONCLUSIVE,
+    SAFE_BUT_NOT_LIVE,
     SAFE_WITHIN_MODEL,
     UNSAFE_COUNTEREXAMPLE_FOUND,
     ExhaustiveVerifier,
@@ -50,6 +52,7 @@ from .verifier import (
 )
 
 __all__ = [
+    "LivenessGoal",
     "ARTIFACT_SCHEMA",
     "ComparisonResult",
     "LiveConfiguration",
@@ -70,6 +73,7 @@ __all__ = [
     "GovernanceDecision",
     "INCONCLUSIVE",
     "MorrisonKernelAdapter",
+    "SAFE_BUT_NOT_LIVE",
     "SAFE_WITHIN_MODEL",
     "SCENARIOS",
     "TraversalResult",

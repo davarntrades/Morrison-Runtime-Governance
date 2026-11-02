@@ -209,6 +209,11 @@ class LedgerEntry:
     # Wall-clock deadline for a reservation, for the same reason.
     wall_expires_at: float = 0.0
     seq: int = 0
+    # Whether this step was admitted under positively established authority
+    # (a verified approval, auto-approval, or a capability grant). When the
+    # trajectory is re-evaluated for a LATER decision, this step is judged
+    # with the authority it was admitted under, not with the later call's.
+    authority: bool = False
 
     def to_json(self) -> str:
         return json.dumps({**asdict(self), "capabilities": list(self.capabilities)},

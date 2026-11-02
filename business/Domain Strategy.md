@@ -19,7 +19,7 @@
 
 Once safety is defined structurally as ℛ(t) ∩ Ω = ∅ — the safety *objective*, not an unconditional guarantee — the framework stops being “AI safety” and becomes a general governance architecture for executable systems. Every domain below uses the same middleware, the same enforcement hierarchy, the same objective. The only variable is the forbidden region.
 
-What the governed-execution implementation *demonstrates* is narrower and stronger: **authority separation** — the agent holds proposal capability and cannot mint execution authority. Ω-exclusion is derived inside an established governed boundary. See [AUTHORITY_SEPARATION.md](AUTHORITY_SEPARATION.md).
+What the governed-execution implementation *demonstrates* is narrower and stronger: **authority separation** — the agent holds proposal capability and cannot mint execution authority. Ω-exclusion is derived inside an established governed boundary. See [AUTHORITY_SEPARATION.md](../docs/research/AUTHORITY_SEPARATION.md).
 
 -----
 

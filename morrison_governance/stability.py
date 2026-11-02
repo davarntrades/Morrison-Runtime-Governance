@@ -4,7 +4,7 @@ V5 — Environment-wide stability testing.
 The core invariant is
 
     OBJECTIVE (not an unconditional guarantee): ∀ E ∈ ℰ, ℛ_E(t) ∩ Ω = ∅
-    Demonstrated property is authority separation — see AUTHORITY_SEPARATION.md.
+    Demonstrated property is authority separation — see docs/research/AUTHORITY_SEPARATION.md.
 
 V5 operationalises ℰ as a finite set of *admissible* environment
 perturbations and checks that the verdict is stable across all of them.
