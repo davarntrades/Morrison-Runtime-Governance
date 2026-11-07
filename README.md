@@ -2,24 +2,18 @@
 
 > **ARSB v0 research status:** the [frozen development benchmark](arsb/RELEASE_v0.md) is preserved for audit. Its original comparative leaderboard is withdrawn following the challenge; do not quote it as a ranking. See [review issue #39](https://github.com/davarntrades/Morrison-Runtime-Governance/issues/39) for accepted findings and pinned challenge evidence.
 
-# Morrison Runtime Governance™
+# Morrison Runtime Governance
 
-![Admissible Operating Envelope](https://img.shields.io/badge/Admissible_Operating_Envelope-Environment--Bounded-5b6cff?style=flat-square)
-![Primary Property](https://img.shields.io/badge/Demonstrated-Authority_Separation-0f766e?style=flat-square)
-![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
-![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
-![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
+**A pre-execution authorisation kernel for autonomous agents: the agent proposes, an independent kernel decides, and the resource checks the kernel's authority before it acts.**
 
-**Admissible Operating Envelopes for autonomous systems — defined, tested, and enforced before execution.**
-
-**Morrison shows what locally safe operation actually looks like inside a real environment, under its tools, permissions, policies, workflows, and reachable states.**
+This README carries technical claims and the evidence for them. Commercial material (pricing, pilots, partnerships, branding and IP notices) is in [`business/`](business/README.md) and is not evidence.
 
 </div>
 
 > [!NOTE]
-> Inside defined operating worlds, the reachable behaviour of an autonomous system can be structurally constrained and exhaustively checked.
->
 > The agent can propose an action. It cannot grant itself permission to execute it.
+>
+> That is the primary demonstrated property ([authority separation](docs/research/AUTHORITY_SEPARATION.md)). Keeping prohibited states unreachable is the objective, and holds only inside a boundary the deployment establishes: complete mediation, a correct specification and key custody are deployment assumptions, not things this code provides. Exhaustive checking applies only to declared finite models.
 
 ---
 
@@ -191,7 +185,7 @@ These paths test different claims. The Frontier harness provides empirical traje
 
 Morrison is not positioned as a universal claim that an AI model is “safe.”
 
-Its strongest enterprise result is narrower, testable, and deployment-specific:
+Its strongest result is narrower, testable, and deployment-specific:
 
 > **Morrison has defined and validated an Admissible Operating Envelope for this specific autonomous workflow, in this specific environment, under these tools, permissions, authority boundaries, policies, and reachable states.**
 
@@ -451,16 +445,14 @@ complete mediation; see
 
 | Metric | Current state |
 |---|---:|
-| Governance evaluations | **129,857** |
 | Repository test suite | **2,043 collected** (core suite; optional Petri tests excluded) |
 | Runtime posture | **Fail-closed** |
 | Governance level | **Pre-execution** |
 | Model dependence | **Model-agnostic middleware** |
-| Patent | **GB2600765.8** |
 
 Validation work spans finance, cybersecurity, healthcare, data privacy, enterprise systems, multi-step trajectories, delayed intent, chained-tool behaviour, adversarial cases, and multi-agent paths.
 
-These are bounded evaluation results, not a universal claim that every model or deployment is globally safe.
+These are bounded evaluation results, not a universal claim that every model or deployment is globally safe. Every figure in this table is either recomputed by `morrison_governance/test_evidence_consistency.py` or a property of the code; figures that are not checked that way (such as the cumulative evaluation count) are kept in [`business/`](business/README.md#positioning-branding-and-ip).
 
 ---
 

@@ -17,6 +17,24 @@ claim should be checked against the [repository README](../README.md) and the
 
 ---
 
+## Positioning, branding and IP
+
+Moved here from the research README so that badges and notices are not read as evidence.
+
+![Admissible Operating Envelope](https://img.shields.io/badge/Admissible_Operating_Envelope-Environment--Bounded-5b6cff?style=flat-square)
+![Primary Property](https://img.shields.io/badge/Demonstrated-Authority_Separation-0f766e?style=flat-square)
+![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
+![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
+![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
+
+- **Name:** Morrison Runtime Governance™.
+- **Tagline:** Admissible Operating Envelopes for autonomous systems — defined, tested, and enforced before execution.
+- **Patent:** UK GB2600765.8 (the package header also lists GB2602013.1, GB2602072.7 and GB2602332.5). A patent filing is not evidence that a technical claim holds; see the [prior-art position](../docs/research/PRIOR_ART_AND_NOVELTY_POSITION.md).
+- **Governance evaluations: 129,857.** A cumulative count of governance decisions across evaluation runs. It is not recomputed by the evidence-consistency tests and does not distinguish passing from failing evaluations, so it is not quoted in the research README.
+- **"ℛ(t) ∩ Ω = ∅"** is the safety *objective*, not a demonstrated guarantee; see [authority separation](../docs/research/AUTHORITY_SEPARATION.md).
+
+---
+
 ## Hosted console
 
 - **[Live trajectory console](https://www.resurrection-tech.com/live-demo)** — paste your own tool-call sequence and receive the real pre-execution verdict, layer, reason, and downloadable audit trail.
