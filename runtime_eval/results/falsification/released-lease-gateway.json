@@ -1,0 +1,85 @@
+{
+ "ran": true,
+ "commit": "92115fec76d48ba0b919e6cf7320550f5daf3681",
+ "dirty_tree": false,
+ "limit": 15000,
+ "amount": 9000,
+ "cases": {
+  "C0_control_local_only": {
+   "a": "PERMIT",
+   "b": "PERMIT",
+   "outflow": 18000,
+   "violated": true
+  },
+  "C1_hierarchical": {
+   "a": "PERMIT",
+   "a_executed": true,
+   "b": "BLOCK",
+   "b_rule": "aggregate_outflow_SHARED_le_15000",
+   "outflow": 9000,
+   "violated": false
+  },
+  "C2_release_then_redeem": {
+   "released": true,
+   "redeemed": false,
+   "redeem_reason": "execution lease is unissued, cancelled, or has already been redeemed",
+   "b": "PERMIT",
+   "b_executed": true,
+   "outflow": 9000,
+   "violated": false
+  },
+  "C3_redeem_then_release_restart": {
+   "redeemed": true,
+   "released": false,
+   "reconciled_false": false,
+   "b_after_restart": "BLOCK",
+   "b_rule": "aggregate_outflow_SHARED_le_15000",
+   "outflow": 9000,
+   "violated": false
+  },
+  "C4_race_release_vs_redeem": {
+   "reps": 40,
+   "redeem_won": 38,
+   "release_won": 2,
+   "both_or_neither": 0,
+   "outflow_over_limit": 0,
+   "b_permitted_after_redeem": 0,
+   "b_permitted_after_release": 2,
+   "violated": false
+  },
+  "C5_expiry_beyond_skew": {
+   "late_redeem": false,
+   "late_reason": "execution lease expired",
+   "reconcile_false": false,
+   "b": "BLOCK",
+   "outflow": 0,
+   "violated": false
+  },
+  "C6_gateway_restart": {
+   "redeem_after_restart": true,
+   "replay": false,
+   "released": false,
+   "b": "BLOCK",
+   "outflow": 9000,
+   "violated": false
+  },
+  "C7_cancelled_lease_budget": {
+   "file": {
+    "released": true,
+    "other_principal": "PERMIT",
+    "other_executed": true,
+    "outflow": 9000,
+    "budget_leaked": false,
+    "violated": false
+   },
+   "memory": {
+    "released": true,
+    "other_principal": "PERMIT",
+    "other_executed": true,
+    "outflow": 9000,
+    "budget_leaked": false,
+    "violated": false
+   }
+  }
+ }
+}

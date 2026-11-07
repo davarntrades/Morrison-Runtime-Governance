@@ -1,0 +1,46 @@
+{
+ "ran": true,
+ "commit": "92115fec76d48ba0b919e6cf7320550f5daf3681",
+ "dirty_tree": true,
+ "limit": 15000,
+ "amount": 9000,
+ "cases": {
+  "C2_release_then_redeem": {
+   "released": true,
+   "redeemed": false,
+   "redeem_reason": "execution lease is unissued, cancelled, or has already been redeemed",
+   "b": "BLOCK",
+   "b_executed": false,
+   "outflow": 0,
+   "violated": false
+  },
+  "C4_race_release_vs_redeem": {
+   "reps": 40,
+   "redeem_won": 38,
+   "release_won": 2,
+   "both_or_neither": 0,
+   "outflow_over_limit": 0,
+   "b_permitted_after_redeem": 0,
+   "b_permitted_after_release": 0,
+   "violated": false
+  },
+  "C7_cancelled_lease_budget": {
+   "file": {
+    "released": true,
+    "other_principal": "BLOCK",
+    "other_executed": false,
+    "outflow": 0,
+    "budget_leaked": true,
+    "violated": false
+   },
+   "memory": {
+    "released": true,
+    "other_principal": "BLOCK",
+    "other_executed": false,
+    "outflow": 0,
+    "budget_leaked": true,
+    "violated": false
+   }
+  }
+ }
+}
