@@ -7,9 +7,8 @@
 ![Admissible Operating Envelope](https://img.shields.io/badge/Admissible_Operating_Envelope-Environment--Bounded-5b6cff?style=flat-square)
 ![Primary Property](https://img.shields.io/badge/Demonstrated-Authority_Separation-0f766e?style=flat-square)
 ![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
-![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
-![Tests](https://img.shields.io/badge/Tests-1%2C092_Passing-2ea44f?style=flat-square)
-![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
+![Tests](https://img.shields.io/badge/Tests-1%2C760_collected-2ea44f?style=flat-square)
+![Patent application](https://img.shields.io/badge/UK_patent_application-GB2600765.8-0075ca?style=flat-square)
 
 **Admissible Operating Envelopes for autonomous systems — defined, tested, and enforced before execution.**
 
@@ -53,14 +52,24 @@ The same runs exposed a gap in our own audit trail — a forged
 fixed (`be0e389`) and re-verified live, and the cheat sheet now points at
 the next version of the same attack rather than calling it closed.
 
-## Independent external reproduction — Kalaris Labs (October 2026)
+## Reproduction and research collaboration — Kalaris Labs (October 2026)
 
-Sayan Chowdhury of Kalaris Labs independently reran selected Morrison Runtime Governance experiments at pinned commit [`fba06b75dd6b16fb6e093364eee67359afa3942b`](https://github.com/davarntrades/Morrison-Runtime-Governance/tree/fba06b75dd6b16fb6e093364eee67359afa3942b) and published the methodology and limitations.
+> **Disclosure.** Kalaris Labs and Resurrection Tech have a technical research
+> collaboration on Morrison Runtime Governance. It has covered reproduction of
+> bounded experimental results, adversarial evaluation, identification of
+> architectural weaknesses, and publication of technical findings. Kalaris Labs'
+> contributions go beyond reproduction alone and form part of the broader
+> research and validation process. Read the work below as research produced
+> within that collaboration, not as an unaffiliated third-party audit. Any
+> financial, contractual or organisational arrangements will be documented
+> separately where relevant.
 
-- **[Independent research reproduction — Morrison Runtime Governance: A Bounded Reproduction](https://kalarislabs.com/research/morrison-agent-execution-boundary).** Reports **154 selected passing tests** (not the entire suite), three finite-state control-versus-governed scenarios with **zero unsafe governed states within their declared models**, and reproduced negative findings: seven investigator-supplied synthetic all-PERMIT unsafe paths, a released-lease continuity counterexample, and token redemption across verifiers without a shared consume store.
-- **[External architecture analysis — Can the Agent Bypass the Gate?](https://kalarislabs.com/blog/can-the-agent-bypass-the-gate).** Examines complete mediation across shell, MCP, credentials, and network egress, including the deployment requirements for an unavoidable resource-side execution boundary.
+Sayan Chowdhury of Kalaris Labs reran selected Morrison Runtime Governance experiments at pinned commit [`fba06b75dd6b16fb6e093364eee67359afa3942b`](https://github.com/davarntrades/Morrison-Runtime-Governance/tree/fba06b75dd6b16fb6e093364eee67359afa3942b) and published the methodology and limitations. The reruns, the adversarial findings and the articles below were carried out and written by Kalaris Labs.
 
-**Scope:** This is independent reproduction of repository-supplied tests, models, and offline mocks—not a production deployment audit, certification, or proof of universal safety. The negative findings and mediation dependencies remain part of the published evidence. The linked articles are independently authored by Kalaris Labs.
+- **[Research reproduction, conducted and authored by Kalaris Labs — Morrison Runtime Governance: A Bounded Reproduction](https://kalarislabs.com/research/morrison-agent-execution-boundary).** Reports **154 selected passing tests** (not the entire suite), three finite-state control-versus-governed scenarios with **zero unsafe governed states within their declared models**, and reproduced negative findings: seven investigator-supplied synthetic all-PERMIT unsafe paths, a released-lease continuity counterexample, and token redemption across verifiers without a shared consume store.
+- **[Architecture analysis by Kalaris Labs — Can the Agent Bypass the Gate?](https://kalarislabs.com/blog/can-the-agent-bypass-the-gate).** Examines complete mediation across shell, MCP, credentials, and network egress, including the deployment requirements for an unavoidable resource-side execution boundary.
+
+**Scope:** This is a reproduction, run by Kalaris Labs, of repository-supplied tests, models, and offline mocks. It is not a production deployment audit, a certification, or a proof of universal safety, and it was carried out within the research collaboration disclosed above. The negative findings and mediation dependencies remain part of the published evidence. The linked articles are authored by Kalaris Labs.
 
 ---
 
@@ -74,6 +83,14 @@ Choose the path that matches how deeply you want to inspect the system.
 - **[Test without your own agent](https://www.resurrection-tech.com/test-without-agent)** — run prepared agent scenarios or type a task and inspect the proposed trajectory before Morrison evaluates it.
 
 The public console inspects proposed actions only. It does not execute the submitted workflow or expose a production credential in the browser.
+
+> [!WARNING]
+> **Console data handling is pending technical verification.** What the hosted
+> console stores, where it is stored, how long it is kept, who can access it and
+> how it is deleted have not yet been verified or published. Do not submit
+> production data, credentials, personal data or confidential workflows until a
+> data-processing and retention policy is published. See
+> [docs/VERIFICATION_STATUS.md](docs/VERIFICATION_STATUS.md#hosted-console-data-handling).
 
 ### 2. Two-minute local Quick Start — no model key required
 
@@ -361,6 +378,17 @@ flowchart LR
     M -->|BLOCK| B[Remove from executable path + evidence]
 ```
 
+> [!IMPORTANT]
+> **Enforcement boundary.** Morrison governs only the actions that are routed
+> through `GovernanceKernel` (`authorize` → `execute`). It is a library in the
+> caller's process. An agent or integration that reaches a tool, API,
+> credential or network path without going through the kernel is not governed.
+> Resource-side lease verification (`LeaseVerifier`) can make that boundary
+> checkable, but no deployable gateway or sidecar is shipped yet, and the
+> customer deployment artifact has not been chosen or audited. See
+> [Enforcement boundary](morrison_governance/DEPLOYMENT.md#enforcement-boundary-read-before-deploying)
+> and [COMPLETE_MEDIATION_ANALYSIS.md](COMPLETE_MEDIATION_ANALYSIS.md).
+
 The planner can change. The model can change. The governance invariant remains external to the model.
 
 ---
@@ -429,12 +457,22 @@ The governance layer sits outside the model and does not require model retrainin
 
 | Metric | Current state |
 |---|---:|
-| Governance evaluations | **129,857** |
 | Repository test suite | **1,760 collected** (core suite; optional Petri tests excluded) |
-| Runtime posture | **Fail-closed** |
-| Governance level | **Pre-execution** |
+| Runtime posture | **Fail-closed by design**, with documented gaps: see [enforcement boundary](morrison_governance/DEPLOYMENT.md#enforcement-boundary-read-before-deploying) |
+| Governance level | **Pre-execution**, for calls routed through the kernel |
 | Model dependence | **Model-agnostic middleware** |
-| Patent | **GB2600765.8** |
+| Patent | **UK patent application GB2600765.8**; legal status not yet confirmed on the UK IPO register |
+
+**Historical figure, not a current performance claim.** Earlier versions of this
+README listed **129,857 governance evaluations** with zero false positives and zero
+false negatives. That figure first appears in commit `6da704e` (2026-05-22). It
+predates `GovernanceKernel`, which was introduced in `39565a9` (2026-09-09), so it
+did not measure the current enforcement path. No harness, dataset or results file
+behind it has been found in this repository, and it is unverified until those
+records are recovered. Current, reproducible benchmark results are reported
+separately with their own test conditions (for example
+[runtime_eval/results/AGENTDOJO_BENCHMARK.md](runtime_eval/results/AGENTDOJO_BENCHMARK.md)).
+See [docs/VERIFICATION_STATUS.md](docs/VERIFICATION_STATUS.md#historical-evaluation-figures).
 
 Validation work spans finance, cybersecurity, healthcare, data privacy, enterprise systems, multi-step trajectories, delayed intent, chained-tool behaviour, adversarial cases, and multi-agent paths.
 
@@ -505,6 +543,14 @@ flowchart LR
     G -->|Outside envelope| B[Block + Evidence]
 ```
 
+Adapters that route execution through the kernel are in
+`morrison_governance/integrations.py`: OpenAI, Claude, LangChain, AutoGen, MCP,
+browser actions, shell (`governed_run`) and multi-step workflows. There is no
+dedicated LangGraph adapter. Some adapters return a decision instead of running
+the tool. In those cases the integrator must redeem it through the kernel, or the
+call runs ungoverned (see the
+[enforcement boundary](morrison_governance/DEPLOYMENT.md#enforcement-boundary-read-before-deploying)).
+
 ---
 
 ## Causal analysis overlay
@@ -542,7 +588,7 @@ A bounded assessment of the deployment's environment, architecture, tools, permi
 Observe live or sandboxed trajectories without enforcing, and show which remain inside the envelope, approach the boundary, or would leave it.
 
 ### Guarded / Enforced Pilot
-Apply **ALLOW / ESCALATE / BLOCK** before execution and preserve evidence of every governed decision.
+Apply **ALLOW / ESCALATE / BLOCK** before execution to every action routed through the kernel, and record each governed decision in the hash-chained evidence log. That log is held in memory by default: durable storage, signing keys and export must be configured by the deployment.
 
 ### Enterprise Integration
 Continuously revalidate the Admissible Operating Envelope as models, tools, permissions, workflows, and policies change.

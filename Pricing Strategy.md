@@ -6,7 +6,7 @@
 
 ![Framework](https://img.shields.io/badge/Framework-Morrison_Framework™-0075ca?style=flat-square)
 ![Principle](https://img.shields.io/badge/Pricing_Principle-Cost_of_Ω-0075ca?style=flat-square)
-![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
+![Patent application](https://img.shields.io/badge/UK_patent_application-GB2600765.8-0075ca?style=flat-square)
 
 *This is operational assurance infrastructure for autonomous systems.*
 *The governance layer is priced against the cost of Ω becoming reachable — not the complexity of the software.*
@@ -165,8 +165,10 @@ authorization, clinical agent systems.
 | Fabricated clinical evidence                  | Regulatory fraud. Licence revocation.                        |
 
 **Investment: £750K–3M+.** Hospital systems and health plans at the upper end;
-specialty practices at the lower end. *Validated across 160 healthcare
-scenarios, 11 case types, 160/160 in that suite, zero observed FP / FN.*
+specialty practices at the lower end. *Historically reported (unverified): 160
+healthcare scenarios, 11 case types, 160/160 in that suite, zero observed FP / FN.
+No harness or results file for this figure has been found in this repository; see
+[docs/VERIFICATION_STATUS.md](docs/VERIFICATION_STATUS.md#historical-evaluation-figures).*
 
 -----
 
@@ -288,7 +290,7 @@ are permitted for non-commercial purposes; commercial deployment, production
 use, resale, sublicensing, or integration into revenue-generating systems
 requires a written commercial licence from Resurrection Tech Ltd. Certain
 implementations may be covered by granted and/or pending intellectual property
-owned by Resurrection Tech Ltd, including **UK Patent GB2600765.8**. Full
+owned by Resurrection Tech Ltd, including **UK patent application GB2600765.8**. Full
 terms: [`License.md`](License.md).
 
 -----

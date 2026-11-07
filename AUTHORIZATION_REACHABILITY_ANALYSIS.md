@@ -6,7 +6,7 @@
 ![Formalism](https://img.shields.io/badge/Set_inclusion-Insufficient-b91c1c?style=flat-square)
 ![D2](https://img.shields.io/badge/D2-CONFIRMED-7f1d1d?style=flat-square)
 ![D6](https://img.shields.io/badge/D6-CONFIRMED-7f1d1d?style=flat-square)
-![Patent](https://img.shields.io/badge/Patent-GB2600765.8-0075ca?style=flat-square)
+![Patent application](https://img.shields.io/badge/UK_patent_application-GB2600765.8-0075ca?style=flat-square)
 ![©](https://img.shields.io/badge/©-Davarn_Morrison-555555?style=flat-square)
 
 </div>

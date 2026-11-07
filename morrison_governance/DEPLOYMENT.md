@@ -14,12 +14,84 @@ the framework's native shapes — so the module is safe to import anywhere.
 | Use for | planning, shadow mode, analysis | **everything that can execute** |
 
 Nothing in this module dispatches on a `GovernanceLayer` verdict.
-`GovernanceGuard` requires a `SecurityContext`, builds a kernel from it, and
-every adapter executes inside `kernel.execute()`. A guard constructed without
+`GovernanceGuard` requires a `SecurityContext` and builds a kernel from it.
+Every adapter authorises through the kernel. The executing adapters run the tool
+inside `kernel.execute()` (async MCP and LangChain handlers commit their
+reservation explicitly instead). The decision-returning helpers leave execution
+to the caller; see the enforcement boundary below. A guard constructed without
 one raises `GovernanceConfigurationError` rather than becoming a silently
 weaker guard — that configuration is what let eight of ten catastrophic actions
 reach the executor before it was fixed, and it is now an error at the
 integration point.
+
+## Enforcement boundary (read before deploying)
+
+**The customer deployment artifact has not been selected or audited.** Two
+paths are under evaluation: a library integrated into the customer's runtime,
+and a separately deployed governance service. Whichever is chosen will get its
+own security and enforcement audit before enterprise delivery. Until then, the
+statements below describe the library in this repository, not a production
+deployment.
+
+**What the kernel enforces.** For a call routed through `authorize` →
+`execute` (or `GovernanceGuard.dispatch` / `submit`), the kernel refuses
+anything that is not the exact action it authorised, under an unexpired,
+unused, unrevoked lease issued to this principal and session, under the
+ruleset still in force.
+
+**What it cannot enforce from here:**
+
+- **Direct calls.** The kernel is a library in the caller's process. A tool,
+  SDK, HTTP client, credential or network path the agent can reach without going
+  through the kernel is not governed. `kernel/mediation.py` states this boundary
+  explicitly.
+- **Decision-returning helpers.** `openai_partition_tool_calls`,
+  `claude_filter_tool_use`, `autogen_guard_function_call`,
+  `mcp_guard_call_tool` and `browser_action_guard` return a decision rather
+  than running the tool. The caller must redeem it with
+  `guard.execute_authorized(...)`. `AuthorizedCall.tool` / `.args` are public, so
+  passing them to the caller's own dispatcher runs the tool with no lease check
+  and no evidence record (documented on `AuthorizedCall`).
+- **`GovernanceLayer` paths.** `GovernanceLayer.evaluate()` and
+  `GovernanceInterceptor` (`interception.py`) decide on a `GovernanceLayer`
+  verdict, not through the kernel. Use them for analysis only, never in front
+  of an executor.
+- **Resource-side verification is not shipped.** `LeaseVerifier` and
+  `SQLiteLeaseStore` (`kernel/mediation.py`) let a resource refuse requests that
+  carry no valid lease. They are exercised by tests and evaluation harnesses,
+  but there is no deployable gateway, proxy or sidecar in this repository.
+
+**Other limits a deployment must account for:**
+
+- **Fail-closed is partial.** Engine errors, an unhealthy history store,
+  unresolved resource scopes and any failure inside `execute()` produce a
+  recorded refusal. Some other internal failures during `authorize()` (for
+  example in canonicalisation, capability classification or a history-store
+  read) raise an exception instead. The bundled executing adapters then do not
+  run the tool, but no evidence record is written, and integration code that
+  catches and ignores exceptions could proceed. There are no timeouts on
+  `authorize()`.
+- **Evidence is in memory by default.** The hash chain is held in process
+  memory. `evidence_key` defaults to empty (an unkeyed SHA-256 chain), and
+  `GovernanceGuard` does not set one. Records include the full proposed
+  arguments, so a blocked exfiltration attempt stores the data it tried to
+  send; no redaction is applied. Durable storage, keying, anchoring, retention
+  and redaction must be provided by the deployment.
+- **Identity comes from the host.** `Principal` is supplied by the integrating
+  runtime; Morrison does not authenticate it.
+- **Approval key custody.** Approvals are HMAC-signed with a shared key. Anyone
+  holding the key can issue approvals, so in an in-process deployment the key
+  must not be readable by the agent. Key custody for each deployment model has
+  not yet been defined.
+- **Grant revocation.** There is no API to revoke a principal or a granted
+  capability. Principal grants are not part of the ruleset hash, so a PERMIT
+  issued before a grant is withdrawn is not invalidated by that change alone
+  (decisions expire after `decision_ttl_s`, 120 s by default).
+- **Single host.** The shipped history stores are in-memory and file-based
+  (`kernel/continuity.py`). Cross-host continuity is not supported.
+
+See [COMPLETE_MEDIATION_ANALYSIS.md](../COMPLETE_MEDIATION_ANALYSIS.md) for the
+full mediation analysis and [SECURITY.md](../SECURITY.md) for reporting.
 
 ## Common setup
 

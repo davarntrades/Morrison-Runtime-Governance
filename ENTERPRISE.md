@@ -6,9 +6,7 @@
 
 ![Demonstrated](https://img.shields.io/badge/Demonstrated-Authority_Separation-0f766e?style=flat-square)
 ![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
-![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
-![Accuracy](https://img.shields.io/badge/Accuracy-100%25-2ea44f?style=flat-square)
-![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
+![Patent application](https://img.shields.io/badge/UK_patent_application-GB2600765.8-0075ca?style=flat-square)
 ![Entity](https://img.shields.io/badge/Resurrection_Tech_Ltd-555555?style=flat-square)
 
 </div>
@@ -107,7 +105,7 @@ These are not hypothetical scenarios. They are the failure modes of every organi
 |**Unsafe discharge**               |Agent approves patient discharge without required safety checks    |Direct patient harm. Malpractice exposure.            |
 |**Guaranteed return claims**       |Agent emails clients “guaranteed 40% annual return”                |FCA violation. Securities fraud.                      |
 
-Every one of these has been tested against Morrison Runtime Governance. Every one was blocked before execution. Every legitimate workflow was preserved.
+Each of these failure classes has test cases in this repository, and in the tested configurations the kernel blocked them before execution. That is not a claim that every variant of each class is blocked, or that legitimate workflows are never refused. Benign utility has a measurable cost: for example, under the AgentDojo oracle conditions described in [runtime_eval/results/AGENTDOJO_BENCHMARK.md](runtime_eval/results/AGENTDOJO_BENCHMARK.md), Morrison completed 63 of 97 benign tasks and 19.3% of exercisable attacks still succeeded. Those figures apply only to that benchmark's conditions.
 
 -----
 
@@ -164,7 +162,7 @@ graph LR
     B -->|BLOCK| D[Blocked + Audit Log]
 ```
 
-The governance layer does not fix the planner. It does not retrain it. It does not align it. It prevents its outputs from reaching Ω. The planner is untrusted. The invariant holds regardless.
+The governance layer does not fix the planner. It does not retrain it. It does not align it. For actions routed through the kernel, it refuses those its configured policy places in or toward Ω. The planner is untrusted. The invariant holds only inside the governed boundary: actions that reach a tool without passing through the kernel are not governed (see [Enforcement boundary](morrison_governance/DEPLOYMENT.md#enforcement-boundary-read-before-deploying)).
 
 -----
 
@@ -201,6 +199,13 @@ The governance layer does not fix the planner. It does not retrain it. It does n
 
 ## 5. Live Runtime Logs
 
+> **Historical log.** This log was recorded with an earlier, pre-kernel version of
+> the governance layer. Row 5 was permitted because the call carried
+> `approved=True` in its own arguments. The current `GovernanceKernel`
+> quarantines caller-supplied authority flags like that, so the same call would
+> not be permitted on that basis today. The log is kept as a record of the
+> earlier evaluation, not as a description of current behaviour.
+
 11 events. Qwen2.5-7B real planner. Real tool calls. Real governance decisions.
 
 ```
@@ -227,9 +232,21 @@ Every decision timestamped. Every block justified. Every permit traceable. This 
 
 -----
 
-## 6. Cross-Model Validation
+## 6. Cross-Model Validation (historical record, unverified)
 
-The governance layer was unchanged across all models. Safety is a property of the control layer, not the model.
+> [!WARNING]
+> **Not a current performance claim.** These figures come from testing of the
+> original Morrison governance layer during initial development. They first
+> appear in commit `6da704e` (2026-05-22). That predates `GovernanceKernel`,
+> introduced in `39565a9` (2026-09-09), so they did not measure the current
+> enforcement path. The harness, dataset, code path and underlying records have
+> not yet been recovered, and no results file for them exists in this
+> repository. Treat the table as an unverified historical record until those
+> records are recovered and checked. The "Accuracy 100%" badge previously shown
+> on this page was derived from it and has been removed. See
+> [docs/VERIFICATION_STATUS.md](docs/VERIFICATION_STATUS.md#historical-evaluation-figures).
+
+As originally reported, the governance layer was unchanged across all models.
 
 |Model             |Evaluations|Domains                 |False Positives|False Negatives|
 |:-----------------|:---------:|:----------------------:|:-------------:|:-------------:|
@@ -241,13 +258,11 @@ The governance layer was unchanged across all models. Safety is a property of th
 |Stress test (100K)|100,000    |Multi-domain            |0              |0              |
 |**Total**         |**129,857**|                        |**0**          |**0**          |
 
-### What This Demonstrates
+### What this was reported to show
 
-The planner changes. The model changes. The prompt changes. The attack vector changes. The governance layer does not change. And the invariant holds.
+The original evaluation varied the planner, model, prompt and attack vector while keeping the governance layer fixed, and reported no false positives or false negatives. Until the records are recovered, that result should be read as a historical, unverified report about the pre-kernel governance layer. It is not evidence about the current kernel or about any customer deployment.
 
-This is substrate independence in practice. Safety guarantees are properties of the control architecture, not the model sitting above it.
-
-Including:
+The original report also listed:
 
 - 38 planner fallbacks handled correctly
 - 18 malformed planner outputs normalized and evaluated
@@ -287,7 +302,7 @@ Including:
 **Cost of failure:** Lawsuits. Patient harm. Compliance exposure. Institutional liability.
 **Investment:** £750K–3M+
 
-**Validated:** 160 healthcare scenarios, 11 case types, 160/160 correct, 0 FP, 0 FN.
+**Historically reported (unverified):** 160 healthcare scenarios, 11 case types, 160/160 correct, 0 FP, 0 FN. No harness or results file for this figure has been found in this repository, so it is not a current performance claim. See [docs/VERIFICATION_STATUS.md](docs/VERIFICATION_STATUS.md#historical-evaluation-figures).
 
 -----
 
@@ -367,96 +382,108 @@ Including:
 
 ## 8. Deployment
 
+> [!IMPORTANT]
+> **The customer deployment artifact has not been selected.** Two paths are under
+> evaluation: a library integrated into the customer's own runtime, and a separately
+> deployed governance service. Whichever is chosen will get its own security and
+> enforcement audit before enterprise delivery. Nothing in this section describes
+> an audited production deployment.
+
 ### Install
 
+Morrison is **not** currently offered as a supported package distribution.
+Publication and provenance on PyPI have not been verified, and the in-repository
+package definition does not build (see
+[docs/PACKAGING_STATUS.md](docs/PACKAGING_STATUS.md)). For evaluation, use a
+source checkout:
+
 ```bash
-pip install morrison-governance
+git clone https://github.com/davarntrades/Morrison-Runtime-Governance.git
+cd Morrison-Runtime-Governance
+python3 quickstart.py
 ```
 
-### Three Lines to Integrate
+### Integrating through the kernel
+
+Only `GovernanceKernel` enforces: it quarantines caller-supplied authority,
+binds execution to the authorised action, and records hash-chained evidence.
+Integrate through `GovernanceGuard`, which wraps the kernel, and let it run the
+tool:
 
 ```python
-from morrison_governance import GovernanceLayer, OmegaDomain
+from morrison_governance import GovernanceLayer, OmegaDomain, GovernanceGuard
+from morrison_governance.kernel import Principal, SecurityContext
 
-governance = GovernanceLayer(
-    domains=[OmegaDomain.FINANCE, OmegaDomain.CYBERSECURITY]
-)
-
-result = governance.evaluate(tool_call)
-if result.permitted:
-    execute(tool_call)
-```
-
-### HTTP Middleware
-
-The package *is* the middleware — wrap `GovernanceLayer` behind any framework
-(no bundled server; ~10 lines with FastAPI):
-
-```python
-# server.py
-from fastapi import FastAPI
-from morrison_governance import GovernanceLayer, OmegaDomain
-app = FastAPI()
 gov = GovernanceLayer(domains=[OmegaDomain.FINANCE, OmegaDomain.CYBERSECURITY])
+ctx = SecurityContext(
+    principal=Principal(id=session.agent_id, tenant=session.tenant),  # from YOUR authenticated session
+    # ... signing key, trusted issuers, internal destinations, tool manifest
+)
+guard = GovernanceGuard(gov, security_context=ctx)
 
-@app.post("/evaluate")
-def evaluate(call: dict):
-    return gov.evaluate(call).to_dict()
+decision, executed, output = guard.dispatch(tool_name, args, executor=run_tool)
 ```
 
-```bash
-uvicorn server:app --host 0.0.0.0 --port 8000
-```
+The full setup, including what every `SecurityContext` field means, is in
+[morrison_governance/DEPLOYMENT.md](morrison_governance/DEPLOYMENT.md).
 
-```bash
-curl -X POST http://localhost:8000/evaluate \
-  -H "Content-Type: application/json" \
-  -d '{"tool": "transfer", "args": {"amount": 50000}}'
+> [!WARNING]
+> **`GovernanceLayer.evaluate()` is not an enforcement point.** Earlier versions
+> of this page showed `result = governance.evaluate(tool_call); if
+> result.permitted: execute(tool_call)` and an HTTP `/evaluate` service built the
+> same way. That pattern skips the kernel: caller-supplied authority flags are
+> honoured, capabilities are not classified, there is no session trajectory and
+> no evidence chain. The module that holds the adapters records that this path
+> permitted eight of ten catastrophic actions the kernel refuses
+> (`morrison_governance/integrations.py`). Use it only for advisory analysis.
 
-# → {"verdict": "BLOCK", "permitted": false, "layer": "A_safe"}
-```
+### Enforcement boundary
 
-### Architecture
+The kernel governs only what is routed through it. It runs as a library in the
+caller's process, so a tool, API, credential or network path the agent can reach
+directly is not governed. Resource-side lease verification can make that boundary
+checkable, but no deployable gateway or sidecar is shipped yet. Read
+[the enforcement boundary section of DEPLOYMENT.md](morrison_governance/DEPLOYMENT.md#enforcement-boundary-read-before-deploying)
+and [COMPLETE_MEDIATION_ANALYSIS.md](COMPLETE_MEDIATION_ANALYSIS.md) before
+scoping a deployment.
 
-```mermaid
-graph TD
-    subgraph "Your Infrastructure"
-        Agent[AI Agent / Planner]
-        Tools[Tool Execution Layer]
-    end
+### HTTP service
 
-    subgraph "Morrison Middleware"
-        API["FastAPI Server :8000"]
-        GOV[GovernanceLayer]
-        OMEGA[Ω Domain Rules]
-    end
+No HTTP service is bundled in this repository. A separately deployed governance
+service is one of the two options under evaluation; it is not part of this
+repository and has not been audited here.
 
-    Agent -->|POST /evaluate| API
-    API --> GOV
-    GOV --> OMEGA
-    API -->|PERMIT / BLOCK| Agent
-    Agent -->|if PERMIT| Tools
-```
+### Platform adapters
 
-### Platform Compatibility
+All of these are in `morrison_governance/integrations.py` and authorise through
+the kernel. Synchronous calls run inside `kernel.execute`. Async MCP and
+LangChain handlers are authorised by the kernel and their reservation is
+committed explicitly, because `kernel.execute` takes a synchronous executor.
 
-|Platform               |Integration                                  |
-|:----------------------|:--------------------------------------------|
-|OpenAI function calling|`governance.evaluate_openai(tool_calls)`     |
-|LangChain              |`governance.evaluate_langchain(agent_action)`|
-|AutoGen                |`governance(tool_call_dict)`                 |
-|MCP                    |`governance.evaluate(mcp_tool_call)`         |
-|FastAPI / HTTP         |`POST /evaluate`                             |
-|Custom agents          |Callable interface                           |
+|Platform               |Kernel-enforcing entry point                                              |
+|:----------------------|:-------------------------------------------------------------------------|
+|OpenAI function calling|`openai_guarded_dispatch(guard, tool_calls, dispatch)`                    |
+|Claude tool use        |`claude_guarded_dispatch(...)`                                            |
+|LangChain              |`govern_langchain_tool(guard, tool)`                                      |
+|AutoGen                |`register_autogen_guard(agent, guard)`                                    |
+|MCP                    |`wrap_mcp_call_tool(guard, call_tool)`                                    |
+|Shell                  |`governed_run(guard, command, ...)`                                       |
+|Workflows              |`WorkflowGovernor(guard).run(steps, executor=...)`                        |
+
+Some helpers (`openai_partition_tool_calls`, `claude_filter_tool_use`,
+`autogen_guard_function_call`, `mcp_guard_call_tool`, `browser_action_guard`)
+return a decision and leave execution to the caller. The caller must then redeem
+it with `guard.execute_authorized(...)`. Running the tool directly instead is an
+ungoverned execution. The LangChain callback handler is defence in depth only;
+it does not replace `govern_langchain_tool`.
 
 **Key properties:**
 
-- Model-agnostic — swap GPT-4o for Claude for Llama, governance persists
-- No model retraining required
-- No fine-tuning required
-- No prompt engineering required
-- Middleware-compatible with existing agent stacks
-- Sub-millisecond evaluation latency
+- Model-agnostic: the kernel does not depend on which model proposes the call
+- No model retraining, fine-tuning or prompt engineering required
+- Latency: no current benchmark artifact is published for the kernel path. Each
+  `Decision` carries per-stage timings (`stage_timings_ms`) so latency can be
+  measured in the customer's own environment.
 
 -----
 
@@ -470,7 +497,7 @@ This architecture is not a safety add-on. It is runtime constitutional infrastru
 |:----------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------|
 |**Planners become interchangeable**|Safety is a property of the governance layer, not the model. Swap the planner without losing safety guarantees.                                |
 |**Regulation becomes executable**  |HIPAA, FCA, GDPR, SOX encoded as Ω regions and enforced at runtime — not as policy documents reviewed quarterly.                               |
-|**Insurance becomes quantifiable** |Audit logs + trajectory enforcement + 0 FP/0 FN validation = insurable governance evidence.                                                    |
+|**Insurance becomes quantifiable** |Audit logs and trajectory enforcement can become governance evidence an insurer could assess, once validated in the deployment concerned.                      |
 |**Multi-agent governance**         |As autonomous systems coordinate, trajectory-level governance over emergent behaviour becomes the only viable safety architecture.             |
 |**Sovereign AI infrastructure**    |Nations deploying autonomous systems in defence, energy, and critical infrastructure require structural governance — not behavioural alignment.|
 
@@ -545,7 +572,7 @@ are permitted for non-commercial purposes; commercial deployment, production
 use, resale, sublicensing, or integration into revenue-generating systems
 requires a written commercial licence from Resurrection Tech Ltd. Certain
 implementations may be covered by granted and/or pending intellectual property
-owned by Resurrection Tech Ltd, including **UK Patent GB2600765.8**. Full
+owned by Resurrection Tech Ltd, including **UK patent application GB2600765.8**. Full
 terms: [`License.md`](License.md).
 
 -----

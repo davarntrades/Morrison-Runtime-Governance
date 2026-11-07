@@ -3,17 +3,24 @@
 # Morrison Runtime Governance
 
 ![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-0075ca?style=flat-square)
-![Evaluations](https://img.shields.io/badge/Evaluations-129%2C857-0075ca?style=flat-square)
-![False_Positives](https://img.shields.io/badge/False_Positives-0-2ea44f?style=flat-square)
-![False_Negatives](https://img.shields.io/badge/False_Negatives-0-2ea44f?style=flat-square)
 ![Models](https://img.shields.io/badge/Models-GPT--4o_·_Qwen_·_Llama-555555?style=flat-square)
-![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
+![Patent application](https://img.shields.io/badge/UK_patent_application-GB2600765.8-0075ca?style=flat-square)
 
 **Blocking unsafe tool trajectories before execution occurs.**
 
 Catastrophic-risk prevention for autonomous systems.
 
 </div>
+
+> [!WARNING]
+> **Historical document (v0.4.1).** This page describes an earlier version that
+> used `GovernanceLayer` before `GovernanceKernel` existed. Its evaluation
+> figures (129,857 evaluations, zero false positives and zero false negatives)
+> come from that pre-kernel testing. No harness, dataset or results file for
+> them has been found in this repository, so they are unverified and are not
+> current performance claims. For current deployment guidance see
+> [morrison_governance/DEPLOYMENT.md](morrison_governance/DEPLOYMENT.md); for
+> claim status see [docs/VERIFICATION_STATUS.md](docs/VERIFICATION_STATUS.md).
 
 -----
 
@@ -33,11 +40,10 @@ This middleware can.
 
 ## Install
 
-```bash
-pip install morrison-governance
-```
-
-Or clone and use directly:
+Morrison is not currently offered as a supported package distribution:
+PyPI publication has not been verified and the in-repository package
+definition does not build (see [docs/PACKAGING_STATUS.md](docs/PACKAGING_STATUS.md)).
+Use a source checkout:
 
 ```bash
 git clone https://github.com/davarntrades/morrison-runtime-governance.git
@@ -237,7 +243,7 @@ graph TD
 A_safe ⊂ V2 ⊂ V3 ⊂ V4 ⊂ V4+ ⊂ V5
 ```
 
-Each layer catches failures invisible to every layer below it. Zero counterexamples across 129,857 evaluations and 5 model architectures.
+Each layer catches failures invisible to every layer below it. The original pre-kernel evaluation reported zero counterexamples across 129,857 evaluations and 5 model architectures; that figure is historical and unverified (see the warning above).
 
 -----
 
@@ -350,7 +356,7 @@ for full integration patterns.
 
 -----
 
-## Cross-Model Validation
+## Cross-Model Validation (historical, unverified; pre-kernel)
 
 |Model             |Evaluations|Domains                 |False Positives|False Negatives|
 |:-----------------|:---------:|:----------------------:|:-------------:|:-------------:|
@@ -519,7 +525,7 @@ are permitted for non-commercial purposes; commercial deployment, production
 use, resale, sublicensing, or integration into revenue-generating systems
 requires a written commercial licence from Resurrection Tech Ltd. Certain
 implementations may be covered by granted and/or pending intellectual property
-owned by Resurrection Tech Ltd, including **UK Patent GB2600765.8**. Full
+owned by Resurrection Tech Ltd, including **UK patent application GB2600765.8**. Full
 terms: [`License.md`](License.md).
 
 -----
@@ -537,7 +543,7 @@ GitHub: [github.com/davarntrades](https://github.com/davarntrades)
 *If your AI systems can execute actions, they can execute catastrophic ones.*
 *This layer determines whether those trajectories are reachable — before execution occurs.*
 
-*This work builds upon the patented pre-semantic trajectory governance framework.*
+*This work builds upon the pre-semantic trajectory governance framework that is the subject of UK patent application GB2600765.8.*
 
 GB2600765.8
 

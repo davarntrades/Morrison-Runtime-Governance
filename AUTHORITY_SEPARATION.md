@@ -4,7 +4,7 @@
 ![Status](https://img.shields.io/badge/Status-Demonstrated_under_attack-1f2937?style=flat-square)
 ![Derived](https://img.shields.io/badge/Ω--exclusion-Derived_·_Boundary--conditional-c2410c?style=flat-square)
 ![Evidence](https://img.shields.io/badge/Evidence-48_Counterexamples-b91c1c?style=flat-square)
-![Patent](https://img.shields.io/badge/Patent-GB2600765.8-0075ca?style=flat-square)
+![Patent application](https://img.shields.io/badge/UK_patent_application-GB2600765.8-0075ca?style=flat-square)
 ![©](https://img.shields.io/badge/©-Davarn_Morrison-555555?style=flat-square)
 
 </div>

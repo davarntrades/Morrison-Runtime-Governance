@@ -5,7 +5,7 @@
 ![Framework](https://img.shields.io/badge/Framework-Morrison_Framework™-0075ca?style=flat-square)
 ![Architecture](https://img.shields.io/badge/Architecture-One_Middleware_·_Ten_Sectors-0075ca?style=flat-square)
 ![Objective](https://img.shields.io/badge/Objective-ℛ(t)_∩_Ω_=_∅-555555?style=flat-square)
-![Patent](https://img.shields.io/badge/UK_Patent-GB2600765.8-0075ca?style=flat-square)
+![Patent application](https://img.shields.io/badge/UK_patent_application-GB2600765.8-0075ca?style=flat-square)
 
 *The geometry doesn’t change. Only Ω changes.*
 
@@ -149,7 +149,7 @@ Insurance companies care about measurable risk reduction, auditable controls, an
 |Audit logs            |Every trajectory decision timestamped and justified   |
 |Trajectory enforcement|Demonstrable prevention of catastrophic tool execution|
 |Runtime telemetry     |Continuous evidence of governance layer operation     |
-|0 FP / 0 FN validation|Quantified reliability across model architectures     |
+|Deployment validation |Measured false-positive / false-negative rates for the insured deployment (to be produced; earlier 0 FP / 0 FN figures are historical and unverified)|
 
 **Commercial angle:** Insurable AI governance evidence. Companies deploying autonomous agents could receive reduced premiums by demonstrating structural runtime governance.
 

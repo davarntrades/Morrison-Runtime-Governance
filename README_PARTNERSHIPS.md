@@ -3,7 +3,7 @@
 [![Status](https://img.shields.io/badge/Status-Active-2ea44f)](#contact)
 [![Owner](https://img.shields.io/badge/Owner-Resurrection%20Tech%20Ltd-1f6feb)](#core-ownership-principle)
 [![Licence](https://img.shields.io/badge/Licence-Proprietary-red)](License.md)
-[![Patent](https://img.shields.io/badge/Patent-GB2600765.8-blue)](License.md)
+[![Patent application](https://img.shields.io/badge/UK_patent_application-GB2600765.8-blue)](License.md)
 [![Engagements](https://img.shields.io/badge/Engagements-Written%20Agreement%20Required-orange)](#written-agreement-requirement)
 
 > The Morrison Framework™, Morrison Runtime Governance™, the Runtime

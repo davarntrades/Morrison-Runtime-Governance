@@ -4,7 +4,7 @@
 ![Independent Veto](https://img.shields.io/badge/Independent_Veto-Pre--Execution-0f766e?style=flat-square)
 ![Counterexamples](https://img.shields.io/badge/Counterexamples-48_Found-b91c1c?style=flat-square)
 ![Open](https://img.shields.io/badge/Open_Limitations-2_Named-c2410c?style=flat-square)
-![Patent](https://img.shields.io/badge/Patent-GB2600765.8-0075ca?style=flat-square)
+![Patent application](https://img.shields.io/badge/UK_patent_application-GB2600765.8-0075ca?style=flat-square)
 ![©](https://img.shields.io/badge/©-Davarn_Morrison-555555?style=flat-square)
 
 </div>
