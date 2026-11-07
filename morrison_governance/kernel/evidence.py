@@ -21,6 +21,7 @@ execution result.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import hmac
 import json
@@ -185,6 +186,11 @@ class EvidenceRecord:
     action_hash: str                 # canonical action the decision applies to
     proposed: dict                   # the action as proposed (post-canonical)
     decision: str                    # PERMIT | BLOCK | ESCALATE | ...
+    # The action as the Ω engine saw it: `proposed` minus the authority
+    # namespace. Recorded separately so the audit trail shows BOTH what ran and
+    # what was evaluated. `proposed` used to hold `evaluated`, which made the
+    # human-readable record disagree with its own action_hash.
+    evaluated: Optional[dict] = None
     layer: str = ""
     rule: Optional[str] = None
     omega_domain: Optional[str] = None
@@ -206,7 +212,11 @@ class EvidenceRecord:
     # ── integrity ────────────────────────────────────────────
     def _digest_payload(self) -> str:
         body = {k: v for k, v in asdict(self).items()
-                if k not in ("record_hash", "signature")}
+                if k not in ("record_hash", "signature")
+                # `evaluated` is absent from legacy records. Omitting the
+                # default keeps every previously sealed record's hash stable
+                # while still binding the field on new decision records.
+                and not (k == "evaluated" and v is None)}
         return json.dumps(body, sort_keys=True, default=str, ensure_ascii=False)
 
     def seal(self, key: bytes = b"") -> "EvidenceRecord":
@@ -238,9 +248,16 @@ _APPEND_LOCK = threading.RLock()
 class EvidenceChain:
     """Append-only, hash-chained decision log.
 
-    Any silent edit — including flipping a BLOCK into an executed PERMIT —
-    breaks either the record hash or the chain link, and `verify()` reports
-    exactly which record failed.
+    Any edit that does not also recompute every downstream hash breaks either
+    the record hash or the chain link, and `verify()` reports exactly which
+    record failed.
+
+    KEYLESS MODE IS NOT AUTHENTICITY. A plain SHA-256 chain detects accidental
+    corruption and edits made by someone who does not recompute the chain; a
+    writer that can rewrite the whole chain and recompute its hashes passes
+    `verify()`. Configure `key`/`GovernanceKernel(evidence_key=...)` (or
+    `require_evidence_key=True`) when the chain must be tamper-EVIDENT against
+    an offline or persisted rewrite.
     """
 
     key: bytes = b""
@@ -269,7 +286,8 @@ class EvidenceChain:
         authorising one — so the decision and its outcome are both immutable."""
         follow = EvidenceRecord(
             seq=0, timestamp=time.time(), actor=rec.actor, tenant=rec.tenant,
-            action_hash=rec.action_hash, proposed=rec.proposed,
+            action_hash=rec.action_hash, proposed=copy.deepcopy(rec.proposed),
+            evaluated=copy.deepcopy(rec.evaluated),
             decision=rec.decision, layer="execution",
             reason=f"execution outcome for decision {rec.record_hash[:12]}…",
             ruleset_hash=rec.ruleset_hash, executed=executed,
@@ -282,6 +300,9 @@ class EvidenceChain:
         """Full-chain verification: per-record integrity plus link continuity."""
         problems: list[str] = []
         prev = GENESIS
+        from morrison_governance.kernel.canonical import (
+            action_hash as _action_hash,
+        )
         for rec in self.records:
             ok, why = rec.verify(self.key)
             if not ok:
@@ -297,6 +318,22 @@ class EvidenceChain:
                 problems.append(
                     f"record {rec.seq} violates fail-closed: executed with "
                     f"decision {rec.decision}")
+            # `action_hash` must bind the record's own `proposed` action. The
+            # decision record used to store the evaluated residue there while
+            # hashing the full proposal, so the audit field named an action
+            # that did not run. Checked only for records that carry an
+            # `evaluated` field, which identifies records written under this
+            # schema; legacy/synthetic records are still integrity-checked.
+            if rec.evaluated is not None:
+                try:
+                    bound = _action_hash(rec.proposed)
+                except Exception:                    # noqa: BLE001 — fail closed
+                    bound = ""
+                if bound != rec.action_hash:
+                    problems.append(
+                        f"record {rec.seq} action_hash does not bind its "
+                        f"proposed action (audit record names an action that "
+                        f"did not run)")
         return (not problems), problems
 
     def to_jsonl(self) -> str:
