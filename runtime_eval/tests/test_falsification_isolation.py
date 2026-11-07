@@ -46,3 +46,40 @@ def test_refused_request_variant_does_not_spend_the_lease():
             assert reply["ok"] is False and reply["refused_by"] == "shape"
         assert dep.client.call({"op": "apply", "lease": token, "request": d.action})["ok"]
         assert dep.snapshot()["balances"]["OPS"] == 100_000 - 77
+
+
+# ── released-lease composition through the isolated gateway ─────────────────
+# The released-lease counterexample (mint -> release -> redeem -> later
+# decision), repeated against the separate-identity ledger. Ground truth is the
+# ledger balance. See runtime_eval/falsification/released_lease_gateway.py.
+
+def test_gateway_release_then_redeem_has_no_effect_and_frees_the_budget(tmp_path):
+    from runtime_eval.falsification import released_lease_gateway as g
+    r = g.release_then_redeem(tmp_path)
+    assert r["released"] is True and r["redeemed"] is False
+    assert r["b"] == "PERMIT" and r["b_executed"] is True     # LEASE-SCOPE-01
+    assert r["outflow"] == g.AMOUNT and not r["violated"]
+
+
+def test_gateway_redeemed_lease_survives_release_reconcile_and_restart(tmp_path):
+    from runtime_eval.falsification import released_lease_gateway as g
+    r = g.redeem_then_release_restart(tmp_path)
+    assert r["redeemed"] is True and r["released"] is False and r["reconciled_false"] is False
+    assert r["b_after_restart"] == "BLOCK"
+    assert r["outflow"] == g.AMOUNT and not r["violated"]
+
+
+def test_gateway_release_racing_redemption_never_breaches_the_shared_limit(tmp_path):
+    from runtime_eval.falsification import released_lease_gateway as g
+    r = g.race(tmp_path, reps=10)
+    assert r["both_or_neither"] == 0 and r["outflow_over_limit"] == 0
+    assert r["b_permitted_after_redeem"] == 0
+    assert r["b_permitted_after_release"] == r["release_won"]  # LEASE-SCOPE-01
+
+
+def test_gateway_cancelled_lease_does_not_leak_the_shared_budget(tmp_path):
+    from runtime_eval.falsification import released_lease_gateway as g
+    for kind, r in g.cancelled_lease_budget(tmp_path).items():
+        assert r["released"] is True, kind
+        assert r["other_principal"] == "PERMIT" and not r["budget_leaked"], kind
+        assert r["outflow"] == g.AMOUNT, kind

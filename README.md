@@ -445,7 +445,7 @@ complete mediation; see
 
 | Metric | Current state |
 |---|---:|
-| Repository test suite | **2,043 collected** (core suite; optional Petri tests excluded) |
+| Repository test suite | **2,053 collected** (core suite; optional Petri tests excluded) |
 | Runtime posture | **Fail-closed** |
 | Governance level | **Pre-execution** |
 | Model dependence | **Model-agnostic middleware** |

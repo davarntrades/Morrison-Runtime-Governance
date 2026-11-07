@@ -583,6 +583,17 @@ class GovernanceKernel:
             except Exception:                        # noqa: BLE001
                 pass
 
+    def _drop_cancelled_copy(self, key: str, decision_id: str) -> bool:
+        """Drop a shared-resource copy of an exported entry whose lease the
+        registry has cancelled. Only an EXPORTED copy of this decision is
+        touched; anything else is left counting (over-count, never under)."""
+        if not any(e.decision_id == decision_id and e.state == EXPORTED
+                   for e in self.store.entries(key)):
+            return False
+        if not self.store.set_state(key, decision_id, RESERVED, time.time()):
+            return False
+        return self.store.drop(key, decision_id)
+
     def _clock_basis(self) -> float:
         """The clock this session is actually being driven on.
 
@@ -678,7 +689,14 @@ class GovernanceKernel:
                     return False
                 dropped = self.store.drop(self.continuity_key, decision.decision_id)
                 if dropped:
-                    self._scope_mirror(decision.action, lambda k: self.store.drop(
+                    # The shared-resource copies are still EXPORTED, and `drop`
+                    # only removes RESERVED/UNCONFIRMED entries, so dropping
+                    # them directly silently failed: a cancelled lease (no
+                    # effect possible) kept counting against every principal's
+                    # shared budget forever, since EXPORTED never ages out.
+                    # The cancellation above already won, so return each copy
+                    # to RESERVED and drop it like the principal's own entry.
+                    self._scope_mirror(decision.action, lambda k: self._drop_cancelled_copy(
                         k, decision.decision_id))
                     decision.reserved = False
                     self.chain.append(EvidenceRecord(
