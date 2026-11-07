@@ -22,7 +22,11 @@ from dataclasses import dataclass
 from typing import Any, Optional
 from urllib.parse import urlparse
 
-_URL_RE = re.compile(r"https?://[^\s\"'<>)]+", re.I)
+# ANY URI scheme, not only http(s). `ftp://`, `s3://`, `gs://`, `smb://` and
+# `ssh://` all name somewhere data can go; accepting only HTTP meant a
+# destination written as `ftp://attacker.example` resolved as "none present"
+# and therefore internal.
+_URL_RE = re.compile(r"[A-Za-z][A-Za-z0-9+.\-]*://[^\s\"'<>)]+")
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 # Public-share ACL values that egress data regardless of hostname.
 _PUBLIC_ACL = re.compile(
@@ -30,9 +34,18 @@ _PUBLIC_ACL = re.compile(
     r"all[-_]users|allusers|everyone|world[-_]readable|open)\s*$", re.I)
 
 _DEST_KEYS = ("url", "endpoint", "host", "hostname", "collector", "callback",
-              "webhook", "uri", "server", "dest", "destination", "target_url")
+              "webhook", "uri", "server", "dest", "destination", "target_url",
+              # Spellings that name a destination just as plainly. `target_host`
+              # was the ordinary shape a probe used to evade the resolver.
+              "target_host", "dest_host", "remote", "remote_host",
+              "address", "domain", "storage", "bucket", "dest_bucket")
 _RECIPIENT_KEYS = ("to", "recipient", "recipients", "email", "mailto",
-                   "deliver_to", "cc", "bcc", "share_with")
+                   "deliver_to", "cc", "bcc", "share_with",
+                   "target_email", "recipient_email")
+# Destination-shaped fields that name a RESOURCE acted on in place rather than
+# a sink data is sent to. They still resolve internal/external; they do not by
+# themselves imply that a transfer is happening.
+_RESOURCE_DEST_KEYS = frozenset({"bucket", "dest_bucket", "storage"})
 _ACL_KEYS = ("acl", "visibility", "sharing", "permission", "access", "share_with")
 
 
@@ -44,10 +57,16 @@ class DestinationVerdict:
     # A destination no configuration can bring inside the boundary: link-local
     # ranges and the cloud instance-metadata endpoints.
     forbidden: bool = False
+    # True when the destination evidence itself denotes data being SENT — a
+    # URL, an email address, a public-share ACL, or a send-style key. A bare
+    # resource identifier such as a bucket name is a destination but is not by
+    # itself a transfer (deleting a bucket sends nothing).
+    transfer: bool = False
 
     def as_dict(self) -> dict:
         return {"external": self.external, "reason": self.reason,
-                "observed": list(self.observed), "forbidden": self.forbidden}
+                "observed": list(self.observed), "forbidden": self.forbidden,
+                "transfer": self.transfer}
 
 
 # Addresses that must never resolve as an internal destination, whatever the
@@ -166,6 +185,7 @@ def classify_destination(call: dict, internal_url_hosts: tuple = (),
     observed: list[str] = []
     externals: list[str] = []
     internals: list[str] = []
+    transfer = False
 
     for key, value in _walk_values(args):
         if not isinstance(value, (str, int, float)):
@@ -178,9 +198,13 @@ def classify_destination(call: dict, internal_url_hosts: tuple = (),
         if kl in _ACL_KEYS and _PUBLIC_ACL.match(sval):
             observed.append(f"{key}={sval}")
             externals.append(f"public share ({key}={sval})")
+            transfer = True
             continue
 
+        structured = False
         for url in _URL_RE.findall(sval):
+            structured = True
+            transfer = True
             observed.append(url)
             host = normalize_host(urlparse(url).hostname or "")
             if _forbidden(host):
@@ -192,39 +216,52 @@ def classify_destination(call: dict, internal_url_hosts: tuple = (),
                 externals.append(host or url)
 
         for addr in _EMAIL_RE.findall(sval):
+            structured = True
+            transfer = True
             observed.append(addr)
             if _email_is_internal(addr, internal_email_domains):
                 internals.append(addr)
             else:
                 externals.append(addr)
 
-        # Bare host/endpoint values without a scheme.
-        if kl in _DEST_KEYS and not _URL_RE.search(sval) and sval.strip():
-            cand = sval.strip().split("/")[0].split(":")[0]
-            if cand and ("." in cand or cand in ("localhost",)):
-                cand = normalize_host(cand)
-                observed.append(cand)
-                if _forbidden(cand):
-                    externals.append(f"{cand} (metadata/link-local endpoint)")
-                elif _host_is_internal(cand, internal_url_hosts, internal_cidrs,
-                                       trust_private_networks):
-                    internals.append(cand)
-                else:
-                    externals.append(cand)
+        # Bare host/endpoint values without a scheme. Once a field is
+        # destination-SHAPED, the value is a destination until configuration
+        # proves it internal: a single-label host is not "no destination". If
+        # the value cannot be parsed at all, that is still destination
+        # evidence, and the declared deny-by-default rule makes it EXTERNAL.
+        if kl in _DEST_KEYS and not structured and sval.strip():
+            if kl not in _RESOURCE_DEST_KEYS:
+                transfer = True
+            cand = sval.strip()
+            cand = cand.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0]
+            cand = cand.rsplit("@", 1)[-1].split(":", 1)[0].strip()
+            cand = normalize_host(cand)
+            observed.append(cand or sval)
+            if not cand:
+                externals.append(f"unresolvable destination value {sval!r}")
+            elif _forbidden(cand):
+                externals.append(f"{cand} (metadata/link-local endpoint)")
+            elif _host_is_internal(cand, internal_url_hosts, internal_cidrs,
+                                   trust_private_networks):
+                internals.append(cand)
+            else:
+                externals.append(f"{cand} (unresolved destination)")
 
         # Bare recipient values.
         if kl in _RECIPIENT_KEYS and "@" in sval and not _EMAIL_RE.search(sval):
             observed.append(sval)
             externals.append(sval)
+            transfer = True
 
     if externals:
         return DestinationVerdict(
             True, f"destination resolved as EXTERNAL: {', '.join(sorted(set(externals))[:4])}",
             tuple(dict.fromkeys(observed)),
-            forbidden=any("metadata/link-local" in e for e in externals))
+            forbidden=any("metadata/link-local" in e for e in externals),
+            transfer=transfer)
     if internals:
         return DestinationVerdict(
             False, f"destination resolved as internal by allowlist: "
                    f"{', '.join(sorted(set(internals))[:4])}",
-            tuple(dict.fromkeys(observed)))
+            tuple(dict.fromkeys(observed)), transfer=transfer)
     return DestinationVerdict(False, "no destination present in call", ())

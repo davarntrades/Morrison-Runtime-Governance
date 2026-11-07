@@ -2,14 +2,28 @@
 Fail-closed interception harness + cross-model planner seam.
 
 A drop-in middleware that sits in the planner → runtime loop. Every
-proposed tool call is evaluated by the governance layer BEFORE the
-runtime sees it. The contract is deny-by-default:
+proposed tool call is evaluated BEFORE the runtime sees it. The contract is
+deny-by-default:
 
   * verdict is not PERMIT          → call dropped, recorded, not executed
   * governance path raises         → call dropped (fail-closed, NOT
                                        fail-open) — a broken guard must
                                        never become an open door
   * runtime raises after a PERMIT  → surfaced, loop stops
+
+ENFORCEMENT MODE. `GovernanceLayer.evaluate()` is not the kernel: it does not
+quarantine caller authority, classify capabilities, resolve destinations, or
+check tenancy. A layer-only interceptor therefore executes calls the kernel
+refuses (`run_shell` carrying `rm -rf …` was PERMIT to the layer and BLOCK to
+the kernel). The interceptor now has two explicit modes:
+
+  * `security_context=` / `kernel=` → the authoritative kernel path, including
+    kernel `execute()` and evidence binding;
+  * `allow_advisory=True`           → the layer-only chain guard, clearly
+    labelled advisory. It can stop a bad PLAN but does not claim kernel parity.
+
+Layer-only mode refuses to execute unless the caller opts in to advisory mode,
+so a partial guard cannot be mistaken for the production chokepoint.
 
 The model is not the safety system. To prove that, the planner is an
 adapter behind a stable protocol. Offline deterministic backends stand in
@@ -134,6 +148,15 @@ class InterceptedCall:
 class InterceptionTranscript:
     calls: list = field(default_factory=list)
     runtime_error: Optional[str] = None
+    # "kernel" — the authoritative path (semantic capability policy + trust
+    #            boundary). "advisory" — a layer-only check that the caller
+    #            explicitly opted into; it can stop a bad PLAN but does not
+    #            enforce the kernel's capability/tenant/destination policy.
+    enforcement: str = ""
+
+    @property
+    def advisory(self) -> bool:
+        return self.enforcement == "advisory"
 
     @property
     def executed(self) -> list:
@@ -159,6 +182,8 @@ class InterceptionTranscript:
             "blocked": len(self.blocked),
             "fail_closed": self.fail_closed_holds,
             "runtime_error": self.runtime_error,
+            "enforcement": self.enforcement,
+            "advisory": self.advisory,
         }
 
 
@@ -167,10 +192,45 @@ class InterceptionTranscript:
 # ─────────────────────────────────────────────────────────────
 
 class GovernanceInterceptor:
-    """Wraps a planner→runtime loop with pre-execution governance."""
+    """Wraps a planner→runtime loop with pre-execution governance.
 
-    def __init__(self, governance: GovernanceLayer):
+    There are two modes, and the difference is not cosmetic:
+
+      * KERNEL-BACKED (`security_context=` or `kernel=`) — the authoritative
+        path. Every call is authorised by `GovernanceKernel`, so semantic
+        capability policy, tenant checks, destination resolution and evidence
+        binding all apply, and execution goes through `kernel.execute`.
+      * LAYER-ONLY (`allow_advisory=True`) — evaluates the Ω plan only. This
+        is a useful chain guard, but it does NOT enforce the kernel's
+        capability/trust policy: `run_shell` is PERMIT to the layer and BLOCK
+        to the kernel. It is therefore advisory and must be opted into
+        explicitly. Layer-only mode refuses to execute by default rather than
+        presenting a partial guard as a production chokepoint.
+    """
+
+    def __init__(self, governance: GovernanceLayer, *,
+                 security_context=None, kernel=None, evidence_key: bytes = b"",
+                 allow_advisory: bool = False):
+        if kernel is not None and security_context is not None:
+            raise ValueError(
+                "pass either kernel= or security_context=, not both")
         self.governance = governance
+        self.allow_advisory = bool(allow_advisory)
+        if kernel is None and security_context is not None:
+            from morrison_governance.kernel.gate import GovernanceKernel
+            kernel = GovernanceKernel(governance, security_context,
+                                      evidence_key=evidence_key)
+        self.kernel = kernel
+        self.enforcement = ("kernel" if kernel is not None
+                            else ("advisory" if self.allow_advisory
+                                  else "refused"))
+
+    def _advisory_refusal(self):
+        return (False, "BLOCK", "fail_closed",
+                "layer-only interception is ADVISORY and does not enforce the "
+                "kernel's capability/trust policy; supply security_context= "
+                "(or kernel=) for the authoritative gate, or allow_advisory=True "
+                "to run the plan-level check without claiming enforcement")
 
     def check(self, call: dict):
         """Single-call gate. Returns (allowed, verdict, layer, reason).
@@ -184,7 +244,20 @@ class GovernanceInterceptor:
         the correct fail-closed semantics for a streamed plan: a benign
         read on turn 1 followed by an egress on turn 2 is one trajectory,
         and isolated per-call checks would wave both through. Any
-        exception in the governance path is converted to a closed gate."""
+        exception in the governance path is converted to a closed gate.
+
+        Kernel-backed mode previews with `reserve=False`: a check must not
+        reserve a trajectory slot the caller may never execute."""
+        if self.kernel is not None:
+            try:
+                d = self.kernel.authorize(call, reserve=False)
+                return (d.permitted, d.verdict, d.layer, d.reason)
+            except Exception as e:  # noqa: BLE001 — fail-closed is the point
+                return (False, "BLOCK", "fail_closed",
+                        f"governance error treated as BLOCK: "
+                        f"{type(e).__name__}")
+        if not self.allow_advisory:
+            return self._advisory_refusal()
         try:
             prefix = list(history) + [call]
             r = (self.governance.evaluate_plan(prefix) if len(prefix) > 1
@@ -194,13 +267,23 @@ class GovernanceInterceptor:
             return (False, "BLOCK", "fail_closed",
                     f"governance error treated as BLOCK: {type(e).__name__}")
 
+    def _authorize_for_execution(self, call: dict):
+        """Kernel-backed authorization that HOLDS a reservation. Returns
+        (decision or None, refused-tuple or None)."""
+        try:
+            return self.kernel.authorize(call), None
+        except Exception as e:  # noqa: BLE001 — fail-closed is the point
+            return None, (False, "BLOCK", "fail_closed",
+                          f"governance error treated as BLOCK: "
+                          f"{type(e).__name__}")
+
     def run(self, planner: PlannerAdapter, runtime: ToolRuntime,
             observation: Optional[dict] = None,
             max_steps: int = 16) -> InterceptionTranscript:
         """Drive the loop. Permitted calls are executed; everything else is
         dropped and recorded. Runtime errors stop the loop but never
         retroactively permit a blocked call."""
-        transcript = InterceptionTranscript()
+        transcript = InterceptionTranscript(enforcement=self.enforcement)
         obs = observation or {}
         history: list = []
         step = 0
@@ -209,13 +292,32 @@ class GovernanceInterceptor:
             if not batch:
                 break
             for call in batch:
-                allowed, verdict, layer, reason = self.check_prefix(
-                    history, call)
+                decision = None
+                if self.kernel is not None:
+                    decision, refused = self._authorize_for_execution(call)
+                    if refused is not None:
+                        allowed, verdict, layer, reason = refused
+                    else:
+                        allowed, verdict, layer, reason = (
+                            decision.permitted, decision.verdict,
+                            decision.layer, decision.reason)
+                else:
+                    allowed, verdict, layer, reason = self.check_prefix(
+                        history, call)
                 rec = InterceptedCall(step, dict(call), verdict, layer,
                                       reason, executed=False)
                 if allowed:
                     try:
-                        obs = runtime.execute(call)
+                        if decision is not None:
+                            ok, result = self.kernel.execute(
+                                decision, runtime.execute, call)
+                            if not ok:
+                                transcript.runtime_error = str(result)
+                                transcript.calls.append(rec)
+                                return transcript
+                            obs = result
+                        else:
+                            obs = runtime.execute(call)
                     except Exception as e:  # noqa: BLE001
                         transcript.runtime_error = (
                             f"{type(e).__name__}: {e}")

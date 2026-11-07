@@ -203,6 +203,53 @@ def quarantine_authority(call: dict) -> tuple[dict, dict]:
     return {"tool": canon["tool"], "args": walk(canon.get("args") or {})}, quarantined
 
 
+_NEUTRAL_AUTHORITY_KEY = "payload"
+
+
+def _neutral_name(existing: dict) -> str:
+    """A key that carries no authority shape and cannot collide."""
+    name, suffix = _NEUTRAL_AUTHORITY_KEY, 1
+    while name in existing:
+        suffix += 1
+        name = f"{_NEUTRAL_AUTHORITY_KEY}_{suffix}"
+    return name
+
+
+def classification_view(call: dict) -> dict:
+    """The proposal as the CLASSIFIERS must see it.
+
+    Quarantine removes a field's power to AUTHORISE. It must not remove the
+    fact that the field names a destination, carries regulated content, or
+    describes a destructive/security-control action. Classifying the residue
+    (`clean`) let a caller hide a DENY payload under an authority-shaped name:
+    `{"policy": {"audit_logging": false}}` executed because the capability
+    classifier saw an empty argument dict while the executor saw the payload.
+
+    This view therefore preserves every value and every nesting level, and
+    renames only the authority-shaped KEY. The value under `policy` is still
+    walked, so `audit_logging: false` is still `log.tamper`; a URL under
+    `external` is still a destination. The rename is presentational — the
+    resulting dict is for classification only, never for execution.
+    """
+    canon = canonicalize(call)
+
+    def walk(value):
+        if isinstance(value, dict):
+            out = {}
+            for key, child in value.items():
+                label = str(key)
+                if (label.strip().lower() in AUTHORITY_FIELDS
+                        or is_authority_shaped(label)):
+                    key = _neutral_name(out)
+                out[key] = walk(child)
+            return out
+        if isinstance(value, (list, tuple)):
+            return [walk(child) for child in value]
+        return value
+
+    return {"tool": canon["tool"], "args": walk(canon.get("args") or {})}
+
+
 def forged_authority_claims(quarantined: dict) -> list[str]:
     """The subset of quarantined fields that assert authority the caller does
     not have. Truthy assertions only — an explicit `authorized: false` is not
