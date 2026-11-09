@@ -48,7 +48,11 @@ def _kernel(router, approvals=(), principal=None):
         principal=Principal(id=principal, tenant="corp"),
         signing_key=ORG_KEY, trusted_issuers=frozenset({REVIEWER}),
         approvals=tuple(approvals),
-        tool_manifest={"wire_transfer": ["payment.move_funds"]})
+        tool_manifest={"wire_transfer": ["payment.move_funds"]},
+        # These tests drive kernel and router on a model clock (now=1000.0).
+        # Since R2-H the caller clock is untrusted by default; the fixture
+        # declares it trusted explicitly.
+        trusted_model_clock=True)
     return GovernanceKernel(gov, ctx, session_id=f"esc-{_SEQ[0]}",
                             escalation_router=router)
 

@@ -36,6 +36,7 @@ than implied — see `AnchorLog.independence_note()`.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 from dataclasses import dataclass, field, asdict
 from typing import Callable, Optional
@@ -72,13 +73,43 @@ def _record_digest_payload(rec: dict) -> str:
     return json.dumps(body, sort_keys=True, default=str, ensure_ascii=False)
 
 
-def recompute_chain(jsonl: str) -> VerificationResult:
+# Evidence status vocabulary shared by every surface (service, Lab, Control
+# Room). There is deliberately no level this module can award for
+# INDEPENDENT verification: that needs an anchor or attestation held by a
+# party other than the writer, which a self-check cannot establish.
+EVIDENCE_RECORDED = "RECORDED"                    # present, not yet checked
+EVIDENCE_INTEGRITY_FAILED = "INTEGRITY_FAILED"
+EVIDENCE_INTEGRITY_CHECKED = "INTEGRITY_CHECKED"  # keyless self-consistency
+EVIDENCE_KEYED = "KEYED_VERIFIED"                 # HMAC verified with the key
+EVIDENCE_ANCHORED = "ANCHOR_VERIFIED"             # + matches an exported anchor
+
+
+def evidence_status(result: "VerificationResult", keyed: bool,
+                    anchored: bool) -> str:
+    """Map a verification result onto the shared vocabulary."""
+    if not result.ok:
+        return EVIDENCE_INTEGRITY_FAILED
+    if keyed and anchored:
+        return EVIDENCE_ANCHORED
+    if keyed:
+        return EVIDENCE_KEYED
+    return EVIDENCE_INTEGRITY_CHECKED
+
+
+def recompute_chain(jsonl: str, key: bytes = b"", expected_head: str = "",
+                    expected_count: Optional[int] = None) -> VerificationResult:
     """Verify an exported evidence chain using ONLY its own content.
 
     Detects: edited fields, forged verdicts, deleted records, reordered
     records, and any executed-without-PERMIT violation. Requires no key.
+
+    With `key`, every record's HMAC signature is checked too, so a rewrite
+    by someone without the key fails. With `expected_head`/`expected_count`
+    from a previously exported anchor, a chain whose END was removed fails;
+    without them, tail truncation is undetectable.
     """
     problems: list[str] = []
+    heads: list[str] = []
     prev = GENESIS
     head = GENESIS
     count = 0
@@ -114,9 +145,26 @@ def recompute_chain(jsonl: str) -> VerificationResult:
             problems.append(
                 f"record {rec.get('seq', lineno)}: violates fail-closed — "
                 f"executed with decision {rec.get('decision')}")
+        if key:
+            sig = hmac.new(key, actual.encode(), hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(sig, rec.get("signature") or ""):
+                problems.append(f"record {rec.get('seq', lineno)}: signature "
+                                f"invalid for the supplied evidence key")
         prev = actual
         head = actual
+        heads.append(actual)
 
+    if expected_count is not None and count < expected_count:
+        problems.append(f"evidence truncated: {expected_count - count} "
+                        f"record(s) missing against the anchored count "
+                        f"{expected_count}")
+    if expected_head:
+        idx = (expected_count - 1) if expected_count else None
+        if idx is not None and 0 <= idx < len(heads):
+            if heads[idx] != expected_head:
+                problems.append(f"anchored head mismatch at record {idx}")
+        elif expected_head not in heads:
+            problems.append("anchored head is not in this chain")
     return VerificationResult(ok=not problems, head=head, count=count,
                               problems=problems)
 

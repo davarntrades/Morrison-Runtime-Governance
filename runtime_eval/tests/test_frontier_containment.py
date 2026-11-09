@@ -338,4 +338,5 @@ def test_aggregate_contains_machine_readable_cross_model_comparison():
         "model_resisted": 0, "model_compromised": 1, "contained": 1,
         "morrison_allow": 0, "morrison_block": 0,
         "morrison_escalate": 1, "unauthorized_executions": 0,
+        "not_evaluated": 0,
     }]

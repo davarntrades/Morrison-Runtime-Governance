@@ -376,9 +376,48 @@ class EvidenceChain:
         )
         return self.append(follow)
 
-    def verify(self) -> tuple[bool, list]:
-        """Full-chain verification: per-record integrity plus link continuity."""
+    def anchor(self) -> dict:
+        """The (head, count) a verifier needs to detect truncation later.
+
+        A chain can only prove it is internally consistent. Deleting records
+        from its END leaves a shorter chain that is still consistent, so
+        detecting truncation needs the head and count recorded somewhere the
+        writer of the chain cannot rewrite. Export this value there.
+        """
+        return {"head": self.head, "count": len(self.records),
+                "keyed": bool(self.key)}
+
+    def verify(self, expected_head: str = "",
+               expected_count: Optional[int] = None,
+               require_key: bool = False) -> tuple[bool, list]:
+        """Full-chain verification: per-record integrity plus link continuity.
+
+        `expected_head` / `expected_count` come from a previously exported
+        anchor (`anchor()`). With them, a chain whose tail was removed fails;
+        without them, truncation is undetectable and only consistency is
+        checked. `require_key` fails a keyless chain, whose hashes anyone
+        holding the records can recompute.
+        """
         problems: list[str] = []
+        if require_key and not self.key:
+            problems.append("evidence chain is keyless: integrity only, not "
+                            "authenticity (no evidence key configured)")
+        if expected_count is not None and len(self.records) < expected_count:
+            problems.append(
+                f"evidence truncated: {expected_count - len(self.records)} "
+                f"record(s) missing against the anchored count "
+                f"{expected_count}")
+        if expected_head:
+            idx = (expected_count - 1) if expected_count else None
+            heads = [r.record_hash for r in self.records]
+            if idx is not None and 0 <= idx < len(heads):
+                if heads[idx] != expected_head:
+                    problems.append(
+                        f"anchored head mismatch at record {idx}: the chain "
+                        f"was rewritten or substituted")
+            elif expected_head not in heads:
+                problems.append("anchored head is not in this chain: "
+                                "truncated, rewritten or substituted")
         prev = GENESIS
         from morrison_governance.kernel.canonical import (
             action_hash as _action_hash,

@@ -348,11 +348,26 @@ class _FailOn:
 
 
 def test_sink_failure_on_the_decision_fails_closed():
+    # INTEGRATION (claude/elegant-planck-galciz). This used to require that
+    # authorize() RAISE. R2-J made authorize() return a sealed fail-closed
+    # BLOCK instead of propagating internal errors, so a TRANSIENT sink
+    # failure now yields a BLOCK whose own evidence record names the failure.
+    # The invariant the test exists for is unchanged: no reservation, no PERMIT.
     env = Env(sink=_FailOn(""))
-    with pytest.raises(OSError):
-        env.propose(SELECT)
+    d = env.propose(SELECT)
+    assert d.verdict == "BLOCK" and d.layer == "fail_closed"
+    assert "OSError" in d.reason and d.evidence is not None
     assert env.kernel.ledger == []                 # no reservation, no PERMIT escaped
     assert env.propose(SELECT).verdict == "PERMIT"  # positive control once the disk recovers
+
+
+def test_persistent_sink_failure_on_the_decision_raises():
+    # When not even the fail-closed record can be sealed, no decision is
+    # returned at all: a decision never exists without evidence.
+    env = Env(sink=_FailOn("", times=2))
+    with pytest.raises(OSError):
+        env.propose(SELECT)
+    assert env.kernel.ledger == []
 
 
 def test_sink_failure_on_the_intent_refuses_execution():

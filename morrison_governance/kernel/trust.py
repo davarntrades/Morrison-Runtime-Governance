@@ -544,6 +544,14 @@ class SecurityContext:
     owned_resource_args: dict = field(default_factory=dict)
     resource_tenants: Any = None
 
+    # Whether the caller-supplied `now` is TRUSTED. False (the default, every
+    # deployment): approval validity and revocation windows must also hold on
+    # the wall clock, so rewinding or advancing `now` cannot revive an expired
+    # approval (R2-H) or age out a revocation (R2-G). True only for harnesses
+    # that legitimately drive the kernel on a model clock (finite-model
+    # verification, deterministic simulation) and control `now` themselves.
+    trusted_model_clock: bool = False
+
     _used_nonces: set = field(default_factory=set)
 
     # ── approvals ────────────────────────────────────────────
@@ -574,7 +582,8 @@ class SecurityContext:
                 # same rewound value passed to execute() used to PERMIT and run
                 # an approval that expired long ago.
                 wall = time.time()
-                if art.expires_at and wall > art.expires_at:
+                if (not self.trusted_model_clock and art.expires_at
+                        and wall > art.expires_at):
                     last = "approval has expired (wall clock)"
                     continue
                 return art, reason

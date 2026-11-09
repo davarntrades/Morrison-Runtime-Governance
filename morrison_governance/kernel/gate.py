@@ -186,6 +186,11 @@ class Decision:
     # How far the governed history behind this decision reaches: "process",
     # "host", "deployment", or "unknown".
     continuity_scope: str = "unknown"
+    # Every check that produced a non-PERMIT candidate for this decision, with
+    # its SCOPE: "local" (admissible as a single step) or "global" (depends on
+    # the trajectory / session history). Reporting only: the verdict is still
+    # strictest-wins over the same candidates.
+    checks: list = field(default_factory=list)
 
     def binding(self) -> dict:
         """Everything this decision is bound to, for evidence and debugging."""
@@ -284,7 +289,41 @@ class Decision:
             "engine_time_ms": round(self.engine_time_ms, 4),
             "stage_timings_ms": {k: round(v, 4)
                                  for k, v in self.stage_breakdown().items()},
+            **self.admissibility(),
         }
+
+    def admissibility(self) -> dict:
+        """Local and global admissibility, and the strictest verdict.
+
+        `local_verdict` is the strictest check that holds for this step on its
+        own; `global_verdict` the strictest that depends on trajectory or
+        session history. `authorization_verdict` covers refusals taken after
+        the policy checks (approval already consumed, binding). The decision's
+        own verdict is always the strictest of the three.
+        """
+        rank = {PERMIT: 0, ESCALATE: 1, BLOCK: 2}
+        scopes = {"local": PERMIT, "global": PERMIT, "authorization": PERMIT,
+                  "undetermined": PERMIT}
+        checks = [dict(c) for c in self.checks]
+        for c in checks:
+            if rank.get(c["verdict"], 2) > rank[scopes[c["scope"]]]:
+                scopes[c["scope"]] = c["verdict"]
+        if scopes["undetermined"] != PERMIT:
+            # Scope could not be established: count it against BOTH, never
+            # silently against neither.
+            for key in ("local", "global"):
+                if rank[scopes["undetermined"]] > rank[scopes[key]]:
+                    scopes[key] = scopes["undetermined"]
+        if rank.get(self.verdict, 2) > max(rank[v] for v in scopes.values()):
+            checks.append({"verdict": self.verdict, "scope": "authorization",
+                           "layer": self.layer, "rule": self.rule,
+                           "reason": self.reason})
+            scopes["authorization"] = self.verdict
+        return {"checks": checks,
+                "local_verdict": scopes["local"],
+                "global_verdict": scopes["global"],
+                "authorization_verdict": scopes["authorization"],
+                "strictest_verdict": self.verdict}
 
 
 @dataclass
@@ -923,7 +962,8 @@ class GovernanceKernel:
                 # is measured on the wall clock too. Measuring it against the
                 # caller's `now` let a far-future `now` age a fresh revocation
                 # out of its window and execute the voided PERMIT.
-                if not revoked_at or (time.time() - revoked_at) <= self.decision_ttl_s:
+                basis = now if getattr(self.ctx, "trusted_model_clock", False) else time.time()
+                if not revoked_at or (basis - revoked_at) <= self.decision_ttl_s:
                     revoked = reason_text
         if revoked:
             return (f"this transition was subsequently refused in the same "
@@ -1006,6 +1046,12 @@ class GovernanceKernel:
             tenant_id=self.ctx.principal.tenant, issued_at=stamp,
             expires_at=stamp, issued_wall=time.time(),
             continuity_scope=self.continuity_scope)
+        # A decision is only RETURNED if it is sealed. If even this fail-closed
+        # record cannot be sealed (the evidence sink is down), the original
+        # error propagates instead: the November line's invariant that no
+        # decision exists without evidence (an evidence-sink failure raises)
+        # and R2-J's invariant that malformed input yields a sealed BLOCK
+        # rather than an exception are both kept. No PERMIT escapes either way.
         try:
             decision.evidence = self.chain.append(EvidenceRecord(
                 seq=0, timestamp=stamp, actor=self.ctx.principal.id,
@@ -1015,7 +1061,7 @@ class GovernanceKernel:
                 engine_version=self.engine_version,
                 decision_id=decision.decision_id, session_id=self.session_id))
         except Exception:                            # noqa: BLE001
-            pass  # the BLOCK stands without evidence; never turn it into a raise
+            raise error
         return decision
 
     def _authorize_scoped(self, call: dict, now: Optional[float], reserve: bool,
@@ -1334,6 +1380,24 @@ class GovernanceKernel:
             candidates.append((BLOCK, "fail_closed",
                                f"governance error treated as BLOCK: "
                                f"{type(e).__name__}", None, None))
+        # LOCAL vs GLOBAL admissibility (reporting only). When the trajectory
+        # evaluation refuses, re-evaluate the candidate step on its own: if it
+        # is admissible in isolation, the refusal came from its history and is
+        # GLOBAL. The engine's own "single-step" label cannot be used for this,
+        # because rules read history folded into the state.
+        engine_isolated_refuses = None
+        if res is not None and not res.permitted:
+            if len(prefix) <= 1:
+                engine_isolated_refuses = True
+            else:
+                try:
+                    iso = self._evaluate_with_context(
+                        prefix[-1:], trusted,
+                        current_authority=authority_established,
+                        history_authority=[], current_extra=current_extra)
+                    engine_isolated_refuses = not iso.permitted
+                except Exception:                    # noqa: BLE001
+                    engine_isolated_refuses = None   # scope unknown; verdict unchanged
         engine_rule = engine_domain = None
         traj_hash = ""
         engine_ms = 0.0
@@ -1614,7 +1678,9 @@ class GovernanceKernel:
                 "no Ω intersection; capability requirements satisfied",
                 engine_rule, engine_domain)
 
+        checks = _scoped_checks(candidates, verdict, engine_isolated_refuses)
         decision = Decision(
+            checks=checks,
             verdict=verdict, reason=reason, layer=layer, action_hash=ahash,
             action=proposed, capabilities=caps, requirement=requirement,
             rule=rule, omega_domain=domain, authorization=authorization,
@@ -2088,13 +2154,36 @@ class GovernanceKernel:
         return self._ruleset_hash
 
     # ── reporting ────────────────────────────────────────────
-    def integrity(self) -> dict:
-        ok, problems = self.chain.verify()
+    def integrity(self, expected_head: str = "",
+                  expected_count: Optional[int] = None) -> dict:
+        """In-process self-check of this kernel's evidence chain.
+
+        `evidence_verified` is kept for existing consumers and means only that
+        the chain is internally consistent HERE, checked by the process that
+        wrote it. `status` uses the shared vocabulary
+        (attestation.evidence_status); `independently_verified` is always
+        False because a self-check cannot establish it. Pass a previously
+        exported anchor to detect truncation.
+        """
+        from morrison_governance.kernel.attestation import (
+            VerificationResult, evidence_status)
+        anchored = bool(expected_head or expected_count is not None)
+        ok, problems = self.chain.verify(expected_head=expected_head,
+                                         expected_count=expected_count)
+        status = evidence_status(
+            VerificationResult(ok=ok, head=self.chain.head,
+                               count=len(self.chain.records),
+                               problems=list(problems)),
+            keyed=bool(self.chain.key), anchored=anchored)
         return {"evidence_verified": ok, "problems": problems,
                 "records": len(self.chain.records),
                 "authenticated": bool(self.chain.key),
                 "ruleset_hash": self._live_ruleset_hash(),
-                "head": self.chain.head[:16]}
+                "head": self.chain.head[:16],
+                "status": status,
+                "checked_by": "writer_self_check",
+                "independently_verified": False,
+                "anchor": self.chain.anchor()}
 
 
 # ─────────────────────────────────────────────────────────────
@@ -2109,6 +2198,39 @@ def _numeric(args: dict, keys: tuple) -> Optional[float]:
             except (TypeError, ValueError):
                 continue
     return None
+
+
+_GLOBAL_LAYERS = frozenset({"egress_policy", "trajectory_integrity",
+                            "continuity", "reservation_limit"})
+
+
+def _scoped_checks(candidates: list, verdict: str,
+                   engine_isolated_refuses: Optional[bool]) -> list:
+    """Label each non-PERMIT candidate local or global.
+
+    Kernel checks that read session history are global. An engine (Ω) result
+    is local when the step is refused even in isolation, global when only its
+    trajectory makes it inadmissible, and "undetermined" if the isolation run
+    failed. Every reported verdict is capped at the decision's final verdict:
+    when the kernel narrows a BLOCK to ESCALATE (resolvable by authorisation)
+    the parts must not report something stricter than the whole.
+    """
+    rank = {PERMIT: 0, ESCALATE: 1, BLOCK: 2}
+    out = []
+    for c_verdict, c_layer, c_reason, c_rule, c_domain in candidates:
+        if c_layer in _GLOBAL_LAYERS:
+            scope = "global"
+        elif c_layer.startswith("V") or c_layer in ("A_safe", "kernel"):
+            scope = {True: "local", False: "global"}.get(
+                engine_isolated_refuses, "undetermined")
+        else:
+            scope = "local"
+        if rank.get(c_verdict, 2) > rank.get(verdict, 2):
+            c_verdict = verdict
+        out.append({"verdict": c_verdict, "scope": scope, "layer": c_layer,
+                    "rule": c_rule, "omega_domain": c_domain,
+                    "reason": str(c_reason)[:400]})
+    return out
 
 
 _AMOUNT_KEYS = frozenset({"amount", "value", "total", "sum", "amount_value",

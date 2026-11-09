@@ -56,6 +56,10 @@ def _ctx(principal="principal-a", tenant="tenant-a", approvals=(),
         tool_manifest=MANIFEST,
         unknown_tool_policy="escalate",
         authorization_equivalences=equivalences or {},
+        # These regressions run on a fixed model clock (NOW, Nov 2023) as a
+        # deterministic fixture. Since R2-H the caller clock is untrusted by
+        # default, so the fixture declares it trusted explicitly.
+        trusted_model_clock=True,
     )
 
 

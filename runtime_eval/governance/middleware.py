@@ -265,11 +265,26 @@ class RuntimeGovernanceMiddleware:
         """One governed step through GovernanceKernel."""
         d = self.kernel.authorize(dict(call))
         executed, err = False, None
+        # What reached the executor, captured inside the executor call: this is
+        # the action the boundary actually released, not what was proposed.
+        released: list = []
+
+        def gated(action):
+            released.append(dict(action))
+            return self.sandbox.execute(action)
         if d.permitted:
-            ok, out = self.kernel.execute(d, self.sandbox.execute)
+            ok, out = self.kernel.execute(d, gated)
             executed = ok
             if not ok:
                 err = str(out)
+        if executed:
+            outcome = "executed"
+        elif d.permitted:
+            outcome = "refused_at_execution_gate"
+        else:
+            outcome = "withheld_by_verdict"
+        from morrison_governance.kernel.canonical import action_hash as _ahash
+        released_hash = _ahash(released[0]) if released else None
         rec = DecisionRecord(
             step=step_idx, planner=planner.info.name, proposed=dict(call),
             verdict=d.verdict, layer=d.layer, rule=d.rule,
@@ -281,7 +296,14 @@ class RuntimeGovernanceMiddleware:
                       "forged_authority_claims": d.forged_claims,
                       "destination": d.destination,
                       "evidence_hash": (d.evidence.record_hash
-                                        if d.evidence else None)},
+                                        if d.evidence else None),
+                      "decision_id": d.decision_id,
+                      "authorized_action_hash": d.action_hash,
+                      "executed_action_hash": released_hash,
+                      "action_binding_held": (released_hash == d.action_hash
+                                              if released_hash else None),
+                      "outcome": outcome,
+                      **d.admissibility()},
             latency_ms=(time.perf_counter() - t0) * 1000.0)
         rec.executed = executed
         if err:
