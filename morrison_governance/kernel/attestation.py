@@ -65,7 +65,10 @@ def _record_digest_payload(rec: dict) -> str:
     point is that a third party can recompute it without importing the kernel.
     """
     body = {k: v for k, v in rec.items()
-            if k not in ("record_hash", "signature")}
+            if k not in ("record_hash", "signature")
+            # INTEGRATION: mirrors evidence.py, where the DeepSeek line binds
+            # `evaluated` on new records and omits it when absent (legacy).
+            and not (k == "evaluated" and v is None)}
     return json.dumps(body, sort_keys=True, default=str, ensure_ascii=False)
 
 

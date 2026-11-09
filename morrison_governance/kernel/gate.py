@@ -29,6 +29,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import math
 import threading
 import time
 import uuid
@@ -56,8 +57,8 @@ from morrison_governance.kernel.evidence import (
     EvidenceChain, EvidenceRecord, ruleset_hash,
 )
 from morrison_governance.kernel.trust import (
-    SecurityContext, forged_authority_claims, is_authority_shaped,
-    quarantine_authority,
+    SecurityContext, classification_view, forged_authority_claims,
+    is_authority_shaped, quarantine_authority,
 )
 
 BLOCK = "BLOCK"
@@ -361,9 +362,18 @@ class GovernanceKernel:
                  evidence_key: bytes = b"", engine_version: str = "",
                  session_id: str = "", decision_ttl_s: float = DECISION_TTL_S,
                  escalation_router: Optional[Any] = None,
-                 evidence_sink: Optional[Callable[[EvidenceRecord], None]] = None):
+                 evidence_sink: Optional[Callable[[EvidenceRecord], None]] = None,
+                 require_evidence_key: bool = False):
+        # A keyless chain detects corruption, not deliberate rewrite: a writer
+        # that recomputes every hash passes verify(). Deployments that require
+        # tamper-EVIDENT evidence must opt in to the key explicitly.
+        if require_evidence_key and not evidence_key:
+            raise ValueError(
+                "require_evidence_key=True but no evidence_key was supplied; "
+                "a keyless hash chain is self-consistency, not authenticity")
         self.layer = layer
         self.ctx = context
+        self.require_evidence_key = bool(require_evidence_key)
         # Where an ESCALATE goes. Without one the verdict is still correct and
         # still fail-closed, but it has no destination: nothing is persisted,
         # nobody is notified, and it never times out. See
@@ -1033,6 +1043,11 @@ class GovernanceKernel:
             #             skipped.
             proposed = canonicalize(call)
             clean, quarantined = quarantine_authority(call)
+            # Classification consumes the full proposal with authority-shaped
+            # KEY NAMES neutralised, not the residue. A field that cannot
+            # authorise can still describe a destructive action or a
+            # destination, and the executor will still act on it.
+            view = classification_view(call)
             forged = forged_authority_claims(quarantined)
         with _sw("canonicalization"):
             ahash = action_hash(proposed)
@@ -1041,19 +1056,34 @@ class GovernanceKernel:
                 proposed, self.ctx.authorization_equivalences)
             norm = normalize_action(proposed)
         with _sw("capability_classification"):
-            # Capabilities are classified on `clean`: authority field NAMES
-            # collide with control-surface morphology (`admin_approved` reads
-            # as a privilege key, `destination_external` as an external
-            # destination), and feeding them in produces false positives on
-            # ordinary traffic. Their content is still classified below.
-            caps = C.classify(clean, self.ctx.tool_manifest)
+            # Classified on `view`: authority field NAMES collide with
+            # control-surface morphology (`admin_approved` reads as a privilege
+            # key, `destination_external` as an external destination), so the
+            # names are neutralised. The VALUES are still present, so a
+            # quarantined wrapper cannot hide a destructive payload from the
+            # classifier while the executor acts on it.
+            caps = C.classify(view, self.ctx.tool_manifest)
+            # INTEGRATION: provenance keys match the runtime-supplied map, so
+            # argument provenance is still assessed on the un-renamed `clean`.
             argprov = argflow.assess(clean.get("args") or {}, argument_provenance)
         with _sw("destination_resolution"):
             dest = classify_destination(
-                clean, self.ctx.internal_url_hosts,
+                view, self.ctx.internal_url_hosts,
                 self.ctx.internal_email_domains, self.ctx.internal_cidrs,
-                trust_private_networks=self.ctx.trust_private_networks,
-                extra_args=quarantined)
+                trust_private_networks=self.ctx.trust_private_networks)
+            # Destination resolution is the authority on whether this call
+            # leaves the trust boundary. Capability inference from tool/arg
+            # names is a heuristic and can miss a URL inside an ordinary prose
+            # field; the two must never disagree in the unsafe direction.
+            # Egress is an ALLOW capability, so this adds reachability to the
+            # egress rules without changing the approval requirement. Only a
+            # TRANSFER counts: `bucket` is a destination the resolver must
+            # classify, but deleting a bucket sends nothing, and treating the
+            # resource name as an egress made a replay of that delete read as
+            # "egress after data acquisition".
+            if dest.external and (dest.transfer
+                                  or C.CAP_EXTERNAL_DATA_MOVE in caps):
+                caps = caps | {C.CAP_EXTERNAL_DATA_MOVE}
 
         with _sw("approval_verification"):
             # Approvals bind to the exact authorization identity. Broad tool
@@ -1116,9 +1146,21 @@ class GovernanceKernel:
                     and not approval:
                 # Server-owned threshold. The caller's own `threshold` was
                 # quarantined upstream (bypass AB-03).
-                cap_max = pol_values.get("payment_auto_approve_max", 0) or 0
+                try:
+                    cap_max = float(
+                        pol_values.get("payment_auto_approve_max", 0) or 0)
+                except (TypeError, ValueError):
+                    # An unreadable threshold is not a reason to auto-approve.
+                    cap_max = 0.0
                 amount = _numeric(clean["args"], ("amount", "value", "total"))
-                if amount is not None and amount <= cap_max and not dest.external:
+                # `cap_max = 0` is documented as "auto-approval disabled", not
+                # "approve every non-positive amount". A zero or negative
+                # transfer is not a small transfer: it is a malformed action
+                # that must reach the approval path. NaN is excluded by the
+                # range comparison; infinities are rejected explicitly.
+                if (amount is not None and math.isfinite(amount)
+                        and cap_max > 0 and 0 < amount <= cap_max
+                        and not dest.external):
                     requirement, auto_approved = P.ALLOW, True
 
             grant_satisfied = (requirement == P.GRANT
@@ -1545,7 +1587,8 @@ class GovernanceKernel:
             decision.evidence = self.chain.append(EvidenceRecord(
                 seq=0, timestamp=now, actor=self.ctx.principal.id,
                 tenant=self.ctx.principal.tenant, action_hash=ahash,
-                proposed=clean, decision=verdict, layer=layer, rule=rule,
+                proposed=deepcopy(proposed), evaluated=deepcopy(clean),
+                decision=verdict, layer=layer, rule=rule,
                 omega_domain=domain, reason=reason, capabilities=sorted(caps),
                 requirement=requirement, authorization=authorization,
                 forged_authority_claims=forged, ruleset_hash=self._live_ruleset_hash(),
@@ -1992,6 +2035,7 @@ class GovernanceKernel:
         ok, problems = self.chain.verify()
         return {"evidence_verified": ok, "problems": problems,
                 "records": len(self.chain.records),
+                "authenticated": bool(self.chain.key),
                 "ruleset_hash": self._live_ruleset_hash(),
                 "head": self.chain.head[:16]}
 
@@ -2060,6 +2104,43 @@ def _resource_owner_problem(call: dict, ctx: SecurityContext
     return None
 
 
+_TENANT_REF_RE = __import__("re").compile(
+    r"(?:^|[\s/:\"'])((?:tenant|customer|org)[-_][a-z0-9]+)")
+_TENANT_WILDCARDS = frozenset({"*", "all", "any"})
+
+
+def _tenant_leaf(key: str) -> str:
+    """The field name a traversal key denotes.
+
+    Quarantined identity fields are re-keyed as JSON-pointer paths such as
+    `/request/tenant`; the leaf is the actual field name. Nested args arrive
+    with their plain key from `iter_pairs`. Both must be compared the same way.
+    """
+    leaf = str(key).rsplit("/", 1)[-1]
+    return leaf.replace("~1", "/").replace("~0", "~").strip().lower()
+
+
+def _tenant_pairs(call: dict, quarantined: Optional[dict]) -> Optional[list]:
+    """Every (key, scalar) pair in the action, at any nesting depth.
+
+    Returns None when the traversal budget is exhausted: a payload we could not
+    finish reading is not a payload we cleared.
+    """
+    from morrison_governance.kernel.normalize import BudgetExhausted, iter_pairs
+
+    pairs: list[tuple[str, Any]] = []
+    try:
+        pairs.extend(iter_pairs(call.get("args") or {}))
+    except BudgetExhausted:
+        return None
+    # Quarantine flattens the path, so recover the leaf name. Values are
+    # retained rather than discarded: they cannot GRANT access, but they do
+    # identify the target whose access must be checked.
+    for key, value in (quarantined or {}).items():
+        pairs.append((_tenant_leaf(key), value))
+    return pairs
+
+
 def _cross_tenant(call: dict, ctx: SecurityContext,
                   quarantined: Optional[dict] = None) -> Optional[str]:
     """Compare any tenant-scoped identifier in the action against the
@@ -2067,9 +2148,22 @@ def _cross_tenant(call: dict, ctx: SecurityContext,
 
     `quarantined` carries identity fields that were stripped from the authority
     namespace — they confer nothing, but they still identify the target.
+
+    The comparison walks the WHOLE payload. It used to inspect only top-level
+    argument names, so `{"request": {"tenant": "globex"}}` and a nested
+    `account_id` reached another tenant while the top-level form was refused.
     """
     own = (ctx.principal.tenant or "").strip().lower()
-    args = {**(call.get("args") or {}), **(quarantined or {})}
+    pairs = _tenant_pairs(call, quarantined)
+    if pairs is None:
+        return ("tenant scope could not be fully resolved: the payload "
+                "exceeds the classification budget, so a nested tenant "
+                "reference could be hidden beyond it")
+
+    def scalars():
+        for k, v in pairs:
+            if isinstance(v, (str, int, float)) and not isinstance(v, bool):
+                yield k, v
 
     # FAIL CLOSED when the principal has no tenant.
     #
@@ -2080,35 +2174,33 @@ def _cross_tenant(call: dict, ctx: SecurityContext,
     # got the weakest enforcement. If we cannot establish whose data this is,
     # we cannot establish that it is theirs.
     if not own:
-        for k, v in args.items():
-            if str(k).strip().lower() in _TENANT_KEYS:
+        for k, v in scalars():
+            if _tenant_leaf(k) in _TENANT_KEYS:
                 return (f"principal has no verified tenant, so a tenant-scoped "
                         f"reference ({k}={v!r}) cannot be authorised")
-        blob_anon = " ".join(str(v).lower() for v in args.values())
-        import re as _re
-        m = _re.search(r"(?:^|[\s/:\"'])((?:tenant|customer|org)[-_][a-z0-9]+)",
-                       blob_anon)
-        if m:
-            return (f"principal has no verified tenant, so a tenant-scoped "
-                    f"resource reference ({m.group(1)!r}) cannot be authorised")
+        for k, v in scalars():
+            m = _TENANT_REF_RE.search(str(v).lower())
+            if m:
+                return (f"principal has no verified tenant, so a tenant-scoped "
+                        f"resource reference ({m.group(1)!r}) cannot be "
+                        f"authorised")
         return None
 
-    for k, v in args.items():
-        if str(k).strip().lower() not in _TENANT_KEYS:
+    for k, v in scalars():
+        if _tenant_leaf(k) not in _TENANT_KEYS:
             continue
         val = str(v).strip().lower()
-        if val in ("*", "all", "any"):
+        if not val:
+            continue
+        if val in _TENANT_WILDCARDS:
             return (f"wildcard tenant scope {k}={v!r} from principal in tenant "
-                    f"{own or '(none)'!r}")
-        if own and val and val != own:
+                    f"{own!r}")
+        if val != own:
             return (f"cross-tenant access: {k}={v!r} but principal belongs to "
                     f"tenant {own!r}")
     # Qualified resource references such as "tenant_b.customers" / "s3://tenant-b/…"
-    if own:
-        blob = " ".join(str(v).lower() for v in args.values())
-        import re as _re
-        for m in _re.finditer(r"(?:^|[\s/:\"'])((?:tenant|customer|org)[-_][a-z0-9]+)",
-                              blob):
+    for k, v in scalars():
+        for m in _TENANT_REF_RE.finditer(str(v).lower()):
             ref = m.group(1).replace("-", "_")
             if ref != own.replace("-", "_"):
                 return (f"resource reference {m.group(1)!r} is outside the "
