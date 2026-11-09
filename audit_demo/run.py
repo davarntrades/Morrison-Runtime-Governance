@@ -248,10 +248,14 @@ def _git(*a):
                           check=False).stdout.strip()
 
 
-def run_all() -> dict:
+def run_all(package: str | None = None) -> dict:
+    """package None runs everything (the full demonstration); 'A' or 'B' runs
+    only that engagement's scope. Frontier Lab sessions belong to Package B."""
+    selected = [sc for sc in SCENARIOS if package is None or package in sc["packages"]]
     with tempfile.TemporaryDirectory() as tmp:
-        scenarios = [run_scenario(sc, Path(tmp)) for sc in SCENARIOS]
+        scenarios = [run_scenario(sc, Path(tmp)) for sc in selected]
     return {
+        "scope_package": package,
         "label": "ILLUSTRATIVE SAMPLE — SIMULATED ENVIRONMENT — NOT A CUSTOMER AUDIT",
         "environment": {"id": E.ENVIRONMENT_ID, "label": E.ENVIRONMENT_LABEL,
                         "agent": E.AGENT, "tools": {k: {"declared_capabilities": v[0],
@@ -270,16 +274,18 @@ def run_all() -> dict:
                            if "audit_demo" not in ln],
                        "python": platform.python_version()},
         "scenarios": scenarios,
-        "frontier_sessions": run_frontier_sessions(),
+        "frontier_sessions": run_frontier_sessions() if package in (None, "B") else {},
     }
 
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="python -m audit_demo.run")
     p.add_argument("--output", type=Path, default=Path("audit_demo/evidence"))
+    p.add_argument("--package", choices=("A", "B"), default=None,
+                   help="limit the run to one engagement's scope (default: everything)")
     args = p.parse_args(argv)
     args.output.mkdir(parents=True, exist_ok=True)
-    ev = run_all()
+    ev = run_all(args.package)
     canon = canonical_projection(ev)
     ev["canonical_sha256"] = digest(canon)
     (args.output / "evidence.json").write_text(json.dumps(ev, indent=2, sort_keys=True, default=str))

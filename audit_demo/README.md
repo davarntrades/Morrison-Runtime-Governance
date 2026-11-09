@@ -17,7 +17,40 @@
 | `evidence/supporting/` | Existing falsification suite, Frontier Lab corpus, local/global experiment |
 | `evidence/test_runs.json` | Repository test-suite results on 2026-11-09 |
 
-## Reproduce
+## What an organisation receives: one command per engagement
+
+```bash
+pip install -r runtime_eval/agentdojo_bench/requirements.txt   # pinned agentdojo==0.1.35
+python -m audit_demo.engagement --package A --package B --output audit_demo/deliverables
+```
+
+This runs the whole engagement in order: scope, assessment, enforcement-evidence records,
+report, independent verification with replay, then pack checks. It writes
+`deliverables/SCE-01_Package-A/` and `SCE-01_Package-B/`, each with a `.zip`. Each pack
+contains only its own package's scope. Open **`index.html`** in a pack: it shows the result,
+each scenario's outcome per arm, and links every evidence ID to its decision record,
+alongside the report and the verification results.
+
+| Pack folder | Contents |
+|:--|:--|
+| `01_scope/` | Agent, tools (declared and discovered), policies, customer controls, scenarios, exclusions |
+| `02_assessment/` | `evidence.json` and the canonical replay digest (Package B adds the supporting experiments) |
+| `03_enforcement_evidence/` | One JSON record per evidence ID, plus `evidence_register.csv` |
+| `04_report/` | That package's report PDF and its per-number citations |
+| `05_verification/` | `verification.json`: the 7 report checks plus 4 pack checks |
+| `MANIFEST.sha256` | Checksums: `sha256sum -c MANIFEST.sha256` |
+
+The pack checks confirm four things:
+- every evidence ID cited in the report has a record file;
+- every cited ID is linked in `index.html`;
+- the assessment holds exactly the scoped scenarios;
+- the pack contains only its own report.
+
+The index takes its headline figures from the report's citation file, so the page and the
+PDF cannot disagree. Compute time is about 8 s for Package A and 23 s for Package B; the
+real engagement time is in scoping, modelling and review.
+
+## Reproduce the full demonstration (all scenarios, all three PDFs)
 
 ```bash
 pip install -r runtime_eval/agentdojo_bench/requirements.txt   # pinned agentdojo==0.1.35 (see L6)

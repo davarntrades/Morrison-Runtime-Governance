@@ -1341,17 +1341,30 @@ def _build(story, out: Path, title: str, C: Cite) -> Path:
     return out
 
 
+REPORT_FILES = {
+    "A": "Report_A_48-Hour_Bounded_Exposure_Audit_SAMPLE.pdf",
+    "B": "Report_B_Enterprise_Runtime_Governance_Audit_SAMPLE.pdf",
+    "board": "Board_Briefing_Runtime_Governance_Audit_SAMPLE.pdf",
+}
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="python -m audit_demo.report_pdf")
     p.add_argument("--evidence", type=Path, default=Path("audit_demo/evidence"))
     p.add_argument("--out", type=Path, default=Path("audit_demo/reports"))
+    p.add_argument("--only", choices=tuple(REPORT_FILES), action="append",
+                   help="render only these documents (repeatable; default: all three)")
     a = p.parse_args(argv)
+    which = a.only or list(REPORT_FILES)
     ev = json.loads((a.evidence / "evidence.json").read_text())
-    sup = json.loads((a.evidence / "supporting" / "supporting_summary.json").read_text())
-    tests = json.loads((a.evidence / "test_runs.json").read_text())
-    print(report_a(ev, a.out / "Report_A_48-Hour_Bounded_Exposure_Audit_SAMPLE.pdf"))
-    print(report_b(ev, sup, tests, a.out / "Report_B_Enterprise_Runtime_Governance_Audit_SAMPLE.pdf"))
-    print(board_briefing(ev, a.out / "Board_Briefing_Runtime_Governance_Audit_SAMPLE.pdf"))
+    if "A" in which:
+        print(report_a(ev, a.out / REPORT_FILES["A"]))
+    if "B" in which:
+        sup = json.loads((a.evidence / "supporting" / "supporting_summary.json").read_text())
+        tests = json.loads((a.evidence / "test_runs.json").read_text())
+        print(report_b(ev, sup, tests, a.out / REPORT_FILES["B"]))
+    if "board" in which:
+        print(board_briefing(ev, a.out / REPORT_FILES["board"]))
     return 0
 
 

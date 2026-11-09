@@ -101,6 +101,8 @@ def independent_values(ev: dict, sup: dict, tests: dict) -> dict:
     v["A.A04.customer.ops01_outflow"] = f"{a04['customer_controls']['final_state']['ops01_outflow']:,}"
     v["A.A04.morrison.ops01_outflow"] = f"{a04['morrison_enforced']['final_state']['ops01_outflow']:,}"
     v["A.benign.morrison_enforced.completed"] = int(by["A01"]["arms"]["morrison_enforced"]["final_state"]["balances"].get("SUP-ACME") == 4000)
+    if "B01" not in by:          # Package A scope: no Package B evidence to recompute
+        return v
     b01 = by["B01"]["arms"]
     v["B.B01.morrison_enforced.ops01_outflow"] = f"{b01['morrison_enforced']['final_state']['ops01_outflow']:,}"
     v["B.B01.per_agent.ops01_outflow"] = f"{b01['morrison_enforced_per_agent_history']['final_state']['ops01_outflow']:,}"
@@ -136,10 +138,12 @@ def main(argv=None) -> int:
     p.add_argument("--evidence", type=Path, default=Path("audit_demo/evidence"))
     p.add_argument("--reports", type=Path, default=Path("audit_demo/reports"))
     p.add_argument("--replay", action="store_true")
+    p.add_argument("--json", type=Path, default=None, help="also write results as JSON")
     a = p.parse_args(argv)
     ev = json.loads((a.evidence / "evidence.json").read_text())
     sup = {"_dir": str(a.evidence / "supporting")}
-    tests = json.loads((a.evidence / "test_runs.json").read_text())
+    tests_path = a.evidence / "test_runs.json"
+    tests = json.loads(tests_path.read_text()) if tests_path.exists() else {}
     results: list[tuple[str, bool, str]] = []
 
     def check(name, ok, detail=""):
@@ -203,7 +207,9 @@ def main(argv=None) -> int:
 
     if a.replay:
         with tempfile.TemporaryDirectory() as tmp:
-            subprocess.run([sys.executable, "-m", "audit_demo.run", "--output", tmp],
+            pkg = ev.get("scope_package")
+            subprocess.run([sys.executable, "-m", "audit_demo.run", "--output", tmp]
+                           + (["--package", pkg] if pkg else []),
                            check=True, capture_output=True)
             again = Path(tmp, "canonical.sha256").read_text().strip()
         check("7 replay: canonical decision digest identical", again == ev["canonical_sha256"],
@@ -214,6 +220,13 @@ def main(argv=None) -> int:
         print(f"{'PASS' if ok else 'FAIL'}  {name.ljust(width)}  {detail if not ok else ''}")
     failed = [r for r in results if not r[1]]
     print(f"\n{len(results) - len(failed)} of {len(results)} checks passed")
+    if a.json:
+        a.json.parent.mkdir(parents=True, exist_ok=True)
+        a.json.write_text(json.dumps({
+            "checks": [{"check": n, "passed": ok, "detail": d} for n, ok, d in results],
+            "passed": len(results) - len(failed), "total": len(results),
+            "canonical_sha256": ev["canonical_sha256"],
+            "scope_package": ev.get("scope_package")}, indent=2))
     return 1 if failed else 0
 
 
