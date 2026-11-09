@@ -106,7 +106,14 @@ class RuntimeGovernanceMiddleware:
             # construct, so this cannot become a second ungoverned execution
             # surface in a deployment.
             from runtime_eval.sandbox.executor import SandboxExecutor
-            if not isinstance(sandbox, SandboxExecutor):
+            # R2-K. `isinstance` admitted a SUBCLASS that overrides
+            # `execute` with a real effect. Only the exact inert type, with its
+            # own unmodified `execute`, qualifies.
+            from runtime_eval.sandbox.tool_simulator import ToolSimulator
+            inert = (type(sandbox) is SandboxExecutor
+                     and "execute" not in vars(sandbox)
+                     and type(getattr(sandbox, "simulator", None)) is ToolSimulator)
+            if not inert:
                 raise ValueError(
                     "RuntimeGovernanceMiddleware without a SecurityContext runs "
                     "the pre-kernel evaluation contract, which dispatches on a "

@@ -202,6 +202,44 @@ _OCT_HOST = re.compile(r"^0[0-7]+$")
 _DOTTED_MIXED = re.compile(r"^(0[0-7]*|\d{1,3})(\.(0[0-7]*|\d{1,3})){3}$")
 
 
+_NAT64_WKP = ipaddress.ip_network("64:ff9b::/96")
+_IPV4_COMPAT = ipaddress.ip_network("::/96")
+
+
+def _embedded_ipv4(ip: "ipaddress.IPv6Address") -> Optional["ipaddress.IPv4Address"]:
+    """The IPv4 host an IPv6 literal routes to, for the forms that do.
+
+    IPv4-mapped (`::ffff:a.b.c.d`), the deprecated IPv4-compatible form
+    (`::a.b.c.d`, excluding `::` and `::1`) and the NAT64 well-known prefix
+    (`64:ff9b::a.b.c.d`, RFC 6052) all deliver to `a.b.c.d`.
+    """
+    if ip.ipv4_mapped is not None:
+        return ip.ipv4_mapped
+    packed = int(ip)
+    if ip in _IPV4_COMPAT and packed > 1:
+        return ipaddress.IPv4Address(packed & 0xFFFFFFFF)
+    if ip in _NAT64_WKP:
+        return ipaddress.IPv4Address(packed & 0xFFFFFFFF)
+    return None
+
+
+def url_host(url: str) -> str:
+    """The host of `url`, never raising.
+
+    R2-J. `urlparse` raises ValueError on input such as `http://[::1`; that
+    escaped `authorize()` as an exception instead of a decision. A URL we cannot
+    parse still names somewhere: fall back to the authority text, and let the
+    destination rules (which treat an unresolvable destination as external)
+    decide.
+    """
+    try:
+        return urlparse(url).hostname or ""
+    except ValueError:
+        rest = url.split(":", 1)[-1].replace("\\", "/").lstrip("/")
+        authority = re.split(r"[/?#]", rest, maxsplit=1)[0].rsplit("@", 1)[-1]
+        return authority.strip("[]").split("]", 1)[0] or authority
+
+
 def normalize_host(host: str) -> str:
     """Fold a hostname or address literal to one comparable form.
 
@@ -239,9 +277,19 @@ def normalize_host(host: str) -> str:
         return str(ipaddress.ip_address(packed))
 
     try:
-        return str(ipaddress.ip_address(h))
+        ip = ipaddress.ip_address(h)
     except ValueError:
-        pass
+        ip = None
+    if ip is not None:
+        # R2-A. An IPv6 literal that EMBEDS an IPv4 address reaches that IPv4
+        # host: `::ffff:169.254.169.254` is the metadata endpoint. Fold it to
+        # the IPv4 form so every IPv4 rule (forbidden ranges, internal CIDRs,
+        # allowlists) sees the address it actually denotes.
+        if ip.version == 6:
+            embedded = _embedded_ipv4(ip)
+            if embedded is not None:
+                return str(embedded)
+        return str(ip)
     try:
         return h.encode("idna").decode("ascii")
     except (UnicodeError, UnicodeDecodeError):
@@ -493,7 +541,7 @@ def normalize_action(call: dict, *, budget: int = NODE_BUDGET) -> NormalizedActi
                 if command != folded:
                     parts.append(command)
                 for url in _URL_IN_TEXT.findall(folded):
-                    host = normalize_host(urlparse(url).hostname or "")
+                    host = normalize_host(url_host(url))
                     if host:
                         hosts.append(host)
                         parts.append(host)
@@ -529,3 +577,55 @@ def normalize_action(call: dict, *, budget: int = NODE_BUDGET) -> NormalizedActi
         semantic_text=" ".join(sorted(semantic)),
         hosts=tuple(dict.fromkeys(hosts)),
         truncated=truncated, truncation_reason=reason)
+
+
+# ─────────────────────────────────────────────────────────────
+# Destination-shaped argument names (R2-B, R2-C)
+# ─────────────────────────────────────────────────────────────
+
+# Head nouns that make an argument name a destination. Matched against the
+# LAST token of the name, so `base_url`, `redirect_uri` and `upstream` qualify
+# while `target_file` or `url_count` do not.
+DEST_KEY_TOKENS = frozenset({
+    "url", "urls", "uri", "uris", "host", "hostname", "hosts", "endpoint",
+    "endpoints", "server", "domain", "address", "upstream", "origin", "base",
+    "target", "callback", "webhook", "redirect", "remote", "dest",
+    "destination", "collector", "sink", "proxy", "relay", "forward",
+})
+_NAME_SUFFIX_TOKENS = frozenset({"name", "addr"})
+
+
+def key_tokens(key: str) -> list[str]:
+    """`redirectURI` / `redirect-uri` / `redirect_uri` -> ['redirect', 'uri']."""
+    text = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", str(key))
+    return [t for t in re.split(r"[^A-Za-z0-9]+", text.lower()) if t]
+
+
+def is_destination_shaped_key(key: str) -> bool:
+    """True when an argument name's head noun denotes a destination.
+
+    `server_name` / `host_addr` count: the head is the qualifier, the noun
+    before it names the destination.
+    """
+    toks = key_tokens(key)
+    if not toks:
+        return False
+    if toks[-1] in DEST_KEY_TOKENS:
+        return True
+    return (len(toks) >= 2 and toks[-1] in _NAME_SUFFIX_TOKENS
+            and toks[-2] in DEST_KEY_TOKENS)
+
+
+_HOSTLIKE_RE = re.compile(
+    r"^(?:\[[0-9a-f:.%]+\]|[0-9a-f]*:[0-9a-f:.]+"
+    r"|(?:[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,62}"
+    r"|localhost|\d{1,3}(?:\.\d{1,3}){3}|\d{8,10}|0x[0-9a-f]{1,8})"
+    r"(?::\d{1,5})?(?:[/?#].*)?$", re.I)
+
+
+def looks_like_host(value: str) -> bool:
+    """A scheme-less value that a client would treat as a host[:port][/path]."""
+    v = str(value or "").strip()
+    if not v or len(v) > 2048 or any(c.isspace() for c in v):
+        return False
+    return bool(_HOSTLIKE_RE.match(v.rsplit("@", 1)[-1]))

@@ -208,12 +208,31 @@ def quarantine_authority(call: dict) -> tuple[dict, dict]:
 _NEUTRAL_AUTHORITY_KEY = "payload"
 
 
-def _neutral_name(existing: dict) -> str:
-    """A key that carries no authority shape and cannot collide."""
-    name, suffix = _NEUTRAL_AUTHORITY_KEY, 1
+def _neutral_name(existing: dict, original: str = "") -> str:
+    """A key that carries no authority shape and cannot collide.
+
+    R2-C. When the original name's head noun denotes a destination
+    (`approved_url`, `trusted_host`), the neutral name keeps that noun
+    (`payload_url`) so destination resolution still recognises the value. The
+    authority-shaped prefix is what is removed; the noun was never authority.
+    """
+    from morrison_governance.kernel.normalize import (
+        is_destination_shaped_key, key_tokens)
+    head = ""
+    if original and is_destination_shaped_key(original):
+        toks = key_tokens(original)
+        head = toks[-1] if toks[-1] not in ("name", "addr") else "_".join(toks[-2:])
+
+    def spell(n: int) -> str:
+        parts = [_NEUTRAL_AUTHORITY_KEY] + ([str(n)] if n > 1 else []) + (
+            [head] if head else [])
+        return "_".join(parts)
+
+    suffix = 1
+    name = spell(suffix)
     while name in existing:
         suffix += 1
-        name = f"{_NEUTRAL_AUTHORITY_KEY}_{suffix}"
+        name = spell(suffix)
     return name
 
 
@@ -242,7 +261,7 @@ def classification_view(call: dict) -> dict:
                 label = str(key)
                 if (label.strip().lower() in AUTHORITY_FIELDS
                         or is_authority_shaped(label)):
-                    key = _neutral_name(out)
+                    key = _neutral_name(out, label)
                 out[key] = walk(child)
             return out
         if isinstance(value, (list, tuple)):
@@ -550,6 +569,14 @@ class SecurityContext:
                                     self.trusted_issuers, now,
                                     self._used_nonces)
             if ok:
+                # R2-H. The caller's `now` cannot revive an approval: validity
+                # must also hold on the wall clock. A rewound `now` with the
+                # same rewound value passed to execute() used to PERMIT and run
+                # an approval that expired long ago.
+                wall = time.time()
+                if art.expires_at and wall > art.expires_at:
+                    last = "approval has expired (wall clock)"
+                    continue
                 return art, reason
             last = reason
         return None, last

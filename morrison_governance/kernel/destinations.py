@@ -131,6 +131,23 @@ def _walk_values(value: Any, depth: int = 0):
         return
 
 
+def _bare_host(value: str) -> str:
+    """The host part of a scheme-less `[user@]host[:port][/path]` value.
+
+    Handles bracketed (`[::ffff:169.254.169.254]:80`) and bare IPv6 literals,
+    which a naive split on `:` reduced to an empty or wrong host.
+    """
+    cand = str(value).strip()
+    cand = cand.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0]
+    cand = cand.rsplit("@", 1)[-1].strip()
+    if cand.startswith("["):
+        return cand[1:].split("]", 1)[0]
+    try:
+        return str(ipaddress.ip_address(cand.split("%", 1)[0]))
+    except ValueError:
+        return cand.split(":", 1)[0].strip()
+
+
 def _forbidden(host: str) -> bool:
     """Link-local and known metadata endpoints, checked after normalisation."""
     if host in _FORBIDDEN_HOSTS:
@@ -283,12 +300,21 @@ def classify_destination(call: dict, internal_url_hosts: tuple = (),
         # proves it internal: a single-label host is not "no destination". If
         # the value cannot be parsed at all, that is still destination
         # evidence, and the declared deny-by-default rule makes it EXTERNAL.
-        if kl in _DEST_KEYS and not structured and sval.strip():
+        #
+        # R2-B / R2-C. The exact-name list above fails closed on any value. A
+        # name whose HEAD NOUN denotes a destination (`base_url`,
+        # `redirect_uri`, `upstream`, `server_name`, and `payload_url` — the
+        # neutral name `classification_view` gives a quarantined `approved_url`)
+        # is a second tier: its value is a destination when it is host-shaped.
+        from morrison_governance.kernel.normalize import (
+            is_destination_shaped_key, looks_like_host)
+        tier1 = kl in _DEST_KEYS
+        tier2 = (not tier1 and is_destination_shaped_key(key)
+                 and looks_like_host(sval))
+        if (tier1 or tier2) and not structured and sval.strip():
             if kl not in _RESOURCE_DEST_KEYS:
                 transfer = True
-            cand = sval.strip()
-            cand = cand.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0]
-            cand = cand.rsplit("@", 1)[-1].split(":", 1)[0].strip()
+            cand = _bare_host(sval)
             cand = normalize_host(cand)
             observed.append(cand or sval)
             if not cand:

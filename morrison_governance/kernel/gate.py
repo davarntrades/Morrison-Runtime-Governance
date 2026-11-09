@@ -919,7 +919,11 @@ class GovernanceKernel:
                                            decision.semantic_hash)
             if record is not None:
                 reason_text, revoked_at = record
-                if not revoked_at or (now - revoked_at) <= self.decision_ttl_s:
+                # R2-G. `revoked_at` is stamped from the wall clock, so its age
+                # is measured on the wall clock too. Measuring it against the
+                # caller's `now` let a far-future `now` age a fresh revocation
+                # out of its window and execute the voided PERMIT.
+                if not revoked_at or (time.time() - revoked_at) <= self.decision_ttl_s:
                     revoked = reason_text
         if revoked:
             return (f"this transition was subsequently refused in the same "
@@ -974,6 +978,48 @@ class GovernanceKernel:
         issued with `reserve=False` cannot be executed: `execute()` refuses it,
         because nothing held the trajectory steady between the two calls.
         """
+        try:
+            return self._authorize_scoped(call, now, reserve, argument_provenance)
+        except Exception as e:                       # noqa: BLE001 — fail closed
+            # R2-J. Malformed input (`http://[::1`) raised out of authorize()
+            # as a ValueError: the caller got an exception, not a decision, and
+            # whether it then failed open was the caller's choice. Any internal
+            # error is now a sealed BLOCK that execute() refuses.
+            return self._fail_closed_decision(call, now, e)
+
+    def _fail_closed_decision(self, call: Any, now: Optional[float],
+                              error: Exception) -> Decision:
+        stamp = time.time() if now is None else now
+        try:
+            proposed = canonicalize(call)
+            ahash = action_hash(proposed)
+        except Exception:                            # noqa: BLE001
+            proposed = {"unreadable_action": repr(call)[:2000]}
+            ahash = hashlib.sha256(proposed["unreadable_action"].encode()).hexdigest()
+        reason = (f"governance error treated as BLOCK: {type(error).__name__}: "
+                  f"{str(error)[:200]}")
+        decision = Decision(
+            verdict=BLOCK, reason=reason, layer="fail_closed",
+            action_hash=ahash, action=proposed, rule="governance_error",
+            decision_id=uuid.uuid4().hex, session_id=self.session_id,
+            principal_id=self.ctx.principal.id,
+            tenant_id=self.ctx.principal.tenant, issued_at=stamp,
+            expires_at=stamp, issued_wall=time.time(),
+            continuity_scope=self.continuity_scope)
+        try:
+            decision.evidence = self.chain.append(EvidenceRecord(
+                seq=0, timestamp=stamp, actor=self.ctx.principal.id,
+                tenant=self.ctx.principal.tenant, action_hash=ahash,
+                proposed=deepcopy(proposed), decision=BLOCK,
+                layer="fail_closed", rule="governance_error", reason=reason,
+                engine_version=self.engine_version,
+                decision_id=decision.decision_id, session_id=self.session_id))
+        except Exception:                            # noqa: BLE001
+            pass  # the BLOCK stands without evidence; never turn it into a raise
+        return decision
+
+    def _authorize_scoped(self, call: dict, now: Optional[float], reserve: bool,
+                          argument_provenance: Optional[dict]) -> Decision:
         with self._lock, self._critical_section():
             # Resolve the shared resources first and hold their part of the
             # store's lock too, so two principals acting on one resource
@@ -1152,7 +1198,10 @@ class GovernanceKernel:
                 except (TypeError, ValueError):
                     # An unreadable threshold is not a reason to auto-approve.
                     cap_max = 0.0
-                amount = _numeric(clean["args"], ("amount", "value", "total"))
+                # R2-D. Every amount alias at every depth of the full proposal
+                # (quarantined fields included) must agree; the executor, not
+                # the kernel, chooses which one moves money.
+                amount = _payment_amount(view.get("args") or {})
                 # `cap_max = 0` is documented as "auto-approval disabled", not
                 # "approve every non-positive amount". A zero or negative
                 # transfer is not a small transfer: it is a malformed action
@@ -1888,6 +1937,14 @@ class GovernanceKernel:
         """
         if not decision.permitted:
             raise ValueError("only a PERMIT decision can be recorded as executed")
+        # R2-I. Same IDENTITY check as `execute()`: the action being recorded
+        # must be the action that was authorised. Mutating `decision.action`
+        # after authorisation used to commit the mutated action to the ledger
+        # while the sealed evidence still named the original.
+        if action_hash(deepcopy(decision.action)) != decision.action_hash:
+            raise ValueError("decision cannot be recorded as executed: action "
+                             "hash does not match the authorised action "
+                             "(mutated after authorisation)")
         stamp = time.time() if now is None else now
         with self._lock, self._critical_section():
             problem = self._lease_problem(decision, stamp,
@@ -2054,8 +2111,54 @@ def _numeric(args: dict, keys: tuple) -> Optional[float]:
     return None
 
 
+_AMOUNT_KEYS = frozenset({"amount", "value", "total", "sum", "amount_value",
+                          "amount_total", "total_amount", "payment_amount"})
+
+
+def _payment_amount(args: Any) -> Optional[float]:
+    """The single amount a payment moves, or None when that is not certain.
+
+    R2-D. `_numeric` returned the FIRST alias present, so `{amount: 1,
+    value: 4_500_000}` was auto-approved on `amount` while the executor was free
+    to pay `value`. Auto-approval now requires every amount-named field, at any
+    depth, to be present as a finite number and all to be equal. Anything else
+    — disagreement, a non-numeric alias, an amount hidden in a nested or
+    quarantined field — returns None and the payment goes to approval.
+    """
+    from morrison_governance.kernel.normalize import BudgetExhausted, iter_pairs
+    try:
+        pairs = list(iter_pairs(args))
+    except BudgetExhausted:
+        return None
+    seen: list[float] = []
+    for key, value in pairs:
+        leaf = _tenant_leaf(key)
+        if leaf not in _AMOUNT_KEYS and leaf.rsplit("_", 1)[-1] != "amount":
+            continue
+        if isinstance(value, bool):
+            return None
+        try:
+            num = float(value)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(num):
+            return None
+        seen.append(num)
+    if not seen or any(v != seen[0] for v in seen):
+        return None
+    return seen[0]
+
+
 _TENANT_KEYS = ("tenant", "tenant_id", "customer_id", "account_id", "org",
-                "org_id", "organization_id", "workspace", "workspace_id")
+                "org_id", "organization_id", "workspace", "workspace_id",
+                # R2-F. Unambiguous spellings of the same identifier. `account`
+                # and `customer` are deliberately NOT here: in payment and CRM
+                # tools they name a counterparty, not the acting tenant, and
+                # belong in the resource-ownership registry
+                # (`owned_resource_args` / `resource_tenants`, E12) instead.
+                "tenants", "tenant_ids", "tenant_name", "organization",
+                "organisation", "organization_name", "organisation_name",
+                "org_name", "workspace_name", "workspace_ids", "org_ids")
 
 
 def _resource_owner_problem(call: dict, ctx: SecurityContext
@@ -2120,24 +2223,72 @@ def _tenant_leaf(key: str) -> str:
     return leaf.replace("~1", "/").replace("~0", "~").strip().lower()
 
 
+def _fold_tenant_text(value: Any) -> str:
+    """Compare tenant identifiers the way a resolver would read them.
+
+    R2-F. `tenant%5Fglobex`, `tenant%2Dglobex` and `tenant\u200b_globex` reach
+    the same resource as `tenant_globex` but compared unequal, so they passed.
+    Percent-decoding (to a fixed point), NFKC folding and removal of
+    format/zero-width characters now happen before any comparison.
+    """
+    import unicodedata
+    from urllib.parse import unquote
+    text = str(value)
+    for _ in range(4):
+        decoded = unquote(text)
+        if decoded == text:
+            break
+        text = decoded
+    text = unicodedata.normalize("NFKC", text)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Cf")
+    return text.strip().lower()
+
+
+_TENANT_WALK_BUDGET = 20_000
+
+
 def _tenant_pairs(call: dict, quarantined: Optional[dict]) -> Optional[list]:
     """Every (key, scalar) pair in the action, at any nesting depth.
+
+    R2-E. Two gaps let a container hide a tenant: quarantined values were
+    appended as-is and the scalar filter then skipped dicts and lists, and a
+    container UNDER a tenant-named key (`{"tenant": {"id": "globex"}}`,
+    `{"tenant_ids": ["globex"]}`) lost the key that made its leaves tenant
+    references. Both the arguments and the quarantined fields are now walked,
+    and every scalar inside a tenant-named container is attributed to that
+    tenant key.
 
     Returns None when the traversal budget is exhausted: a payload we could not
     finish reading is not a payload we cleared.
     """
-    from morrison_governance.kernel.normalize import BudgetExhausted, iter_pairs
-
     pairs: list[tuple[str, Any]] = []
-    try:
-        pairs.extend(iter_pairs(call.get("args") or {}))
-    except BudgetExhausted:
-        return None
-    # Quarantine flattens the path, so recover the leaf name. Values are
-    # retained rather than discarded: they cannot GRANT access, but they do
-    # identify the target whose access must be checked.
+    stack: list[tuple[str, Any, str]] = [("", call.get("args") or {}, "")]
     for key, value in (quarantined or {}).items():
-        pairs.append((_tenant_leaf(key), value))
+        stack.append((_tenant_leaf(key), value, ""))
+    seen: set[int] = set()
+    visited = 0
+    while stack:
+        key, node, inherited = stack.pop()
+        visited += 1
+        if visited > _TENANT_WALK_BUDGET:
+            return None
+        leaf = _tenant_leaf(key) if key else ""
+        owner = inherited or (leaf if leaf in _TENANT_KEYS else "")
+        if isinstance(node, dict):
+            if id(node) in seen:
+                continue
+            seen.add(id(node))
+            for k, v in node.items():
+                stack.append((str(k), v, owner))
+        elif isinstance(node, (list, tuple, set, frozenset)):
+            if id(node) in seen:
+                continue
+            seen.add(id(node))
+            for v in node:
+                stack.append((key, v, owner))
+        elif key:
+            # Inside a tenant-named container every leaf is a tenant reference.
+            pairs.append((owner or leaf, node))
     return pairs
 
 
@@ -2179,7 +2330,7 @@ def _cross_tenant(call: dict, ctx: SecurityContext,
                 return (f"principal has no verified tenant, so a tenant-scoped "
                         f"reference ({k}={v!r}) cannot be authorised")
         for k, v in scalars():
-            m = _TENANT_REF_RE.search(str(v).lower())
+            m = _TENANT_REF_RE.search(_fold_tenant_text(v))
             if m:
                 return (f"principal has no verified tenant, so a tenant-scoped "
                         f"resource reference ({m.group(1)!r}) cannot be "
@@ -2189,7 +2340,7 @@ def _cross_tenant(call: dict, ctx: SecurityContext,
     for k, v in scalars():
         if _tenant_leaf(k) not in _TENANT_KEYS:
             continue
-        val = str(v).strip().lower()
+        val = _fold_tenant_text(v)
         if not val:
             continue
         if val in _TENANT_WILDCARDS:
@@ -2200,7 +2351,7 @@ def _cross_tenant(call: dict, ctx: SecurityContext,
                     f"tenant {own!r}")
     # Qualified resource references such as "tenant_b.customers" / "s3://tenant-b/…"
     for k, v in scalars():
-        for m in _TENANT_REF_RE.finditer(str(v).lower()):
+        for m in _TENANT_REF_RE.finditer(_fold_tenant_text(v)):
             ref = m.group(1).replace("-", "_")
             if ref != own.replace("-", "_"):
                 return (f"resource reference {m.group(1)!r} is outside the "
