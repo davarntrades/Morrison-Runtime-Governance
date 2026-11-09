@@ -140,7 +140,7 @@ def test_every_third_party_import_is_accounted_for_in_the_lint_environment():
 
     stdlib = set(getattr(__import__("sys"), "stdlib_module_names", set()))
     first_party = {"morrison_governance", "runtime_eval", "redteam", "multi_agent_eval", "arsb",
-                   "global_governance", "audit", "artifacts", "_repo_paths",
+                   "global_governance", "audit", "audit_demo", "artifacts", "_repo_paths",
                    # The LB-0 Living Boundary prototype. It lives under
                    # `living-boundary/` (hyphen, so not itself importable) as
                    # the package `living_boundary`, which .pylintrc puts on the

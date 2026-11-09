@@ -1,0 +1,15 @@
+{
+ "date": "2026-11-09",
+ "commit": "06b9b559509900f0950840b7a257c4a3c299ec56",
+ "python": "3.13.18",
+ "run_1_without_agentdojo": {"command": "python -m pytest -q --continue-on-collection-errors", "passed": 1746, "failed": 1, "skipped": 9, "collection_errors": 2,
+   "failed_tests": ["morrison_governance/test_evidence_consistency.py::test_readme_suite_count_matches_a_real_collection"],
+   "collection_error_modules": ["runtime_eval/tests/test_falsification_harness.py", "runtime_eval/tests/test_falsification_isolation.py"],
+   "cause": "both modules import agentdojo unconditionally via runtime_eval/falsification/harness.py; the README count check then reports 1,754 collected vs 1,760 published"},
+ "run_2_with_agentdojo_0_1_35": {"command": "PYTHONPATH=<agentdojo site-packages> python -m pytest -q", "passed": 1771, "failed": 2, "skipped": 8,
+   "failed_tests": ["morrison_governance/test_evidence_consistency.py::test_readme_suite_count_matches_a_real_collection (expected drift with agentdojo installed, per CLAUDE.md)",
+                    "morrison_governance/test_lint_gate.py::test_every_third_party_import_is_accounted_for_in_the_lint_environment (caused by the new audit_demo package; fixed by registering it as first-party)"]},
+ "skipped_control_room_parity_tests": 7,
+ "skip_reason": "service repo not present at resurrection-tech-enterprise/governance-service (Control Room); repository could not be attached in this session",
+ "isolation_tests_note": "3 OS-identity isolation tests fail when the interpreter's dependencies sit in a root-only directory; they pass when dependencies are world-readable (environmental, not a product defect)"
+}
