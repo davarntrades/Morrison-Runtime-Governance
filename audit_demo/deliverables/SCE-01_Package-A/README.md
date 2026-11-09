@@ -28,6 +28,6 @@ From the Morrison Runtime Governance repository, with `agentdojo==0.1.35` instal
 python -m audit_demo.engagement --package A --output audit_demo/deliverables
 ```
 
-The pipeline's compute time for this pack was 7.3 s (see `engagement_log.json`). In a real
+The pipeline's compute time for this pack was 7.5 s (see `engagement_log.json`). In a real
 engagement the time goes into scoping, modelling the client's agent and controls, and
 review, not computation.

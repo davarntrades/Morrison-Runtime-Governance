@@ -50,14 +50,20 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 # ── pipeline ──────────────────────────────────────────────────────────────
+def _rel(x: str) -> str:
+    """Repository-relative form of a path, so no machine path reaches a client pack."""
+    return x.replace(str(REPO_ROOT) + "/", "")
+
+
 def _step(log: list, name: str, args: list[str]) -> None:
     t0 = time.perf_counter()
+    args = [_rel(a) for a in args]          # children run from REPO_ROOT, so relative paths resolve
     proc = subprocess.run([sys.executable, *args], capture_output=True, text=True,
                           cwd=REPO_ROOT, check=False)
     log.append({"step": name, "command": "python " + " ".join(args),
                 "exit_code": proc.returncode,
                 "duration_s": round(time.perf_counter() - t0, 2),
-                "output_tail": proc.stdout.strip().splitlines()[-3:]})
+                "output_tail": [_rel(x) for x in proc.stdout.strip().splitlines()[-3:]]})
     print(f"  {name:<28} exit {proc.returncode}  {log[-1]['duration_s']:>6}s")
     if proc.returncode != 0:
         raise SystemExit(f"step '{name}' failed:\n{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}")

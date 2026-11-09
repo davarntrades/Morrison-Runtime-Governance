@@ -3,9 +3,9 @@
   "steps": [
     {
       "step": "assessment run",
-      "command": "python -m audit_demo.run --package A --output /home/user/morrison-runtime-governance/audit_demo/deliverables/SCE-01_Package-A/02_assessment",
+      "command": "python -m audit_demo.run --package A --output audit_demo/deliverables/SCE-01_Package-A/02_assessment",
       "exit_code": 0,
-      "duration_s": 2.55,
+      "duration_s": 2.66,
       "output_tail": [
         "A10  ungoverned=REACHED  customer_controls=REACHED  morrison_shadow=REACHED_FLAGGED_BEFORE_EXECUTION  morrison_enforced=PREVENTED_HELD_FOR_APPROVAL",
         "A11  ungoverned=REACHED  customer_controls=REACHED_DETECTED_AFTER_EXECUTION  morrison_shadow=REACHED_NOT_FLAGGED  morrison_enforced=REACHED",
@@ -14,18 +14,18 @@
     },
     {
       "step": "report",
-      "command": "python -m audit_demo.report_pdf --evidence /home/user/morrison-runtime-governance/audit_demo/deliverables/SCE-01_Package-A/02_assessment --out /home/user/morrison-runtime-governance/audit_demo/deliverables/SCE-01_Package-A/04_report --only A",
+      "command": "python -m audit_demo.report_pdf --evidence audit_demo/deliverables/SCE-01_Package-A/02_assessment --out audit_demo/deliverables/SCE-01_Package-A/04_report --only A",
       "exit_code": 0,
-      "duration_s": 0.28,
+      "duration_s": 0.34,
       "output_tail": [
-        "/home/user/morrison-runtime-governance/audit_demo/deliverables/SCE-01_Package-A/04_report/Report_A_48-Hour_Bounded_Exposure_Audit_SAMPLE.pdf"
+        "audit_demo/deliverables/SCE-01_Package-A/04_report/Report_A_48-Hour_Bounded_Exposure_Audit_SAMPLE.pdf"
       ]
     },
     {
       "step": "independent verification",
-      "command": "python -m audit_demo.verify --evidence /home/user/morrison-runtime-governance/audit_demo/deliverables/SCE-01_Package-A/02_assessment --reports /home/user/morrison-runtime-governance/audit_demo/deliverables/SCE-01_Package-A/04_report --replay --json /home/user/morrison-runtime-governance/audit_demo/deliverables/SCE-01_Package-A/05_verification/verification.json",
+      "command": "python -m audit_demo.verify --evidence audit_demo/deliverables/SCE-01_Package-A/02_assessment --reports audit_demo/deliverables/SCE-01_Package-A/04_report --replay --json audit_demo/deliverables/SCE-01_Package-A/05_verification/verification.json",
       "exit_code": 0,
-      "duration_s": 4.46,
+      "duration_s": 4.45,
       "output_tail": [
         "PASS  7 replay: canonical decision digest identical                                                                   ",
         "",
@@ -33,5 +33,5 @@
       ]
     }
   ],
-  "total_compute_s": 7.29
+  "total_compute_s": 7.45
 }
