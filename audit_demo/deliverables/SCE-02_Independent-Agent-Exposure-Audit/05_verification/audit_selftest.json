@@ -1,0 +1,85 @@
+{
+  "baseline_clean": true,
+  "mutations": [
+    {
+      "id": "M1",
+      "mutation": "Relabel a failed customer result (L3) as held",
+      "expected_catcher": "outcomes",
+      "result": "CAUGHT",
+      "evidence": "L3/customer: stored HELD but evidence gives FAILED"
+    },
+    {
+      "id": "M2",
+      "mutation": "Consistent forgery: G2 outcome, final state and last step all edited to 'held'",
+      "expected_catcher": "final-state / step consistency",
+      "result": "CAUGHT",
+      "evidence": "G2/customer: final state differs from last step; evidence digest 312fe72f44dabf06 != recorded c875781fe769dc60"
+    },
+    {
+      "id": "M3",
+      "mutation": "Change a printed figure in the technical report",
+      "expected_catcher": "numbers",
+      "result": "CAUGHT",
+      "evidence": "X.reachable: printed 26, evidence gives 25"
+    },
+    {
+      "id": "M4",
+      "mutation": "Cite an evidence ID that does not exist",
+      "expected_catcher": "evidence IDs",
+      "result": "CAUGHT",
+      "evidence": "unresolved EV-L99-CU-1; cited but not printed EV-L99-CU-1"
+    },
+    {
+      "id": "M5",
+      "mutation": "Mark a refused Morrison action as executed",
+      "expected_catcher": "enforcement",
+      "result": "CAUGHT",
+      "evidence": "EV-L2-MO-1"
+    },
+    {
+      "id": "M6",
+      "mutation": "Turn the inconclusive result (L14) into 'held'",
+      "expected_catcher": "outcomes",
+      "result": "CAUGHT",
+      "evidence": "L14/customer: stored HELD but evidence gives INCONCLUSIVE"
+    },
+    {
+      "id": "M7",
+      "mutation": "Hide that a control misreported (L13 FAILED_MISREPORTED to FAILED)",
+      "expected_catcher": "outcomes",
+      "result": "CAUGHT",
+      "evidence": "L13/customer: stored FAILED but evidence gives FAILED_MISREPORTED"
+    },
+    {
+      "id": "M8",
+      "mutation": "Drop a failed scenario (G5) from the residual register",
+      "expected_catcher": "coverage",
+      "result": "CAUGHT",
+      "evidence": "G5 missing from residual register"
+    },
+    {
+      "id": "M9",
+      "mutation": "Recommend the auditor's own product in the register",
+      "expected_catcher": "independence",
+      "result": "CAUGHT",
+      "evidence": "recommendations name Morrison"
+    },
+    {
+      "id": "M10",
+      "mutation": "Add a production-readiness claim",
+      "expected_catcher": "presentation",
+      "result": "CAUGHT",
+      "evidence": "unsupported claim: 'production-ready'"
+    },
+    {
+      "id": "M11",
+      "mutation": "Edit evidence without recomputing the assessment digest",
+      "expected_catcher": "digest",
+      "result": "CAUGHT",
+      "evidence": "evidence digest 8dbee549058992b7 != recorded c875781fe769dc60"
+    }
+  ],
+  "caught": 11,
+  "total": 11,
+  "evidence_unchanged_by_selftest": true
+}

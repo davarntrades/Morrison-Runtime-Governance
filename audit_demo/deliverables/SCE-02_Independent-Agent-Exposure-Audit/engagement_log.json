@@ -1,0 +1,59 @@
+{
+  "steps": [
+    {
+      "step": "assessment (run 1)",
+      "command": "python -m audit_demo.exposure.run --output audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/02_assessment",
+      "exit_code": 0,
+      "duration_s": 0.23,
+      "output_tail": [
+        "C2   local+global  customer=HELD                 no_control=REACHABLE      morrison=PREVENTED",
+        "canonical c875781fe769dc606c50fa5b758b3d038df82e5f15853eea8a4345eac92a6e0a"
+      ]
+    },
+    {
+      "step": "assessment (run 2, reproducibility)",
+      "command": "python -m audit_demo.exposure.run --output <temporary directory>",
+      "exit_code": 0,
+      "duration_s": 0.21,
+      "output_tail": [
+        "C2   local+global  customer=HELD                 no_control=REACHABLE      morrison=PREVENTED",
+        "canonical c875781fe769dc606c50fa5b758b3d038df82e5f15853eea8a4345eac92a6e0a"
+      ]
+    },
+    {
+      "step": "reports",
+      "command": "python -m audit_demo.exposure.report --evidence audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/02_assessment --out audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/04_report",
+      "exit_code": 0,
+      "duration_s": 0.39,
+      "output_tail": [
+        "audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/04_report/Independent_Agent_Exposure_Audit_Technical_Report_SAMPLE.pdf",
+        "audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/04_report/Independent_Agent_Exposure_Audit_Executive_Summary_SAMPLE.pdf"
+      ]
+    },
+    {
+      "step": "independent verification",
+      "command": "python -m audit_demo.exposure.verify --assessment audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/02_assessment --reports audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/04_report --replay --json audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/05_verification/verification.json",
+      "exit_code": 0,
+      "duration_s": 0.4,
+      "output_tail": [
+        "",
+        "15 of 15 checks passed"
+      ]
+    },
+    {
+      "step": "audit self-tests",
+      "command": "python -m audit_demo.exposure.selftest --assessment audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/02_assessment --reports audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/04_report --json audit_demo/deliverables/SCE-02_Independent-Agent-Exposure-Audit/05_verification/audit_selftest.json",
+      "exit_code": 0,
+      "duration_s": 0.32,
+      "output_tail": [
+        "CAUGHT  M11 Edit evidence without recomputing the assessment digest",
+        "11 of 11 mutations caught; baseline clean: True"
+      ]
+    },
+    {
+      "step": "offline viewer check",
+      "duration_s": 0.58
+    }
+  ],
+  "total_compute_s": 2.13
+}

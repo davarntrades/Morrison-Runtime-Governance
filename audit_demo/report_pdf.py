@@ -335,7 +335,7 @@ def _spaced(canvas, x, y, text, size, color, space=1.6, align="left", font=SANS)
     canvas.drawText(t)
 
 
-def make_onpage(doc_title):
+def make_onpage(doc_title, env="SCE-01"):
     def on_page(canvas, doc):
         canvas.saveState()
         top = PAGE_H - 62
@@ -347,7 +347,7 @@ def make_onpage(doc_title):
         canvas.setLineWidth(0.75)
         canvas.line(MARGIN, top - 11, PAGE_W - MARGIN, top - 11)
         # sample marking on every page, in the originals' alert red
-        _spaced(canvas, PAGE_W / 2, 56, SAMPLE + "  ·  simulated environment SCE-01",
+        _spaced(canvas, PAGE_W / 2, 56, SAMPLE + f"  ·  simulated environment {env}",
                 6.3, RED, space=1.1, align="center")
         canvas.setStrokeColor(SECTION_RULE)
         canvas.line(MARGIN, 47, PAGE_W - MARGIN, 47)
@@ -360,10 +360,18 @@ def make_onpage(doc_title):
     return on_page
 
 
-def cover(story, title, subtitle, meta_rows):
+DEFAULT_WARNING = ('<font name="DejaVuSans-Bold">Every scenario was executed in a SIMULATED '
+                   'customer environment.</font> SCE-01 is a fictional building society, '
+                   'driven by a scripted agent. No real organisation, system, model or '
+                   'payment was involved. Do not rely on this document as assurance about '
+                   'any organisation.')
+
+
+def cover(story, title, subtitle, meta_rows, client="Simulated customer SCE-01",
+          warning=DEFAULT_WARNING):
     """Cover panel modelled on the originals' 'Prepared for' block."""
     lab = lambda t: Spaced(t, size=6.6, space=1.4)                       # noqa: E731
-    prep = Table([[Paragraph("Simulated customer SCE-01", ParagraphStyle(
+    prep = Table([[Paragraph(client, ParagraphStyle(
                      "pf", fontName=SANS_B, fontSize=11, leading=14, textColor=INK)),
                    Spaced("Prepared for", size=6.6, align="right")]],
                  colWidths=[W * 0.62 - 16, W * 0.38 - 10])
@@ -387,11 +395,7 @@ def cover(story, title, subtitle, meta_rows):
                                ("TOPPADDING", (0, 0), (0, 0), 16), ("BOTTOMPADDING", (0, -1), (-1, -1), 16),
                                ("TOPPADDING", (0, 1), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -2), 0)]))
     warn = Table([[Spaced(SAMPLE, size=7, color=RED, space=1.4)],
-                  [Paragraph('<font name="DejaVuSans-Bold">Every scenario was executed in a SIMULATED '
-                             'customer environment.</font> SCE-01 is a fictional building society, '
-                             'driven by a scripted agent. No real organisation, system, model or '
-                             'payment was involved. Do not rely on this document as assurance about '
-                             'any organisation.', ParagraphStyle("wb", parent=S["cell"], fontSize=8.8,
+                  [Paragraph(warning, ParagraphStyle("wb", parent=S["cell"], fontSize=8.8,
                                                                  leading=12.4))]],
                  colWidths=[W - 4])
     warn.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), RED_FILL),
@@ -1317,7 +1321,7 @@ def board_briefing(ev, out: Path):
     return _build(story, out, "Board Briefing • Runtime Governance Audit", C)
 
 
-def _build(story, out: Path, title: str, C: Cite) -> Path:
+def _build(story, out: Path, title: str, C: Cite, env: str = "SCE-01") -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
     short = title.split(" \u2022 ")[0 if title.startswith("Board") else -1]
     closing(story, short)
@@ -1334,7 +1338,7 @@ def _build(story, out: Path, title: str, C: Cite) -> Path:
     doc = SimpleDocTemplate(str(out), pagesize=LETTER, leftMargin=MARGIN, rightMargin=MARGIN,
                             topMargin=96, bottomMargin=72, title=title,
                             author=COMPANY, subject=SAMPLE)
-    fn = make_onpage(short)
+    fn = make_onpage(short, env)
     doc.build(story, onFirstPage=fn, onLaterPages=fn)
     out.with_suffix(".citations.json").write_text(json.dumps(
         {"report": out.name, "numbers": C.rows, "evidence_ids": sorted(C.ids)}, indent=2))
