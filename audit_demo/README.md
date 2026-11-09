@@ -8,9 +8,9 @@
 
 | File | What it is |
 |:--|:--|
-| [`reports/Report_A_48-Hour_Bounded_Exposure_Audit_SAMPLE.pdf`](reports/Report_A_48-Hour_Bounded_Exposure_Audit_SAMPLE.pdf) | Sample Package A report (9 pp.) |
-| [`reports/Report_B_Enterprise_Runtime_Governance_Audit_SAMPLE.pdf`](reports/Report_B_Enterprise_Runtime_Governance_Audit_SAMPLE.pdf) | Sample Package B report (13 pp.) |
-| [`reports/Board_Briefing_Runtime_Governance_Audit_SAMPLE.pdf`](reports/Board_Briefing_Runtime_Governance_Audit_SAMPLE.pdf) | Non-technical narrative for a board adviser (3 pp.) |
+| [`reports/Report_A_48-Hour_Bounded_Exposure_Audit_SAMPLE.pdf`](reports/Report_A_48-Hour_Bounded_Exposure_Audit_SAMPLE.pdf) | Sample Package A report (11 pp.) |
+| [`reports/Report_B_Enterprise_Runtime_Governance_Audit_SAMPLE.pdf`](reports/Report_B_Enterprise_Runtime_Governance_Audit_SAMPLE.pdf) | Sample Package B report (16 pp.) |
+| [`reports/Board_Briefing_Runtime_Governance_Audit_SAMPLE.pdf`](reports/Board_Briefing_Runtime_Governance_Audit_SAMPLE.pdf) | Non-technical narrative for a board adviser (4 pp.) |
 | `reports/*.citations.json` | Every number printed in each PDF, with its metric and evidence IDs |
 | `evidence/evidence.json` | Full evidence: every step, arm, decision binding, resource state |
 | `evidence/canonical.json`, `canonical.sha256` | Deterministic decision projection used for replay |
@@ -147,7 +147,7 @@ The six weaknesses you asked about, and how the new samples handle them:
 | Adversarial depth | Targeted scenario set (~10) | Targeted set plus full falsification suite and Frontier Lab |
 | Independent verification | Yes: four-arm, resource read-back, evidence, replay | Same, plus remediation re-test and evidence-chain audit |
 | Shadow vs enforced comparison | Yes | Yes, plus Frontier Lab sessions |
-| Output | ~9-page exposure report | ~13-page assurance report, prioritised remediation, pilot plan |
+| Output | ~11-page exposure report | ~16-page assurance report, prioritised remediation, pilot plan |
 | Not included | Other agents, cross-agent, IAM, production | Production validation |
 
 **What justifies the difference** is the work, not the report length. The implied day

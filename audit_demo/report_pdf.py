@@ -5,62 +5,158 @@
 Every number printed goes through `Cite.n(...)`, which records the metric it
 came from and the evidence IDs behind it in <report>.citations.json, so
 `audit_demo.verify` can re-derive each figure and resolve each ID.
+
+Visual identity: reproduced from the original Resurrection Tech audit and
+executive-report PDFs (US Letter, 72 pt margins, DejaVu Sans headings and
+labels, DejaVu Serif body, letter-spaced eyebrow labels, rule-separated
+sections, #F3F3F3 panels, and the exact palette extracted from those files).
 """
 
 from __future__ import annotations
 
 import argparse
+import html
 import json
+import re
 from pathlib import Path
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import LETTER
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
-from reportlab.platypus import (PageBreak, Paragraph, SimpleDocTemplate,
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import (CondPageBreak, Flowable, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate,
                                 Spacer, Table, TableStyle)
 
 from audit_demo.metrics import frontier_metrics, package_metrics
 
-NAVY = colors.HexColor("#14243B")
-TEAL = colors.HexColor("#1D6B73")
-INK = colors.HexColor("#1E2329")
-MUTED = colors.HexColor("#5B6470")
-RULE = colors.HexColor("#C9CED6")
-PALE = colors.HexColor("#F2F4F7")
-RED = colors.HexColor("#A3262A")
-AMBER = colors.HexColor("#9A6200")
-GREEN = colors.HexColor("#2C6E3F")
+# ── brand fonts (as embedded in the original PDFs) ───────────────────────
+_FONT_DIR = Path("/usr/share/fonts/truetype/dejavu")
+for _name, _file in (("DejaVuSans", "DejaVuSans.ttf"), ("DejaVuSans-Bold", "DejaVuSans-Bold.ttf"),
+                     ("DejaVuSerif", "DejaVuSerif.ttf"), ("DejaVuSerif-Bold", "DejaVuSerif-Bold.ttf"),
+                     ("DejaVuSansMono", "DejaVuSansMono.ttf")):
+    pdfmetrics.registerFont(TTFont(_name, str(_FONT_DIR / _file)))
+# The originals' serif italic is not installed here; italic falls back to upright serif.
+pdfmetrics.registerFontFamily("DejaVuSerif", normal="DejaVuSerif", bold="DejaVuSerif-Bold",
+                              italic="DejaVuSerif", boldItalic="DejaVuSerif-Bold")
+pdfmetrics.registerFontFamily("DejaVuSans", normal="DejaVuSans", bold="DejaVuSans-Bold",
+                              italic="DejaVuSans", boldItalic="DejaVuSans-Bold")
+SANS, SANS_B, SERIF, SERIF_B, MONO = ("DejaVuSans", "DejaVuSans-Bold", "DejaVuSerif",
+                                      "DejaVuSerif-Bold", "DejaVuSansMono")
+
+# ── brand palette (exact values extracted from the original PDFs) ────────
+INK = colors.HexColor("#212121")        # headings, primary text
+BODY = colors.HexColor("#333333")       # body copy
+MUTED = colors.HexColor("#737373")      # eyebrow labels, footer
+SOFT = colors.HexColor("#8A929C")       # explanatory notes
+RULE = colors.HexColor("#E2E2E2")       # table row hairlines, panel borders
+SECTION_RULE = colors.HexColor("#B8B8B8")
+PALE = colors.HexColor("#F3F3F3")       # panels and tiles
+GOLD = colors.HexColor("#9A6A12")       # accent, R(t) mark, medium/held
+GREEN = colors.HexColor("#2E7D52")      # positive
+RED = colors.HexColor("#B3261E")        # critical / blocked / reached
+RED_FILL = colors.HexColor("#F7EFEF")
+RED_LINE = colors.HexColor("#E0B9B6")
+ORANGE = colors.HexColor("#B4561D")     # high
+# names used by the content functions, mapped onto the brand palette
+NAVY, TEAL, AMBER = INK, INK, GOLD
+
 SAMPLE = "ILLUSTRATIVE SAMPLE — NOT A CUSTOMER AUDIT"
 COMPANY = "Resurrection Tech Ltd"
+BRAND = "Resurrection Tech™"
 PRODUCT = "Morrison Runtime Governance"
 TAGLINE = "Independent Pre-Execution Governance for Autonomous AI Systems"
+PATENT = "Patent GB2600765.8"
+PAGE_W, PAGE_H = LETTER
+MARGIN = 72
+W = PAGE_W - 2 * MARGIN                  # 468 pt content width
 
-_ss = getSampleStyleSheet()
 S = {
-    "body": ParagraphStyle("body", parent=_ss["BodyText"], fontName="Helvetica",
-                           fontSize=9.4, leading=13.2, textColor=INK, spaceAfter=5),
-    "small": ParagraphStyle("small", fontName="Helvetica", fontSize=7.8, leading=10.2,
-                            textColor=MUTED),
-    "cell": ParagraphStyle("cell", fontName="Helvetica", fontSize=7.9, leading=10, textColor=INK),
-    "cellb": ParagraphStyle("cellb", fontName="Helvetica-Bold", fontSize=7.9, leading=10,
-                            textColor=INK),
-    "head": ParagraphStyle("head", fontName="Helvetica-Bold", fontSize=7.9, leading=10,
-                           textColor=colors.white),
-    "h1": ParagraphStyle("h1", fontName="Helvetica-Bold", fontSize=15, leading=19,
-                         textColor=NAVY, spaceBefore=4, spaceAfter=8),
-    "h2": ParagraphStyle("h2", fontName="Helvetica-Bold", fontSize=11, leading=14,
-                         textColor=TEAL, spaceBefore=9, spaceAfter=4),
-    "callout": ParagraphStyle("callout", fontName="Helvetica", fontSize=9.4, leading=13.2,
-                              textColor=INK),
-    "title": ParagraphStyle("title", fontName="Helvetica-Bold", fontSize=24, leading=29,
-                            textColor=colors.white, alignment=TA_LEFT),
-    "subtitle": ParagraphStyle("subtitle", fontName="Helvetica", fontSize=12, leading=16,
-                               textColor=colors.white),
-    "bullet": ParagraphStyle("bullet", fontName="Helvetica", fontSize=9.4, leading=13,
-                             textColor=INK, leftIndent=11, bulletIndent=2, spaceAfter=2.5),
+    "body": ParagraphStyle("body", fontName=SERIF, fontSize=9.6, leading=14, textColor=BODY,
+                           spaceAfter=6),
+    "small": ParagraphStyle("small", fontName=SERIF, fontSize=8, leading=11.2, textColor=MUTED,
+                            spaceAfter=4),
+    "cell": ParagraphStyle("cell", fontName=SERIF, fontSize=8.2, leading=10.8, textColor=INK),
+    "cellb": ParagraphStyle("cellb", fontName=SANS_B, fontSize=8.2, leading=10.8, textColor=INK),
+    "head": ParagraphStyle("head", fontName=SANS_B, fontSize=6.8, leading=8.6, textColor=INK),
+    "h1": ParagraphStyle("h1", fontName=SANS_B, fontSize=13, leading=16.5, textColor=INK),
+    "h2": ParagraphStyle("h2", fontName=SANS_B, fontSize=10, leading=13, textColor=INK,
+                         spaceBefore=10, spaceAfter=5),
+    "callout": ParagraphStyle("callout", fontName=SERIF, fontSize=9.6, leading=14, textColor=INK),
+    "title": ParagraphStyle("title", fontName=SANS_B, fontSize=20, leading=25, textColor=INK),
+    "subtitle": ParagraphStyle("subtitle", fontName=SERIF, fontSize=10.5, leading=14.5,
+                               textColor=MUTED),
+    "meta": ParagraphStyle("meta", fontName=SERIF, fontSize=9.6, leading=13, textColor=INK),
+    "bullet": ParagraphStyle("bullet", fontName=SERIF, fontSize=9.6, leading=13.8, textColor=BODY,
+                             leftIndent=13, bulletIndent=1, spaceAfter=4, bulletFontName=SANS,
+                             bulletColor=GREEN),
 }
+
+
+class Spaced(Flowable):
+    """Letter-spaced uppercase label, as used for the originals' eyebrows."""
+
+    def __init__(self, text, size=7, color=MUTED, space=1.6, align="left", font=SANS):
+        super().__init__()
+        self.text, self.size, self.color = text.upper(), size, color
+        self.space, self.align, self.font = space, align, font
+
+    def _w(self):
+        return (pdfmetrics.stringWidth(self.text, self.font, self.size)
+                + self.space * max(0, len(self.text) - 1))
+
+    def wrap(self, aw, ah):
+        self.aw = aw
+        return min(aw, self._w()) if self.align == "inline" else aw, self.size * 1.5
+
+    def draw(self):
+        x = {"left": 0, "inline": 0, "right": self.aw - self._w(),
+             "center": (self.aw - self._w()) / 2}[self.align]
+        t = self.canv.beginText(x, self.size * 0.3)
+        t.setFont(self.font, self.size)
+        t.setCharSpace(self.space)
+        t.setFillColor(self.color)
+        t.textOut(self.text)
+        t.setCharSpace(0)
+        self.canv.drawText(t)
+
+
+class SectionHead(Flowable):
+    """Rule, letter-spaced eyebrow, then heading: the originals' section opener."""
+
+    def __init__(self, eyebrow, heading):
+        super().__init__()
+        self.eyebrow = Spaced(eyebrow)
+        self.heading = Paragraph(heading, S["h1"])
+
+    def wrap(self, aw, ah):
+        self.aw = aw
+        _w, self.hh = self.heading.wrap(aw, ah)
+        return aw, 8 + 13 + 4 + self.hh + 8
+
+    def split(self, aw, ah):
+        return []
+
+
+    def draw(self):
+        c = self.canv
+        top = 8 + 13 + 4 + self.hh + 8
+        c.setStrokeColor(SECTION_RULE)
+        c.setLineWidth(0.75)
+        c.line(0, top, self.aw, top)
+        self.eyebrow.wrap(self.aw, 20)
+        self.eyebrow.drawOn(c, 0, top - 8 - 11)
+        self.heading.drawOn(c, 0, 8)
+
+
+def _section_parts(text):
+    """'7. Risk ...' -> ('Section 7', 'Risk ...'); 'Appendix A. X' -> ('Appendix A', 'X')."""
+    head, sep, rest = text.partition(". ")
+    if sep and (head.isdigit() or head.startswith("Appendix")):
+        return (f"Section {head}" if head.isdigit() else head), rest
+    return "Runtime Governance", text
 
 
 class Cite:
@@ -82,6 +178,8 @@ class Cite:
 
 
 def P(text, style="body"):
+    if style == "h1":
+        return SectionHead(*_section_parts(text))
     return Paragraph(text, S[style])
 
 
@@ -89,58 +187,127 @@ def bullets(items):
     return [Paragraph(t, S["bullet"], bulletText="•") for t in items]
 
 
+def _fit(widths):
+    total = float(sum(widths))
+    return [w * W / total for w in widths]
+
+
+_TAG = re.compile(r"<[^>]+>")
+
+
+def _longest_word(cell, header: bool) -> float:
+    """Width of the longest unbreakable token in a cell, in its rendering font."""
+    if not isinstance(cell, str):
+        return 0.0
+    text = html.unescape(_TAG.sub("", cell))
+    font, size = (SANS_B, 6.8) if header else (SERIF_B, 8.2)
+    face = re.search(r"""(?:face|name)=['"]([^'"]+)['"]""", cell)
+    sz = re.search(r"""size=['"]([\d.]+)['"]""", cell)
+    if face and face.group(1) == MONO:
+        font, size = MONO, float(sz.group(1)) if sz else 8.2
+    if header:
+        text = text.upper()
+    return max((pdfmetrics.stringWidth(tok, font, size) for tok in text.split()), default=0.0)
+
+
+def _layout(rows, widths, head: bool):
+    """Start from the requested proportions; then give every column at least the
+    width of its longest word (capped at 21% of the measure, so very long rule
+    names may still wrap), taking the space from columns that have slack."""
+    cols = _fit(widths)
+    pad = 10.0
+    mins = [min(0.21 * W, pad + max(_longest_word(r[i], head and n == 0)
+                                    for n, r in enumerate(rows) if i < len(r)))
+            for i in range(len(cols))]
+    for _ in range(6):
+        deficit = sum(max(0.0, m - c) for m, c in zip(mins, cols))
+        if deficit < 0.5:
+            break
+        cols = [max(c, m) for c, m in zip(cols, mins)]
+        slack = [max(0.0, c - m) for c, m in zip(cols, mins)]
+        total = sum(slack)
+        if total <= 0:
+            break
+        take = min(deficit, total)
+        cols = [c - take * sl / total for c, sl in zip(cols, slack)]
+    scale = W / sum(cols)
+    return [c * scale for c in cols]
+
+
 def table(rows, widths, head=True, zebra=True, align_top=True):
-    data = [[c if not isinstance(c, str) else Paragraph(c, S["head"] if (head and i == 0)
-                                                         else S["cell"]) for c in r]
-            for i, r in enumerate(rows)]
-    t = Table(data, colWidths=widths, repeatRows=1 if head else 0)
-    st = [("GRID", (0, 0), (-1, -1), 0.4, RULE),
-          ("VALIGN", (0, 0), (-1, -1), "TOP" if align_top else "MIDDLE"),
-          ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-          ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4)]
+    """Original table style: uppercase sans header over a dark rule, serif rows
+    divided by light hairlines, no grid, no fills."""
+    del zebra
+    data = []
+    for i, r in enumerate(rows):
+        out = []
+        for c in r:
+            if not isinstance(c, str):
+                out.append(c)
+            elif head and i == 0:
+                out.append(Paragraph(c.upper(), S["head"]))
+            else:
+                out.append(Paragraph(c, S["cell"]))
+        data.append(out)
+    t = Table(data, colWidths=_layout(rows, widths, head), repeatRows=1 if head else 0)
+    st = [("VALIGN", (0, 0), (-1, -1), "TOP" if align_top else "MIDDLE"),
+          ("TOPPADDING", (0, 0), (-1, -1), 4.5), ("BOTTOMPADDING", (0, 0), (-1, -1), 4.5),
+          ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+          ("LINEBELOW", (0, 1 if head else 0), (-1, -1), 0.5, RULE)]
     if head:
-        st.append(("BACKGROUND", (0, 0), (-1, 0), NAVY))
-    if zebra:
-        for i in range(1 if head else 0, len(rows)):
-            if i % 2 == 0:
-                st.append(("BACKGROUND", (0, i), (-1, i), PALE))
+        st += [("LINEBELOW", (0, 0), (-1, 0), 1.1, INK), ("BOTTOMPADDING", (0, 0), (-1, 0), 5)]
     t.setStyle(TableStyle(st))
     return t
 
 
-def callout(text, colour=TEAL):
-    t = Table([[Paragraph(text, S["callout"])]], colWidths=[170 * mm])
+def callout(text, colour=INK):
+    t = Table([[Paragraph(text, S["callout"])]], colWidths=[W])
     t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), PALE),
                            ("LINEBEFORE", (0, 0), (0, -1), 3, colour),
-                           ("LEFTPADDING", (0, 0), (-1, -1), 9), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                           ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+                           ("LEFTPADDING", (0, 0), (-1, -1), 13), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                           ("TOPPADDING", (0, 0), (-1, -1), 10), ("BOTTOMPADDING", (0, 0), (-1, -1), 11)]))
     return t
 
 
 def kpis(items):
-    """items: list of (big, label, colour)."""
-    cells = [[Paragraph(f'<font size="19" color="{c.hexval()}"><b>{big}</b></font>', S["cell"])
-              for big, _l, c in items],
-             [Paragraph(label, S["small"]) for _b, label, _c in items]]
-    w = 170 * mm / len(items)
-    t = Table(cells, colWidths=[w] * len(items))
-    t.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.4, RULE),
-                           ("LINEAFTER", (0, 0), (-2, -1), 0.4, RULE),
-                           ("BACKGROUND", (0, 0), (-1, -1), PALE),
-                           ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-                           ("LEFTPADDING", (0, 0), (-1, -1), 7), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
-    return t
+    """Metric tiles: #F3F3F3 panels with serif-bold figures and small sans labels."""
+    gap = 6
+    tw = (W - gap * (len(items) - 1)) / len(items)
+    lab = ParagraphStyle("kl", fontName=SANS, fontSize=7, leading=9.4, textColor=MUTED)
+    tiles = []
+    for big, label, c in items:
+        tile = Table([[Paragraph(f'<font name="{SERIF_B}" size="16" color="{c.hexval()}">{big}</font>',
+                                 ParagraphStyle("kb", fontName=SERIF_B, leading=20))],
+                      [Paragraph(label, lab)]], colWidths=[tw])
+        tile.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), PALE),
+                                  ("BOX", (0, 0), (-1, -1), 0.5, RULE),
+                                  ("LEFTPADDING", (0, 0), (-1, -1), 9), ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+                                  ("TOPPADDING", (0, 0), (0, 0), 9), ("BOTTOMPADDING", (0, -1), (-1, -1), 9),
+                                  ("TOPPADDING", (0, 1), (-1, 1), 1)]))
+        tiles.append(tile)
+    row, widths = [], []
+    for i, tile in enumerate(tiles):
+        row.append(tile)
+        widths.append(tw)
+        if i < len(tiles) - 1:
+            row.append("")
+            widths.append(gap)
+    outer = Table([row], colWidths=widths)
+    outer.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                               ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+                               ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    return outer
 
 
 OUTCOME_TEXT = {
     "PREVENTED": ("Prevented", GREEN),
-    "PREVENTED_HELD_FOR_APPROVAL": ("Held for human approval", AMBER),
+    "PREVENTED_HELD_FOR_APPROVAL": ("Held for human approval", GOLD),
     "REACHED": ("Reached", RED),
     "REACHED_DETECTED_AFTER_EXECUTION": ("Reached; flagged after the fact", RED),
-    "REACHED_FLAGGED_BEFORE_EXECUTION": ("Reached; flagged before (shadow)", AMBER),
+    "REACHED_FLAGGED_BEFORE_EXECUTION": ("Reached; flagged before (shadow)", GOLD),
     "REACHED_NOT_FLAGGED": ("Reached; not flagged", RED),
     "WORK_COMPLETED": ("Work completed", GREEN),
-    "WORK_HELD_FOR_APPROVAL": ("Held for approval", AMBER),
+    "WORK_HELD_FOR_APPROVAL": ("Held for approval", GOLD),
     "WORK_NOT_COMPLETED": ("Work not completed", RED),
     "NOT_TESTED": ("Not tested", MUTED),
 }
@@ -148,75 +315,127 @@ OUTCOME_TEXT = {
 
 def outcome(o):
     text, c = OUTCOME_TEXT.get(o, (o, INK))
-    return f'<font color="{c.hexval()}"><b>{text}</b></font>'
+    return f'<font name="{SERIF_B}" color="{c.hexval()}">{text}</font>'
 
 
-# ── page furniture ────────────────────────────────────────────────────────
+# ── page furniture (header and footer as in the originals) ───────────────
+def _spaced(canvas, x, y, text, size, color, space=1.6, align="left", font=SANS):
+    text = text.upper()
+    width = pdfmetrics.stringWidth(text, font, size) + space * (len(text) - 1)
+    if align == "right":
+        x -= width
+    elif align == "center":
+        x -= width / 2
+    t = canvas.beginText(x, y)
+    t.setFont(font, size)
+    t.setCharSpace(space)
+    t.setFillColor(color)
+    t.textOut(text)
+    t.setCharSpace(0)
+    canvas.drawText(t)
+
+
 def make_onpage(doc_title):
     def on_page(canvas, doc):
-        w, h = A4
         canvas.saveState()
-        # faint diagonal watermark on every page
-        canvas.setFillColor(colors.HexColor("#F3F4F6"))
-        canvas.setFont("Helvetica-Bold", 38)
-        canvas.translate(w / 2, h / 2)
-        canvas.rotate(35)
-        canvas.drawCentredString(0, 0, "ILLUSTRATIVE SAMPLE")
-        canvas.restoreState()
-        canvas.saveState()
-        if doc.page > 1:
-            canvas.setFillColor(RED)
-            canvas.rect(0, h - 9 * mm, w, 9 * mm, stroke=0, fill=1)
-            canvas.setFillColor(colors.white)
-            canvas.setFont("Helvetica-Bold", 8)
-            canvas.drawCentredString(w / 2, h - 6 * mm, SAMPLE + "  •  SIMULATED ENVIRONMENT SCE-01")
-            canvas.setFillColor(MUTED)
-            canvas.setFont("Helvetica", 7.5)
-            canvas.drawString(20 * mm, h - 15 * mm, f"{COMPANY}  •  {PRODUCT}")
-            canvas.drawRightString(w - 20 * mm, h - 15 * mm, doc_title)
-        canvas.setStrokeColor(RULE)
-        canvas.line(20 * mm, 14 * mm, w - 20 * mm, 14 * mm)
+        top = PAGE_H - 62
+        canvas.setFont(SANS_B, 11)
+        canvas.setFillColor(INK)
+        canvas.drawString(MARGIN, top, BRAND)
+        _spaced(canvas, PAGE_W - MARGIN, top + 1, "Runtime Governance", 7.5, MUTED, align="right")
+        canvas.setStrokeColor(SECTION_RULE)
+        canvas.setLineWidth(0.75)
+        canvas.line(MARGIN, top - 11, PAGE_W - MARGIN, top - 11)
+        # sample marking on every page, in the originals' alert red
+        _spaced(canvas, PAGE_W / 2, 56, SAMPLE + "  ·  simulated environment SCE-01",
+                6.3, RED, space=1.1, align="center")
+        canvas.setStrokeColor(SECTION_RULE)
+        canvas.line(MARGIN, 47, PAGE_W - MARGIN, 47)
+        canvas.setFont(SANS, 7.5)
         canvas.setFillColor(MUTED)
-        canvas.setFont("Helvetica", 7.2)
-        canvas.drawString(20 * mm, 10 * mm, f"{COMPANY} • {TAGLINE}")
-        canvas.drawRightString(w - 20 * mm, 10 * mm, f"Page {doc.page}")
+        canvas.drawString(MARGIN, 35, BRAND)
+        canvas.drawCentredString(PAGE_W / 2, 35, doc_title)
+        canvas.drawRightString(PAGE_W - MARGIN, 35, f"{PATENT}  ·  Page {doc.page}")
         canvas.restoreState()
     return on_page
 
 
 def cover(story, title, subtitle, meta_rows):
-    band = Table([[Paragraph(f"{COMPANY}", S["subtitle"])],
-                  [Paragraph(PRODUCT, S["subtitle"])],
-                  [Spacer(1, 16 * mm)],
-                  [Paragraph(title, S["title"])],
-                  [Spacer(1, 3 * mm)],
-                  [Paragraph(subtitle, S["subtitle"])],
-                  [Spacer(1, 12 * mm)],
-                  [Paragraph(f"<i>{TAGLINE}</i>", S["subtitle"])]],
-                 colWidths=[170 * mm])
-    band.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), NAVY),
-                              ("LEFTPADDING", (0, 0), (-1, -1), 12),
-                              ("TOPPADDING", (0, 0), (0, 0), 14),
-                              ("BOTTOMPADDING", (0, -1), (-1, -1), 16)]))
-    story += [Spacer(1, 6 * mm), band, Spacer(1, 7 * mm)]
-    warn = Table([[Paragraph(f'<font color="white"><b>{SAMPLE}</b></font>',
-                             ParagraphStyle("w", parent=S["cellb"], fontSize=12, leading=15,
-                                            alignment=TA_CENTER))],
-                  [Paragraph('<font color="white">Every scenario was executed in a SIMULATED '
-                             'customer environment (SCE-01, a fictional building society) with '
-                             'a scripted agent. No real organisation, system, model or payment '
-                             'was involved. Do not rely on this document as assurance about any '
-                             'organisation.</font>',
-                             ParagraphStyle("w2", parent=S["cell"], fontSize=8.6, leading=11.5,
-                                            alignment=TA_CENTER))]],
-                 colWidths=[170 * mm])
-    warn.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), RED),
-                              ("TOPPADDING", (0, 0), (-1, -1), 6),
-                              ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                              ("LEFTPADDING", (0, 0), (-1, -1), 12),
-                              ("RIGHTPADDING", (0, 0), (-1, -1), 12)]))
-    story += [warn, Spacer(1, 8 * mm), table(meta_rows, [48 * mm, 122 * mm], head=False),
-              PageBreak()]
+    """Cover panel modelled on the originals' 'Prepared for' block."""
+    lab = lambda t: Spaced(t, size=6.6, space=1.4)                       # noqa: E731
+    prep = Table([[Paragraph("Simulated customer SCE-01", ParagraphStyle(
+                     "pf", fontName=SANS_B, fontSize=11, leading=14, textColor=INK)),
+                   Spaced("Prepared for", size=6.6, align="right")]],
+                 colWidths=[W * 0.62 - 16, W * 0.38 - 10])
+    prep.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                              ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
+    meta = []
+    for label, value in meta_rows:
+        meta.append([lab(label), Paragraph(value, S["meta"])])
+    grid = Table(meta, colWidths=[30 * mm, W - 26 - 30 * mm])
+    grid.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                              ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                              ("LINEBELOW", (0, 0), (-1, -2), 0.5, RULE),
+                              ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    panel = Table([[prep], [Spacer(1, 10)], [lab("Morrison Runtime Governance · audit suite")],
+                   [Spacer(1, 4)], [Paragraph(title, S["title"])], [Spacer(1, 3)],
+                   [Paragraph(subtitle, S["subtitle"])], [Spacer(1, 12)], [grid]],
+                  colWidths=[W - 10])
+    panel.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), PALE),
+                               ("LINEBEFORE", (0, 0), (0, -1), 3, INK),
+                               ("LEFTPADDING", (0, 0), (-1, -1), 16), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                               ("TOPPADDING", (0, 0), (0, 0), 16), ("BOTTOMPADDING", (0, -1), (-1, -1), 16),
+                               ("TOPPADDING", (0, 1), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -2), 0)]))
+    warn = Table([[Spaced(SAMPLE, size=7, color=RED, space=1.4)],
+                  [Paragraph('<font name="DejaVuSans-Bold">Every scenario was executed in a SIMULATED '
+                             'customer environment.</font> SCE-01 is a fictional building society, '
+                             'driven by a scripted agent. No real organisation, system, model or '
+                             'payment was involved. Do not rely on this document as assurance about '
+                             'any organisation.', ParagraphStyle("wb", parent=S["cell"], fontSize=8.8,
+                                                                 leading=12.4))]],
+                 colWidths=[W - 4])
+    warn.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), RED_FILL),
+                              ("BOX", (0, 0), (-1, -1), 0.6, RED_LINE),
+                              ("LINEBEFORE", (0, 0), (0, -1), 3, RED),
+                              ("LEFTPADDING", (0, 0), (-1, -1), 13), ("RIGHTPADDING", (0, 0), (-1, -1), 12),
+                              ("TOPPADDING", (0, 0), (0, 0), 10), ("BOTTOMPADDING", (0, -1), (-1, -1), 11)]))
+    brand = Table([[Paragraph(f'<font name="{SANS_B}" size="22" color="{GOLD.hexval()}">ℛ(t)</font>',
+                              ParagraphStyle("mk", fontName=SANS_B, leading=26, alignment=TA_CENTER))],
+                   [Spaced(f"{COMPANY} · {PRODUCT}", size=6.8, align="center")],
+                   [Paragraph(TAGLINE, ParagraphStyle("tg", fontName=SERIF, fontSize=9, leading=12,
+                                                      textColor=SOFT, alignment=TA_CENTER))]],
+                  colWidths=[W])
+    brand.setStyle(TableStyle([("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]))
+    story += [Spacer(1, 6), panel, Spacer(1, 12), warn, Spacer(1, 40), brand, PageBreak()]
+
+
+def closing(story, doc_title):
+    """Sign-off modelled on the originals' final page (branding only, no claims)."""
+    story.append(Spacer(1, 26))
+    story.append(KeepTogether([SectionRule(),
+              Paragraph(f'<font name="{SANS_B}" size="22" color="{GOLD.hexval()}">ℛ(t)</font>',
+                        ParagraphStyle("mk2", fontName=SANS_B, leading=28, alignment=TA_CENTER, spaceBefore=12)),
+              Paragraph(f"{doc_title}: end of illustrative sample.",
+                        ParagraphStyle("ct", fontName=SANS_B, fontSize=12, leading=16, textColor=INK,
+                                       alignment=TA_CENTER, spaceBefore=4, spaceAfter=8)),
+              Spaced(f"{BRAND} · Runtime Governance · {PATENT}", size=6.8, align="center"),
+              Spacer(1, 6),
+              Paragraph("Generated from executed demonstration evidence in a simulated environment. "
+                        "Every figure is tied to an evidence identifier listed in the accompanying "
+                        "citations file. Not a customer audit; proposed commercial terms are non-binding.",
+                        ParagraphStyle("cn", fontName=SERIF, fontSize=7.8, leading=11, textColor=MUTED,
+                                       alignment=TA_CENTER))]))
+
+
+class SectionRule(Flowable):
+    def wrap(self, aw, ah):
+        self.aw = aw
+        return aw, 2
+
+    def draw(self):
+        self.canv.setStrokeColor(SECTION_RULE)
+        self.canv.setDash(2, 2)
+        self.canv.line(0, 1, self.aw, 1)
 
 
 # ── shared sections ───────────────────────────────────────────────────────
@@ -302,22 +521,22 @@ def method_section(story, ev, pkg):
 
 def evidence_index(story, ev, C, pkg):
     story.append(P("Appendix A. Evidence, replay and reproduction", "h1"))
-    story.append(P("<b>Evidence bundle.</b> <font face='Courier'>audit_demo/evidence/evidence.json</font>. "
+    story.append(P("<b>Evidence bundle.</b> <font face='DejaVuSansMono'>audit_demo/evidence/evidence.json</font>. "
                    "Each step carries an identifier of the form "
-                   "<font face='Courier'>EV-&lt;scenario&gt;-&lt;arm&gt;-&lt;step&gt;</font> "
+                   "<font face='DejaVuSansMono'>EV-&lt;scenario&gt;-&lt;arm&gt;-&lt;step&gt;</font> "
                    "(arm codes UG no control, CC customer controls, MS Morrison shadow, ME "
                    "Morrison enforced, MP Morrison per-agent history). Every identifier cited "
                    "in this report resolves to a record in that file."))
     story.append(P("<b>Replay determinism, stated precisely.</b> Re-running the demonstration "
                    "reproduces every verdict, rule, layer, execution outcome and resource state "
-                   f"byte for byte (canonical digest <font face='Courier'>"
+                   f"byte for byte (canonical digest <font face='DejaVuSansMono'>"
                    f"{ev['canonical_sha256'][:32]}…</font>). Decision identifiers, "
                    "timestamps and the evidence hashes that bind them are <b>intentionally "
                    "unique per run</b>, so they are excluded from that comparison: "
-                   f"<font face='Courier'>{', '.join(ev['non_deterministic_fields_excluded_from_replay'])}"
+                   f"<font face='DejaVuSansMono'>{', '.join(ev['non_deterministic_fields_excluded_from_replay'])}"
                    "</font>. Replay therefore shows the <i>decisions</i> are deterministic; it "
                    "does not and should not reproduce identical evidence records."))
-    story.append(P(f"<b>Source.</b> Repository commit <font face='Courier'>"
+    story.append(P(f"<b>Source.</b> Repository commit <font face='DejaVuSansMono'>"
                    f"{ev['provenance']['git_commit'][:12]}</font>; Python "
                    f"{ev['provenance']['python']}; scripted proposer, no model calls."))
     story.append(P("Reproduce", "h2"))
@@ -325,7 +544,7 @@ def evidence_index(story, ev, C, pkg):
             "python -m audit_demo.run --output audit_demo/evidence",
             "python -m audit_demo.supporting --output audit_demo/evidence/supporting",
             "python -m audit_demo.verify --evidence audit_demo/evidence --reports audit_demo/reports"]
-    story.append(table([[f"<font face='Courier' size='7.4'>{c}</font>"] for c in cmds],
+    story.append(table([[f"<font face='DejaVuSansMono' size='7.4'>{c}</font>"] for c in cmds],
                        [170 * mm], head=False, zebra=False))
 
 
@@ -343,7 +562,7 @@ def report_a(ev, out: Path):
            ["Status", f'<font color="#A3262A"><b>{SAMPLE}</b></font>'],
            ["Environment", ev["environment"]["label"]],
            ["Agent assessed", "Treasury Payments Assistant (one agent, one principal)"],
-           ["Evidence digest", f"<font face='Courier' size='7'>{ev['canonical_sha256']}</font>"],
+           ["Evidence digest", f"<font face='DejaVuSansMono' size='7'>{ev['canonical_sha256']}</font>"],
            ["Prepared by", f"{COMPANY}, {PRODUCT}"]])
 
     # 1. Executive summary
@@ -405,10 +624,10 @@ def report_a(ev, out: Path):
     story.append(P("Recommended next step: a 30-day Shadow-mode Limited Pilot on this one agent, "
                    "after actions 1-4 in Section 8, with the residual R-1 addressed by "
                    "configuration before any enforcement.", "small"))
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
 
     scope_section(story, ev, "A", C)
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     method_section(story, ev, "A")
 
     # 4. Reachability
@@ -429,7 +648,7 @@ def report_a(ev, out: Path):
     story.append(P("Reachability review also found one tool, <b>run_maintenance_sql</b>, that was "
                    "available to the agent but absent from the inventory supplied for the audit. "
                    "It was used in A10.", "small"))
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
 
     # 5. Local and global
     story.append(P("5. Local and global safety findings", "h1"))
@@ -475,7 +694,7 @@ def report_a(ev, out: Path):
     story.append(P("A07 is the exception that proves the point: the customer's email filter "
                    "(a local control) stopped the email route, but the same data left by web "
                    "request in A08.", "small"))
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
 
     # 6. Adversarial results & enforcement evidence
     story.append(P("6. Adversarial test results and enforcement evidence", "h1"))
@@ -491,8 +710,8 @@ def report_a(ev, out: Path):
             rows.append([C.ev(st["evidence_id"]), st["call"]["tool"], st["verdict"],
                          f"{st['layer']} / {st['rule'] or '-'}",
                          "No" if not st["executed"] else '<font color="#A3262A">YES</font>',
-                         f"<font face='Courier' size='6.8'>{st['evidence']['action_hash'][:16]}…</font>",
-                         f"<font face='Courier' size='6.8'>{st['evidence']['ruleset_hash'][:12]}…</font>"])
+                         f"<font face='DejaVuSansMono' size='6.4'>{st['evidence']['action_hash'][:10]}…</font>",
+                         f"<font face='DejaVuSansMono' size='6.4'>{st['evidence']['ruleset_hash'][:8]}…</font>"])
     story.append(table(rows, [22 * mm, 25 * mm, 20 * mm, 39 * mm, 16 * mm, 27 * mm, 21 * mm]))
     d = m["morrison_decisions"]
     story.append(Spacer(1, 4))
@@ -512,7 +731,7 @@ def report_a(ev, out: Path):
     ], [120 * mm, 50 * mm]))
 
     # 7. Risk classification + residual
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     story.append(P("7. Risk classification and residual exposure", "h1"))
     story.append(P("Severity is an assessor's judgement of consequence if the outcome occurred in "
                    "a real deployment, combined with whether the existing controls prevent it. It is "
@@ -528,7 +747,7 @@ def report_a(ev, out: Path):
     rows = [["ID", "Severity", "Finding (customer controls)", "Customer outcome", "With Morrison enforcing",
              "Evidence"]]
     for fid, sev, text, sid, swid in find:
-        col = RED if sev == "Critical" else AMBER
+        col = RED if sev == "Critical" else ORANGE
         rows.append([fid, f'<font color="{col.hexval()}"><b>{sev}</b></font>', text,
                      outcome(sc[sid]["arms"]["customer_controls"]["outcome"]),
                      outcome(sc[sid]["arms"]["morrison_enforced"]["outcome"]),
@@ -573,7 +792,7 @@ def report_a(ev, out: Path):
     ])
 
     # 8. Recommendations + pilot
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     story.append(P("8. Recommended actions", "h1"))
     story.append(table([
         ["#", "Action", "Addresses", "Owner"],
@@ -603,7 +822,7 @@ def report_a(ev, out: Path):
     ], [32 * mm, 88 * mm, 50 * mm]))
     story.append(P("This sample deliberately makes no production-readiness statement. Production "
                    "validation requires the pilot evidence above.", "small"))
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     evidence_index(story, ev, C, "A")
     return _build(story, out, "Report A • 48-Hour Bounded Exposure Audit", C)
 
@@ -624,7 +843,7 @@ def report_b(ev, sup, tests, out: Path):
            ["Environment", ev["environment"]["label"]],
            ["Scope", "Two agent instances on a shared account; payment, data-egress, audit-log "
             "and role-management boundaries; approval service; Frontier Lab sessions"],
-           ["Evidence digest", f"<font face='Courier' size='7'>{ev['canonical_sha256']}</font>"],
+           ["Evidence digest", f"<font face='DejaVuSansMono' size='7'>{ev['canonical_sha256']}</font>"],
            ["Prepared by", f"{COMPANY}, {PRODUCT}"]])
 
     story.append(P("1. Executive summary", "h1"))
@@ -679,9 +898,9 @@ def report_b(ev, sup, tests, out: Path):
         "outside the agent). A configuration remedy was re-tested and held (B03). Its "
         "operational feasibility in a real core-banking integration is untested.",
     ])
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     scope_section(story, ev, "B", C)
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     method_section(story, ev, "B")
     story.append(P("Additional Package B methods", "h2"))
     story += bullets([
@@ -697,7 +916,7 @@ def report_b(ev, sup, tests, out: Path):
         f"({sup['falsification']['experiments']} experiments) and the Frontier Lab are run "
         "unchanged, and their outputs are summarised from their own result files.",
     ])
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
 
     # 4 Reachability
     story.append(P("4. Reachability findings", "h1"))
@@ -715,7 +934,7 @@ def report_b(ev, sup, tests, out: Path):
                    "inventory. Inventory reconciliation is part of the Package B scope.", "small"))
 
     # 5 local/global
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     story.append(P("5. Local and global safety findings", "h1"))
     story.append(P("5.1 Separation of control types", "h2"))
     rows = [["Control", "Policy", "Type", "Claim", "Independently tested result"]]
@@ -756,7 +975,7 @@ def report_b(ev, sup, tests, out: Path):
     story.append(table(rows, [11 * mm, 55 * mm, 22 * mm, 22 * mm, 38 * mm, 22 * mm]))
 
     # 6 cross-agent + approvals + Frontier
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     story.append(P("6. Adversarial test results", "h1"))
     story.append(P("6.1 Cross-agent budget (B01)", "h2"))
     b01 = sc["B01"]["arms"]
@@ -805,7 +1024,7 @@ def report_b(ev, sup, tests, out: Path):
                    f"display of these sessions was NOT TESTED</b> (Section 9)."))
 
     # 6.4 falsification suite
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     story.append(P("6.4 Independent falsification suite (existing, run unchanged)", "h2"))
     f = sup["falsification"]
     story.append(P(f"{C.n(f['experiments'], 'B.supporting.falsification.experiments')} experiments, "
@@ -857,7 +1076,7 @@ def report_b(ev, sup, tests, out: Path):
     ], [52 * mm, 118 * mm]))
 
     # 7 evidence
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     story.append(P("7. Enforcement evidence and replay verification", "h1"))
     d = m["morrison_decisions"]
     story.append(table([
@@ -894,7 +1113,7 @@ def report_b(ev, sup, tests, out: Path):
             ("6", "High", "Member data can leave by web request (P5)", "A08"),
             ("7", "High", "Audit log deletable via an undeclared tool (P6)", "A10")]
     for pri, sev, text, sid in find:
-        col = RED if sev == "Critical" else AMBER
+        col = RED if sev == "Critical" else ORANGE
         a = sc[sid]["arms"]
         extra = ""
         if sid == "B01":
@@ -911,7 +1130,7 @@ def report_b(ev, sup, tests, out: Path):
                    "itself.", "small"))
 
     # 9 residual + limitations
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     story.append(P("9. Residual exposure and limitations", "h1"))
     r = {x["scenario"]: x for x in m["residual"]}
     rem = {x["scenario"]: x for x in m["remediation"]}
@@ -967,7 +1186,7 @@ def report_b(ev, sup, tests, out: Path):
         ["Pilot (Guarded, then Enforced)", "Payment, egress, audit-log and IAM capabilities "
          "enforced; Control Room parity validated", "Production validation"],
     ], [34 * mm, 102 * mm, 34 * mm]))
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     evidence_index(story, ev, C, "B")
     story.append(P("Appendix B. Assessment-tooling observations", "h1"))
     story += bullets([
@@ -1050,7 +1269,7 @@ def board_briefing(ev, out: Path):
                    "approved role changes combined into a conflict of duties. Controls that check "
                    "one action at a time cannot see any of these. Each must be tested on its own "
                    "terms.", "body"))
-    story.append(PageBreak())
+    story.append(CondPageBreak(230))
     story.append(P("What the 48-Hour Audit does", "h1"))
     story += bullets([
         "<b>Day 0 (scoping call).</b> Agree one agent or workflow, its tools and permissions, and "
@@ -1095,15 +1314,27 @@ def board_briefing(ev, out: Path):
     story.append(P("Not yet demonstrable: results on a real customer's systems, the operator "
                    "console (Control Room) view of these findings, and production performance.",
                    "small"))
-    return _build(story, out, "Board briefing • Runtime Governance Audit", C)
+    return _build(story, out, "Board Briefing • Runtime Governance Audit", C)
 
 
 def _build(story, out: Path, title: str, C: Cite) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
-    doc = SimpleDocTemplate(str(out), pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm,
-                            topMargin=22 * mm, bottomMargin=20 * mm, title=title,
+    short = title.split(" \u2022 ")[0 if title.startswith("Board") else -1]
+    closing(story, short)
+    # Never strand a heading at the foot of a page: break first only if the
+    # heading and the start of its content would not fit.
+    flowed = []
+    for f in story:
+        if isinstance(f, SectionHead):
+            flowed.append(CondPageBreak(150))
+        elif isinstance(f, Paragraph) and f.style.name == "h2":
+            flowed.append(CondPageBreak(110))
+        flowed.append(f)
+    story[:] = flowed
+    doc = SimpleDocTemplate(str(out), pagesize=LETTER, leftMargin=MARGIN, rightMargin=MARGIN,
+                            topMargin=96, bottomMargin=72, title=title,
                             author=COMPANY, subject=SAMPLE)
-    fn = make_onpage(title)
+    fn = make_onpage(short)
     doc.build(story, onFirstPage=fn, onLaterPages=fn)
     out.with_suffix(".citations.json").write_text(json.dumps(
         {"report": out.name, "numbers": C.rows, "evidence_ids": sorted(C.ids)}, indent=2))
