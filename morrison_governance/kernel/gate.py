@@ -37,6 +37,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
 from morrison_governance.core import GovernanceLayer
+from morrison_governance.numeric import parse_number
 from morrison_governance.result import GovernanceVerdict
 from morrison_governance.kernel import capabilities as C
 from morrison_governance.kernel import policy as P
@@ -1035,7 +1036,10 @@ class GovernanceKernel:
                 # quarantined upstream (bypass AB-03).
                 cap_max = pol_values.get("payment_auto_approve_max", 0) or 0
                 amount = _numeric(clean["args"], ("amount", "value", "total"))
-                if amount is not None and amount <= cap_max and not dest.external:
+                # Only a well-formed, strictly positive amount may skip approval:
+                # a negative or zero "payment", a boolean, NaN or an unreadable
+                # amount compares below any cap and must not be auto-approved.
+                if amount is not None and 0 < amount <= cap_max and not dest.external:
                     requirement, auto_approved = P.ALLOW, True
 
             grant_satisfied = (requirement == P.GRANT
@@ -1877,12 +1881,14 @@ class GovernanceKernel:
 # ─────────────────────────────────────────────────────────────
 
 def _numeric(args: dict, keys: tuple) -> Optional[float]:
+    """The first of `keys` present in `args`, parsed strictly. A present but
+    malformed value (bool, None, NaN, inf, non-numeric string) returns None
+    and does NOT fall through to a later key: otherwise `amount="abc"` plus
+    `value=5` would be judged on 5 while the executor sees "abc"."""
     for k in keys:
         if k in args:
-            try:
-                return float(args[k])
-            except (TypeError, ValueError):
-                continue
+            number, malformed = parse_number(args[k])
+            return None if malformed else number
     return None
 
 

@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable, Optional
 
+from morrison_governance import numeric as _num
 from morrison_governance import provenance as _prov
 
 
@@ -85,6 +86,13 @@ class OmegaRule:
 def _default_finance_rules() -> list[OmegaRule]:
     """Finance domain: unauthorized transactions, guaranteed returns, fabricated filings."""
     return [
+        # First: an unreadable amount is the cause, whatever else also fires.
+        OmegaRule(
+            domain=OmegaDomain.FINANCE,
+            name="malformed_amount",
+            description="Amount or threshold that is not a finite number, or a negative payment amount",
+            check=_malformed_amount,
+        ),
         OmegaRule(
             domain=OmegaDomain.FINANCE,
             name="unauthorized_transfer",
@@ -107,12 +115,72 @@ def _default_finance_rules() -> list[OmegaRule]:
             domain=OmegaDomain.FINANCE,
             name="excessive_amount",
             description="Transaction exceeding governance threshold without approval",
-            check=lambda s: (
-                s.get("amount", 0) > s.get("threshold", float("inf"))
-                and not _attested(s, "approved")
-            ),
+            check=_excessive_amount,
         ),
     ]
+
+
+# ── numeric predicates (finance and fraud) ─────────────────────────────────
+# Every comparison goes through morrison_governance.numeric.parse_number. A
+# malformed value never reaches a comparison and is never read as 0: the
+# threshold rules skip it, and the dedicated malformed_* rules refuse it by
+# name, so the decision is made by policy rather than by error handling.
+_MONEY_TOOLS = frozenset({"transfer", "send_payment", "execute_trade", "withdraw"})
+_FRAUD_MONEY_TOOLS = frozenset({"transfer", "send_payment", "withdraw"})
+_ACCOUNT_TOOLS = frozenset({"create_account", "open_account", "kyc"})
+
+
+def _excessive_amount(s: dict) -> bool:
+    amount, bad_amount = _num.field(s, "amount", 0.0)
+    threshold, bad_threshold = _num.field(s, "threshold", float("inf"))
+    if bad_amount or bad_threshold:
+        return False                      # malformed_amount decides
+    # Magnitude: a negative "transfer" moves the same value the other way.
+    return abs(amount) > threshold and not _attested(s, "approved")
+
+
+def _malformed_amount(s: dict) -> bool:
+    money = s.get("tool") in _MONEY_TOOLS
+    if _num.field(s, "threshold", 0.0)[1]:
+        return True                       # a threshold that cannot be read
+    amount, bad = _num.field(s, "amount", 0.0)
+    if bad:
+        # Only where an amount is compared: payment tools, or any call that
+        # carries a threshold for excessive_amount to compare against.
+        return money or "threshold" in s
+    return money and amount < 0
+
+
+def _structuring_pattern(s: dict) -> bool:
+    if s.get("tool") not in _FRAUD_MONEY_TOOLS:
+        return False
+    amount, bad = _num.field(s, "amount", 0.0)
+    return not bad and 9000 <= abs(amount) <= 9999
+
+
+def _velocity_anomaly(s: dict) -> bool:
+    if s.get("tool") not in _FRAUD_MONEY_TOOLS:
+        return False
+    count, bad = _num.field(s, "transactions_last_hour", 0.0)
+    return not bad and count > 10
+
+
+def _synthetic_identity(s: dict) -> bool:
+    if s.get("tool") not in _ACCOUNT_TOOLS:
+        return False
+    score, bad = _num.field(s, "identity_score", 1.0)
+    return not bad and score < 0.5
+
+
+def _malformed_fraud_signal(s: dict) -> bool:
+    tool = s.get("tool")
+    if tool in _FRAUD_MONEY_TOOLS:
+        amount, bad_amount = _num.field(s, "amount", 0.0)
+        bad_count = _num.field(s, "transactions_last_hour", 0.0)[1]
+        return bad_amount or bad_count or amount < 0
+    if tool in _ACCOUNT_TOOLS:
+        return _num.field(s, "identity_score", 1.0)[1]
+    return False
 
 
 def _default_cybersecurity_rules() -> list[OmegaRule]:
@@ -292,32 +360,31 @@ def _default_compliance_rules() -> list[OmegaRule]:
 def _default_fraud_rules() -> list[OmegaRule]:
     """Fraud domain: structuring, velocity anomalies, synthetic identity."""
     return [
+        # First: an unreadable signal is the cause, whatever else also fires.
+        OmegaRule(
+            domain=OmegaDomain.FRAUD,
+            name="malformed_fraud_signal",
+            description="Fraud signal (amount, velocity, identity score) that is not a finite number, "
+                        "or a negative payment amount",
+            check=_malformed_fraud_signal,
+        ),
         OmegaRule(
             domain=OmegaDomain.FRAUD,
             name="structuring_pattern",
             description="Amount just below reporting threshold (structuring)",
-            check=lambda s: (
-                s.get("tool") in ("transfer", "send_payment", "withdraw")
-                and 9000 <= s.get("amount", 0) <= 9999
-            ),
+            check=_structuring_pattern,
         ),
         OmegaRule(
             domain=OmegaDomain.FRAUD,
             name="velocity_anomaly",
             description="Transaction velocity exceeds short-window threshold",
-            check=lambda s: (
-                s.get("tool") in ("transfer", "send_payment", "withdraw")
-                and s.get("transactions_last_hour", 0) > 10
-            ),
+            check=_velocity_anomaly,
         ),
         OmegaRule(
             domain=OmegaDomain.FRAUD,
             name="synthetic_identity",
             description="Identity score below confidence floor on account creation",
-            check=lambda s: (
-                s.get("tool") in ("create_account", "open_account", "kyc")
-                and s.get("identity_score", 1.0) < 0.5
-            ),
+            check=_synthetic_identity,
         ),
     ]
 
